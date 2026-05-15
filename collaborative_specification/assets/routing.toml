@@ -1,0 +1,113 @@
+[skill]
+name = "collaborative_specification"
+artifact_dir = ".codex_workflow/specification"
+mandatory_presence = ["synthesis_anchor", "adversarial_anchor"]
+required_phases = ["repo_read", "product_definition", "domain_definition", "interface_definition", "backend_definition", "risk_review", "convergence"]
+required_outputs = ["prd.md", "codebase_fit.md", "domain_notes.md", "interface_contract.md", "backend_contract.md", "risk_register.md", "decision_log.md", "panel_summary.json"]
+workflow = "Follow the skill SKILL.md instructions, keep role outputs independent before reconciliation, preserve disagreements in the decision log, and do not mark the phase complete until every listed role has a real response and mandatory anchor roles are recorded."
+
+[providers.synthesis_anchor]
+kind = "native_codex"
+provider = "codex"
+model = "gpt-5.5"
+model_label = "GPT 5.5"
+enabled = true
+native_response_required = true
+duty = "Synthesize, reconcile, coordinate native Codex subagents when allowed, and own final decisions inside the host Codex session."
+
+[providers.adversarial_anchor]
+kind = "runner"
+runner = "claude"
+provider = "anthropic"
+model = "opus"
+model_label = "Opus 4.7"
+enabled = true
+script = ".agents/skills/claude-runner/scripts/run_claude.py"
+timeout_seconds = 1200
+duty = "Challenge assumptions, find risks, inspect security and architecture, and block unsafe convergence."
+runner_args = ["--output-format", "json", "--no-session-persistence", "--restrict-tools"]
+
+[providers.broad_context]
+kind = "runner"
+runner = "gemini"
+provider = "google"
+model = "gemini-3.1-pro-preview"
+model_label = "Gemini 3.1 Pro"
+enabled = true
+script = ".agents/skills/gemini-runner/scripts/run_gemini.py"
+timeout_seconds = 1200
+duty = "Explore broad context, user journeys, interface options, large code context, and alternative scenarios."
+runner_args = ["--output-format", "json", "--no-yolo"]
+
+[providers.feasibility]
+kind = "runner"
+runner = "kimi"
+provider = "moonshot"
+model = "kimi-code/kimi-for-coding"
+model_label = "Kimi Code"
+enabled = true
+script = ".agents/skills/kimi-runner/scripts/run_kimi.py"
+timeout_seconds = 1200
+duty = "Pressure test execution feasibility, sequencing, long horizon integration, and implementation risks."
+runner_args = ["--output-format", "stream-json", "--no-session-persistence", "--restrict-tools"]
+
+[roles.synthesis_anchor]
+provider = "synthesis_anchor"
+runner_role = "synthesizer"
+duty = "Native synthesis, final reconciliation, implementation aware decision making, and audit trail ownership."
+
+[roles.adversarial_anchor]
+provider = "adversarial_anchor"
+runner_role = "adversarial"
+duty = "Adversarial critique, architecture risk, security risk, data safety, edge cases, and blocking objections."
+
+[roles.product]
+provider = "synthesis_anchor"
+runner_role = "planner"
+duty = "Clarify user value, acceptance criteria, rollout strategy, analytics, support, and non goals."
+
+[roles.domain]
+provider = "synthesis_anchor"
+runner_role = "researcher"
+duty = "Define domain concepts, invariants, bounded context boundaries, ubiquitous language, and behavior rules."
+
+[roles.interface]
+provider = "broad_context"
+runner_role = "planner"
+duty = "Define user journeys, screens, state boundaries, validation messages, accessibility requirements, and component contracts."
+
+[roles.backend]
+provider = "synthesis_anchor"
+runner_role = "planner"
+duty = "Define APIs, application use cases, persistence boundaries, transactions, integrations, permissions, observability, and failure behavior."
+
+[roles.security]
+provider = "adversarial_anchor"
+runner_role = "codereviewer"
+duty = "Review authentication, authorization, data exposure, tenancy, auditability, abuse cases, privacy, and rollback risk."
+
+[roles.delivery_review]
+provider = "feasibility"
+runner_role = "planner"
+duty = "Review implementation feasibility, rollout pressure, migration risk, sequencing, support burden, and operational cost."
+
+[phases.repo_read]
+roles = ["synthesis_anchor", "adversarial_anchor", "product", "domain", "interface", "backend", "security", "delivery_review"]
+
+[phases.product_definition]
+roles = ["synthesis_anchor", "adversarial_anchor", "product", "interface", "backend", "security", "delivery_review"]
+
+[phases.domain_definition]
+roles = ["synthesis_anchor", "adversarial_anchor", "domain", "backend", "interface", "security", "delivery_review"]
+
+[phases.interface_definition]
+roles = ["synthesis_anchor", "adversarial_anchor", "interface", "product", "backend", "security", "delivery_review"]
+
+[phases.backend_definition]
+roles = ["synthesis_anchor", "adversarial_anchor", "backend", "domain", "interface", "security", "delivery_review"]
+
+[phases.risk_review]
+roles = ["synthesis_anchor", "adversarial_anchor", "security", "backend", "interface", "delivery_review"]
+
+[phases.convergence]
+roles = ["synthesis_anchor", "adversarial_anchor", "product", "domain", "interface", "backend", "security", "delivery_review"]

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Qwen Runner"
+  short_description: "Run workspace prompts through Qwen Code CLI"
+  default_prompt: "Use $qwen-runner to execute this task with Qwen Code from the current workspace."

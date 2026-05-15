@@ -1,0 +1,6 @@
+interface:
+  display_name: "Collaborative discovery"
+  short_description: "Run a real multi-model discovery interview that clarifies an ambiguous idea, preserves options, and records panel evidence."
+  default_prompt: "Use $collaborative_discovery for this workflow."
+policy:
+  allow_implicit_invocation: true

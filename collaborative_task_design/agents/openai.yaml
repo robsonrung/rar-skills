@@ -1,0 +1,6 @@
+interface:
+  display_name: "Collaborative task design"
+  short_description: "Run a real multi-model engineering planning workflow that turns a spec into sequenced, test-first delivery tasks."
+  default_prompt: "Use $collaborative_task_design for this workflow."
+policy:
+  allow_implicit_invocation: true

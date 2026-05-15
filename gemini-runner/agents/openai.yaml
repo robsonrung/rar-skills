@@ -1,0 +1,4 @@
+interface:
+  display_name: "Gemini Runner"
+  short_description: "Run workspace prompts through Gemini CLI"
+  default_prompt: "Use $gemini-runner to execute this task with Gemini CLI from the current workspace."

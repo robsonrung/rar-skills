@@ -1,0 +1,118 @@
+[skill]
+name = "collaborative_delivery"
+artifact_dir = ".codex_workflow/delivery"
+mandatory_presence = ["synthesis_anchor", "adversarial_anchor"]
+required_phases = ["task_intake", "red", "green", "refactor", "review", "verification", "handoff"]
+required_outputs = ["execution_log.md", "test_evidence.md", "review_notes.md", "changed_files.md", "decision_log.md", "panel_summary.json"]
+workflow = "Follow the skill SKILL.md instructions, keep role outputs independent before reconciliation, preserve disagreements in the decision log, and do not mark the phase complete until every listed role has a real response and mandatory anchor roles are recorded."
+
+[providers.synthesis_anchor]
+kind = "native_codex"
+provider = "codex"
+model = "gpt-5.5"
+model_label = "GPT 5.5"
+enabled = true
+native_response_required = true
+duty = "Synthesize, reconcile, coordinate native Codex subagents when allowed, and own final decisions inside the host Codex session."
+
+[providers.adversarial_anchor]
+kind = "runner"
+runner = "claude"
+provider = "anthropic"
+model = "opus"
+model_label = "Opus 4.7"
+enabled = true
+script = ".agents/skills/claude-runner/scripts/run_claude.py"
+timeout_seconds = 1200
+duty = "Challenge assumptions, find risks, inspect security and architecture, and block unsafe convergence."
+runner_args = ["--output-format", "json", "--no-session-persistence", "--restrict-tools"]
+
+[providers.broad_context]
+kind = "runner"
+runner = "gemini"
+provider = "google"
+model = "gemini-3.1-pro-preview"
+model_label = "Gemini 3.1 Pro"
+enabled = true
+script = ".agents/skills/gemini-runner/scripts/run_gemini.py"
+timeout_seconds = 1200
+duty = "Explore broad context, user journeys, interface options, large code context, and alternative scenarios."
+runner_args = ["--output-format", "json", "--no-yolo"]
+
+[providers.feasibility]
+kind = "runner"
+runner = "kimi"
+provider = "moonshot"
+model = "kimi-code/kimi-for-coding"
+model_label = "Kimi Code"
+enabled = true
+script = ".agents/skills/kimi-runner/scripts/run_kimi.py"
+timeout_seconds = 1200
+duty = "Pressure test execution feasibility, sequencing, long horizon integration, and implementation risks."
+runner_args = ["--output-format", "stream-json", "--no-session-persistence", "--restrict-tools"]
+
+[roles.synthesis_anchor]
+provider = "synthesis_anchor"
+runner_role = "synthesizer"
+duty = "Native synthesis, final reconciliation, implementation aware decision making, and audit trail ownership."
+
+[roles.adversarial_anchor]
+provider = "adversarial_anchor"
+runner_role = "adversarial"
+duty = "Adversarial critique, architecture risk, security risk, data safety, edge cases, and blocking objections."
+
+[roles.implementation]
+provider = "synthesis_anchor"
+runner_role = "implementer"
+duty = "Apply the smallest correct change that satisfies the current task and preserves architecture boundaries."
+
+[roles.interface]
+provider = "broad_context"
+runner_role = "codereviewer"
+duty = "For user interface work, define and review component contracts, states, accessibility, responsiveness, and user experience behavior."
+
+[roles.backend]
+provider = "synthesis_anchor"
+runner_role = "implementer"
+duty = "For service work, implement use cases, domain behavior, ports, adapters, permissions, persistence, and observability with tests first."
+
+[roles.testing]
+provider = "synthesis_anchor"
+runner_role = "planner"
+duty = "Drive red, green, refactor. Add regression tests before fixes and validate behavior with the narrowest reliable command first."
+
+[roles.review]
+provider = "adversarial_anchor"
+runner_role = "codereviewer"
+duty = "Review correctness, security, maintainability, error paths, data safety, and architectural fit before completion."
+
+[roles.simplification]
+provider = "adversarial_anchor"
+runner_role = "challenger"
+duty = "Remove accidental complexity after tests pass. Prefer clear names, smaller seams, and fewer abstractions."
+
+[roles.delivery_review]
+provider = "feasibility"
+runner_role = "codereviewer"
+duty = "Review delivery risk, sequencing, hidden coupling, rollout impact, and whether the current slice remains safe to ship."
+
+[phases.task_intake]
+roles = ["synthesis_anchor", "adversarial_anchor", "implementation", "testing", "review", "backend", "interface", "delivery_review"]
+
+[phases.red]
+roles = ["synthesis_anchor", "adversarial_anchor", "testing", "backend", "interface", "delivery_review"]
+
+[phases.green]
+roles = ["synthesis_anchor", "adversarial_anchor", "implementation", "backend", "interface", "testing", "delivery_review"]
+
+[phases.refactor]
+roles = ["synthesis_anchor", "adversarial_anchor", "simplification", "testing", "backend", "interface", "delivery_review"]
+
+[phases.review]
+roles = ["synthesis_anchor", "adversarial_anchor", "review", "testing", "backend", "interface", "delivery_review"]
+
+[phases.verification]
+roles = ["synthesis_anchor", "adversarial_anchor", "testing", "review", "backend", "interface", "delivery_review"]
+
+[phases.handoff]
+roles = ["synthesis_anchor", "adversarial_anchor", "implementation", "testing", "review", "backend", "interface", "delivery_review"]

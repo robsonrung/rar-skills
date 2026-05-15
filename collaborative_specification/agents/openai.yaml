@@ -1,0 +1,6 @@
+interface:
+  display_name: "Collaborative specification"
+  short_description: "Run a real multi-model PRD and codebase-fit workflow with product, domain, interface, backend, and security review."
+  default_prompt: "Use $collaborative_specification for this workflow."
+policy:
+  allow_implicit_invocation: true

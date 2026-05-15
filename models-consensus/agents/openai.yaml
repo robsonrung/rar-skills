@@ -1,0 +1,4 @@
+interface:
+  display_name: "Models Consensus"
+  short_description: "Moderate a multi-model decision council"
+  default_prompt: "Use $models-consensus to moderate a stance-driven council across Claude Opus 4.7, Claude Sonnet 4.6, Codex, Gemini, and GLM-backed seats for this repository decision."

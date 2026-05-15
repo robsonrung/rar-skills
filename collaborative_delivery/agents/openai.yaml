@@ -1,0 +1,6 @@
+interface:
+  display_name: "Collaborative delivery"
+  short_description: "Run a real multi-model delivery workflow with red-green-refactor, review gates, and auditable verification evidence."
+  default_prompt: "Use $collaborative_delivery for this workflow."
+policy:
+  allow_implicit_invocation: true

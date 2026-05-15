@@ -1,0 +1,4 @@
+interface:
+  display_name: "Council"
+  short_description: "Clarify, compare, plan, then execute"
+  default_prompt: "Use $council to clarify this task, compare the four model seats, and propose a plan."

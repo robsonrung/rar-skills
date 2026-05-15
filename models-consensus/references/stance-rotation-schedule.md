@@ -1,0 +1,57 @@
+# Stance Rotation Schedule
+
+Rotate stances across iterations to reduce model-position bias. The moderator applies this schedule per seat based on the round number.
+
+## Round 1: Natural Stances
+
+Each model starts in its natural role:
+
+| Seat | Round 1 Stance | Runner Role |
+|------|----------------|-------------|
+| Claude Opus 4.7 | `critical_with_responsibility` | `codereviewer` or `adversarial` |
+| Claude Sonnet 4.6 | `supportive_with_integrity` | `planner` or `implementer` |
+| Codex | `devils_advocate` | `challenger` |
+| Gemini | `balanced_synthesis` | `synthesizer` |
+| Kimi | `pragmatic_engineering` | `implementer` |
+| Gemma | `supportive_with_integrity` | `planner` |
+| GLM Pragmatic | `pragmatic_engineering` | `implementer` |
+| GLM Critic | `critical_with_responsibility` | `codereviewer` or `adversarial` |
+| Minimax | `devils_advocate` | `challenger` |
+
+## Round 2: Cross-Stance Pressure
+
+Each seat adopts a stance that challenges its Round 1 position:
+
+| Seat | Round 2 Stance | Purpose |
+|------|----------------|---------|
+| Claude Opus 4.7 | `balanced_synthesis` | Step back and weigh alternatives fairly |
+| Claude Sonnet 4.6 | `critical_with_responsibility` | Stress-test the supportive position |
+| Codex | `critical_with_responsibility` | Ground devil's advocacy in constructive critique |
+| Gemini | `pragmatic_engineering` | Move from synthesis to actionable evaluation |
+| Kimi | `balanced_synthesis` | Evaluate tradeoffs beyond implementation details |
+| Gemma | `pragmatic_engineering` | Translate support into concrete feasibility |
+| GLM Pragmatic | `balanced_synthesis` | Evaluate own pragmatism against alternatives |
+| GLM Critic | `devils_advocate` | Escalate critique to fundamental objection |
+| Minimax | `critical_with_responsibility` | Ground adversarial position in specific risks |
+
+## Round 3: Convergence / Integration
+
+Final round focuses on integration or decisive critique:
+
+| Seat | Round 3 Stance | Purpose |
+|------|----------------|---------|
+| Claude Opus 4.7 | `pragmatic_engineering` | Recommend specific implementation path |
+| Claude Sonnet 4.6 | `balanced_synthesis` | Reconcile findings and recommend direction |
+| Codex | `balanced_synthesis` | Synthesize objections into final assessment |
+| Gemini | `critical_with_responsibility` | Final sanity check on consensus direction |
+| Kimi | `critical_with_responsibility` | Identify last-mile risks in the leading option |
+| Gemma | `balanced_synthesis` | Reconcile support with discovered constraints |
+| GLM Pragmatic | `critical_with_responsibility` | Flag overlooked practical blockers |
+| GLM Critic | `balanced_synthesis` | Channel critique into constructive refinement |
+| Minimax | `balanced_synthesis` | Synthesize adversarial findings into final view |
+
+## Fallback Rules
+
+- If fewer than 3 seats are available, skip Round 3 and run only 2 rounds.
+- If a seat's output in Round 1 already matches the Round 3 stance for that seat, keep the Round 2 assignment for Round 2 but shift Round 3 to `balanced_synthesis` to ensure the seat contributes to convergence.
+- If the user explicitly pauses the council to provide direction, resume from the next round using the scheduled stance for that round number — do not restart the rotation.

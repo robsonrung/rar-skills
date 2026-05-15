@@ -1,0 +1,4 @@
+interface:
+  display_name: "Kimi Runner"
+  short_description: "Run workspace prompts through Kimi CLI"
+  default_prompt: "Use $kimi-runner to execute this task with Kimi CLI from the current workspace."

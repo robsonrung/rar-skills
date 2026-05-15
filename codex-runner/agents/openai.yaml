@@ -1,0 +1,4 @@
+interface:
+  display_name: "Codex Runner"
+  short_description: "Run prompts via Codex CLI exec mode"
+  default_prompt: "Use $codex-runner to execute this prompt with Codex CLI exec mode."

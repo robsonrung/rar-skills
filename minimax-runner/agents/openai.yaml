@@ -1,0 +1,4 @@
+interface:
+  display_name: "Minimax Runner"
+  short_description: "Run workspace prompts through Qwen CLI on Minimax"
+  default_prompt: "Use $minimax-runner to execute this task with Minimax from the current workspace."

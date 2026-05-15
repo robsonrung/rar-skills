@@ -1,0 +1,4 @@
+interface:
+  display_name: 'Claude Runner'
+  short_description: 'Run workspace prompts through Claude CLI'
+  default_prompt: 'Use $claude-runner to execute this task with Claude CLI from the current workspace.'
