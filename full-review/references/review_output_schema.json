@@ -1,0 +1,192 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Full Review Output",
+  "type": "object",
+  "required": [
+    "comments",
+    "verdict",
+    "summary"
+  ],
+  "properties": {
+    "comments": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "severity",
+          "confidence",
+          "category",
+          "path",
+          "line_start",
+          "line_end",
+          "title",
+          "problem",
+          "evidence",
+          "suggested_fix",
+          "tests_to_run"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "severity": {
+            "type": "string",
+            "enum": [
+              "CRITICAL",
+              "HIGH",
+              "MEDIUM",
+              "LOW"
+            ]
+          },
+          "confidence": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "spec",
+              "correctness",
+              "security",
+              "reliability",
+              "performance",
+              "maintainability",
+              "tests",
+              "docs",
+              "style",
+              "tooling"
+            ]
+          },
+          "path": {
+            "type": "string"
+          },
+          "line_start": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "line_end": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "title": {
+            "type": "string"
+          },
+          "problem": {
+            "type": "string"
+          },
+          "evidence": {
+            "type": "string"
+          },
+          "suggested_fix": {
+            "type": "string"
+          },
+          "prompt_for_agent": {
+            "type": "string"
+          },
+          "tests_to_run": {
+            "type": "string"
+          },
+          "questions": {
+            "type": "string"
+          },
+          "notes": {
+            "type": "string"
+          },
+          "verified": {
+            "type": "boolean",
+            "description": "Whether Phase 4 execution-based verification confirmed this finding. Absent when verify_mode=false."
+          },
+          "verification_evidence": {
+            "type": "string",
+            "description": "Output or description of the verification script/probe that confirmed or refuted this finding."
+          },
+          "source": {
+            "type": "string",
+            "enum": [
+              "quality_gate",
+              "persona_spec",
+              "persona_security",
+              "persona_reliability",
+              "persona_performance",
+              "persona_maintainability",
+              "persona_tests",
+              "bug_finder_injection",
+              "bug_finder_auth",
+              "bug_finder_logic",
+              "bug_finder_data",
+              "bug_finder_regression",
+              "bug_finder_performance",
+              "external_claude",
+              "external_codex",
+              "external_gemini",
+              "orchestrator"
+            ]
+          },
+          "corroborated_by": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "verdict": {
+      "type": "string",
+      "enum": [
+        "APPROVE",
+        "COMMENT",
+        "REQUEST_CHANGES"
+      ]
+    },
+    "summary": {
+      "type": "object",
+      "required": [
+        "files_reviewed",
+        "issues_total",
+        "by_severity"
+      ],
+      "properties": {
+        "files_reviewed": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "issues_total": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "by_severity": {
+          "type": "object",
+          "required": [
+            "CRITICAL",
+            "HIGH",
+            "MEDIUM",
+            "LOW"
+          ],
+          "properties": {
+            "CRITICAL": { "type": "integer", "minimum": 0 },
+            "HIGH": { "type": "integer", "minimum": 0 },
+            "MEDIUM": { "type": "integer", "minimum": 0 },
+            "LOW": { "type": "integer", "minimum": 0 }
+          },
+          "additionalProperties": false
+        },
+        "bugs_summary": {
+          "type": "object",
+          "description": "Summary of execution-based verification results from Phase 4. Absent when verify_mode=false.",
+          "properties": {
+            "bugs_found": { "type": "integer", "minimum": 0 },
+            "bugs_verified": { "type": "integer", "minimum": 0 },
+            "bugs_refuted": { "type": "integer", "minimum": 0 }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}
