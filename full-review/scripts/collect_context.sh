@@ -4,7 +4,7 @@ set -euo pipefail
 kind="${1:-}"
 target="${2:-}"
 base="${3:-}"
-out_dir="${OUT_DIR:-./artifacts/deep-review}"
+out_dir="${OUT_DIR:-./artifacts/full-review}"
 mkdir -p "$out_dir"
 
 usage() {
@@ -18,7 +18,7 @@ Modes:
   local  [base_branch]   Diff current branch + working tree against the merge-base with a base branch (default: main)
 
 Environment:
-  OUT_DIR   Output directory (default: ./artifacts/deep-review)
+  OUT_DIR   Output directory (default: ./artifacts/full-review)
 EOF
   exit 1
 }

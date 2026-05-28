@@ -75,12 +75,10 @@ Focus on p95 and p99, propose benchmarks or cheap instrumentation, recommend tar
 - Expensive operations inside loops or hot paths
 - Missing memoization for repeated expensive computations
 - Large payload serialization without streaming
-
-Multiverse frontend-specific:
-- Query waterfalls or duplicate fetches that break existing React Query patterns
-- Missing invalidation or stale cache handling after mutations
-- Derived state, route params, or form state managed in a way that diverges from local module patterns
-- Large list or screen regressions in web or mobile flows that are already hot paths
+- Query waterfalls or duplicate fetches that break existing client data patterns
+- Missing cache invalidation or stale cache handling after mutations
+- Derived state, route params, or form state managed in a way that diverges from local patterns
+- Large list or screen regressions in user-visible hot paths
 </grounding_rules>
 
 ## Maintainer Gardener
@@ -110,9 +108,9 @@ Structural review rules:
 - Do not report cosmetic taste, ordinary naming nits, or vague architecture wishes.
 - For every finding, include the simpler framing and the smallest safe refactor path.
 
-Multiverse architecture-specific:
-- Layer violations across backend clean-architecture boundaries
-- Feature logic leaking from package-local modules into shared libraries without a clear API
+Architecture-specific:
+- Layer violations across the repository's established boundaries
+- Feature logic leaking from local modules into shared libraries without a clear API
 - Generated and manual code mixed in a way that will be overwritten by codegen
 </grounding_rules>
 

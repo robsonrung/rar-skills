@@ -17,7 +17,7 @@ Standardize all fields before any comparison or filtering.
 
 | Field | Rule |
 |---|---|
-| `path` | Relative from repo root. Strip leading `./` or `/`. Use forward slashes. Example: `packages/backend-module-core/internal/domain/user.go` |
+| `path` | Relative from repo root. Strip leading `./` or `/`. Use forward slashes. Example: `src/orders/create_order.go` |
 | `severity` | Uppercase enum: `CRITICAL`, `HIGH`, `MEDIUM`, `LOW`. Any other value is invalid — reject the comment. |
 | `confidence` | Float clamped to `[0.0, 1.0]`. Round to two decimal places. Values outside the range are clamped. |
 | `category` | Lowercase kebab-case. Example: `correctness`, `security`, `performance`, `style`, `test-quality`. |
@@ -71,59 +71,7 @@ When near-duplicates originate from **different sources** (bug finders, personas
 2. Boost `confidence` by `+0.05` for each additional corroborating source beyond the first.
 3. Cap `confidence` at `1.0`.
 
-Example: a comment found by the Architect (confidence 0.80) and the Security persona (confidence 0.75) merges to confidence `min(0.80 + 0.05, 1.0) = 0.85` with `corroborated_by: ["architect", "security"]`.
-
-### Dedupe example
-
-**Before (two candidate comments):**
-
-```json
-[
-  {
-    "path": "packages/backend-module-trade/internal/application/commands/create_order.go",
-    "line_start": 42,
-    "line_end": 48,
-    "category": "correctness",
-    "severity": "HIGH",
-    "confidence": 0.82,
-    "source": "persona_reliability",
-    "evidence": ["uow.Commit is called but error return is ignored on line 47"],
-    "suggested_fix": "Wrap the Commit call: `if err := uow.Commit(ctx); err != nil { return nil, err }`"
-  },
-  {
-    "path": "packages/backend-module-trade/internal/application/commands/create_order.go",
-    "line_start": 45,
-    "line_end": 50,
-    "category": "correctness",
-    "severity": "HIGH",
-    "confidence": 0.75,
-    "source": "bug_finder_logic",
-    "evidence": ["error from Commit on line 47 is discarded, transaction may silently fail"],
-    "suggested_fix": "Check the error from Commit."
-  }
-]
-```
-
-**After merge (one surviving comment):**
-
-```json
-{
-  "path": "packages/backend-module-trade/internal/application/commands/create_order.go",
-  "line_start": 42,
-  "line_end": 50,
-  "category": "correctness",
-  "severity": "HIGH",
-  "confidence": 0.87,
-  "corroborated_by": ["persona_reliability", "bug_finder_logic"],
-  "evidence": [
-    "uow.Commit is called but error return is ignored on line 47",
-    "error from Commit on line 47 is discarded, transaction may silently fail"
-  ],
-  "suggested_fix": "Wrap the Commit call: `if err := uow.Commit(ctx); err != nil { return nil, err }`"
-}
-```
-
-Confidence: `0.82 + 0.05 = 0.87` (one additional corroborating source). The more specific `suggested_fix` (with code) is kept. Line range is the union `[42, 50]`.
+Example: a finding at confidence `0.82` corroborated by one independent source becomes `0.87`, keeps the best fix, combines evidence, and expands the line range to cover both reports.
 
 ---
 
@@ -161,7 +109,7 @@ Final pass over every surviving comment to ensure it is actionable and respectfu
 
 - **Why it matters** — one sentence explaining the real-world consequence (data loss, crash, security exposure, maintenance burden).
 - **Concrete fix steps** — exact code change, not just "fix this". Use fenced code blocks with the target language.
-- **`tests_to_run`** — at minimum one command or test file path the author can run to verify the fix. Example: `nx run backend-module-trade:test -- --grep "CreateOrder"`.
+- **`tests_to_run`** — at minimum one command or test file path the author can run to verify the fix.
 
 Structural maintainability comments must include the current complexity, the future change risk, the proposed simpler structure, and the smallest safe refactor path. Suppress ordinary style feedback even when it passes the confidence threshold.
 
