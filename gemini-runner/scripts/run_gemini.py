@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 """
-Gemini Runner - A wrapper for Gemini CLI headless execution.
+Gemini Runner - A wrapper for Antigravity CLI (`agy`) headless execution.
 
-Executes prompts using Gemini CLI with optional auto-approval support.
+Executes prompts using Antigravity CLI print mode with optional auto-approval
+support. The file name and public function names stay stable for existing
+Gemini-seat workflows.
 """
 
 import argparse
@@ -16,7 +18,8 @@ import tempfile
 from pathlib import Path
 from typing import Any, Optional
 
-DEFAULT_MODEL = "gemini-2.5-flash"
+AGY_CLI = "agy"
+DEFAULT_MODEL = "agy-configured-model"
 ROLE_INSTRUCTIONS = {
     "planner": "Act as a planning specialist. Break work into phases, call out risks, and keep the output actionable.",
     "codereviewer": "Act as a rigorous code reviewer. Prioritize correctness, regressions, missing tests, and concrete evidence.",
@@ -32,6 +35,7 @@ PROVIDER_BY_RUNNER = {
     "claude": "anthropic",
     "codex": "openai",
     "gemini": "google",
+    "agy": "google",
     "qwen": "qwen",
     "gemma": "google",
     "glm": "z-ai",
@@ -98,6 +102,25 @@ def write_json_output_file(path: str, payload: dict[str, Any]) -> str:
     return str(target)
 
 
+def format_print_timeout(timeout: int) -> str:
+    return f"{max(1, int(timeout))}s"
+
+
+def output_format_instruction(output_format: str) -> str:
+    if output_format == "json":
+        return (
+            "Response format request: return valid JSON only. Do not wrap the "
+            "JSON in Markdown fences or explanatory prose."
+        )
+    if output_format == "stream-json":
+        return (
+            "Response format request: Antigravity CLI print mode is captured as "
+            "final stdout by this wrapper. Return newline-delimited JSON objects "
+            "if an event-style response is needed."
+        )
+    return ""
+
+
 def build_prompt(
     prompt: str,
     prompt_file: Optional[str],
@@ -130,7 +153,9 @@ def invoke_fallback(
     session_file: Optional[str],
     metadata_json: Optional[str],
 ) -> dict[str, Any]:
-    command = [sys.executable, str(runner_script), "--json", "--disable-fallback"]
+    command = [sys.executable, str(runner_script), "--json"]
+    if runner_script.name != "run_opencode.py":
+        command.append("--disable-fallback")
 
     if prompt_file:
         command.extend(["--prompt-file", prompt_file])
@@ -206,22 +231,27 @@ def run_gemini(
     role: Optional[str] = None,
     session_file: Optional[str] = None,
     metadata_json: Optional[str] = None,
+    agy_continue: bool = False,
     disable_fallback: bool = False,
 ) -> dict:
     """
-    Execute a prompt using Gemini CLI.
+    Execute a prompt using Antigravity CLI (`agy`) print mode.
 
     Args:
         prompt: The prompt to execute
         timeout: Maximum wait time in seconds (default: 3600)
         working_dir: Working directory for execution (default: current directory)
-        model: Gemini model to use (default: 'gemini-2.5-flash')
-        output_format: Gemini output format - 'text', 'json', or 'stream-json' (default: 'text')
-        yolo: Auto-approve all actions (default: True)
+        model: Accepted for compatibility; Antigravity CLI currently uses its
+            configured model from settings/model picker.
+        output_format: Compatibility hint - 'text', 'json', or 'stream-json'
+            (default: 'text')
+        yolo: Auto-approve tool permission requests (default: True)
+        agy_continue: Resume the most recent Antigravity CLI conversation.
 
     Returns:
         dict with keys: success, stdout, stderr, return_code, command, working_dir
     """
+    requested_model = model
     model = model or DEFAULT_MODEL
 
     if prompt_file and not Path(prompt_file).is_file():
@@ -230,11 +260,14 @@ def run_gemini(
             "stdout": "",
             "stderr": f"Prompt file does not exist: {prompt_file}",
             "return_code": -3,
-            "command": "gemini --prompt",
+            "command": f"{AGY_CLI} --print",
             "working_dir": working_dir or os.getcwd(),
             "model": model,
+            "requested_model": requested_model,
+            "effective_model": DEFAULT_MODEL,
             "output_format": output_format,
             "yolo": yolo,
+            "agy_continue": agy_continue,
         }
 
     if session_file and not Path(session_file).is_file():
@@ -243,21 +276,28 @@ def run_gemini(
             "stdout": "",
             "stderr": f"Session file does not exist: {session_file}",
             "return_code": -3,
-            "command": "gemini --prompt",
+            "command": f"{AGY_CLI} --print",
             "working_dir": working_dir or os.getcwd(),
             "model": model,
+            "requested_model": requested_model,
+            "effective_model": DEFAULT_MODEL,
             "output_format": output_format,
             "yolo": yolo,
+            "agy_continue": agy_continue,
         }
 
     final_prompt = build_prompt(prompt, prompt_file, role, session_file, metadata_json)
+    format_instruction = output_format_instruction(output_format)
+    if format_instruction:
+        final_prompt = "\n\n".join([final_prompt, format_instruction])
 
-    cmd = ["gemini", "--prompt", final_prompt]
+    cmd = [AGY_CLI]
+    if agy_continue:
+        cmd.append("--continue")
+    cmd.extend(["--print-timeout", format_print_timeout(timeout)])
     if yolo:
-        cmd.append("--yolo")
-    cmd.extend(["--model", model])
-    if output_format and output_format != "text":
-        cmd.extend(["--output-format", output_format])
+        cmd.append("--dangerously-skip-permissions")
+    cmd.extend(["--print", final_prompt])
 
     cwd = working_dir if working_dir else os.getcwd()
     command_display = " ".join(shlex.quote(part) for part in cmd)
@@ -271,16 +311,23 @@ def run_gemini(
             "command": command_display,
             "working_dir": working_dir,
             "model": model,
+            "requested_model": requested_model,
+            "effective_model": DEFAULT_MODEL,
             "output_format": output_format,
             "yolo": yolo,
+            "agy_continue": agy_continue,
         }
 
-    if shutil.which("gemini") is None:
+    if shutil.which(AGY_CLI) is None:
         if not disable_fallback:
             fallback_candidates = [
+                Path(__file__).resolve().parents[2] / "qwen-runner" / "scripts" / "run_qwen.py",
+                Path(__file__).resolve().parents[2] / "kimi-runner" / "scripts" / "run_kimi.py",
+                Path(__file__).resolve().parents[2] / "opencode-runner" / "scripts" / "run_opencode.py",
                 Path(__file__).resolve().parents[2] / "codex-runner" / "scripts" / "run_codex.py",
                 Path(__file__).resolve().parents[2] / "claude-runner" / "scripts" / "run_claude.py",
             ]
+            attempted_fallbacks: list[dict[str, Any]] = []
             for fallback_script in fallback_candidates:
                 if fallback_script.is_file():
                     fallback_result = invoke_fallback(
@@ -293,21 +340,44 @@ def run_gemini(
                         session_file,
                         metadata_json,
                     )
+                    if (
+                        fallback_result.get("return_code") == -2
+                        or fallback_result.get("status") == "seat_unavailable"
+                    ):
+                        attempted_fallbacks.append(
+                            {
+                                "script": str(fallback_script),
+                                "return_code": fallback_result.get("return_code"),
+                                "status": fallback_result.get("status"),
+                                "stderr": fallback_result.get("stderr", ""),
+                            }
+                        )
+                        continue
                     fallback_result["fallback_from"] = "gemini"
-                    fallback_result["fallback_reason"] = "Gemini CLI not found"
-                    fallback_result["requested_model"] = model
+                    fallback_result["fallback_reason"] = "Antigravity CLI (agy) not found"
+                    fallback_result["requested_model"] = requested_model or model
                     fallback_result["fallback_model_forwarded"] = False
+                    fallback_result["agy_continue_requested"] = agy_continue
+                    if agy_continue:
+                        fallback_result["fallback_ignored_options"] = ["--agy-continue"]
+                    if attempted_fallbacks:
+                        fallback_result["fallback_attempts"] = attempted_fallbacks
                     return fallback_result
         return {
             "success": False,
             "stdout": "",
-            "stderr": "Gemini CLI not found. Check if it is installed and in PATH.",
+            "stderr": "Antigravity CLI (agy) not found. Check if it is installed and in PATH.",
             "return_code": -2,
             "command": command_display,
             "working_dir": cwd,
             "model": model,
+            "requested_model": requested_model,
+            "effective_model": DEFAULT_MODEL,
             "output_format": output_format,
             "yolo": yolo,
+            "agy_continue": agy_continue,
+            "runner": "gemini",
+            "effective_runner": None,
         }
 
     result: dict[str, Any] = {
@@ -318,10 +388,16 @@ def run_gemini(
         "command": command_display,
         "working_dir": cwd,
         "model": model,
+        "requested_model": requested_model,
+        "effective_model": DEFAULT_MODEL,
+        "model_forwarded": False,
         "output_format": output_format,
+        "output_format_forwarded": False,
+        "agy_print_timeout": format_print_timeout(timeout),
+        "agy_continue": agy_continue,
         "yolo": yolo,
         "runner": "gemini",
-        "effective_runner": "gemini",
+        "effective_runner": "agy",
         "role": role,
         "session_file": session_file,
         "prompt_file": prompt_file,
@@ -339,6 +415,13 @@ def run_gemini(
         result["stderr"] = process.stderr
         result["return_code"] = process.returncode
         result["success"] = process.returncode == 0
+        combined_output = f"{process.stdout}\n{process.stderr}".lower()
+        if (
+            "authentication required" in combined_output
+            or "waiting for authentication" in combined_output
+            or "not authenticated" in combined_output
+        ):
+            result["auth_ok"] = False
 
     except subprocess.TimeoutExpired as e:
         result["stderr"] = f"Timeout expired after {timeout} seconds"
@@ -350,8 +433,9 @@ def run_gemini(
         result["return_code"] = -1
 
     except FileNotFoundError:
-        result["stderr"] = "Gemini CLI not found. Check if it is installed and in PATH."
+        result["stderr"] = "Antigravity CLI (agy) not found. Check if it is installed and in PATH."
         result["return_code"] = -2
+        result["effective_runner"] = None
 
     except Exception as e:
         result["stderr"] = f"Unexpected error: {str(e)}"
@@ -363,14 +447,14 @@ def run_gemini(
 def main():
     """CLI entry point."""
     parser = argparse.ArgumentParser(
-        description="Execute prompts using Gemini CLI in headless mode.",
+        description="Execute prompts using Antigravity CLI (agy) in headless print mode.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
   %(prog)s "What is 2+2?"
   %(prog)s "List Python files" --working-dir /path/to/project
   %(prog)s "Explain this code" --json --timeout 3600
-  %(prog)s "Write a function" --model gemini-2.5-flash
+  %(prog)s "Write a function" --model Gemini-3.5-Flash
   %(prog)s "Refactor code" --no-yolo  # Requires manual approval
         """,
     )
@@ -411,7 +495,10 @@ Examples:
         "-m",
         type=str,
         default=None,
-        help=f"Gemini model to use (default: {DEFAULT_MODEL})",
+        help=(
+            "Requested model label for metadata. agy uses its configured model "
+            f"from settings/model picker (default metadata: {DEFAULT_MODEL})"
+        ),
     )
 
     parser.add_argument(
@@ -420,13 +507,13 @@ Examples:
         type=str,
         choices=["text", "json", "stream-json"],
         default="text",
-        help="Gemini output format (default: text)",
+        help="Requested response format hint (agy print mode has no output-format flag)",
     )
 
     parser.add_argument(
         "--no-yolo",
         action="store_true",
-        help="Disable auto-approve mode (requires manual approval)",
+        help="Do not pass --dangerously-skip-permissions to agy",
     )
     parser.add_argument(
         "--role",
@@ -448,9 +535,14 @@ Examples:
         help="JSON string to embed as execution metadata for downstream parsing",
     )
     parser.add_argument(
+        "--agy-continue",
+        action="store_true",
+        help="Pass --continue to agy to resume the most recent Antigravity CLI conversation",
+    )
+    parser.add_argument(
         "--disable-fallback",
         action="store_true",
-        help="Do not route to another runner if Gemini CLI is unavailable",
+        help="Do not route to another runner if Antigravity CLI (agy) is unavailable",
     )
     parser.add_argument(
         "--output-file",
@@ -475,6 +567,7 @@ Examples:
         role=args.role,
         session_file=args.session_file,
         metadata_json=args.metadata_json,
+        agy_continue=args.agy_continue,
         disable_fallback=args.disable_fallback,
     )
 

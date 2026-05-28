@@ -1,4 +1,4 @@
 interface:
-  display_name: "Gemini Runner"
-  short_description: "Run workspace prompts through Gemini CLI"
-  default_prompt: "Use $gemini-runner to execute this task with Gemini CLI from the current workspace."
+  display_name: "Gemini Runner (agy)"
+  short_description: "Run workspace prompts through Antigravity CLI"
+  default_prompt: "Use $gemini-runner to execute this task with Antigravity CLI (agy) from the current workspace."
