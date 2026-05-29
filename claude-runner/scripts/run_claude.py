@@ -252,7 +252,7 @@ def run_claude(
     timeout: int = 3600,
     working_dir: Optional[str] = None,
     model: Optional[str] = None,
-    safe_mode: bool = False,
+    safe_mode: bool = True,
     prompt_files: Optional[list[str]] = None,
     role: Optional[str] = None,
     session_file: Optional[str] = None,
@@ -460,7 +460,8 @@ Examples:
   %(prog)s "List Python files" --working-dir /path/to/project
   %(prog)s "Explain this code" --json --timeout 3600
   %(prog)s "Summarize this repo" --model claude-sonnet-4-6
-  %(prog)s "Review this code" --safe
+  %(prog)s "Review this code"
+  %(prog)s "Apply an approved change" --dangerously-skip-permissions
         """,
     )
 
@@ -514,10 +515,19 @@ Examples:
         help="Claude print-mode output format (default: text)",
     )
 
-    parser.add_argument(
+    permission_group = parser.add_mutually_exclusive_group()
+    permission_group.add_argument(
         "--safe",
         action="store_true",
-        help="Keep Claude permission checks enabled",
+        dest="safe",
+        default=True,
+        help="Keep Claude permission checks enabled. This is the default.",
+    )
+    permission_group.add_argument(
+        "--dangerously-skip-permissions",
+        action="store_false",
+        dest="safe",
+        help="Pass Claude's permission bypass flag for an explicitly approved run.",
     )
     parser.add_argument(
         "--bare",

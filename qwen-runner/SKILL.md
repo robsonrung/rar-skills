@@ -12,6 +12,10 @@ Execute prompts through the local `qwen` CLI in one-shot headless mode. Prefer t
 - `qwen` installed and in `PATH`
 - `qwen auth` configured for the models you want to call
 
+## Security Model
+
+This skill invokes the local Qwen CLI from the current machine. Prompt text, prompt files, session files, metadata, and any files Qwen reads during the run may be sent to the selected provider behind the local Qwen account. Approval mode defaults to `default`, not `yolo`. Use `--approval-mode yolo` only for a user approved run that may edit files or execute tools without prompts.
+
 
 ## Output Envelope
 
@@ -45,7 +49,7 @@ python3 .agents/skills/qwen-runner/scripts/run_qwen.py "your prompt here"
 - `--model`
 - `--output-format` with default `stream-json`
 - `--input-format`
-- `--approval-mode` with default `yolo`
+- `--approval-mode` with default `default`
 - `--sandbox`
 - `--restrict-tools`
 - `--role`

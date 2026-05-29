@@ -37,7 +37,7 @@ enabled = true
 script = ".agents/skills/gemini-runner/scripts/run_gemini.py"
 timeout_seconds = 1200
 duty = "Explore broad context, user journeys, interface options, large code context, and alternative scenarios."
-runner_args = ["--output-format", "json", "--no-yolo"]
+runner_args = ["--output-format", "json"]
 
 [providers.feasibility]
 kind = "runner"

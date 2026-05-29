@@ -116,7 +116,6 @@ python3 .agents/skills/gemini-runner/scripts/run_gemini.py \
   --timeout 900 \
   --role synthesizer \
   --json \
-  --no-yolo \
   --output-format json \
   --disable-fallback \
   --output-file .ai-workflow/consensus/{session_id}-round-{n}-gemini-output.json \

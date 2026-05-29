@@ -22,6 +22,10 @@ Preserve disable-fallback semantics.
 - `kimi-cli` installed and in `PATH`
 - Authentication configured via `kimi-cli login`
 
+## Security Model
+
+This skill invokes the local Kimi CLI from the current machine. Prompt text, prompt files, session files, metadata, and any files Kimi reads during the run may be sent to Moonshot according to the local Kimi configuration. Use `--restrict-tools` for review seats, but treat it as a prompt level constraint rather than a hard sandbox.
+
 
 ## Output Envelope
 

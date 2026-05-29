@@ -72,10 +72,21 @@ def normalize_envelope(
     return result
 
 
-def _safehouse_prefix(cwd: str, no_safehouse: bool) -> list[str]:
-    if no_safehouse or shutil.which("safehouse") is None:
-        return []
-    return ["safehouse", f"--workdir={cwd}", "--enable=cloud-credentials", "--"]
+def _safehouse_prefix(
+    cwd: str,
+    no_safehouse: bool,
+    require_safehouse: bool,
+) -> tuple[list[str], str, str | None]:
+    if no_safehouse:
+        return [], "disabled", None
+    if shutil.which("safehouse") is None:
+        message = (
+            "Agent Safehouse is required for this run but was not found in PATH."
+            if require_safehouse
+            else None
+        )
+        return [], "missing", message
+    return ["safehouse", f"--workdir={cwd}", "--enable=cloud-credentials", "--"], "active", None
 
 
 def load_text_file(path: str) -> str:
@@ -269,6 +280,7 @@ def run_opencode(
     use_json: bool = False,
     stream: bool = False,
     no_safehouse: bool = False,
+    require_safehouse: bool = False,
     continue_session: bool = False,
     resume_session: Optional[str] = None,
     file_attachments: Optional[list[str]] = None,
@@ -339,7 +351,22 @@ def run_opencode(
 
     command_display = " ".join(shlex.quote(part) for part in command)
 
-    prefix = _safehouse_prefix(working_dir or os.getcwd(), no_safehouse)
+    prefix, safehouse_status, safehouse_error = _safehouse_prefix(
+        working_dir or os.getcwd(),
+        no_safehouse,
+        require_safehouse,
+    )
+    if safehouse_error:
+        return {
+            "success": False,
+            "stdout": "",
+            "stderr": safehouse_error,
+            "return_code": -3,
+            "command": command_display,
+            "working_dir": working_dir or "current directory",
+            "runner": "opencode",
+            "safehouse_status": safehouse_status,
+        }
     command = prefix + command
     command_display = " ".join(shlex.quote(p) for p in command)
 
@@ -353,12 +380,13 @@ def run_opencode(
             "working_dir": working_dir or "current directory",
             "runner": "opencode",
             "effective_runner": None,
+            "safehouse_status": safehouse_status,
         }
 
     child_env = os.environ.copy()
 
     if stream:
-        return run_opencode_streaming(
+        streamed_output = run_opencode_streaming(
             command=command,
             cwd=working_dir,
             timeout=timeout,
@@ -368,6 +396,8 @@ def run_opencode(
             prompt_file=prompt_file,
             child_env=child_env,
         )
+        streamed_output["safehouse_status"] = safehouse_status
+        return streamed_output
 
     try:
         result = subprocess.run(
@@ -391,6 +421,7 @@ def run_opencode(
             "role": role,
             "session_file": session_file,
             "prompt_file": prompt_file,
+            "safehouse_status": safehouse_status,
         }
 
         if use_json and result.stdout:
@@ -419,6 +450,7 @@ def run_opencode(
             "runner": "opencode",
             "effective_runner": "opencode",
             "role": role,
+            "safehouse_status": safehouse_status,
         }
     except FileNotFoundError:
         return {
@@ -430,6 +462,7 @@ def run_opencode(
             "working_dir": working_dir or "current directory",
             "runner": "opencode",
             "effective_runner": None,
+            "safehouse_status": safehouse_status,
         }
     except Exception as e:
         return {
@@ -442,6 +475,7 @@ def run_opencode(
             "runner": "opencode",
             "effective_runner": "opencode",
             "role": role,
+            "safehouse_status": safehouse_status,
         }
 
 
@@ -491,6 +525,10 @@ def main():
         help="Skip safehouse OS-level sandboxing even when installed",
     )
     parser.add_argument(
+        "--require-safehouse", action="store_true",
+        help="Fail unless Agent Safehouse is available for this run",
+    )
+    parser.add_argument(
         "--continue", "-c", action="store_true", dest="continue_session",
         help="Continue the last session",
     )
@@ -527,6 +565,7 @@ def main():
         use_json=args.json,
         stream=args.stream,
         no_safehouse=args.no_safehouse,
+        require_safehouse=args.require_safehouse,
         continue_session=args.continue_session,
         resume_session=args.resume_session,
         file_attachments=args.file_attachments,

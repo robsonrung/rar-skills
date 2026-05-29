@@ -18,6 +18,10 @@ Requirement: auth preflight result field auth_ok.
 3. If unavailable and `codex` is available, route to `$codex-runner` as fallback and report the provider switch.
 4. If neither is available, stop with a clear prerequisite message.
 
+## Security Model
+
+This skill invokes the local Claude CLI from the current machine. Prompt text, prompt files, session files, metadata, and any files Claude reads during the run may be sent to Anthropic according to the local Claude CLI configuration. Permission checks stay enabled by default. Use `--restrict-tools` for read only review seats, and use `--dangerously-skip-permissions` only for a user approved run that may edit files or execute tools without prompts.
+
 
 ## Output Envelope
 
@@ -50,7 +54,8 @@ Use `--working-dir` when the prompt depends on package-local files or generated 
 | `--prompt-file` | Read prompt content from a file; may be repeated | None |
 | `--model`, `-m` | Claude model alias or full model name such as `claude-sonnet-4-6` or `claude-opus-4-7` | CLI default |
 | `--output-format`, `-o` | Claude print-mode output format: `text`, `json`, or `stream-json` | `text` |
-| `--safe` | Keep Claude permission checks enabled | False |
+| `--safe` | Keep Claude permission checks enabled | True |
+| `--dangerously-skip-permissions` | Bypass Claude permission prompts for an explicitly approved run | False |
 | `--bare` | Use Claude bare mode for faster startup and fewer implicit context sources | False |
 | `--no-session-persistence` | Do not persist Claude session files to disk | False |
 | `--restrict-tools` | Use Claude planning mode for read-only analysis seats | False |
@@ -83,7 +88,7 @@ python3 .agents/skills/claude-runner/scripts/run_claude.py "Continue from the ac
 ## Behavior
 
 1. Executes `claude -p` through the local runner script.
-2. Adds `--dangerously-skip-permissions` by default unless `--safe` or `--restrict-tools` is set.
+2. Keeps Claude permission checks enabled by default. Pass `--dangerously-skip-permissions` only when the user explicitly approves unattended tool execution.
 3. Maps `--restrict-tools` to Claude `--permission-mode plan` for read-only analysis seats.
 4. Supports repeated `--prompt-file` flags, role overlays, and `--session-file` continuation.
 5. Returns a runner envelope with `success`, `stdout`, `stderr`, `return_code`, `runner`, `effective_runner`, and execution metadata.

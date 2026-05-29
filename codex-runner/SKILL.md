@@ -18,6 +18,10 @@ If --disable-fallback: return non-zero with prerequisites.
 3. If unavailable and `claude` is available, route to `$claude-runner` as fallback and report the provider switch.
 4. If neither is available, stop with a clear prerequisite message.
 
+## Security Model
+
+This skill invokes the local Codex CLI from the current machine. Prompt text, prompt files, session files, metadata, and any files Codex reads during the run may be sent to OpenAI according to the local Codex CLI configuration. The wrapper no longer passes `--full-auto` by default. Use `--restrict-tools` for read only review seats, and use `--full-auto` only for a user approved unattended run.
+
 
 ## Output Envelope
 
@@ -50,6 +54,7 @@ For repository-aware tasks, prefer `--working-dir` set to the repository root so
 | `--model`, `-m` | Codex model alias | CLI default |
 | `--sandbox`, `-s` | Codex sandbox mode override | CLI default |
 | `--restrict-tools` | Use `--sandbox read-only` for analysis seats | False |
+| `--full-auto` | Pass Codex full auto mode for an explicitly approved unattended run | False |
 | `--approval-policy`, `-a` | Codex approval policy override | None |
 | `--skip-git-repo-check` | Allow runs outside a Git repo | False |
 | `--prompt-file` | Read the prompt from a file | None |
@@ -84,7 +89,7 @@ python3 .agents/skills/codex-runner/scripts/run_codex.py "Implement the accepted
 ## Behavior
 
 1. Executes `codex exec`.
-2. Uses `--full-auto` when no explicit sandbox is requested.
+2. Uses Codex CLI defaults when no explicit sandbox is requested. Pass `--full-auto` only after explicit user approval.
 3. Maps `--restrict-tools` to `--sandbox read-only`.
 4. Passes through `--ephemeral` and `--output-schema`.
 5. Supports role overlays, `--prompt-file`, and `--session-file` continuation.

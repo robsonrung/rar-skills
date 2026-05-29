@@ -2,9 +2,9 @@
 """
 Gemini Runner - A wrapper for Antigravity CLI (`agy`) headless execution.
 
-Executes prompts using Antigravity CLI print mode with optional auto-approval
-support. The file name and public function names stay stable for existing
-Gemini-seat workflows.
+Executes prompts using Antigravity CLI print mode. Permission bypass is opt in.
+The file name and public function names stay stable for existing Gemini-seat
+workflows.
 """
 
 import argparse
@@ -226,7 +226,7 @@ def run_gemini(
     working_dir: Optional[str] = None,
     model: Optional[str] = None,
     output_format: str = "text",
-    yolo: bool = True,
+    yolo: bool = False,
     prompt_file: Optional[str] = None,
     role: Optional[str] = None,
     session_file: Optional[str] = None,
@@ -245,7 +245,7 @@ def run_gemini(
             configured model from settings/model picker.
         output_format: Compatibility hint - 'text', 'json', or 'stream-json'
             (default: 'text')
-        yolo: Auto-approve tool permission requests (default: True)
+        yolo: Enable Antigravity permission bypass for this run (default: False)
         agy_continue: Resume the most recent Antigravity CLI conversation.
 
     Returns:
@@ -455,7 +455,7 @@ Examples:
   %(prog)s "List Python files" --working-dir /path/to/project
   %(prog)s "Explain this code" --json --timeout 3600
   %(prog)s "Write a function" --model Gemini-3.5-Flash
-  %(prog)s "Refactor code" --no-yolo  # Requires manual approval
+  %(prog)s "Refactor approved code" --yolo
         """,
     )
 
@@ -510,10 +510,19 @@ Examples:
         help="Requested response format hint (agy print mode has no output-format flag)",
     )
 
-    parser.add_argument(
-        "--no-yolo",
+    permission_group = parser.add_mutually_exclusive_group()
+    permission_group.add_argument(
+        "--yolo",
         action="store_true",
-        help="Do not pass --dangerously-skip-permissions to agy",
+        dest="yolo",
+        default=False,
+        help="Pass --dangerously-skip-permissions to agy for an explicitly approved run",
+    )
+    permission_group.add_argument(
+        "--no-yolo",
+        action="store_false",
+        dest="yolo",
+        help="Legacy safe default flag. Permission bypass stays disabled.",
     )
     parser.add_argument(
         "--role",
@@ -562,7 +571,7 @@ Examples:
         working_dir=args.working_dir,
         model=args.model,
         output_format=args.output_format,
-        yolo=not args.no_yolo,
+        yolo=args.yolo,
         prompt_file=args.prompt_file,
         role=args.role,
         session_file=args.session_file,

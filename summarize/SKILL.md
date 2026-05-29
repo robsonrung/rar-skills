@@ -7,6 +7,10 @@ description: compresses the current conversation session into a ≤3000-word sum
 
 Condense a long session into a tight briefing, then clear and restore context so work continues without losing state.
 
+## Privacy Boundary
+
+Summarize only the active conversation context and concrete files or outputs that are already visible in the session. Do not invent hidden context, do not fetch unrelated local files, and avoid including secrets, tokens, private keys, or credentials in the summary. If a sensitive value is necessary to identify state, replace the value with a short redacted label.
+
 ---
 
 ## Step 1 — Analyze Before You Write

@@ -22,6 +22,10 @@ Document council seat accounting behavior.
 - `qwen` installed and in `PATH`
 - `qwen auth` configured for the Minimax models you intend to use
 
+## Security Model
+
+This skill delegates to `qwen-runner`, so it has the same execution and data sharing model as the Qwen wrapper. Prompt text, prompt files, session files, metadata, and any files Qwen reads during the run may be sent to the selected Minimax provider. Approval mode defaults to `default`; pass `--approval-mode yolo` only for a user approved unattended run.
+
 
 ## Output Envelope
 

@@ -17,7 +17,7 @@ DEFAULT_MODEL = "qwen3.6-plus"
 DEFAULT_RUNNER = "qwen"
 DEFAULT_OUTPUT_FORMAT = "stream-json"
 DEFAULT_INPUT_FORMAT = "text"
-DEFAULT_APPROVAL_MODE = "yolo"
+DEFAULT_APPROVAL_MODE = "default"
 
 ROLE_INSTRUCTIONS = {
     "planner": "Act as a planning specialist. Break work into phases, call out risks, and keep the output actionable.",

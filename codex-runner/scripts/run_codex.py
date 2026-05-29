@@ -213,6 +213,7 @@ def run_codex(
     ephemeral: bool = False,
     output_schema: Optional[str] = None,
     restrict_tools: bool = False,
+    full_auto: bool = False,
     disable_fallback: bool = False,
 ) -> dict[str, Any]:
     command = ["codex", "exec"]
@@ -268,7 +269,7 @@ def run_codex(
     resolved_sandbox = sandbox or ("read-only" if restrict_tools else None)
     if resolved_sandbox:
         command.extend(["--sandbox", resolved_sandbox])
-    else:
+    elif full_auto:
         command.append("--full-auto")
 
     if approval_policy:
@@ -343,6 +344,7 @@ def run_codex(
             "ephemeral": ephemeral,
             "output_schema": output_schema,
             "restrict_tools": restrict_tools,
+            "full_auto": full_auto,
         }
 
     except subprocess.TimeoutExpired as e:
@@ -367,6 +369,7 @@ def run_codex(
             "ephemeral": ephemeral,
             "output_schema": output_schema,
             "restrict_tools": restrict_tools,
+            "full_auto": full_auto,
         }
     except FileNotFoundError:
         return {
@@ -383,6 +386,7 @@ def run_codex(
             "ephemeral": ephemeral,
             "output_schema": output_schema,
             "restrict_tools": restrict_tools,
+            "full_auto": full_auto,
         }
     except Exception as e:
         return {
@@ -399,6 +403,7 @@ def run_codex(
             "ephemeral": ephemeral,
             "output_schema": output_schema,
             "restrict_tools": restrict_tools,
+            "full_auto": full_auto,
         }
 
 
@@ -442,6 +447,11 @@ def main():
         "--restrict-tools",
         action="store_true",
         help="Use Codex read-only sandbox for analysis seats",
+    )
+    parser.add_argument(
+        "--full-auto",
+        action="store_true",
+        help="Pass Codex full auto mode for an explicitly approved unattended run",
     )
     parser.add_argument(
         "--approval-policy",
@@ -523,6 +533,7 @@ def main():
         ephemeral=args.ephemeral,
         output_schema=args.output_schema,
         restrict_tools=args.restrict_tools,
+        full_auto=args.full_auto,
         disable_fallback=args.disable_fallback,
     )
 

@@ -18,6 +18,10 @@ Pass `--model` if you want to target another Gemma model exposed by the local `q
 - `qwen` installed and in `PATH`
 - `qwen auth` configured for the Gemma models you intend to use
 
+## Security Model
+
+This skill delegates to `qwen-runner`, so it has the same execution and data sharing model as the Qwen wrapper. Prompt text, prompt files, session files, metadata, and any files Qwen reads during the run may be sent to the selected Gemma provider. Approval mode defaults to `default`; pass `--approval-mode yolo` only for a user approved unattended run.
+
 
 ## Output Envelope
 

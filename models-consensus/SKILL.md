@@ -158,6 +158,8 @@ If envelope missing required keys, retry once with schema reminder then mark mal
 Use disable-fallback by default for independence accounting.
 Track effective_provider duplication in state.
 
+Runner seats invoke local CLIs and may send prompt context, selected files, and runner metadata to their configured providers. Prefer `--restrict-tools` for review and planning seats. Do not pass permission bypass or full auto flags unless the user has explicitly approved unattended write capable execution for that run.
+
 Launch seats using native host tools when available; fall back to runner scripts only when native paths are unavailable. See [references/runner-invocations.md](references/runner-invocations.md) for complete invocation patterns, auth rules, and the runner output contract.
 
 Key flags for every runner-backed seat:

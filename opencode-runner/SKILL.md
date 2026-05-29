@@ -19,7 +19,11 @@ filesystem writes to the working directory.
 
 Install: `brew install eugene1g/safehouse/agent-safehouse`
 
-To opt out: pass `--no-safehouse`. If `safehouse` is not installed, the runner proceeds normally.
+To opt out: pass `--no-safehouse`. To fail closed when Safehouse is unavailable, pass `--require-safehouse`.
+
+## Security Model
+
+This skill invokes the local OpenCode CLI from the current machine. Prompt text, prompt files, session files, metadata, attached files, and any files OpenCode reads during the run may be sent to the selected provider. OpenCode headless mode may run tool calls without interactive permission prompts. Use Safehouse for a filesystem boundary, prefer `--require-safehouse` for sensitive work, and use `--no-safehouse` only when the user accepts the local execution risk.
 
 ## Runtime Compatibility
 Requirement: provider-auth preflight before execution.
@@ -71,6 +75,7 @@ For repository-aware tasks, prefer `--working-dir` set to the repository root.
 | `--title` | Title for the session | None |
 | `--agent` | Agent to use | None |
 | `--no-safehouse` | Skip safehouse OS-level sandboxing even when installed | False |
+| `--require-safehouse` | Fail unless Agent Safehouse is available for this run | False |
 
 ## Model Format
 
@@ -155,7 +160,7 @@ python3 .agents/skills/opencode-runner/scripts/run_opencode.py "Implement the ac
 ## Behavior
 
 1. Runs `opencode run "<prompt>"` through the local runner script.
-2. All permissions are auto-approved in headless mode (built into OpenCode CLI).
+2. OpenCode headless mode may execute tool calls without interactive permission prompts. The wrapper records whether Safehouse was active, missing, or disabled.
 3. Supports XML-tagged role specialization so consensus and review workflows can give OpenCode a durable seat identity.
 4. Supports continuation by appending prior round or report context from `--session-file` wrapped in context.
 5. Supports native session continuation via `--continue` (most recent) or `--session <id>` (specific session).
@@ -200,7 +205,7 @@ This is complementary to `--session-file`, which appends prior context from a fi
 
 ## Gotchas
 
-- **Auto-approval**: OpenCode automatically approves all permissions in headless mode (`opencode run`). There is no `--safe` equivalent.
+- **Headless execution**: OpenCode headless mode may run tool calls without permission prompts. There is no native `--safe` equivalent, so use Agent Safehouse when a filesystem boundary matters.
 - **Model format**: Always use `provider/model` format (e.g., `openrouter/anthropic/claude-sonnet-4.6`), not just the model name.
 - **No native effort control**: OpenCode does not have a built-in `--effort` flag. Reasoning effort depends on the provider/model chosen.
 - **File attachments**: Use `--file` (repeatable) to attach files to the prompt context. OpenCode also supports `@filename` syntax in prompts.
@@ -212,6 +217,5 @@ This is complementary to `--session-file`, which appends prior context from a fi
 
 - **CLI**: OpenCode CLI installed and in PATH. Install via:
   - `brew install opencode-ai/tap/opencode`
-  - `curl -fsSL https://raw.githubusercontent.com/opencode-ai/opencode/refs/heads/main/install | bash`
   - `go install github.com/opencode-ai/opencode@latest`
 - **API keys**: At least one provider API key set in environment (e.g., `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`)
