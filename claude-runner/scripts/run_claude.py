@@ -33,7 +33,6 @@ PROVIDER_BY_RUNNER = {
     "glm-critical": "z-ai",
     "kimi": "moonshot",
     "minimax": "minimax",
-    "opencode": "opencode",
 }
 
 
@@ -312,9 +311,6 @@ def run_claude(
     if restrict_tools:
         cmd.extend(["--permission-mode", "plan"])
 
-    if not safe_mode and not restrict_tools:
-        cmd.append("--dangerously-skip-permissions")
-
     if model:
         cmd.extend(["--model", model])
 
@@ -461,7 +457,6 @@ Examples:
   %(prog)s "Explain this code" --json --timeout 3600
   %(prog)s "Summarize this repo" --model claude-sonnet-4-6
   %(prog)s "Review this code"
-  %(prog)s "Apply an approved change" --dangerously-skip-permissions
         """,
     )
 
@@ -515,19 +510,11 @@ Examples:
         help="Claude print-mode output format (default: text)",
     )
 
-    permission_group = parser.add_mutually_exclusive_group()
-    permission_group.add_argument(
+    parser.add_argument(
         "--safe",
         action="store_true",
-        dest="safe",
         default=True,
         help="Keep Claude permission checks enabled. This is the default.",
-    )
-    permission_group.add_argument(
-        "--dangerously-skip-permissions",
-        action="store_false",
-        dest="safe",
-        help="Pass Claude's permission bypass flag for an explicitly approved run.",
     )
     parser.add_argument(
         "--bare",

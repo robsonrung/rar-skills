@@ -8,19 +8,19 @@ description: Execute prompts using Antigravity CLI (`agy`) headless print mode f
 Execute prompts via Antigravity CLI (`agy`) headless print mode with role overlays and continuation support.
 
 ## Runtime Compatibility
-Requirement: full fallback order including qwen/kimi/opencode seats.
+Requirement: full fallback order including qwen and kimi seats.
 Standardize envelope fields: runner, effective_runner, fallback_reason, auth_ok.
 Keep disable-fallback strict and explicit.
 Document seat-unavailable behavior for councils.
 
 1. Check whether Antigravity CLI (`agy`) is available.
 2. If available, run this skill.
-3. If unavailable, route through the fallback order `$qwen-runner`, `$kimi-runner`, `$opencode-runner`, `$codex-runner`, then `$claude-runner`, and report the fallback.
+3. If unavailable, route through the fallback order `$qwen-runner`, `$kimi-runner`, `$codex-runner`, then `$claude-runner`, and report the fallback.
 4. Never claim the Gemini/Google seat participated when a fallback provider produced the output.
 
 ## Security Model
 
-This skill invokes the local Antigravity CLI from the current machine. Prompt text, prompt files, session files, metadata, and any files Antigravity reads during the run may be sent to the configured Google model. Permission bypass is disabled by default. Use `--yolo` only for a user approved run that may edit files or execute tools without prompts.
+This skill invokes the local Antigravity CLI from the current machine. Prompt text, prompt files, session files, metadata, and any files Antigravity reads during the run may be sent to the configured Google model. Permission checks stay enabled through the local Antigravity configuration.
 
 
 ## Output Envelope
@@ -51,8 +51,6 @@ python3 .agents/skills/gemini-runner/scripts/run_gemini.py "your prompt here"
 | `--json`, `-j` | Wrap runner output in JSON | False |
 | `--model`, `-m` | Compatibility metadata label. `agy` uses its configured model from `/model` or settings. | `agy-configured-model` |
 | `--output-format`, `-o` | Response format hint: `text`, `json`, or `stream-json`. `agy` print mode has no output-format launch flag. | `text` |
-| `--yolo` | Pass `--dangerously-skip-permissions` to `agy` for an explicitly approved run | False |
-| `--no-yolo` | Legacy safe default flag. Permission bypass stays disabled. | False |
 | `--prompt-file` | Read the prompt from a file | None |
 | `--role` | Apply a role overlay | None |
 | `--session-file` | Append prior workflow context for continuation | None |
@@ -84,7 +82,7 @@ python3 .agents/skills/gemini-runner/scripts/run_gemini.py "Continue the previou
 ## Behavior
 
 1. Executes `agy [--continue] --print-timeout <Ns> --print "<prompt>"`.
-2. Does not pass `--dangerously-skip-permissions` by default. Pass `--yolo` only after explicit user approval.
+2. Does not request a permission bypass.
 3. Supports role overlays, `--prompt-file`, `--session-file` prompt context, and `--agy-continue` native Antigravity conversation continuation.
 4. Returns a runner envelope with `success`, `stdout`, `stderr`, `return_code`, `runner`, `effective_runner`, and execution metadata.
 5. Keeps `runner=gemini` for workflow compatibility and sets `effective_runner=agy` when Antigravity CLI produced the output.

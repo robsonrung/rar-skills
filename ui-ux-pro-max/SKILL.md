@@ -8,28 +8,13 @@ Comprehensive design guide for web and mobile applications. Contains 67 styles, 
 
 ## Prerequisites
 
-Check if Python is installed:
+Check if Python is available:
 
 ```bash
 python3 --version || python --version
 ```
 
-If Python is not installed, install it based on user's OS:
-
-**macOS:**
-```bash
-brew install python3
-```
-
-**Ubuntu/Debian:**
-```bash
-sudo apt update && sudo apt install python3
-```
-
-**Windows:**
-```powershell
-winget install Python.Python.3.12
-```
+If Python is not available, stop and tell the user the prerequisite is missing. Do not install Python from this skill.
 
 ---
 

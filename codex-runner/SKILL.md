@@ -9,7 +9,7 @@ Execute prompts via Codex CLI `exec` mode with role overlays and continuation su
 
 ## Runtime Compatibility
 Requirement: fallback chain beyond Claude-only behavior.
-Probe order: codex -> opencode -> qwen -> kimi -> gemini -> claude.
+Probe order: codex -> qwen -> kimi -> gemini -> claude.
 Output must include provider switch reason and keep runner provenance fields mandatory.
 If --disable-fallback: return non-zero with prerequisites.
 

@@ -38,7 +38,7 @@ If the user explicitly invokes `council` by name, you must run the actual counci
 - Keep artifacts compact. Prefer a temporary working folder such as `.ai-workflow/council/` or `/tmp/council-<timestamp>/`.
 
 ## Host Mapping
-Host mapping covers Codex, Claude, Gemini CLI, Qwen CLI, Kimi CLI, and OpenCode CLI.
+Host mapping covers Codex, Claude, Gemini CLI, Qwen CLI, and Kimi CLI.
 Define native seat paths, runner fallback order, and minimum quorum of 3 seats.
 Do not hard-stop on single seat failure; continue with lowered confidence.
 Record seat_unavailable reasons in moderator report.

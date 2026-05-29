@@ -14,7 +14,7 @@ Execute prompts through the local `qwen` CLI in one-shot headless mode. Prefer t
 
 ## Security Model
 
-This skill invokes the local Qwen CLI from the current machine. Prompt text, prompt files, session files, metadata, and any files Qwen reads during the run may be sent to the selected provider behind the local Qwen account. Approval mode defaults to `default`, not `yolo`. Use `--approval-mode yolo` only for a user approved run that may edit files or execute tools without prompts.
+This skill invokes the local Qwen CLI from the current machine. Prompt text, prompt files, session files, metadata, and any files Qwen reads during the run may be sent to the selected provider behind the local Qwen account. Approval mode defaults to `default`.
 
 
 ## Output Envelope

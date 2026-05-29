@@ -42,7 +42,6 @@ PROVIDER_BY_RUNNER = {
     "glm-critical": "z-ai",
     "kimi": "moonshot",
     "minimax": "minimax",
-    "opencode": "opencode",
 }
 
 
@@ -154,8 +153,7 @@ def invoke_fallback(
     metadata_json: Optional[str],
 ) -> dict[str, Any]:
     command = [sys.executable, str(runner_script), "--json"]
-    if runner_script.name != "run_opencode.py":
-        command.append("--disable-fallback")
+    command.append("--disable-fallback")
 
     if prompt_file:
         command.extend(["--prompt-file", prompt_file])
@@ -226,7 +224,6 @@ def run_gemini(
     working_dir: Optional[str] = None,
     model: Optional[str] = None,
     output_format: str = "text",
-    yolo: bool = False,
     prompt_file: Optional[str] = None,
     role: Optional[str] = None,
     session_file: Optional[str] = None,
@@ -245,7 +242,6 @@ def run_gemini(
             configured model from settings/model picker.
         output_format: Compatibility hint - 'text', 'json', or 'stream-json'
             (default: 'text')
-        yolo: Enable Antigravity permission bypass for this run (default: False)
         agy_continue: Resume the most recent Antigravity CLI conversation.
 
     Returns:
@@ -266,7 +262,6 @@ def run_gemini(
             "requested_model": requested_model,
             "effective_model": DEFAULT_MODEL,
             "output_format": output_format,
-            "yolo": yolo,
             "agy_continue": agy_continue,
         }
 
@@ -282,7 +277,6 @@ def run_gemini(
             "requested_model": requested_model,
             "effective_model": DEFAULT_MODEL,
             "output_format": output_format,
-            "yolo": yolo,
             "agy_continue": agy_continue,
         }
 
@@ -295,8 +289,6 @@ def run_gemini(
     if agy_continue:
         cmd.append("--continue")
     cmd.extend(["--print-timeout", format_print_timeout(timeout)])
-    if yolo:
-        cmd.append("--dangerously-skip-permissions")
     cmd.extend(["--print", final_prompt])
 
     cwd = working_dir if working_dir else os.getcwd()
@@ -314,7 +306,6 @@ def run_gemini(
             "requested_model": requested_model,
             "effective_model": DEFAULT_MODEL,
             "output_format": output_format,
-            "yolo": yolo,
             "agy_continue": agy_continue,
         }
 
@@ -323,7 +314,6 @@ def run_gemini(
             fallback_candidates = [
                 Path(__file__).resolve().parents[2] / "qwen-runner" / "scripts" / "run_qwen.py",
                 Path(__file__).resolve().parents[2] / "kimi-runner" / "scripts" / "run_kimi.py",
-                Path(__file__).resolve().parents[2] / "opencode-runner" / "scripts" / "run_opencode.py",
                 Path(__file__).resolve().parents[2] / "codex-runner" / "scripts" / "run_codex.py",
                 Path(__file__).resolve().parents[2] / "claude-runner" / "scripts" / "run_claude.py",
             ]
@@ -374,7 +364,6 @@ def run_gemini(
             "requested_model": requested_model,
             "effective_model": DEFAULT_MODEL,
             "output_format": output_format,
-            "yolo": yolo,
             "agy_continue": agy_continue,
             "runner": "gemini",
             "effective_runner": None,
@@ -395,7 +384,6 @@ def run_gemini(
         "output_format_forwarded": False,
         "agy_print_timeout": format_print_timeout(timeout),
         "agy_continue": agy_continue,
-        "yolo": yolo,
         "runner": "gemini",
         "effective_runner": "agy",
         "role": role,
@@ -455,7 +443,6 @@ Examples:
   %(prog)s "List Python files" --working-dir /path/to/project
   %(prog)s "Explain this code" --json --timeout 3600
   %(prog)s "Write a function" --model Gemini-3.5-Flash
-  %(prog)s "Refactor approved code" --yolo
         """,
     )
 
@@ -510,20 +497,6 @@ Examples:
         help="Requested response format hint (agy print mode has no output-format flag)",
     )
 
-    permission_group = parser.add_mutually_exclusive_group()
-    permission_group.add_argument(
-        "--yolo",
-        action="store_true",
-        dest="yolo",
-        default=False,
-        help="Pass --dangerously-skip-permissions to agy for an explicitly approved run",
-    )
-    permission_group.add_argument(
-        "--no-yolo",
-        action="store_false",
-        dest="yolo",
-        help="Legacy safe default flag. Permission bypass stays disabled.",
-    )
     parser.add_argument(
         "--role",
         type=str,
@@ -571,7 +544,6 @@ Examples:
         working_dir=args.working_dir,
         model=args.model,
         output_format=args.output_format,
-        yolo=args.yolo,
         prompt_file=args.prompt_file,
         role=args.role,
         session_file=args.session_file,

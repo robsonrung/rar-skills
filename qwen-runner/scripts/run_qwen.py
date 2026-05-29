@@ -40,7 +40,6 @@ PROVIDER_BY_RUNNER = {
     "glm-critical": "z-ai",
     "kimi": "moonshot",
     "minimax": "minimax",
-    "opencode": "opencode",
 }
 
 
@@ -477,7 +476,7 @@ Examples:
     parser.add_argument(
         "--approval-mode",
         type=str,
-        choices=["plan", "default", "auto-edit", "yolo"],
+        choices=["plan", "default", "auto-edit"],
         default=DEFAULT_APPROVAL_MODE,
         help=f"Approval mode for headless execution (default: {DEFAULT_APPROVAL_MODE})",
     )

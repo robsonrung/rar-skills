@@ -34,7 +34,6 @@ PROVIDER_BY_RUNNER = {
     "glm-critical": "z-ai",
     "kimi": "moonshot",
     "minimax": "minimax",
-    "opencode": "opencode",
 }
 
 

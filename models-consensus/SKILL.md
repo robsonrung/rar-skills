@@ -56,7 +56,6 @@ Selection workflow:
   `[ ] Gemma`
   `[ ] GLM`
   `[ ] Minimax`
-  `[ ] OpenCode`
   Omit seats that are not present in `candidate_seats`.
 - If the host tool only supports a small single-choice menu, ask a preset question with:
   1. `All available (Recommended)`
