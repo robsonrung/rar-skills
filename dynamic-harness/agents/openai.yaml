@@ -1,0 +1,4 @@
+interface:
+  display_name: "Dynamic Harness"
+  short_description: "Run dynamic multi agent task orchestration"
+  default_prompt: "Use $dynamic-harness to design and run a dynamic multi agent harness for this complex task, choosing the right pattern and synthesizing verified results."
