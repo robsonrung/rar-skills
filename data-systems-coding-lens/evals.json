@@ -1,0 +1,20 @@
+{
+  "skill_name": "data-systems-coding-lens",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Implement a background job that sends invoice reminder emails for overdue accounts.",
+      "expected_output": "The assistant should address idempotency, duplicate email prevention, retry behavior, observability, and verification."
+    },
+    {
+      "id": 2,
+      "prompt": "Review this pull request that adds a new database column and starts writing it from the API.",
+      "expected_output": "The assistant should check deploy order, compatibility between old and new code, migration defaults, rollback behavior, and tests."
+    },
+    {
+      "id": 3,
+      "prompt": "Design a cache for a slow account dashboard query.",
+      "expected_output": "The assistant should discuss source of truth, cache key shape, invalidation, staleness tolerance, cardinality, and monitoring."
+    }
+  ]
+}

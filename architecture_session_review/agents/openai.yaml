@@ -1,0 +1,3 @@
+display_name: Architecture Session Review
+short_description: Use architecture thinking during coding sessions.
+default_prompt: Use $architecture_session_review to inspect this coding task for trade offs, boundaries, decisions, risks, and verification before implementation.
