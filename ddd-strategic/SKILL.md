@@ -37,6 +37,9 @@ the ubiquitous language:
 A *subdomain* is a problem area (pricing, dispatch, compliance); a *bounded context* is the
 solution boundary where one model/language holds. They often align here but not always.
 
+If the repo under review is **not** greenspark-aws, first derive the context map from the
+service/module layout, then apply the lenses against that map instead of this one.
+
 ## Lens 1 — Bounded-context boundaries (Ch. 3, 10)
 
 A bounded context is a **consistency boundary for one model and one ubiquitous language**.
@@ -52,9 +55,9 @@ Check whether the change respects it:
 - **Term collision = boundary signal.** The *same word meaning different things* in two
   places (a "Customer" in finance vs. in dispatch) is the classic cue that you're at a
   context boundary and need translation, not a shared type.
-- **Boundary sizing.** Don't optimize for "smallest service." Size the context to its model.
-  For volatile/uncertain areas (core subdomains, new domains), **start wider** and split
-  later — refactoring a logical boundary is cheap; refactoring a physical one isn't.
+- **Boundary sizing.** Don't optimize for "smallest service" — size the context to its
+  model. For volatile/uncertain areas (core subdomains, new domains), **start wider** and
+  split later.
 
 ## Lens 2 — Ubiquitous language (Ch. 2, 6)
 
@@ -63,7 +66,8 @@ within the context:
 
 - **Naming drift.** Code names that don't match how the business talks (`processData`,
   `handleStuff`, `tmpFlag`) where the domain has a precise word (`settleTicket`,
-  `voidWeighing`, `reconcileLoad`). Rename to the business term.
+  `voidWeighing`, `reconcileLoad`), and CRUD names hiding a real business process. Rename
+  to the business term.
 - **Technical-jargon model.** Class/table/field names describing mechanics
   (`status_int`, `flag2`, `misc_json`) instead of business concepts. The model should read
   like the domain, not like the database.
@@ -78,25 +82,21 @@ within the context:
 
 ## Lens 3 — Integration patterns between contexts (Ch. 4, 9)
 
-When this change makes two contexts talk, name and check the relationship. The right
-pattern protects each side's model:
+When this change makes two contexts talk, name and check the relationship — the right
+pattern protects each side's model. Read `references/context-patterns.md` before
+classifying an integration relationship, or when a finding needs the full pattern
+definition, boundary heuristics, or book provenance. What to flag:
 
-- **Anticorruption Layer (ACL)** — the consuming context translates the other's model into
-  its own at the boundary, so a foreign/legacy/messy model doesn't leak in. **Expect an ACL
-  whenever we integrate an external ERP** (`erp-sync-workflow`) or any third party. Flag
-  direct use of a foreign model deep inside our domain.
-- **Open-Host Service (OHS)** — a context that's consumed by many publishes a stable,
-  versioned *published language* (a public API/event contract) decoupled from its internal
-  model. Check that consumers depend on the published contract, not internals. The
-  OpenAPI-generated frontend API layer is an OHS-style boundary.
-- **Conformist** — downstream simply accepts upstream's model (no translation). Acceptable
-  only when upstream's model is good enough and you can't influence it; risky for core
-  subdomains.
-- **Shared Kernel** — a shared model owned jointly (here: `common`/`gslogic`). Powerful but
-  high-coordination; every change ripples to all sharers. Flag growth of the kernel with
+- **Anticorruption Layer (ACL)** — **expect an ACL whenever we integrate an external ERP**
+  (`erp-sync-workflow`) or any third party. Flag direct use of a foreign model deep inside
+  our domain.
+- **Open-Host Service (OHS)** — check that consumers depend on the published contract, not
+  internals. The OpenAPI-generated frontend API layer is an OHS-style boundary.
+- **Conformist** — acceptable only when upstream's model is good enough and you can't
+  influence it; risky for core subdomains.
+- **Shared Kernel** (here: `common`/`gslogic`) — flag growth of the kernel with
   context-specific logic that should live in one service instead.
-- **Separate Ways** — sometimes the cheapest integration is *none* (duplicate rather than
-  couple). Valid when integration cost outweighs the duplication.
+- **Separate Ways** — no integration; valid when integration cost outweighs the duplication.
 - **Async integration** — across contexts on EventBridge, events must publish reliably
   (**outbox**) and multi-step cross-context flows need a **saga** or **process manager**,
   not synchronous chained calls. (Detailed in `ddd-tactical` Lens 5.)
@@ -105,11 +105,10 @@ pattern protects each side's model:
 
 Strategic classification can change, and it should drive implementation effort:
 
-- **Supporting/generic → core.** If a once-simple area is now where the business competes
-  (and adding rules keeps hurting), it deserves in-house investment and a richer model.
-  Stop outsourcing/CRUD-ing it.
-- **Core → supporting.** If an area stopped being a differentiator, simplify it — don't keep
-  paying domain-model tax for it.
+- **Supporting/generic → core.** A once-simple area is now where the business competes and
+  adding rules keeps hurting — stop outsourcing/CRUD-ing it; invest in a richer model.
+- **Core → supporting.** No longer a differentiator — simplify; don't keep paying
+  domain-model tax for it.
 - **Don't hand-build generic subdomains.** Auth, PDF, ERP connectors — integrate, don't
   model from scratch.
 
@@ -138,5 +137,4 @@ prompt to revisit the classification, not a hard rule.
 ```
 
 Lead with the highest-leverage finding. If a lens is clean, write "clean" — don't invent
-findings. See `references/context-patterns.md` for the integration-pattern catalog,
-boundary heuristics, and the book provenance behind each lens.
+findings.

@@ -47,4 +47,3 @@ cost over a monolith.
   *design patterns* (e.g. Builder — see the `design-patterns` skill) shape the source code.
   Hybrids are normal: event-driven microservices, space-based microservices, event-driven
   microkernel.
-```

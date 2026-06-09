@@ -26,11 +26,26 @@ Pattern choice follows from subdomain type. Before recommending, place the work:
   compliance logic, ticket/booking lifecycle, freight-lane optimization). Deserves the
   expensive patterns.
 - **Supporting** — bespoke but simple, mostly CRUD/validation around core. Keep it cheap.
-- **Generic** — solved problems you'd buy/integrate (auth via Amplify, PDF rendering,
-  ERP connectors). Don't hand-roll a domain model here.
+- **Generic** — solved problems you'd buy/integrate (auth, PDF rendering, ERP
+  connectors). Don't hand-roll a domain model here.
 
 If the *language* is mostly CRUD ("create/update/list X"), it's simple. If it's processes,
-rules, and invariants ("escalate", "settle", "reconcile", "void"), it's complex.
+rules, and invariants ("escalate", "settle", "reconcile", "void", "authorize",
+"allocate"), it's complex.
+
+## Repo mapping (greenspark-aws)
+
+Repo-specific anchors for the lenses (skip if applying this skill elsewhere):
+
+- **Generic subdomains here:** auth via Amplify, PDF rendering, ERP connectors —
+  integrate, don't model.
+- **Pattern placement:** most `core-api` routes/services are transaction-script-shaped
+  orchestration. Real domain models belong in `backend/common` entities/domain and
+  `gslogic`. Don't push a domain model into a Fastify handler; don't leave money/audit
+  logic as a bare transaction script.
+- **Event-driven backbone:** greenspark-aws is event-driven — EventBridge with
+  `eda-worker` / `erp-sync-workflow` — so reliable event publishing (Lens 5) is critical.
+  Sagas and process managers map onto that EventBridge + worker setup.
 
 ## Lens 1 — Business-logic pattern decision tree (Ch. 10)
 
@@ -52,10 +67,8 @@ is transaction script/active record — or a *supporting* subdomain wants a full
 model — your subdomain classification is probably wrong. Flag the mismatch; it's a signal,
 not noise.
 
-**In this repo:** most `core-api` routes/services are transaction-script-shaped
-orchestration. Real domain models belong in `backend/common` entities/domain and
-`gslogic`. Don't push a domain model into a Fastify handler; don't leave money/audit logic
-as a bare transaction script.
+**In this repo:** see "Repo mapping" above for where each pattern lives (`core-api` vs
+`backend/common` / `gslogic`).
 
 ## Lens 2 — Architecture & testing follow the pattern (Ch. 8, 10)
 
@@ -109,8 +122,8 @@ Review each aggregate against these hard rules:
 
 ## Lens 5 — Reliable domain-event publishing (Ch. 9) — EDA-critical here
 
-greenspark-aws is event-driven (EventBridge / `eda-worker` / `erp-sync-workflow`), so this
-matters. Flag:
+This repo's event-driven backbone (see "Repo mapping" above) makes this lens critical
+here. Flag:
 
 - **Publishing from inside the aggregate**, or **publishing before the DB commit** — a
   subscriber can see an event that contradicts (or never matches) committed state.
@@ -137,7 +150,8 @@ creep in. Recommend the next step up only when the pain is real:
   time-travel, not just current state.
 
 Don't over-escalate: a stable, simple supporting subdomain does **not** need a domain
-model just because it's "important."
+model just because it's "important." Migration also runs downward — if a subdomain was
+demoted from core to supporting, recommend simplifying the domain model back down.
 
 ## Output format
 
@@ -165,5 +179,7 @@ model just because it's "important."
 ```
 
 Lead with the highest-leverage finding. If a lens is clean, write "clean" — don't invent
-findings to fill it. See `references/decision-trees.md` for the full trees, the
-aggregate/value-object checklist, and the book provenance behind each lens.
+findings to fill it. Read `references/decision-trees.md` when the pattern classification
+is borderline (you need the verbatim decision tree), when reviewing aggregate/event code
+in depth (optimistic-lock shape, command-style choice, outbox mechanics, saga vs process
+manager), or when citing the book chapter/figure provenance behind a lens.

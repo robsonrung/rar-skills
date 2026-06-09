@@ -8,15 +8,13 @@ description: Execute prompts using Codex CLI in non-interactive exec mode. Use w
 Execute prompts via Codex CLI `exec` mode with role overlays and continuation support.
 
 ## Runtime Compatibility
-Requirement: fallback chain beyond Claude-only behavior.
-Probe order: codex -> qwen -> kimi -> gemini -> claude.
-Output must include provider switch reason and keep runner provenance fields mandatory.
-If --disable-fallback: return non-zero with prerequisites.
 
 1. Check whether `codex` CLI is available.
 2. If available, execute this skill normally.
-3. If unavailable and `claude` is available, route to `$claude-runner` as fallback and report the provider switch.
-4. If neither is available, stop with a clear prerequisite message.
+3. If unavailable, the script automatically falls back to the claude-runner skill (`run_claude.py`) and reports the provider switch (`fallback_from`, `fallback_reason`); runner provenance fields stay mandatory in the envelope.
+4. If `--disable-fallback` is set or no fallback runner is found, the script exits non-zero with `return_code` -2 and a clear prerequisite message.
+
+The broader cross-runner probe chain (codex -> qwen -> kimi -> gemini -> claude) is a contract owned by the runner skills that implement it (see the claude-runner skill's SKILL.md for its own fallback order); this wrapper implements only the codex -> claude leg.
 
 ## Security Model
 
@@ -25,7 +23,7 @@ This skill invokes the local Codex CLI from the current machine. Prompt text, pr
 
 ## Output Envelope
 
-All `--json` responses must conform to `.agents/skills/_shared/runner-envelope.schema.json`.
+All `--json` responses must conform to `.agents/skills/_shared/runner-envelope.schema.json` (an install-time path; the schema is not bundled in this repo, so the required-keys list below is the operative contract).
 Required top-level keys:
 - `runner`
 - `effective_runner`
@@ -36,13 +34,19 @@ Required top-level keys:
 - `success`
 - `return_code`
 
+Envelopes also include `stdout`, `stderr`, and execution metadata (command, working directory, role, sandbox, and related fields).
+
 ## Usage
 
 ```bash
 python3 .agents/skills/codex-runner/scripts/run_codex.py "your prompt here"
 ```
 
+Paths in the examples use the installed `.agents/skills/` layout; when running from this source repo, skills live at the repo root, so invoke `codex-runner/scripts/run_codex.py` instead.
+
 For repository-aware tasks, prefer `--working-dir` set to the repository root so Codex picks up the applicable local instructions.
+
+Before composing non-trivial prompts (reviews, implementations, research seats), read `references/prompting.md` for task-type XML recipes and anti-patterns.
 
 ## Options
 
@@ -63,7 +67,10 @@ For repository-aware tasks, prefer `--working-dir` set to the repository root so
 | `--metadata-json` | Attach structured execution metadata to the prompt | None |
 | `--ephemeral` | Run without persisting session files to disk | False |
 | `--output-schema` | Path to a JSON Schema file for the final response shape | None |
+| `--output-file` | Write the full wrapper JSON result atomically to this file | None |
 | `--disable-fallback` | Fail instead of routing to another runner | False |
+
+When `--json` and `--output-file` are combined, stdout becomes a compact `{success, return_code, output_file}` summary, keeping large Codex outputs out of an orchestrating agent's context window.
 
 ## Roles
 
@@ -83,18 +90,15 @@ python3 .agents/skills/codex-runner/scripts/run_codex.py "Explain this module"
 python3 .agents/skills/codex-runner/scripts/run_codex.py "Review the staged diff" --role codereviewer --restrict-tools
 python3 .agents/skills/codex-runner/scripts/run_codex.py --prompt-file /tmp/review.md --role challenger --ephemeral
 python3 .agents/skills/codex-runner/scripts/run_codex.py "Return JSON matching the schema" --output-schema /tmp/schema.json
+python3 .agents/skills/codex-runner/scripts/run_codex.py "Audit the auth module" --json --output-file /tmp/codex-audit.json
 python3 .agents/skills/codex-runner/scripts/run_codex.py "Implement the accepted recommendation" --role implementer --session-file .ai-workflow/consensus/feature-x.md
 ```
 
 ## Behavior
 
 1. Executes `codex exec`.
-2. Uses Codex CLI defaults when no explicit sandbox is requested. Pass `--full-auto` only after explicit user approval.
-3. Maps `--restrict-tools` to `--sandbox read-only`.
-4. Passes through `--ephemeral` and `--output-schema`.
-5. Supports role overlays, `--prompt-file`, and `--session-file` continuation.
-6. Returns a runner envelope with `success`, `stdout`, `stderr`, `return_code`, `runner`, `effective_runner`, and execution metadata.
-7. When Codex CLI is invoked with `--json`, the native Codex JSONL event stream remains in `stdout`; the wrapper does not re-shape it.
+2. Supports role overlays, `--prompt-file`, and `--session-file` continuation.
+3. When Codex CLI is invoked with `--json`, the native Codex JSONL event stream remains in `stdout`; the wrapper does not re-shape it.
 
 ## Return Codes
 

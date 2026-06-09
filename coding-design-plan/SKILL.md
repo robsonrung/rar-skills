@@ -1,6 +1,6 @@
 ---
 name: coding-design-plan
-description: Shape coding plans before implementation. Use when a coding task is ambiguous, broad, touches module or service boundaries, changes public interfaces, alters persistence or data flow, introduces an abstraction, or needs a design decision before edits.
+description: Shape coding plans before implementation. Use when a coding task is ambiguous, broad, touches module or service boundaries, changes public interfaces, alters persistence or data flow, introduces an abstraction, or needs a design decision before edits. Also use when the user asks for an implementation plan, design plan, or approach before coding.
 ---
 
 # Coding Design Plan
@@ -16,7 +16,7 @@ Use this skill before coding when the implementation shape matters. The goal is 
 5. Pick at most three quality concerns that are in tension for this task, such as correctness, maintainability, reliability, performance, security, deployability, or observability.
 6. Compare alternatives only when the choice is meaningful. Include keeping the current shape as an option when it is realistic. For small tasks, state why the obvious local shape is enough.
 7. Choose the smallest coherent shape that fits the current codebase and avoids unrelated redesign.
-8. Convert the main concern into verification before editing.
+8. Convert the main concern into verification before editing: a cheap objective test, static check, contract check, migration check, or smoke check that proves the design holds.
 
 ## Decision Checks
 
@@ -28,7 +28,6 @@ Use these checks when the task is larger than a local edit:
 4. Data: what source of truth, consistency need, migration path, or rollback risk exists?
 5. Runtime: does sync, async, retry, queue, cache, or external API behavior affect correctness?
 6. Reversibility: would this decision be expensive to undo?
-7. Fitness: what cheap objective test, static check, contract check, migration check, or smoke check proves the design holds?
 
 ## Escalation
 

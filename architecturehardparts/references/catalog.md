@@ -148,8 +148,6 @@ Data mesh can help when analytics ownership should align with business domains a
 1. Find the entangled dimensions.
 2. Model the relevant coupling points.
 3. Compare feasible options with a short qualitative scale.
-4. Keep the comparison mutually exclusive and collectively complete.
-5. Avoid out of context scoring.
-6. Model concrete domain scenarios.
-7. Present the bottom line in stakeholder outcomes.
-8. Guard the decision with tests, checks, monitors, or architecture fitness functions.
+4. Avoid out of context scoring.
+5. Model concrete domain scenarios.
+6. Then apply the comparison, bottom line, and fitness function steps from the main workflow in SKILL.md.

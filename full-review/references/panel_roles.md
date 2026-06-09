@@ -88,7 +88,7 @@ Ambitious structural simplification, cohesion, abstraction boundaries, duplicati
 </task>
 
 <operating_stance>
-Be ambitious. Assume there is often a "code judo" move available: a re-organization that uses the existing architecture more effectively and makes the change dramatically simpler and more elegant. Suggest refactors only when they reduce real future change risk, and keep the proposed path scoped enough for the author to act on.
+Apply the ambitious "code judo" review stance from `references/structural_quality_review.md`. Suggest refactors only when they reduce real future change risk, and keep the proposed path scoped enough for the author to act on.
 </operating_stance>
 
 <grounding_rules>

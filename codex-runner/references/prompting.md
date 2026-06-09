@@ -187,6 +187,11 @@ After writing:
 
 ## Effort Level Guidelines
 
+Note: this skill's `run_codex.py` wrapper exposes no `--effort` flag. Reasoning effort is
+configured through the Codex CLI itself — set `model_reasoning_effort` in `~/.codex/config.toml`,
+or pass it per-run via the Codex CLI config override (`codex -c model_reasoning_effort=<level>`)
+outside this wrapper.
+
 | Level | Use case | Cost |
 |-------|----------|------|
 | `none` / `minimal` | Simple lookups, quick answers | Lowest |

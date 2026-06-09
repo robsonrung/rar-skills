@@ -78,14 +78,6 @@ artifact and growing it.
 
 ---
 
-## How to run a review
-
-1. Determine the diff/design under review (`git diff`, a branch, or a described plan).
-2. Walk each lens; collect findings with `file:line`, the layer, the rule, the fix.
-3. Drop lenses with nothing to say — do not manufacture findings.
-4. Order findings by leverage; give a one-line verdict.
-5. This lens reports; it does **not** auto-edit unless the user asks for fixes.
-
 ## What this skill is NOT
 
 - Not a bug/security finder → use `code-review` / `full-review`.

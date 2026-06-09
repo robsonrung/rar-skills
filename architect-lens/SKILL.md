@@ -42,8 +42,6 @@ Goal: turn a fuzzy "which is better?" into an explicit, defensible choice.
 
 7. **If a decision encodes a rule that future code could violate, suggest a fitness function** — an automated guard (lint rule, arch test, CI check) so the rule enforces itself instead of relying on memory. See `references/fitness-functions.md`.
 
-Keep it proportional: a small decision gets a two-line trade-off note inline; a significant one gets the full pass + an ADR.
-
 ---
 
 ## Coupling lens (connascence reviewer)
@@ -61,7 +59,7 @@ Goal: replace vague "this is too coupled" with a precise diagnosis and a concret
 Review workflow:
 1. Identify the coupled elements and **name the connascence type** (see `references/connascence.md` for the full taxonomy — name, type, meaning/convention, position, algorithm; execution order, timing, value, identity).
 2. Judge it by strength × locality × degree. Local + static = usually leave it. Distant + dynamic = flag it.
-3. For each thing worth fixing, suggest a concrete weakening — e.g. magic value → named constant (meaning→name); positional args → named params/object (position→name); duplicated calc → single source (algorithm→name). The reference file maps each type to its remedy.
+3. For each thing worth fixing, suggest a concrete weakening — e.g. magic value → named constant (meaning→name). The reference file maps each type to its remedy.
 4. Don't over-refactor: removing all coupling is impossible and chasing it creates indirection. Weaken the *strong, distant, high-degree* cases; leave the rest.
 
 Also check **cohesion** while you're there: do the things in this module belong together (change for the same reason)? Low cohesion + high coupling is the signal to split or regroup.
@@ -72,5 +70,5 @@ Also check **cohesion** while you're there: do the things in this module belong 
 
 - Be concrete and short. Name the characteristic / connascence type, state the trade-off or remedy, move on.
 - Always surface at least one cost or counter-point — never present a choice as free.
-- Match effort to stakes. Don't generate an ADR or a fitness function for a one-line decision.
+- Match effort to stakes: a small decision gets a two-line trade-off note inline; only significant ones get the full pass, an ADR, or a fitness function.
 - Reference files are loaded on demand — read them when you need the taxonomy, the characteristics checklist, or a template, not preemptively.

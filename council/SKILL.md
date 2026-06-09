@@ -26,31 +26,25 @@ If the user explicitly invokes `council` by name, you must run the actual counci
 
 ## Operating Rules
 
-- Treat `--auto` as enabled when the user explicitly includes `--auto` or clearly asks for fully automatic behavior.
-- If the user explicitly invokes `council`, treat that as a request for the full workflow regardless of task size or perceived simplicity.
-- In `--auto`, skip all user interviews, make reasonable assumptions, and start execution automatically after the final plan.
+- Treat `--auto` as enabled when the user explicitly includes `--auto` or clearly asks for fully automatic behavior. Then follow the `--auto` branches in Steps 1, 4, 5, and 6.
 - Outside `--auto`, keep asking targeted questions until confidence is above 95%.
 - Ask only blocking questions. Do not interview for preferences that do not change the plan.
 - Ask one short question at a time unless an interactive multiple-choice UI is available and materially faster.
 - Use interactive question tools when the host supports them. Otherwise ask plain-text questions.
-- Keep the first council round blind. Pass only the final clarified prompt, not your notes, not the interview transcript, not repo summaries, and not prior conclusions.
+- Keep the first council round blind, passing only the final clarified prompt as described in Step 2.
 - Use the strongest planning setup available for each seat.
 - Keep artifacts compact. Prefer a temporary working folder such as `.ai-workflow/council/` or `/tmp/council-<timestamp>/`.
 
 ## Host Mapping
-Host mapping covers Codex, Claude, Gemini CLI, Qwen CLI, and Kimi CLI.
-Define native seat paths, runner fallback order, and minimum quorum of 3 seats.
-Do not hard-stop on single seat failure; continue with lowered confidence.
-Record seat_unavailable reasons in moderator report.
 
-Detect the host before choosing the seat implementation.
+Detect the host first, before choosing the seat implementation.
 
 ### Codex Host
 
 Use:
 - native `spawn_agent` for the Codex seat
 - `claude-runner` for Opus and Sonnet
-- `gemini-runner` for Gemini
+- `gemini-runner` with `--role planner` for Gemini, when the local Gemini CLI is available
 
 Do not use `codex-runner` for the Codex seat when native Codex subagents are available.
 
@@ -63,21 +57,26 @@ For native Codex seats:
 
 Use:
 - native Claude subagents for Opus and Sonnet
-- `codex-runner` for the Codex seat
-- `gemini-runner` for Gemini
+- `codex-runner` with `--role planner --restrict-tools` for the Codex seat
+- `gemini-runner` with `--role planner` for Gemini, when the local Gemini CLI is available
 
 Do not use `claude-runner` for Opus or Sonnet when native Claude subagents are available.
+
+### Other Hosts
+
+On any other host (Gemini CLI, Qwen CLI, Kimi CLI, etc.), use the runner skills for all four seats with the same flags as above.
 
 ### Fallbacks
 
 - If a required native path is unavailable, fall back to the corresponding runner skill.
-- If Gemini cannot run through its runner or exposed tools, stop and explain the missing prerequisite instead of silently dropping the seat.
+- On any single seat failure (including Gemini), record a `seat_unavailable` reason for the moderator report, continue with lowered confidence if at least 3 seats remain, and surface the missing prerequisite (for example, a missing local Gemini CLI) to the user in the final presentation instead of silently dropping the seat.
+- Stop and explain the missing prerequisites only if quorum drops below the minimum of 3 seats.
 
 ## Step 1: Clarify Until 95% Confidence
 
 Start by checking whether the prompt is sufficiently specified.
 
-Even when the prompt is already clear and confidence is immediately above 95%, do not skip the council round. In that case, build the clarified prompt directly and continue to Step 2.
+If the prompt is already clear and confidence is immediately above 95%, build the clarified prompt directly and continue to Step 2.
 
 You must be confident about:
 - the actual objective
@@ -113,10 +112,10 @@ Launch four seats in parallel:
 Give every seat the same job and the same clarified prompt.
 
 Do not pass:
-- your own analysis
-- the clarification transcript
+- your own notes or analysis
+- the clarification interview transcript
 - repo summaries
-- preferred solutions
+- preferred solutions or prior conclusions
 - the expected answer
 
 The only seat-specific differences should be the model identity, the host mechanism, and the planning role wrapper.
@@ -128,24 +127,7 @@ Tell every seat to produce an initial planning thought, not final execution. Use
 - highest planning reasoning or thinking budget available
 - no write access during the council round
 
-Use an output contract like this:
-
-```text
-Return:
-1. Task understanding
-2. Proposed approach
-3. Key assumptions
-4. Risks or unknowns
-5. Confidence from 0-100
-```
-
-### Recommended Seat Configuration
-
-- Opus: planner-oriented prompt, strongest available Claude planning mode
-- Sonnet: planner-oriented prompt, strongest available Claude planning mode
-- Gemini: `gemini-runner` with `--role planner` when the local Gemini CLI is available
-- Codex runner fallback: `codex-runner` with `--role planner --restrict-tools`
-- Codex native seat: `spawn_agent(... fork_context=false, reasoning_effort="xhigh")`
+Use the council-seat prompt in the Prompting Pattern section as the output contract.
 
 Run all four seats concurrently.
 
@@ -160,6 +142,7 @@ After the first round, write a compact report with these sections:
 - consensus
 - discrepancies
 - unresolved questions
+- `seat_unavailable` reasons for any seat that failed to run
 - moderator notes limited to factual synthesis
 
 Keep this report faithful. Do not smuggle in extra context or repo-specific explanations that were not present in the first round.
@@ -177,12 +160,7 @@ On non-Codex host:
 - use `codex-runner`
 - pass only the report file or report text
 
-Ask Codex to return:
-- the chosen plan
-- rejected alternatives
-- explicit assumptions
-- remaining questions, if any
-- final confidence from 0-100
+Ask Codex for the final decision using the Codex final-decision prompt in the Prompting Pattern section.
 
 If Codex confidence is above 95%:
 - adopt the plan without asking the user for more detail
@@ -270,7 +248,7 @@ Use this compact Codex final-decision prompt shape:
 ```text
 You are the final decision-maker.
 Use only the report below.
-Choose the best plan, state assumptions, list unresolved questions if confidence is below 95, and give confidence from 0-100.
+Choose the best plan, note rejected alternatives, state explicit assumptions, list unresolved questions if confidence is below 95, and give confidence from 0-100.
 
 Report:
 <moderator report>

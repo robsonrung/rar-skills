@@ -15,6 +15,7 @@ Principles
 9. Use external runner wrappers with fallback disabled when a role is mapped to a local CLI model.
 10. Record native Codex output as a response artifact before marking a phase complete.
 11. Prefer `scripts/record_native_response.py` for native Codex responses so the artifact and `panel_summary.json` stay synchronized.
+12. Providers in `assets/routing.toml` support `kind = "native_codex"`, `"runner"`, or `"cli"`. The `cli` kind is an extension point for direct command execution: it templates `command`/`args` with `{prompt}`, `{phase}`, `{role}`, `{model}`, and `{prompt_file}` variables and sends the prompt on stdin when `prompt_transport = "stdin"`. The default routing uses only `native_codex` and `runner`.
 
 Primary output: `tasks.md`
 

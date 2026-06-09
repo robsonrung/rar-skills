@@ -442,7 +442,7 @@ Examples:
   %(prog)s "What is 2+2?"
   %(prog)s "List Python files" --working-dir /path/to/project
   %(prog)s "Explain this code" --json --timeout 3600
-  %(prog)s "Write a function" --model Gemini-3.5-Flash
+  %(prog)s "Review this diff" --role codereviewer
         """,
     )
 

@@ -1,6 +1,6 @@
 ---
 name: coding-implementation-guard
-description: Keep implementation work safe, local, and verifiable. Use when an agent is actively editing nontrivial code, changing behavior, touching stored state, APIs, async work, retries, migrations, or refactoring while preserving the chosen design.
+description: Keep implementation work safe, local, and verifiable. Use when implementing a feature, fixing a bug, changing behavior, refactoring while preserving the chosen design, or writing code that touches stored state, APIs, async work, retries, or migrations.
 ---
 
 # Coding Implementation Guard
@@ -45,7 +45,7 @@ Use these as editing pressure, not as a rewrite license:
 
 ## Output Contract
 
-When this skill shaped the implementation, include:
+After completing edits made while this skill is active, report:
 
 1. `changed`: what was edited.
 2. `behavior`: whether behavior changed or was preserved.

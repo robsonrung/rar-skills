@@ -6,10 +6,9 @@ description: Advise on and review React code through the lenses of "Advanced Rea
 # React Performance & Patterns Lens
 
 Advise and review React code using the rules from *Advanced React* by Nadia Makarevich.
-This is **not** generic React help and **not** a bug hunt for logic errors (use
-`code-review` for that). It asks one set of questions: **will this re-render more than it
-needs to, is memoization actually doing anything, is this closure stale, and is the async
-path safe?**
+It asks one set of questions: **will this re-render more than it needs to, is memoization
+actually doing anything, is this closure stale, and is the async path safe?** Not a bug
+hunt for logic errors — use `code-review` for that.
 
 Two modes, pick by context:
 
@@ -21,7 +20,7 @@ Two modes, pick by context:
 
 ## Repo context (read before applying)
 
-- Frontend is **React 17** ([frontend/CLAUDE.md](../../../frontend/CLAUDE.md)): no
+- Frontend is **React 17** (see `frontend/CLAUDE.md` at the app repo root): no
   automatic batching outside React event handlers, `forwardRef` is still required to pass
   a `ref` prop, and the React 19 "ref as a regular prop" change does **not** apply here.
   The book (2023) matches React 17/18 closely — prefer its advice over half-remembered
@@ -55,11 +54,8 @@ Check, in order:
 2. **Children / elements as props.** When a component owns state but renders a heavy
    subtree that doesn't depend on that state, pass the subtree as `children` (or as an
    element prop). Elements passed in as props **don't re-render** when the parent's own
-   state changes — they were created by the parent's parent.
-   ```jsx
-   // ScrollDetector re-renders on scroll; <HeavyChart/> does not.
-   <ScrollDetector><HeavyChart /></ScrollDetector>
-   ```
+   state changes — they were created by the parent's parent. Exact pattern: cheatsheet
+   ch 2.
 3. **Render props** only when the children genuinely need the parent's state/DOM data
    (e.g. logic attached to a DOM element). Hooks replaced ~99% of the old "share stateful
    logic" use case — don't reach for render props just to share logic.
@@ -90,6 +86,9 @@ And flag `React.memo` that is **silently defeated**:
 Rule of thumb: if you're memoizing a prop, prove the consumer is `React.memo`'d or uses it
 as a dep. Otherwise delete the memo.
 
+Memo'd list items, or state mysteriously resetting/persisting across renders → keys &
+reconciliation, cheatsheet ch 6.
+
 ## Lens 3 — Context performance (ch 8)
 
 Every consumer of a Context re-renders when the provider `value` changes — and **standard
@@ -101,8 +100,9 @@ memoization can't stop it**.
 - For multiple unrelated values, **split into multiple providers** so a change to one
   doesn't re-render consumers of the other. `useState` → `useReducer` helps keep the data
   and the API in separate stable contexts.
-- No real selectors exist for Context; you can fake them with `React.memo` + HOCs, but if
-  you find yourself doing that, **use RTK** (this repo already has it) instead.
+- No real selectors exist for Context; you can fake them with `React.memo` + HOCs (see
+  cheatsheet ch 7), but if you find yourself doing that, **use RTK** (this repo already
+  has it) instead.
 
 ## Lens 4 — Refs, closures & stale state (ch 9–11)
 
@@ -134,24 +134,16 @@ memoization can't stop it**.
 
 ## Lens 6 — Flickering UI / useLayoutEffect (ch 12)
 
-If you **measure** a DOM element (size/position) in `useEffect` and then move/resize/hide
-it based on the measurement, the browser can paint the "before" frame first → visible
-glitch.
-
-- Use **`useLayoutEffect`** for measure-then-mutate-DOM work; it runs synchronously before
-  paint, so the browser paints only the final state.
-- Caveat: `useLayoutEffect` doesn't run during SSR. Not a concern for this Amplify SPA, but
-  note it if any SSR is introduced.
+Measure-then-mutate DOM work (size/position) in `useEffect` lets the browser paint the
+"before" frame first → visible glitch. Use **`useLayoutEffect`** — it runs synchronously
+before paint. SSR caveat and exact pattern: cheatsheet ch 12.
 
 ## Lens 7 — Portals & stacking context (ch 13)
 
-- `position: absolute` clips inside `overflow: hidden`; `position: fixed` escapes overflow
-  **but not** a Stacking Context — and nothing escapes a Stacking Context (created by
-  `position`+`z-index`, `transform`, `translate`, `opacity`, etc.).
-- For modals/tooltips/dropdowns trapped by an ancestor's overflow or stacking context, use
-  a **Portal** to render outside the DOM subtree. React event bubbling still follows the
-  React tree; DOM layout follows the portal target. (MUI's `Modal`/`Popper` already
-  portal — flag hand-rolled overlays that don't.)
+Modals/tooltips/dropdowns clipped by an ancestor's `overflow` or trapped in a Stacking
+Context (nothing escapes one, not even `position: fixed`) → render via a **Portal**.
+MUI's `Modal`/`Popper` already portal — flag hand-rolled overlays that don't. CSS rules
+and event-bubbling behavior: cheatsheet ch 13.
 
 ## Lens 8 — Data fetching: waterfalls & race conditions (ch 14–15)
 
@@ -161,27 +153,18 @@ glitch.
   request limits; critical resources can be prefetched before React mounts.
 - **Race condition:** `setState` after an `await`/`.then` in an effect keyed on a changing
   value (e.g. `url`, an id). A slow earlier request can resolve after a newer one and
-  overwrite fresh data. Flag any:
-  ```jsx
-  useEffect(() => {
-    fetch(url).then(r => r.json()).then(setData); // ⚠ race-prone
-  }, [url]);
-  ```
-  Fixes (prefer the last two): compare the resolved id against the current one before
-  `setState`; use a cleanup-flag in `useEffect` to drop stale results; or **`AbortController`**
-  to cancel in-flight requests. (RTK Query handles this for you — prefer it over hand-rolled
-  `fetch` in effects when the data is server state.)
+  overwrite fresh data. Fixes (prefer the last two): compare the resolved id before
+  `setState`; cleanup-flag in `useEffect`; **`AbortController`**. Exact patterns:
+  cheatsheet ch 15. (RTK Query handles this for you — prefer it over hand-rolled `fetch`
+  in effects when the data is server state.)
 
 ## Lens 9 — Error handling (ch 16)
 
-- After React 16, an **uncaught render error unmounts the whole app**. At least a few
-  `ErrorBoundary`s in strategic places are non-negotiable.
-- An `ErrorBoundary` catches errors from anywhere **down** the render tree but **not** in
-  callbacks, `setTimeout`, or promises. A `try/catch` catches async/callback errors but
-  **not** errors from nested components or `useEffect`/render.
-- To catch async errors with a boundary, catch them in `try/catch` and **re-throw into the
-  render lifecycle** (a `useAsyncError`-style hook that calls `setState(() => { throw e })`),
-  or use the `react-error-boundary` library.
+After React 16, an **uncaught render error unmounts the whole app** — a few
+`ErrorBoundary`s in strategic places are non-negotiable. Boundaries miss
+callbacks/`setTimeout`/promises; `try/catch` misses render/`useEffect`/nested components.
+Bridge by re-throwing async errors into the render lifecycle, or use the
+`react-error-boundary` library. Exact hook and coverage matrix: cheatsheet ch 16.
 
 ---
 

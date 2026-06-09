@@ -25,7 +25,7 @@ This skill delegates to `qwen-runner`, so it has the same execution and data sha
 
 ## Output Envelope
 
-All `--json` responses must conform to `.agents/skills/_shared/runner-envelope.schema.json`.
+All `--json` responses use the shared runner envelope inherited from `qwen-runner`. The envelope is expected to conform to `.agents/skills/_shared/runner-envelope.schema.json`; when that schema file is absent, the inline key list below is authoritative.
 Required top-level keys:
 - `runner`
 - `effective_runner`
@@ -42,39 +42,9 @@ Required top-level keys:
 python3 .agents/skills/gemma-runner/scripts/run_gemma.py "your prompt here"
 ```
 
-## Supported Options
+## Options, Roles, and Return Codes
 
-The Gemma runner inherits the verified Qwen runner options:
-- `--timeout`
-- `--working-dir`
-- `--json`
-- `--prompt-file` (repeatable)
-- `--model`
-- `--output-format`
-- `--input-format`
-- `--approval-mode`
-- `--sandbox`
-- `--safe`
-- `--bare`
-- `--no-session-persistence`
-- `--restrict-tools`
-- `--role`
-- `--session-file`
-- `--metadata-json`
-- `--output-schema`
-- `--disable-fallback`
-- `--output-file`
-
-## Roles
-
-Supported roles:
-- `planner`
-- `codereviewer`
-- `implementer`
-- `synthesizer`
-- `adversarial`
-- `challenger`
-- `researcher`
+Options, roles, and return codes are inherited from `qwen-runner` — read the qwen-runner skill's SKILL.md when you need flag details. Every flag the Qwen wrapper accepts, including `--ephemeral`, works here unchanged.
 
 ## Examples
 
@@ -85,26 +55,17 @@ python3 .agents/skills/gemma-runner/scripts/run_gemma.py "Return JSON only" --ou
 ```
 
 ## Behavior
-## Runtime Compatibility
-Define optional fallback policy when qwen/gemma auth unavailable.
-If fallback occurs, keep runner=gemma and set effective_runner to actual provider.
-If fallback disabled, return seat_unavailable envelope.
 
 1. Delegates to the shared `qwen-runner` implementation with runner identity set to `gemma`.
 2. Uses `stream-json` as the default native Qwen output format.
-3. Never falls back to another provider. A failing Gemma smoke test should block the seat.
+3. Never falls back to another provider. If the `qwen` CLI is missing, the envelope carries `status: seat_unavailable` (return code `-2`); Gemma auth failures fold into return code `-3` with the native `[API Error: ...]` text in `stderr`. In both cases `runner` stays `gemma`, the envelope still carries the `fallback_reason` key, and a failing Gemma smoke test should block the seat.
 4. Preserves the shared wrapper envelope so councils can compare Gemma output with other runners consistently.
-
-## Return Codes
-
-| Code | Meaning |
-|------|---------|
-| 0 | Success |
-| -1 | Timeout exceeded |
-| -2 | Qwen CLI not found |
-| -3 | Invalid input or unexpected error |
 
 ## Gotchas
 
 - `--bare` and `--safe` are compatibility flags here; they do not change the Qwen CLI transport.
 - `--output-schema` is prompt-enforced, not natively validated by Qwen CLI.
+
+## Integration
+
+`agents/openai.yaml` exposes this skill as a native Codex-app subagent seat (Codex UI display metadata and default prompt); do not remove it.

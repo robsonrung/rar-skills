@@ -23,14 +23,11 @@ Good architecture work usually selects a small set and makes trade offs explicit
 
 ## Modularity Review
 
-Use these questions:
+Use the Boundary Review in SKILL.md as the core checklist for cohesion, coupling, connascence, locality, data flow, runtime flow, and fitness functions. Add these probes:
 
-1. Cohesion: would splitting this module increase coupling and reduce readability?
-2. Coupling: did the change add incoming or outgoing dependencies that make the module harder to reuse or change?
-3. Abstraction balance: is the code too concrete to evolve or too abstract to understand?
-4. Connascence: what knowledge must two places share for the system to stay correct?
-5. Locality: are strong forms of shared knowledge kept inside the same component?
-6. Degree: how many files, modules, services, or teams are affected if this changes?
+1. Cohesion splitting test: would splitting this module increase coupling and reduce readability?
+2. Abstraction balance: is the code too concrete to evolve or too abstract to understand?
+3. Degree: how many files, modules, services, or teams are affected if this changes?
 
 Favor weaker coupling across wider boundaries. Strong coupling can be acceptable inside a cohesive component.
 

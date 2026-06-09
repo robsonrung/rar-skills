@@ -43,7 +43,7 @@ Diff:
 
 <structured_output_contract>
 Return a JSON object with three top-level keys: `comments`, `verdict`, and `summary`.
-Each comment must include: `id`, `severity`, `confidence`, `category`, `path`, `line_start`, `line_end`, `title`, `problem`, `evidence`, `suggested_fix`, and `tests_to_run`.
+Each comment must include: `id`, `severity`, `confidence`, `category`, `path`, `line_start`, `line_end`, `title`, `problem`, `evidence`, `suggested_fix`, and `tests_to_run`. `evidence` must be an array of short strings (one or more concrete code indicators).
 Add `prompt_for_agent` only when a concrete implementation handoff would help.
 </structured_output_contract>
 

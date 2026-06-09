@@ -8,10 +8,8 @@ description: Execute prompts using Claude CLI in headless print mode from the cu
 Execute prompts via Claude CLI `-p` mode with role overlays and continuation support.
 
 ## Runtime Compatibility
-Fallback order: codex-runner -> qwen-runner -> kimi-runner -> gemini-runner.
-Honor --disable-fallback as fail-fast.
-Always emit effective_runner, effective_model, fallback_reason.
-Requirement: auth preflight result field auth_ok.
+Fallback: codex-runner only (invoked with `--disable-fallback`; the chain does not continue to qwen, kimi, or gemini).
+With `--disable-fallback`, fail fast with a prerequisite message instead of routing.
 
 1. Check whether `claude` CLI is available.
 2. If available, execute this skill normally.
@@ -25,16 +23,18 @@ This skill invokes the local Claude CLI from the current machine. Prompt text, p
 
 ## Output Envelope
 
-All `--json` responses must conform to `.agents/skills/_shared/runner-envelope.schema.json`.
-Required top-level keys:
+All `--json` responses must conform to `.agents/skills/_shared/runner-envelope.schema.json` (provisioned at install time; when that schema file is absent, the required-keys list below is the authoritative contract).
+Required top-level keys, always emitted:
 - `runner`
 - `effective_runner`
 - `effective_model`
 - `effective_provider`
-- `auth_ok`
+- `auth_ok` (auth preflight result)
 - `fallback_reason`
 - `success`
 - `return_code`
+
+The envelope also carries `stdout`, `stderr`, and execution metadata.
 
 ## Usage
 
@@ -42,7 +42,7 @@ Required top-level keys:
 python3 .agents/skills/claude-runner/scripts/run_claude.py "your prompt here"
 ```
 
-Use `--working-dir` when the prompt depends on package-local files or generated artifacts. Use repeated `--prompt-file` flags for longer prompts or council overlays.
+Use `--working-dir` when the prompt depends on package-local files or generated artifacts. Use repeated `--prompt-file` flags for longer prompts or council overlays. Combine `--output-file` with `--json` to write the full envelope to disk and print only a compact `{success, return_code, output_file}` stub, keeping large outputs out of the orchestrator's context.
 
 ## Options
 
@@ -54,7 +54,7 @@ Use `--working-dir` when the prompt depends on package-local files or generated 
 | `--prompt-file` | Read prompt content from a file; may be repeated | None |
 | `--model`, `-m` | Claude model alias or full model name such as `claude-sonnet-4-6` or `claude-opus-4-7` | CLI default |
 | `--output-format`, `-o` | Claude print-mode output format: `text`, `json`, or `stream-json` | `text` |
-| `--safe` | Keep Claude permission checks enabled | True |
+| `--safe` | Informational no-op; permission checks are always enabled whether or not the flag is passed | True |
 | `--bare` | Use Claude bare mode for faster startup and fewer implicit context sources | False |
 | `--no-session-persistence` | Do not persist Claude session files to disk | False |
 | `--restrict-tools` | Use Claude planning mode for read-only analysis seats | False |
@@ -62,6 +62,7 @@ Use `--working-dir` when the prompt depends on package-local files or generated 
 | `--session-file` | Append prior debate or workflow context for continuation | None |
 | `--metadata-json` | Attach structured execution metadata to the prompt | None |
 | `--disable-fallback` | Fail instead of routing to another runner | False |
+| `--output-file` | Write the full JSON envelope to this file atomically; with `--json`, stdout becomes a compact `{success, return_code, output_file}` stub | None |
 
 ## Roles
 
@@ -86,12 +87,8 @@ python3 .agents/skills/claude-runner/scripts/run_claude.py "Continue from the ac
 
 ## Behavior
 
-1. Executes `claude -p` through the local runner script.
-2. Keeps Claude permission checks enabled.
-3. Maps `--restrict-tools` to Claude `--permission-mode plan` for read-only analysis seats.
-4. Supports repeated `--prompt-file` flags, role overlays, and `--session-file` continuation.
-5. Returns a runner envelope with `success`, `stdout`, `stderr`, `return_code`, `runner`, `effective_runner`, and execution metadata.
-6. When `--output-format json` or `stream-json` is used, the native Claude payload stays in `stdout`; the wrapper does not re-shape it.
+1. Maps `--restrict-tools` to Claude `--permission-mode plan` for read-only analysis seats.
+2. When `--output-format json` or `stream-json` is used, the native Claude payload stays in `stdout`; the wrapper does not re-shape it.
 
 ## Return Codes
 
@@ -101,8 +98,13 @@ python3 .agents/skills/claude-runner/scripts/run_claude.py "Continue from the ac
 | -1 | Timeout exceeded |
 | -2 | Claude CLI not found |
 | -3 | Invalid input or unexpected error |
+| -4 | Bare mode without `ANTHROPIC_API_KEY` or `ANTHROPIC_AUTH_TOKEN` (bare mode disables OAuth/keychain auth) |
 
 ## Prerequisites
 
 - Claude CLI installed and in PATH
 - Claude CLI authenticated
+
+## Integration
+
+`agents/openai.yaml` exposes this skill as a native Codex-app subagent seat; do not remove it.

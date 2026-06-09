@@ -1,5 +1,11 @@
 #!/usr/bin/env python3
-"""Record a native Codex role response for a collaborative skill phase."""
+"""Record a native Codex role response for a collaborative skill phase.
+
+This script is intentionally duplicated byte-identically across the sibling skills
+collaborative_delivery, collaborative_discovery, collaborative_specification, and
+collaborative_task_design to honor each skill's self-containment contract. When
+changing it, apply the same change to all four copies.
+"""
 from __future__ import annotations
 
 import argparse

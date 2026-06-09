@@ -14,10 +14,6 @@ Execute prompts against Minimax models through the shared Qwen CLI wrapper. This
 Pass `--model` if you want to target another Minimax model exposed by the local `qwen` CLI account.
 
 ## Prerequisites
-Requirement: qwen/minimax auth smoke test and explicit blocked response.
-Differentiate missing_binary vs auth_failed vs timeout in return semantics.
-Output must include effective_provider metadata even in non-fallback mode.
-Document council seat accounting behavior.
 
 - `qwen` installed and in `PATH`
 - `qwen auth` configured for the Minimax models you intend to use
@@ -27,58 +23,15 @@ Document council seat accounting behavior.
 This skill delegates to `qwen-runner`, so it has the same execution and data sharing model as the Qwen wrapper. Prompt text, prompt files, session files, metadata, and any files Qwen reads during the run may be sent to the selected Minimax provider. Approval mode defaults to `default`.
 
 
-## Output Envelope
+## Shared Wrapper Reference
 
-All `--json` responses must conform to `.agents/skills/_shared/runner-envelope.schema.json`.
-Required top-level keys:
-- `runner`
-- `effective_runner`
-- `effective_model`
-- `effective_provider`
-- `auth_ok`
-- `fallback_reason`
-- `success`
-- `return_code`
+Supported options, roles, the `--json` output envelope key contract, return codes, and gotchas are identical to the shared wrapper — read the qwen-runner skill's SKILL.md (`../qwen-runner/SKILL.md`) when you need flag or envelope details. The envelope is produced by `qwen-runner/scripts/run_qwen.py`.
 
 ## Usage
 
 ```bash
 python3 .agents/skills/minimax-runner/scripts/run_minimax.py "your prompt here"
 ```
-
-## Supported Options
-
-The Minimax runner inherits the verified Qwen runner options:
-- `--timeout`
-- `--working-dir`
-- `--json`
-- `--prompt-file` (repeatable)
-- `--model`
-- `--output-format`
-- `--input-format`
-- `--approval-mode`
-- `--sandbox`
-- `--safe`
-- `--bare`
-- `--no-session-persistence`
-- `--restrict-tools`
-- `--role`
-- `--session-file`
-- `--metadata-json`
-- `--output-schema`
-- `--disable-fallback`
-- `--output-file`
-
-## Roles
-
-Supported roles:
-- `planner`
-- `codereviewer`
-- `implementer`
-- `synthesizer`
-- `adversarial`
-- `challenger`
-- `researcher`
 
 ## Examples
 
@@ -92,19 +45,5 @@ python3 .agents/skills/minimax-runner/scripts/run_minimax.py "Return JSON only" 
 
 1. Delegates to the shared `qwen-runner` implementation with runner identity set to `minimax`.
 2. Uses `stream-json` as the default native Qwen output format.
-3. Never falls back to another provider. A failing Minimax smoke test should block the seat.
+3. Never falls back to another provider. If the run fails (non-zero `return_code` or `auth_ok=false` in the envelope), treat the Minimax seat as blocked and report it unavailable so councils can account for the missing seat — never substitute another provider.
 4. Preserves the shared wrapper envelope so councils can compare Minimax output with other runners consistently.
-
-## Return Codes
-
-| Code | Meaning |
-|------|---------|
-| 0 | Success |
-| -1 | Timeout exceeded |
-| -2 | Qwen CLI not found |
-| -3 | Invalid input or unexpected error |
-
-## Gotchas
-
-- `--bare` and `--safe` are compatibility flags here; they do not change the Qwen CLI transport.
-- `--output-schema` is prompt-enforced, not natively validated by Qwen CLI.

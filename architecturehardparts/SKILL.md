@@ -72,7 +72,7 @@ For architecture decisions, produce a concise decision note with these sections:
 6. Validation
 7. Consequences
 
-When writing an ADR, use the repository convention if one exists. If none exists, use `docs/adr/YYYYMMDD_slug.md`. The helper script `scripts/newadr.py` can draft a markdown file.
+When writing an ADR, use the repository convention if one exists. If none exists, use `docs/adr/YYYYMMDD_slug.md`. The helper script `scripts/newadr.py` can draft a markdown file. Example: `python <skill_dir>/scripts/newadr.py --title "Split billing schema" --out-dir docs/adr --dry-run`. The script path is relative to this skill, not the repo. Run with `--help` for all flags.
 
 ## Gotchas
 

@@ -10,7 +10,7 @@ Principles
 4. Use roles in instructions and routing. Keep model names in editable config values only.
 5. Run independent role rounds before reconciliation.
 6. Preserve dissent in the decision log.
-7. Record the mandatory anchor participation for every phase.
+7. Record the anchor participation that the SKILL.md core rule requires for every phase.
 8. Do not count prompt generation, handoff creation, or fallback output as the configured model participating.
 9. Use external runner wrappers with fallback disabled when a role is mapped to a local CLI model.
 10. Record native Codex output as a response artifact before marking a phase complete.

@@ -77,12 +77,15 @@ Example: a finding at confidence `0.82` corroborated by one independent source b
 
 ## 4. Confidence filter
 
-Drop any comment whose `confidence` falls below the active threshold.
+Drop any comment whose `confidence` falls below the active threshold. This table is the single source of truth for thresholds.
 
 | Mode | Threshold | Exception |
 |---|---|---|
-| Default | `0.60` | None |
-| Quiet | `0.70` | Keep `LOW` severity if `quick_win: true` |
+| Default (`quiet_mode=false`) | `0.60` | None |
+| Quiet (`quiet_mode=true`, the skill default) | `0.70` | Keep `LOW` severity if `quick_win: true` |
+| Quick (`quick_mode=true`) | `0.80` | None |
+
+An explicit `confidence_threshold` knob overrides the active mode threshold. The Confidence Rubric's "below 0.5" row in SKILL.md is a scoring band, not a second filter — this stage is the only confidence filter.
 
 Comments that survive this step proceed regardless of severity.
 

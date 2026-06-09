@@ -2,11 +2,7 @@
 
 Required artifacts
 
-1. `discovery_brief.md`
-2. `option_map.md`
-3. `open_questions.md`
-4. `decision_log.md`
-5. `panel_summary.json`
+See the Required outputs section of `SKILL.md`; the machine-read source is `required_outputs` in `assets/routing.toml`, consumed by `scripts/validate_artifacts.py`.
 
 Presence audit
 

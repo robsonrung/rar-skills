@@ -1,6 +1,6 @@
 ---
 name: dynamic-harness
-description: "Dynamic multi agent harness orchestration for complex, high value tasks. Use when the user invokes $dynamic-harness or asks for a workflow, dynamic workflow, dynamic harness, ultracode style harness, many subagents, competing agents, tournament, fan out and synthesis, generate and filter, adversarial verification, classify and act routing, loop until done investigation, large migration, deep research, deep verification, qualitative sorting, triage at scale, or root cause analysis."
+description: "Dynamic multi agent harness orchestration for complex, high value tasks. Use when the user invokes $dynamic-harness or asks for a workflow, dynamic workflow, dynamic harness, ultracode style harness, many subagents, competing agents, tournament, fan out and synthesis, generate and filter, adversarial verification, classify and act routing, loop until done investigation, large migration, multi agent deep research, deep verification, qualitative sorting, triage at scale, or root cause analysis at scale with competing hypotheses."
 ---
 
 # Dynamic Harness
@@ -12,8 +12,7 @@ Use this skill as a Codex port of dynamic workflows: move orchestration into a c
 1. Restate the user goal, success criteria, constraints, risk level, and available budget.
 2. Decide whether this needs a full workflow, a quick workflow, or a direct answer with normal verification. For small tasks, use a quick workflow only when independent checking adds value.
 3. Identify the immediate critical path task for the main agent. Do that locally while subagents handle independent side work.
-4. If subagent tools are not visible, call tool search for multi agent spawn subagents. If none are available, emulate the workflow serially, state that no subagents were spawned, and do not imply parallel execution happened.
-5. Use the smallest sufficient parallelism, then scale up aggressively only when slices are independent and added agents reduce context pressure or improve verification. Avoid duplicate agents that would produce the same evidence.
+4. Use the smallest sufficient parallelism, then scale up aggressively only when slices are independent and added agents reduce context pressure or improve verification. Avoid duplicate agents that would produce the same evidence.
 
 ## Workflow Brief
 
@@ -33,14 +32,16 @@ Risk guard:
 Expected output:
 ```
 
-For GreenSpark AWS tasks, obey root and nested `AGENTS.md`, start topic discovery from `docs/REPO_KNOWLEDGE_MAP.md`, and use repo skills that match the task. For reproductions, prefer `npm run local:env`, then `npm run local:verify`, then fixture backed reproduction before reaching for development database dumps.
+If working in the GreenSpark AWS repo, read `references/greenspark.md` first.
 
-## Runtime Adaptation
+## Runtime
 
-1. In Codex, orchestrate with available subagent tools such as `multi_agent_v1.spawn_agent`, `wait_agent`, and `send_input`.
-2. If running inside Claude Code with native dynamic workflows enabled, prefer the native workflow runtime for repeatable large runs because the host script can hold intermediate results, run in the background, and be saved for reuse.
-3. Do not invent native JavaScript workflow function names. If the host exposes a saved script, inspect or adapt that script. If it does not expose the API, run the skill as a Codex style agent orchestration.
+1. If subagent tools are not visible, call tool search for multi agent spawn subagents.
+2. In Codex, orchestrate with available subagent tools such as `multi_agent_v1.spawn_agent`, `wait_agent`, and `send_input`.
+3. If running inside Claude Code with native dynamic workflows enabled, prefer the native workflow runtime for repeatable large runs because the host script can hold intermediate results, run in the background, and be saved for reuse.
 4. If the user asks for a reusable native workflow artifact, place it where the host expects workflow files, such as project or user workflow folders, only after confirming the runtime format from local evidence or official docs.
+5. If no subagent tools are available, emulate the workflow serially, state that no subagents were spawned, and do not imply parallel execution happened.
+6. Do not invent native JavaScript workflow function names. If the host exposes a saved script, inspect or adapt that script. If it does not expose the API, run the skill as a Codex style agent orchestration.
 
 ## Choose The Workflow Type
 

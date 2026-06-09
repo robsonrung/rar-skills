@@ -6,16 +6,22 @@ description: Review code or a design through model-driven architecture lenses �
 # Model Lens — Model-Driven Architecture Review
 
 Review the change (or design) through four lenses adapted from *Practical Model-Driven
-Enterprise Architecture* (ArchiMate/TOGAF). This is **not** a bug hunt and **not** a
-coupling/connascence audit (use `architect-lens` for that) — it asks one question:
-**does this code sit in the right place, do one job, depend in the right direction, and
-stay scoped?**
+Enterprise Architecture* (ArchiMate/TOGAF). It asks one question: **does this code sit in
+the right place, do one job, depend in the right direction, and stay scoped?** For what
+this skill is *not* — and which sibling skill to use instead — see "What this skill is
+NOT" in `references/review-rubric.md`.
 
-Apply the lenses, then report findings grouped by lens. Be concrete: cite
-`file:line`, name the layer, state the rule, propose the fix. Skip lenses that don't apply
-rather than padding. If everything is clean, say so plainly.
+## How to run a review
 
-## The three layers (this repo)
+1. Determine the diff/design under review (`git diff`, a branch, or a described plan).
+2. Before walking the lenses, read `references/review-rubric.md` for the per-lens
+   checklists; cite its provenance table when a finding is challenged.
+3. Walk each lens; collect findings grouped by lens, with `file:line`, the layer, the
+   rule, the fix.
+4. Order findings by leverage; give a one-line verdict.
+5. This lens reports; it does **not** auto-edit unless the user asks for fixes.
+
+## The three layers (worked example: greenspark-aws)
 
 The book's Business / Application / Technology layers map onto greenspark-aws as:
 
@@ -29,6 +35,10 @@ The book's Business / Application / Technology layers map onto greenspark-aws as
 
 A frontend React component is application layer; an AWS SAM template is technology layer; a
 TypeORM entity's invariant is business layer. Keep them from bleeding into each other.
+
+In other repos, infer the equivalent mapping first (domain/entities = business;
+routes/services/UI state = application; infra/DB/cloud config = technology) and state it
+before reviewing.
 
 ## Lens 1 — Layer placement & boundary leaks
 
@@ -111,5 +121,4 @@ State it as: "X is in scope; Y, Z look like scope creep / speculative — split 
 ```
 
 Lead with the highest-leverage finding. If a lens is clean, write "clean" — don't invent
-findings to fill it. See `references/review-rubric.md` for the detailed checklist and the
-book provenance behind each lens.
+findings to fill it.

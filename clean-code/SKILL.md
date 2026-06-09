@@ -9,14 +9,13 @@ Improve existing code so it is easier to read, safer to change, and simpler to t
 
 ## Operating Rules
 
-- Preserve external behavior unless the user explicitly asks for a behavior change.
-- Keep public APIs, side effects, error behavior, and performance characteristics stable unless changing them is part of the request.
+- Preserve external behavior unless the user explicitly asks for a behavior change: keep public APIs, side effects, error behavior and messages, performance characteristics, observable timing assumptions, edge cases, and data shapes stable unless changing them is part of the request.
 - Prefer the smallest useful change over a broad rewrite.
 - Improve names before adding comments or abstractions.
 - Keep domain language visible. Do not hide business rules behind generic helpers.
 - Remove duplication only when duplicated code represents the same concept and has the same reason to change.
 - Avoid new patterns, dependencies, formatting churn, and module moves unless they clearly reduce real complexity.
-- If tests are missing and the refactor is risky, add or suggest focused characterization tests before changing structure deeply.
+- If tests are missing or weak and the refactor is risky, improve existing tests, or add or suggest focused characterization tests, before changing structure deeply.
 
 ## Workflow
 
@@ -29,22 +28,21 @@ Improve existing code so it is easier to read, safer to change, and simpler to t
    - Use `refactor` for behavior-preserving structural changes.
    - Use `bug fix plus cleanup` only when the user allowed a behavior change or the requested bug is clear.
    - Treat `redesign` as out of scope unless the user explicitly asked for it.
+   - If the safe path requires redesign, dependency changes, or behavior changes beyond the request, stop and report the option to the user instead of proceeding.
 
-3. Choose the smallest valuable improvements.
+3. Choose improvements.
    - Rename unclear identifiers.
    - Extract meaningful constants for magic values.
    - Extract small helpers when they name a real step in the domain.
    - Flatten nested control flow with guard clauses.
    - Separate parsing, validation, business rules, persistence, formatting, orchestration, and side effects when they are tangled.
    - Improve error handling consistency without weakening existing errors.
-   - Improve or add tests when risk justifies it.
 
 4. Edit safely.
    - Keep changes scoped to the requested code path.
    - Make one logical improvement at a time when possible.
-   - Preserve edge cases, error messages, observable timing assumptions, and data shapes.
+   - Re-verify the behavior-preservation rule above.
    - Do not replace clear code with clever code.
-   - Do not over-abstract code that is merely similar rather than conceptually duplicated.
 
 5. Validate.
    - Run the most relevant existing tests or checks when available.

@@ -8,6 +8,11 @@ The runner is deliberately honest about model participation:
 * panel_summary.json accumulates phase runs instead of overwriting earlier evidence
 
 The script does not pretend that a handoff prompt equals model execution.
+
+This script is intentionally duplicated byte-identically across the sibling skills
+collaborative_delivery, collaborative_discovery, collaborative_specification, and
+collaborative_task_design to honor each skill's self-containment contract. When
+changing it, apply the same change to all four copies.
 """
 from __future__ import annotations
 

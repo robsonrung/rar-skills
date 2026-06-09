@@ -4,7 +4,9 @@ description: Create distinctive, production-grade frontend interfaces with high 
 license: Complete terms in LICENSE.txt
 ---
 
-This skill guides creation of distinctive, production-grade frontend interfaces that avoid generic "AI slop" aesthetics. Implement real working code with exceptional attention to aesthetic details and creative choices.
+This skill guides creation of distinctive, production-grade frontend interfaces: implement real working code with exceptional attention to aesthetic details and creative choices.
+
+Note: this skill supersedes the bundled `frontend-design:frontend-design` plugin skill; its triggers and guidance are a superset of that copy. If both are available, prefer this one (or disable the plugin copy to avoid nondeterministic activation).
 
 The user provides frontend requirements: a component, page, application, or interface to build. They may include context about the purpose, audience, or technical constraints.
 
@@ -16,7 +18,7 @@ Before coding, understand the context and commit to a BOLD aesthetic direction:
 - **Constraints**: Technical requirements (framework, performance, accessibility).
 - **Differentiation**: What makes this UNFORGETTABLE? What's the one thing someone will remember?
 
-**CRITICAL**: Choose a clear conceptual direction and execute it with precision. Bold maximalism and refined minimalism both work - the key is intentionality, not intensity.
+**CRITICAL**: Choose a clear conceptual direction and execute it with precision.
 
 Then implement working code (HTML/CSS/JS, React, Vue, etc.) that is:
 - Production-grade and functional
@@ -25,10 +27,6 @@ Then implement working code (HTML/CSS/JS, React, Vue, etc.) that is:
 - Meticulously refined in every detail
 
 ## Frontend Aesthetics Guidelines
-## Execution Contract
-Required deliverables: runnable code, accessibility notes, verification commands, tradeoffs.
-Requirement: degraded fallback artifact when requested framework/tooling is unavailable.
-Include desktop/mobile behavior summary as mandatory field.
 
 Focus on:
 - **Typography**: Choose fonts that are beautiful, unique, and interesting. Avoid generic fonts like Arial and Inter; opt instead for distinctive choices that elevate the frontend's aesthetics; unexpected, characterful font choices. Pair a distinctive display font with a refined body font.
@@ -42,5 +40,16 @@ NEVER use generic AI-generated aesthetics like overused font families (Inter, Ro
 Interpret creatively and make unexpected choices that feel genuinely designed for the context. No design should be the same. Vary between light and dark themes, different fonts, different aesthetics. NEVER converge on common choices (Space Grotesk, for example) across generations.
 
 **IMPORTANT**: Match implementation complexity to the aesthetic vision. Maximalist designs need elaborate code with extensive animations and effects. Minimalist or refined designs need restraint, precision, and careful attention to spacing, typography, and subtle details. Elegance comes from executing the vision well.
+
+## Execution Contract
+
+Every delivery must include:
+1. Runnable code
+2. Accessibility notes
+3. Commands to run/verify it
+4. Tradeoffs made
+5. A one-paragraph desktop vs. mobile behavior summary
+
+If the requested framework/tooling is unavailable, ship a working plain HTML/CSS/JS fallback and say so.
 
 Remember: Claude is capable of extraordinary creative work. Don't hold back, show what can truly be created when thinking outside the box and committing fully to a distinctive vision.

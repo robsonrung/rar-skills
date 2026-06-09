@@ -1,6 +1,6 @@
 ---
 name: coding-review-simplify
-description: Review and simplify completed code changes before final delivery. Use after implementation, during code review, or when the user asks to simplify, tighten, audit maintainability, remove unnecessary abstraction, verify architecture fit, or check data risk in a concrete diff.
+description: Final review-and-simplify pass on a just-completed implementation before handoff. Use after an agent finishes coding work, or when the user asks to tighten, audit maintainability, remove unnecessary abstraction, verify architecture fit, or check data risk in a concrete diff.
 ---
 
 # Coding Review Simplify
@@ -12,10 +12,10 @@ Use this skill after code has been changed or when reviewing a concrete diff. Th
 1. Read the user request, changed files, diff, and verification already run.
 2. Check whether the implementation matches the intended behavior and chosen design shape.
 3. Review the smallest relevant surface first, then expand only if the diff crosses boundaries.
-4. Remove or flag unnecessary abstractions, indirection, duplication, dead code, broad helpers, and noisy comments.
+4. Run the Simplification Pass below.
 5. Check names, responsibilities, interfaces, and edge cases for one coherent model.
 6. If stored state or async behavior changed, review source of truth, invariants, retries, migrations, compatibility, observability, and repair path.
-7. For coupling concerns, judge strength, locality, and degree before asking for extraction or merging.
+7. If the diff feels tangled or crosses a boundary, run the Coupling Pass below.
 8. Turn important concerns into a focused fix, test, static check, contract check, migration check, or explicit follow up.
 9. Finish with the shortest honest outcome.
 
@@ -53,11 +53,12 @@ For each finding, include:
 Before final delivery, ask:
 
 1. Can any new abstraction be deleted or made local?
-2. Can a name make a helper unnecessary?
-3. Can control flow be flatter without changing behavior?
-4. Can duplicated code stay duplicated because the concepts may diverge?
-5. Can a test express the invariant better than a comment?
-6. Does the final code still fit the repo style?
+2. Can dead code, leftover indirection, broad helpers, or noisy comments be removed?
+3. Can a name make a helper unnecessary?
+4. Can control flow be flatter without changing behavior?
+5. Can duplicated code stay duplicated because the concepts may diverge?
+6. Can a test express the invariant better than a comment?
+7. Does the final code still fit the repo style?
 
 ## Output Contract
 

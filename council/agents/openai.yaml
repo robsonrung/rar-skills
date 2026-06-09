@@ -1,3 +1,5 @@
+# Codex-host interface/registration config for this skill (display metadata and
+# default prompt shown in the Codex app). Not meant to be read at runtime.
 interface:
   display_name: "Council"
   short_description: "Clarify, compare, plan, then execute"

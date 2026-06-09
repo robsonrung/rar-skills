@@ -2,7 +2,8 @@
 name = "collaborative_discovery"
 artifact_dir = ".codex_workflow/discovery"
 mandatory_presence = ["synthesis_anchor", "adversarial_anchor"]
-required_phases = ["intake", "divergence", "cross_critique", "user_interview", "convergence"]
+# Phase order is authoritative in SKILL.md; this list must match it. The validator checks set membership only.
+required_phases = ["intake", "divergence", "user_interview", "cross_critique", "convergence"]
 required_outputs = ["discovery_brief.md", "option_map.md", "open_questions.md", "decision_log.md", "panel_summary.json"]
 workflow = "Follow the skill SKILL.md instructions, keep role outputs independent before reconciliation, preserve disagreements in the decision log, and do not mark the phase complete until every listed role has a real response and mandatory anchor roles are recorded."
 

@@ -1,5 +1,11 @@
 #!/usr/bin/env python3
-"""Validate required artifacts and real panel participation for a skill run."""
+"""Validate required artifacts and real panel participation for a skill run.
+
+This script is intentionally duplicated byte-identically across the sibling skills
+collaborative_delivery, collaborative_discovery, collaborative_specification, and
+collaborative_task_design to honor each skill's self-containment contract. When
+changing it, apply the same change to all four copies.
+"""
 from __future__ import annotations
 
 import argparse

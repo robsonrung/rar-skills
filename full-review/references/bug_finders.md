@@ -149,7 +149,7 @@ Return a list of candidate bugs, each with:
 }
 ```
 
-Only report candidates at confidence 0.8+. Write output to `$FINDINGS_FILE`.
+Only report candidates at confidence 0.8+. Write output to `$FINDINGS_DIR/<source-field-value>.json` (e.g., `$FINDINGS_DIR/bug_finder_injection.json`); the orchestrator passes the concrete `$FINDINGS_DIR` path in the seat prompt.
 
 **Source field values per agent:**
 - Agent 1: `bug_finder_injection`

@@ -8,9 +8,7 @@ description: >-
   and want it test-first and easy to change; or when the user says "let's build
   X", "add Y", "work in small steps", "keep this small", "TDD this", or asks how
   to approach a piece of work. Also use to sanity-check, before committing, that
-  a change is small, behaviour-focused, and still easy to change. This is the
-  session-cadence skill — it orchestrates HOW you make progress; lean on `tdd`
-  for red-green-refactor mechanics and `clean-code` for naming/structure tidy-ups.
+  a change is small, behaviour-focused, and still easy to change.
   Do NOT use for pure diagnosis (use `diagnose`) or macro architecture-style
   choices (use `architecture-styles`).
 ---
@@ -42,8 +40,7 @@ you could throw it away without grief.
    programmer). Say the expected failure out loud before running — if the test
    fails differently than predicted, you've already learned something. A test
    that's hard to write is a design smell: the code is too coupled or doing too
-   much. Fix the design, not the test. (Defer to the `tdd` skill for the
-   red-green-refactor mechanics.)
+   much. Fix the design, not the test.
 
 3. **Get back to green the simplest way.** You're in an unsafe state with a
    failing test. Write the least code that passes — naive is fine here. This is
@@ -95,10 +92,9 @@ Keep tests (and your thinking) on *what* the system does, not *how*:
 
 ## Judge each step by ease of change
 
-Before you move on (and especially before committing), do a quick pass on the
-five properties Farley returns to again and again for managing complexity. These
-are levers, not a gate — if a step made one noticeably worse, that's a signal to
-refactor now while it's cheap:
+Before committing, scan the five properties Farley returns to for managing
+complexity — levers, not a gate; if a step made one noticeably worse, refactor
+now while it's cheap:
 
 - **Modularity** — move unrelated code further apart.
 - **Cohesion** — move related code closer together; each unit does one thing.

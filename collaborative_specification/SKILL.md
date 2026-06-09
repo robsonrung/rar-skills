@@ -15,11 +15,11 @@ Create a PRD and codebase fit analysis from a clarified idea with real multi-mod
 
 ## Routing and configurability
 
-This skill is self contained. Its routing file is `assets/routing.toml` inside this skill folder.
+This skill is self contained. Its routing file is `assets/routing.toml` inside this skill folder. Read `references/workflow_contract.md` when copying this skill elsewhere or editing `assets/routing.toml`.
 
-Do not hardcode model choices in the workflow. Use role names such as `synthesis_anchor`, `adversarial_anchor`, `product`, `domain`, `interface`, `backend`, and `security`. The default routing keeps the native OpenAI synthesis anchor and Anthropic adversarial anchor mandatory, with Gemini and Kimi assigned to specialist roles when configured, but the mapping is editable in `assets/routing.toml`.
+Do not hardcode model choices in the workflow. Use role names such as `synthesis_anchor`, `adversarial_anchor`, `product`, `domain`, `interface`, `backend`, `security`, and `delivery_review`. The default routing keeps the native OpenAI synthesis anchor and Anthropic adversarial anchor mandatory, with Gemini and Kimi assigned to specialist roles when configured, but the mapping is editable in `assets/routing.toml`.
 
-Every configured phase must run through `scripts/panel_round.py` unless the user explicitly disables model collaboration. A phase is incomplete when `panel_summary.json` shows `prompt_only`, `awaiting_native_execution`, `dry_run`, `fallback_used`, a missing runner, or a failed required role. A generated native prompt is not participation; the native Codex response must be recorded in `.codex_workflow/specification/native_responses/<phase>_<role>.md` or passed with `--native-response`. If a specialist role is not relevant to the current spec, it still participates and states why it has no material concern.
+Every configured phase must run through `scripts/panel_round.py` unless the user explicitly disables model collaboration. A phase is complete only when every required role has status `ok` or `native_response_recorded` in `panel_summary.json`; read `references/output_contract.md` for the full panel status rules and native response recording requirements. If a specialist role is not relevant to the current spec, it still participates and states why it has no material concern.
 
 ## Workflow
 
@@ -33,7 +33,7 @@ Workflow
 
 1. Read the user request, any discovery brief, and the relevant repository files in read only mode.
 2. Map existing patterns before inventing new ones. Look for similar routes, components, services, use cases, repositories, tests, permissions, validators, migration patterns, and error handling.
-3. Run the configured panel phases in order: `repo_read`, `product_definition`, `domain_definition`, `interface_definition`, `backend_definition`, `risk_review`, and `convergence`.
+3. Run the configured panel phases in order: `repo_read`, `product_definition`, `domain_definition`, `interface_definition`, `backend_definition`, `risk_review`, and `convergence`. Read `references/engineering_rules.md` before the `domain_definition` and `backend_definition` phases so the contracts follow the spec driven, domain driven design, clean architecture, and test driven development rules.
 4. Reconcile the outputs into one specification. Record disagreements in decision_log.md rather than hiding them.
 5. Define acceptance criteria as testable statements.
 6. Define non goals and out of scope behavior.
@@ -50,10 +50,12 @@ Do not produce implementation patches in this skill. If code snippets are needed
 
 Use the local runner for each model-panel phase. External roles run through the repo-local runner skills with fallback disabled, so a missing model cannot be silently replaced by another provider. Native Codex roles stay native, but must be executed by the host agent or an allowed native Codex subagent and then recorded as a response artifact.
 
+In the examples below, `<skill_root>` is this skill's install folder, wherever the skill was copied (for example `collaborative_specification/` at this repository's root, or an `.agents/skills/collaborative_specification/` location elsewhere).
+
 Example:
 
 ```bash
-python3 .agents/skills/collaborative_specification/scripts/panel_round.py \
+python3 <skill_root>/scripts/panel_round.py \
   --phase repo_read \
   --goal "describe the current goal" \
   --context-file path/to/context.md \
@@ -63,7 +65,7 @@ python3 .agents/skills/collaborative_specification/scripts/panel_round.py \
 For each native role, read the generated prompt in `.codex_workflow/specification/prompts/`, produce the native response, then record it with the helper:
 
 ```bash
-python3 .agents/skills/collaborative_specification/scripts/record_native_response.py \
+python3 <skill_root>/scripts/record_native_response.py \
   --phase repo_read \
   --role synthesis_anchor \
   --from-file /tmp/native-response.md
@@ -72,6 +74,8 @@ python3 .agents/skills/collaborative_specification/scripts/record_native_respons
 The helper also accepts response text on stdin. It writes `.codex_workflow/specification/native_responses/<phase>_<role>.md` and updates the matching entry in `panel_summary.json` when a panel run exists. Use `--dry-run` only after changing routing; dry runs do not count as model participation.
 
 ## Required outputs
+
+Read `references/output_contract.md` when writing these phase artifacts or interpreting `panel_summary.json` statuses.
 
 Create these files under `.codex_workflow/specification` unless the user asks for another path:
 
@@ -86,4 +90,4 @@ Create these files under `.codex_workflow/specification` unless the user asks fo
 
 ## Completion gate
 
-Before finalizing, run `python3 .agents/skills/collaborative_specification/scripts/validate_artifacts.py --artifact-dir .codex_workflow/specification`. If it fails, either complete the missing panel/artifact work or report the failure honestly.
+Before finalizing, run `python3 <skill_root>/scripts/validate_artifacts.py --artifact-dir .codex_workflow/specification`. If it fails, either complete the missing panel/artifact work or report the failure honestly. For a partial in-progress run, pass `--allow-missing-phases` to validate only the required files.

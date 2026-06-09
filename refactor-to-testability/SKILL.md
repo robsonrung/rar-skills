@@ -27,7 +27,8 @@ Two principles frame everything below:
   easier to change.
 - **Refactoring is *always* behaviour-preserving.** If a change alters what the
   code does, it isn't refactoring — it's a behaviour change, and it needs its
-  own test and its own step.
+  own test and its own step. Run the approval tests (the net from step 1) after
+  every transformation, in every step, to confirm behaviour is unchanged.
 
 Work **incrementally on the area you actually need to touch**, not the whole
 codebase, and never as a big-bang rewrite. Stabilise the code you're about to
@@ -47,6 +48,9 @@ even if that behaviour is weird or buggy — you're documenting reality, not
 judging it.
 
 - Drive the code with representative inputs and capture its output.
+- If output is nondeterministic (timestamps, UUIDs, random seeds) or
+  side-effect-only, normalise/scrub the variable parts or introduce a minimal
+  seam to capture it before pinning.
 - An approval test records that output on first run, then fails on any future
   run whose output differs. That difference is your alarm: it proves a change
   was *not* behaviour-preserving.
@@ -69,7 +73,6 @@ by your approval tests and only obscures intent.
 - Delete dead code, unreachable branches, and code called from nowhere.
 - Delete commented-out code and superfluous comments — version control is your
   history, so there's no reason to keep "just in case" corpses.
-- Run the approval tests after removals to confirm behaviour is unchanged.
 
 This alone sharpens the structure and reveals where the real work is.
 

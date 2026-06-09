@@ -1,13 +1,11 @@
 ---
 name: design-integrity
-description: Review and shape software designs for conceptual integrity before or during coding. Use when the user asks for architecture, API, data model, module, UI flow, feature, refactor, design review, Brooks, The Design of Design, tradeoffs, alternatives, system shape, or design before code. Do not use for tiny mechanical edits unless the design choice is the problem.
+description: Review and shape software designs for conceptual integrity before or during coding. Use when the user asks to design or review an architecture, API surface, data model, module boundary, UI flow, or feature shape, to evaluate a refactor's shape, to compare design alternatives or tradeoffs, to design before code, or mentions design review, Brooks, The Design of Design, conceptual integrity, or system shape. Do not use for tiny mechanical edits unless the design choice is the problem.
 ---
 
 # Design Integrity
 
-Use this skill to make software design work deliberate before implementation momentum hardens the wrong shape.
-
-The core stance is Brooks inspired: real design discovers requirements, searches a space of alternatives, protects conceptual integrity, and relies on judgment under constraints.
+Brooks inspired design discipline: shape the design deliberately before implementation momentum hardens the wrong shape.
 
 ## Operating Rules
 
@@ -15,9 +13,8 @@ The core stance is Brooks inspired: real design discovers requirements, searches
 2. Preserve conceptual integrity: one clear model, consistent vocabulary, coherent boundaries, and predictable interfaces.
 3. Prefer a small coherent design over a broad design with divided concepts.
 4. Use the existing codebase as an exemplar source. Match its strongest local patterns unless they are part of the problem.
-5. Compare alternatives before committing when the change affects architecture, data flow, public APIs, persistence, permissions, UI workflow, or cross module contracts.
-6. Prototype only when uncertainty changes the decision. Throw the prototype away or clearly mark it as provisional.
-7. Ask for user input only when a decision depends on product intent, operational risk, or a tradeoff the codebase cannot reveal.
+5. Prototype only when uncertainty changes the decision. Throw the prototype away or clearly mark it as provisional.
+6. Ask for user input only when a decision depends on product intent, operational risk, or a tradeoff the codebase cannot reveal, and only after explaining the tradeoff in practical terms.
 
 ## Workflow
 
@@ -35,7 +32,7 @@ The core stance is Brooks inspired: real design discovers requirements, searches
 
 4. Search the design space.
 
-   Produce at least two plausible solution shapes for meaningful changes. For each shape, state the central idea, what it simplifies, what it complicates, and how it fits or fights the existing system.
+   Produce at least two plausible solution shapes when the change affects architecture, data flow, public APIs, persistence, permissions, UI workflow, or cross module contracts. For each shape, state the central idea, what it simplifies, what it complicates, and how it fits or fights the existing system.
 
 5. Choose the smallest coherent shape.
 
@@ -82,4 +79,3 @@ When using this skill while implementing, keep the final answer concise and incl
 1. Do not turn every small bug fix into an architecture exercise.
 2. Do not preserve existing patterns blindly when the request is about fixing a broken model.
 3. Do not confuse consistency with conceptual integrity. Repeating an old mistake consistently is still a design problem.
-4. Do not ask the user to choose among alternatives until you have explained the tradeoff in practical terms.

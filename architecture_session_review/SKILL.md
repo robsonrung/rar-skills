@@ -1,6 +1,6 @@
 ---
 name: architecture_session_review
-description: Use when a coding task may affect software architecture, module boundaries, service boundaries, data ownership, dependencies, deployment behavior, quality attributes, architecture decisions, technical risk, or long lived implementation direction. Use for architecture reviews, refactors, migrations, feature design, pull request review, ADR drafting, and code work where trade offs matter.
+description: Use when a coding task may affect software architecture, module boundaries, service boundaries, data ownership, dependencies, deployment behavior, quality attributes, architecture decisions, technical risk, or long lived implementation direction. Use for architecture reviews, refactors, migrations, feature design, pull request review, and ADR drafting.
 ---
 
 # Architecture Session Review
@@ -54,7 +54,7 @@ Never present an option as universally correct. Favor the option with the least 
 Use this pass before large edits and during review:
 
 1. Cohesion: does each module or component have one clear responsibility at the current granularity?
-2. Coupling: what now depends on what, and did the change add a harder to change dependency?
+2. Coupling: what now depends on what, and did the change add an incoming or outgoing dependency that makes the module harder to reuse or change?
 3. Connascence: will a change in one place force another change elsewhere because of names, types, values, order, timing, identity, or shared algorithm?
 4. Locality: are strong dependencies kept close and weaker dependencies used across boundaries?
 5. Data flow: does the owning component or service remain clear?
@@ -65,17 +65,7 @@ Use this pass before large edits and during review:
 
 Create or draft an ADR when the decision changes long lived direction, affects more than one team, changes risk posture, introduces a platform or vendor, changes data ownership, changes public contracts, or resolves a repeated debate.
 
-Use this structure:
-
-1. Title.
-2. Status.
-3. Context.
-4. Decision.
-5. Consequences.
-6. Compliance.
-7. Notes.
-
-Put more weight on why than how. Include rejected options when the decision is likely to be revisited.
+Use the ADR template in `references/adr_risk.md`.
 
 ## Risk Pass
 
@@ -85,7 +75,7 @@ For standard and deep passes, name risks with impact and likelihood:
 2. Medium: meaningful impact or plausible.
 3. High: severe impact and plausible, or unknown technology.
 
-For each high risk item, provide a mitigation, verification step, and owner if the user has given team context. If the task is code only, make the owner the current change set.
+For each high risk item, provide a mitigation, verification step, and owner if the user has given team context. If the task is code only, make the owner the current change set. For the full per-risk record fields, use `references/adr_risk.md`.
 
 ## Verification Menu
 

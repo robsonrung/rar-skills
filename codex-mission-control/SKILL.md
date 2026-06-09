@@ -1,6 +1,6 @@
 ---
 name: codex-mission-control
-description: Coordinate Codex app missions as a context light manager that creates a run scoped ledger, discovers native subagent tools, spawns bounded workers when authorized, and writes compact handoffs for separate threads. Use when the user asks to preserve context, avoid compaction, run subagents, create focused Codex threads, split workstreams, manage handoffs, or supervise parallel agent execution.
+description: Coordinate Codex missions as a context light manager - run scoped ledger, native subagent discovery, bounded workers when authorized, compact handoffs. Use when the user asks to preserve context, avoid compaction, run subagents, create focused Codex threads, split workstreams, manage handoffs, or supervise parallel agent execution.
 ---
 
 # Codex Mission Control
@@ -12,13 +12,13 @@ Act as a thin manager for a larger Codex mission. Keep this thread focused on de
 1. The manager owns the mission goal, constraints, workstream map, handoffs, thread registry, integration, and final answer.
 2. Subagents are best for parallel, bounded work inside the current turn.
 3. Separate Codex threads are best for context isolation, longer work, different branches, different worktrees, or multi turn follow up.
-4. Every mission must use a run scoped ledger path. Never rely on one global shared filename across missions.
-5. Every worker must return a compact report: result, files changed, tests run, risks, and next handoff.
+4. Every mission must use a run scoped ledger path, never one global shared filename (see Gotchas item 2).
+5. Every worker must return a compact report per the Worker Prompt Pattern.
 6. This skill is an orchestration workflow. It must discover and use host tools for subagents; it cannot create workers merely by describing them.
 
 ## First Move
 
-1. Create the mission ledger before delegating meaningful work. Use an OS temp root when the current workspace should not receive support files.
+1. Create the mission ledger before delegating meaningful work, per Start A Mission below.
 2. Run a native runtime preflight and record it in the ledger:
    1. Check whether Codex subagent tools are already visible.
    2. If they are not visible and `tool_search` exists, call it with a query like `multi agent spawn_agent wait_agent subagents`.
@@ -30,24 +30,19 @@ Act as a thin manager for a larger Codex mission. Keep this thread focused on de
 
 ## Start A Mission
 
-Create a mission ledger before delegating meaningful work. Prefer the helper script when available:
+Prefer the helper script when available, run from this skill's directory:
 
 ```bash
-python3 /Users/robson/.agents/skills/codex-mission-control/scripts/start_mission.py --title "short task title"
+python3 <skill_dir>/scripts/start_mission.py --title "short task title"
 ```
 
 The helper creates a unique directory under `work/codex-missions/<task-slug>/<timestamp>-<suffix>/` by default and writes a uniquely named ledger file inside it. If the current workspace should not receive support files, pass an OS temp root:
 
 ```bash
-python3 /Users/robson/.agents/skills/codex-mission-control/scripts/start_mission.py --title "short task title" --root /tmp/codex-missions
+python3 <skill_dir>/scripts/start_mission.py --title "short task title" --root /tmp/codex-missions
 ```
 
-If the script is unavailable, create the same structure manually:
-
-1. Choose a task slug from the current goal.
-2. Create a unique run directory with timestamp plus short random suffix.
-3. Create a mission ledger named with that same run id.
-4. Create sibling directories for handoffs and worker reports.
+If the script is unavailable, replicate its structure by hand: read `scripts/start_mission.py` for the exact ledger template and directory layout (unique run directory plus sibling handoffs and worker reports directories).
 
 ## Mission Workflow
 
@@ -78,7 +73,7 @@ Use a separate Codex thread when one of these is true:
 3. The slice is a follow up audit or implementation item that should preserve its own context.
 4. The manager thread is becoming too full and the next workstream can start from a compact handoff.
 
-Do not fork a bloated manager context by default. Prefer a clean thread seeded by a compact prompt. Use context forking only when the worker truly needs the completed conversation history.
+Do not fork a bloated manager context by default. Prefer a clean thread seeded by a compact prompt; the fork policy lives in Native Subagent Runtime item 5.
 
 ## Native Subagent Runtime
 

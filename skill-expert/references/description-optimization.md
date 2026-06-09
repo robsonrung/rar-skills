@@ -11,7 +11,7 @@ Create about 20 queries:
 - Mix terse, detailed, formal, casual, typo-prone, and context-heavy prompts.
 - Include file paths, URLs, column names, project names, backstory, and adjacent tasks where realistic.
 - Include cases where the user does not name the skill or file type but clearly needs it.
-- Make should-not-trigger queries near misses, not obviously irrelevant prompts.
+- Make should-not-trigger queries near misses that share keywords but need another skill, not obviously irrelevant prompts.
 
 Poor trigger evals are too abstract:
 

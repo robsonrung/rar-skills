@@ -1,17 +1,17 @@
 ---
 name: pragmatic-coding-session
-description: Apply a Pragmatic Programmer inspired coding session lens across planning, design, implementation, debugging, review, and handoff. Use when starting or steering a nontrivial coding task, when work feels vague, risky, overdesigned, brittle, accidental, hard to test, hard to change, or when the user asks for pragmatic programming guidance.
+description: Apply a Pragmatic Programmer inspired coding session lens across planning, design, implementation, debugging, review, and handoff. Use when the user wants a pragmatic, phase-by-phase operating lens for a coding session, when work feels vague, risky, overdesigned, brittle, accidental, hard to test, hard to change, or when the user asks for pragmatic programming guidance.
 ---
 
 # Pragmatic Coding Session
 
 Use this skill as a phase by phase operating lens for real coding work. The goal is practical mastery in the current repo: take responsibility, make the system easier to change, prefer feedback over speculation, and leave a clear trail.
 
-This is not a book summary. Do not quote or reconstruct source text from *The Pragmatic Programmer*. Apply the durable practices as decisions, checks, and verification.
+This is not a book summary. Apply the durable practices from *The Pragmatic Programmer* as decisions, checks, and verification.
 
 ## Session Loop
 
-1. Locate the current phase: planning, design, implementation, debugging, review, or handoff.
+1. Locate the current phase: planning, design, implementation, debugging, review, or handoff. Apply the Reliability And Safety pass whenever the change touches state, resources, or trust boundaries, regardless of phase.
 2. Inspect the real code, tests, docs, runtime behavior, and repo guidance before giving advice.
 3. Name the practical problem in one sentence.
 4. Find the smallest reversible move that can create learning.
@@ -62,7 +62,7 @@ Use this pass while editing.
 7. Strengthen names before adding comments. Add comments only for constraints, intent, history, or tradeoffs.
 8. When discomfort appears, pause and identify the smell: unclear name, mixed responsibility, hidden state, weak test seam, distant coupling, timing dependence, or unknown behavior.
 
-Hand off to `small-steps`, `tdd`, `coding-implementation-guard`, `clean-code`, or `refactor-to-testability` for deeper mechanics.
+Hand off to `small-steps`, `coding-implementation-guard`, `clean-code`, or `refactor-to-testability` for deeper mechanics, or to `tdd` when that skill is installed.
 
 ## Debugging
 
@@ -76,7 +76,7 @@ Use this pass when behavior is surprising.
 6. Fix the root cause, then add a regression check at the level where the behavior matters.
 7. Remove temporary probes unless they become useful observability.
 
-Hand off to `diagnose` when the failure path is still unknown after the first reproduction pass.
+Hand off to `diagnose`, when that skill is installed, if the failure path is still unknown after the first reproduction pass; otherwise keep iterating this checklist, gathering one new fact per loop.
 
 ## Reliability And Safety
 
@@ -90,7 +90,7 @@ Use this pass when the change touches state, resources, concurrency, jobs, exter
 6. Make failure visible. Prefer clear errors, alerts, logs, repair scripts, or reconciliation checks over silent recovery.
 7. Review security at the boundary where trust changes.
 
-Hand off to `codex-security:security-scan`, `coding-design-plan`, or `coding-review-simplify` when the risk is high.
+Hand off to `coding-design-plan` or `coding-review-simplify` when the risk is high. Prefer a dedicated security skill or command, such as `codex-security:security-scan` or `security-review`, when one is installed; if none is available, do a manual trust-boundary review using the checklist above.
 
 ## Review
 
@@ -129,7 +129,7 @@ When this skill shapes a coding session, include the relevant parts only:
 ## Gotchas
 
 1. Do not turn this lens into a long checklist dump. Apply only the phase that matters.
-2. Do not quote the book or embed chapter notes.
+2. Do not quote or reconstruct source text from the book, and do not embed chapter notes.
 3. Do not confuse pragmatic with quick and dirty. Speed comes from feedback, clarity, and reversibility.
 4. Do not use a prototype as production code unless it has been deliberately hardened.
 5. Do not add abstractions before finding the variation they protect.

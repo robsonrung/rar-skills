@@ -7,7 +7,7 @@ description: Use this skill whenever a coding task touches stored state, databas
 
 Use this skill to add a practical data systems review pass to coding work. The goal is not to explain theory. The goal is to catch failure modes before they become production bugs.
 
-Do not quote or summarize any copyrighted source. Use this as an original engineering workflow.
+<!-- Authoring note: do not quote or summarize any copyrighted source. This is an original engineering workflow. -->
 
 ## First Pass
 
@@ -20,6 +20,8 @@ Start by identifying the state boundary:
 5. Which failure would be silent, expensive, or hard to repair?
 
 If the task is small, keep this pass brief and fold it into the implementation. If the task touches shared data contracts or production records, write the answer down before editing.
+
+Do not overcomplicate pure UI copy, styling, one off scripts, docs only edits, or local throwaway utilities. In those cases, only apply the lens if the change touches persistent data, background work, or production operational risk.
 
 ## Implementation Lens
 
@@ -131,10 +133,6 @@ Prefer verification that exercises real boundaries:
 4. Concurrency tests for races and duplicate work.
 5. Load or query plan checks when cardinality is the risk.
 6. Observability checks for logs, metrics, traces, and repair signals.
-
-## When To Stay Lightweight
-
-Do not overcomplicate pure UI copy, styling, one off scripts, docs only edits, or local throwaway utilities. In those cases, only apply the lens if the change touches persistent data, background work, or production operational risk.
 
 ## Final Response Contract
 

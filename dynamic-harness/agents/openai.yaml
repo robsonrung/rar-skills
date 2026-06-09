@@ -1,3 +1,4 @@
+# Codex agent interface metadata; consumed by the Codex host, not read at runtime by the model.
 interface:
   display_name: "Dynamic Harness"
   short_description: "Run dynamic multi agent task orchestration"

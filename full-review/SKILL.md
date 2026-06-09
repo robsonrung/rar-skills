@@ -35,7 +35,7 @@ Use these knobs when requested or when context makes them obvious:
 | `quiet_mode` | true | Suppress low-value LOW severity comments |
 | `quick_mode` | false | Review only security, runtime, and compatibility blockers |
 | `verify_mode` | true | Run verification where execution is possible |
-| `confidence_threshold` | 0.65 | Drop comments below this score |
+| `confidence_threshold` | per mode | Override the active threshold from `references/filtering_pipeline.md` section 4 |
 
 ## Output Contract
 
@@ -62,7 +62,7 @@ Bugs found: N | Verified: X | Refuted: Y | Verdict: APPROVE|COMMENT|REQUEST_CHAN
 | 5 | Synthesize | Merge, dedupe, confidence-filter, and cap findings |
 | 6 | Deliver | Emit verdict, report, JSON, and inline comments when supported |
 
-In quick mode, keep Phase 0 and Phase 1, narrow Phase 2 to security/runtime/compatibility blockers, run only bug finders plus at most one external runner in Phase 3, skip Phase 4, and raise the synthesis threshold to `0.8`.
+In quick mode, keep Phase 0 and Phase 1, narrow Phase 2 to security/runtime/compatibility blockers, run only bug finders plus at most one external runner in Phase 3, skip Phase 4, and apply the quick-mode synthesis threshold from `references/filtering_pipeline.md` section 4.
 
 ## Phase 0: Calibrate
 
@@ -96,12 +96,7 @@ Minimum context:
 3. Unified diff.
 4. Surrounding code for touched functions, classes, routes, queries, migrations, tests, or config.
 
-Determine the diff:
-
-1. PR number: collect `gh pr view`, `gh pr diff`, existing comments, and review threads when `gh` is available.
-2. Commit SHA: collect `git show --no-patch --pretty=fuller <sha>`, `git show --patch --unified=3 <sha>`, and `git show --name-only --pretty="" <sha>`.
-3. Commit range: collect `git diff <range> --unified=3` and `git diff <range> --name-only`.
-4. Branch or local changes: find the merge base against the requested base branch, falling back from `main` to `master` when needed.
+Determine the diff with the matching `scripts/collect_context.sh` mode (`pr`, `commit`, `range`, `local`). If the script does not cover the input, replicate the equivalent commands for the matching mode in `scripts/collect_context.sh`. For branch or local review, find the merge base against the requested base branch, falling back from `main` to `master` when needed (the script defaults to `main` without fallback).
 
 If the diff is empty, say so and stop.
 
@@ -132,7 +127,7 @@ Check the diff for:
 
 For new or changed external library usage, prefer local type information and existing call sites. If local evidence is insufficient and current docs are available through approved tooling, verify the API before asserting misuse. If docs are unavailable, downgrade confidence and phrase the issue as a question.
 
-For structural quality, read `references/structural_quality_review.md`. Be ambitious. Assume there is often a "code judo" move available: a re-organization that uses the existing architecture more effectively and makes the change dramatically simpler and more elegant.
+For structural quality, read `references/structural_quality_review.md` and apply its review stance and blocking bar.
 
 For tests, compare against nearby examples before flagging style-level issues. Prefer behavior and regression coverage findings over generic mocking or naming feedback.
 
@@ -150,7 +145,7 @@ mkdir -p "$FINDINGS_DIR"
 echo "$FINDINGS_DIR"
 ```
 
-Each review seat writes candidate findings to `$FINDINGS_DIR/<seat-name>.json`.
+Pass the concrete `$FINDINGS_DIR` path in every seat prompt. Each review seat writes candidate findings to `$FINDINGS_DIR/<seat-name>.json` (bug finders use their `source` field value as the seat name).
 
 ### Bug Finders
 
@@ -210,7 +205,7 @@ For each runtime candidate:
 4. Run the nearest existing tests or a targeted probe.
 5. Mark as verified when reproduced, refuted when disproven, or unverified when execution is not possible.
 
-Structural maintainability findings are evidence-checked rather than runtime-verified. Measure or inspect the concrete indicator: file size movement, new branch clusters, duplicated blocks, wrappers, casts, ownership leaks, or partial-update flows. Keep only findings with a concrete safer refactor path.
+Structural maintainability findings are evidence-checked rather than runtime-verified. Measure or inspect the concrete indicator per the evidence requirements in `references/structural_quality_review.md`. Keep only findings with a concrete safer refactor path.
 
 Do not modify project files during verification.
 
@@ -224,11 +219,11 @@ Apply `references/filtering_pipeline.md`:
 2. Require path, line range, and concrete evidence.
 3. Dedupe by path, overlapping line range, and category.
 4. Merge corroborated sources.
-5. Drop comments below the active confidence threshold.
+5. Drop comments below the active threshold per `references/filtering_pipeline.md` section 4.
 6. Keep all CRITICAL and HIGH findings even when over `max_comments`.
 7. Suppress cosmetic style, broad refactor wishes, generic hardening requests, pre-existing issues outside the diff, and already-raised issues.
 
-Structural findings are allowed when changed code creates a concrete architecture regression, crosses a healthy file-size threshold, adds tangled branching, leaks feature logic into shared paths, or misses an obvious simplification that would delete meaningful complexity.
+Structural findings are allowed when changed code meets the blocking bar and "What To Flag" criteria in `references/structural_quality_review.md`.
 
 Never emit a comment without path and line range.
 
@@ -255,7 +250,7 @@ Each comment must include `severity`, `confidence`, `category`, `path`, `line_st
 
 Keep evidence snippets short. Prefer exact identifiers. Scope findings to the reviewed change. Name the violated local rule when a finding depends on repo-specific convention.
 
-On hosts that support inline review output, mirror retained findings there. On Codex desktop, use `::code-comment{...}` directives. Keep the machine JSON as the source of truth.
+On hosts that support inline review output, mirror retained findings there. When mirroring findings as GitHub inline comments, follow `references/github_comment_format.md`. On Codex desktop, use `::code-comment{...}` directives. Keep the machine JSON as the source of truth.
 
 ## Confidence Rubric
 
@@ -264,9 +259,9 @@ On hosts that support inline review output, mirror retained findings there. On C
 | `0.9+` | Deterministic bug, security flaw, or rule violation with direct evidence |
 | `0.7` to `0.9` | Likely issue with strong indicators |
 | `0.5` to `0.7` | Plausible risk, question, or targeted defensive test |
-| Below `0.5` | Suppress unless explicitly requested |
+| Below `0.5` | Weak signal — suppress unless explicitly requested. Scoring band only, not a second filter; the active filter threshold lives in `references/filtering_pipeline.md` section 4 |
 
-Verified findings receive `+0.10`. Corroborated findings receive `+0.05` per additional independent source. For structural maintainability, use `0.85+` only when the evidence and simpler refactor path are concrete.
+Verification and corroboration boosts are applied per `references/filtering_pipeline.md`. For structural maintainability, use `0.85+` only when the evidence and simpler refactor path are concrete.
 
 ## Helper Scripts
 

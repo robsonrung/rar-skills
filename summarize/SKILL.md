@@ -1,17 +1,19 @@
 ---
 name: summarize
-description: Create a concise handoff summary from visible session context. Use when the user asks to summarize, compact, or prepare continuity notes for the current work.
+description: Create a concise handoff summary from visible session context. Use when the user asks to summarize the session or current work, compact the session, prepare a handoff, or write continuity notes for resuming later. Not for summarizing documents, articles, or code unrelated to the active session.
 ---
 
 # Summarize
 
-Create a short handoff from information already visible in the active session.
+Create a short handoff from information already visible in the active session, written so a fresh agent session can resume the work without other context.
 
 ## Privacy Boundary
 
 Use only conversation context, command results, and files that were already opened or produced during the active work. Do not search unrelated local files. Do not include secrets, tokens, private keys, credentials, personal identifiers, or hidden system details. Replace any sensitive value with a short redacted label.
 
 ## Output
+
+Output the summary directly in the reply; only write it to a file if the user asks, defaulting to `./HANDOFF.md`.
 
 Write a compact Markdown summary with these sections when relevant:
 

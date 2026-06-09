@@ -35,19 +35,22 @@ Relationships between two contexts, by who controls the model and how much they 
 - **Partnership** — ad hoc, bidirectional coordination; integration evolves as needed.
 - **Shared Kernel** — a shared subset of the model owned by multiple contexts/teams. Any
   change ripples to all sharers → high coordination cost. Keep it small and stable. In this
-  repo: `backend/common` + `gslogic`. Watch for context-specific logic creeping into it.
+  repo: `backend/common` + `gslogic`. Watch for context-specific logic creeping into it
+  that should live in one service instead.
 
 ### Customer–Supplier (one upstream, one downstream)
 - **Conformist** — downstream conforms to upstream's model with no translation. Cheap, but
-  upstream's model leaks in. Acceptable for non-core consumers of a decent upstream model.
+  upstream's model leaks in. Acceptable only when upstream's model is good enough and you
+  can't influence it — fine for non-core consumers, risky for core subdomains.
 - **Anticorruption Layer (ACL)** — downstream translates upstream's model into its own at
   the boundary, preventing corruption of its model. **Use for external/legacy/third-party
   integrations** — e.g. every ERP connector in `erp-sync-workflow`. The ACL is where the
   foreign vocabulary is mapped to ours and never deeper.
 - **Open-Host Service (OHS)** — upstream protects *downstream* by exposing a stable,
-  versioned **published language** decoupled from its internal model. Use when a context
-  has many consumers. The OpenAPI contract that generates the frontend RTK Query layer is
-  an OHS-style boundary; consumers should bind to the published contract, not internals.
+  versioned **published language** (a public API/event contract) decoupled from its
+  internal model. Use when a context has many consumers. The OpenAPI contract that
+  generates the frontend RTK Query layer is an OHS-style boundary; consumers should bind
+  to the published contract, not internals.
 
 ### Separate Ways
 - No integration — duplicate the functionality instead. Rational when integration cost >
@@ -84,8 +87,9 @@ Across contexts on a message bus (EventBridge here):
   word meaning two things in two contexts is the point of having two contexts.
 - It's a **continuous effort** — the language evolves as understanding deepens; keep code
   names in sync rather than letting a glossary rot.
-- Smells: technical jargon standing in for business terms; one concept under many names;
-  CRUD names hiding a real business process; primitive types where a named concept belongs.
+- Smells (jargon for business terms, one concept under many names, CRUD names hiding a
+  real business process, primitive types where a named concept belongs): the actionable
+  checklist lives in `SKILL.md` Lens 2.
 
 ## Subdomain drift (Ch. 11)
 

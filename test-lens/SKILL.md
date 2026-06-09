@@ -100,7 +100,8 @@ The overcomplicated quadrant (e.g. a fat controller doing real logic *and* I/O) 
 Split it with the **Humble Object** pattern: extract the logic into a pure
 algorithm/domain class (unit-test it output-based), leaving a thin humble wrapper that just
 glues to dependencies (cover lightly via integration tests). **100% coverage is not the
-goal** — significant value per test is. Better no test than a bad test.
+goal** — it's possible to have high coverage and worthless tests (and vice versa);
+significant value per test is. Better no test than a bad test.
 
 ## Anti-pattern checklist (flag these)
 
@@ -135,4 +136,5 @@ goal** — significant value per test is. Better no test than a bad test.
    don't apply rather than padding.
 
 For the detailed decision trees (style transition, mock flowchart, Humble Object refactor,
-full anti-pattern catalog with before/after code), read `references/decision-trees.md`.
+integration-test rules — path selection, logging, pyramid — and the full anti-pattern
+catalog with before/after code), read `references/decision-trees.md`.

@@ -14,22 +14,20 @@ Execute prompts through the local `kimi-cli` in one-shot headless mode. Prefer t
 This matches the locally configured coding model in `~/.kimi/config.toml`. Pass `--model` if you need a different Kimi model exposed by the local CLI.
 
 ## Prerequisites
-Requirement: auth smoke test command and explicit blocked response contract.
-If kimi-cli missing/auth failed: success=false, reason=seat_unavailable.
-Include remediation commands in failure output.
-Preserve disable-fallback semantics.
 
 - `kimi-cli` installed and in `PATH`
 - Authentication configured via `kimi-cli login`
 
+If `kimi-cli` is missing or auth fails, the seat is blocked, never substituted: the envelope returns `success=false` with remediation guidance in `stderr`. A missing CLI maps to `return_code=-2` and `status=seat_unavailable`; auth failures surface as kimi-cli's native nonzero exit code with `auth_ok` unset — treat any `success=false` as a blocked seat.
+
 ## Security Model
 
-This skill invokes the local Kimi CLI from the current machine. Prompt text, prompt files, session files, metadata, and any files Kimi reads during the run may be sent to Moonshot according to the local Kimi configuration. Use `--restrict-tools` for review seats, but treat it as a prompt level constraint rather than a hard sandbox.
+This skill invokes the local Kimi CLI from the current machine. Prompt text, prompt files, session files, metadata, and any files Kimi reads during the run may be sent to Moonshot according to the local Kimi configuration. Use `--restrict-tools` for review seats; it adds a read-only overlay to the prompt, so treat it as a prompt level constraint rather than a hard sandbox.
 
 
 ## Output Envelope
 
-All `--json` responses must conform to `.agents/skills/_shared/runner-envelope.schema.json`.
+All `--json` responses must conform to the shared runner envelope contract (`.agents/skills/_shared/runner-envelope.schema.json`, provided by the skills install root; if that file is absent, the key list below is authoritative).
 Required top-level keys:
 - `runner`
 - `effective_runner`
@@ -71,7 +69,7 @@ The Kimi runner supports these verified options:
 - `--disable-fallback`
 - `--output-file`
 
-`--ephemeral`, `--no-session-persistence`, `--safe`, `--bare`, and `--disable-fallback` are accepted for cross-runner compatibility. They do not currently change Kimi CLI behavior.
+`--ephemeral`, `--no-session-persistence`, `--safe`, `--bare`, and `--disable-fallback` are accepted for cross-runner compatibility. They do not currently change Kimi CLI behavior; in particular, `--no-session-persistence` is inert because the current Kimi CLI still records resumable session metadata in print mode.
 
 ## Roles
 
@@ -116,5 +114,4 @@ python3 .agents/skills/kimi-runner/scripts/run_kimi.py "Continue the last Kimi s
 
 - Kimi print mode still emits a resume hint after the final answer. The wrapper keeps raw output and also extracts the assistant message separately when possible.
 - `--output-schema` is prompt-enforced, not validated by a native Kimi schema flag.
-- `--restrict-tools` adds a read-only overlay to the prompt; it is not a hard sandbox.
-- `--no-session-persistence` is accepted for parity, but the current Kimi CLI still records resumable session metadata in print mode.
+- `--restrict-tools` is a prompt overlay, not a sandbox — see Security Model.

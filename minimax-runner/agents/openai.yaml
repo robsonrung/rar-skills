@@ -1,3 +1,4 @@
+# Consumed by the Codex app: exposes this skill as a native subagent seat with UI metadata and a default prompt (see the claude-runner and codex-mission-control skills' SKILL.md notes). Do not remove.
 interface:
   display_name: "Minimax Runner"
   short_description: "Run workspace prompts through Qwen CLI on Minimax"

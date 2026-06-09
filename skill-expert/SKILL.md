@@ -16,7 +16,8 @@ Create skills that are small enough to load, specific enough to trigger correctl
 - Preserve existing repository conventions for skill locations, metadata, validators, and invocation style.
 - Design for composability. A skill may load alongside other skills, so avoid global claims, broad ownership of unrelated work, or instructions that conflict with normal agent behavior.
 - Keep the skill unsurprising. Its files, scripts, and instructions should match the user's stated intent; never create misleading skills, hidden exfiltration, unauthorized access workflows, or disguised harmful behavior.
-- Do not create extra human-facing files such as `README.md`, `CHANGELOG.md`, `INSTALLATION.md`, or quick-reference documents unless the repo already requires them.
+- Inspect external or third-party skills before use, especially when network access, shell tools, secrets, or hosted execution are involved.
+- Do not create extra human-facing files such as `README.md`, `CHANGELOG.md`, `INSTALLATION.md`, or quick-reference documents unless the repo already requires them, and leave out unused placeholder directories and files.
 
 ## Workflow
 
@@ -44,7 +45,6 @@ Create skills that are small enough to load, specific enough to trigger correctl
    - Add `references/` for detailed docs, schemas, policies, variants, examples, or rare advanced paths that should be loaded only when needed.
    - Add `assets/` for templates, fixtures, boilerplate, fonts, images, or files copied into outputs rather than read as instructions.
    - Add `evals/` only when the skill needs repeatable quality or trigger testing; keep initial evals small and realistic.
-   - Leave out unused placeholder directories and files.
 
 4. Initialize or update the skill.
 
@@ -99,13 +99,8 @@ Create skills that are small enough to load, specific enough to trigger correctl
    - Grep for stale project names, old stack assumptions, or copied-template leftovers before finalizing.
 
 9. Evaluate real behavior when risk justifies it.
-   - For trigger accuracy, create realistic should-trigger and should-not-trigger prompts, including near misses that share keywords but need another skill.
-   - Start with 2-3 output-quality evals for a new skill; expand only after the first results show useful signal.
-   - Compare the new skill against no skill or the previous skill version.
-   - Review execution traces, not just final answers, to spot wasted work, vague instructions, over-triggering, or missing defaults.
-   - Iterate until the skill improves reliability enough to justify its added context and execution cost.
-   - Read `references/evaluation.md` for a detailed eval workspace, grading, benchmark, and human-review loop.
-   - Read `references/description-optimization.md` when optimizing a skill description for trigger accuracy.
+   - Test trigger accuracy and output quality against a baseline before trusting the skill.
+   - See References below for when to load the detailed eval and description-tuning guides.
 
 ## Degrees of Freedom
 
@@ -134,7 +129,6 @@ Create skills that are small enough to load, specific enough to trigger correctl
 - All referenced files exist and are linked from `SKILL.md`.
 - Scripts communicate success and failure through clear stdout, stderr, and exit codes.
 - The final directory contains only files that directly support the skill.
-- External or third-party skills are inspected before use, especially when network access, shell tools, secrets, or hosted execution are involved.
 
 ## Troubleshooting
 
@@ -158,5 +152,5 @@ When creating or updating a skill, finish with:
 
 ## References
 
-- Read `references/evaluation.md` when the user asks to test, benchmark, compare, or prove a skill is better, or when the skill has objectively verifiable outputs.
-- Read `references/description-optimization.md` when the user asks why a skill does or does not trigger, or when improving frontmatter `description` text.
+- Read `references/evaluation.md` when the user asks to test, benchmark, compare, or prove a skill is better, when the skill has objectively verifiable outputs, or when you need the detailed eval workspace, grading, benchmark, and human-review loop.
+- Read `references/description-optimization.md` when the user asks why a skill does or does not trigger, when improving frontmatter `description` text, or when optimizing a skill description for trigger accuracy.

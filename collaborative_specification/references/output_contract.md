@@ -1,15 +1,6 @@
 # Output contract
 
-Required artifacts
-
-1. `prd.md`
-2. `codebase_fit.md`
-3. `domain_notes.md`
-4. `interface_contract.md`
-5. `backend_contract.md`
-6. `risk_register.md`
-7. `decision_log.md`
-8. `panel_summary.json`
+Required artifacts: see `required_outputs` in `assets/routing.toml` (the list `validate_artifacts.py` enforces, mirrored in SKILL.md's Required outputs section).
 
 Presence audit
 
@@ -26,12 +17,12 @@ Each phase artifact must include:
 
 Panel status rules
 
-1. `ok` means the role actually executed and produced a response.
-2. `awaiting_native_execution` means the native prompt exists but the native model has not participated yet.
+1. `ok` means the role actually executed and produced a response. `native_response_recorded` means a native role's response was recorded after the run. These are the only statuses that count toward phase completion.
+2. `awaiting_native_execution` means the native prompt exists but the native model has not participated yet; the entry carries participation `prompt_only`.
 3. `dry_run` means the command shape was checked only; it is not participation.
 4. `fallback_used` means independence was lost; do not count it as the configured model.
-5. `error`, `exception`, `runner_unavailable`, `missing_provider`, and `disabled` block phase completion. If the user explicitly accepts the gap, report it as an accepted exception instead of claiming a complete model panel.
-6. A generated native prompt or handoff file is never enough by itself. Native roles need a non-empty response under `native_responses/` or a path passed with `--native-response`.
+5. `error`, `exception`, `runner_unavailable`, `missing_runner_script`, `missing_provider`, and `disabled` block phase completion. If the user explicitly accepts the gap, report it as an accepted exception instead of claiming a complete model panel.
+6. A generated native prompt or handoff file is never enough by itself. Native roles need a non-empty response recorded in `native_responses/<phase>_<role>.md` or a path passed with `--native-response`.
 
 Native response helper
 

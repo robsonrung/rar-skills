@@ -2,12 +2,18 @@
 
 Required artifacts
 
-1. `execution_log.md`
-2. `test_evidence.md`
-3. `review_notes.md`
-4. `changed_files.md`
-5. `decision_log.md`
-6. `panel_summary.json`
+See the "Required outputs" list in SKILL.md and `[skill].required_outputs` in `assets/routing.toml`, which is what `scripts/validate_artifacts.py` enforces. Primary output: `execution_log.md`. Artifact directory: `.codex_workflow/delivery`.
+
+Portability and workflow principles
+
+This skill is the unit of portability. It must be usable when copied by itself into any agent skills location (for example `.agents/skills`).
+
+1. Keep the skill focused on one job.
+2. Keep all default routing, scripts, contracts, and references inside the skill folder.
+3. Treat any top level repository agent profile as optional optimization, never as a required dependency.
+4. Use roles in instructions and routing. Keep model names in editable config values only.
+5. Run independent role rounds before reconciliation.
+6. Preserve dissent in the decision log.
 
 Presence audit
 

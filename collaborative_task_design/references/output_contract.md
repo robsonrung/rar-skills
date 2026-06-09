@@ -2,13 +2,7 @@
 
 Required artifacts
 
-1. `architecture_plan.md`
-2. `tasks.md`
-3. `test_plan.md`
-4. `parallelization_plan.md`
-5. `risk_register.md`
-6. `decision_log.md`
-7. `panel_summary.json`
+The `required_outputs` list in `assets/routing.toml` is the source of truth for required artifacts; the scripts enforce it and SKILL.md restates it for convenience.
 
 Presence audit
 
@@ -25,8 +19,8 @@ Each phase artifact must include:
 
 Panel status rules
 
-1. `ok` means the role actually executed and produced a response.
-2. `awaiting_native_execution` means the native prompt exists but the native model has not participated yet.
+1. `ok` and `native_response_recorded` mean the role actually executed and produced a response; only these statuses count toward phase completion.
+2. `awaiting_native_execution` (recorded with participation `prompt_only`) means the native prompt exists but the native model has not participated yet.
 3. `dry_run` means the command shape was checked only; it is not participation.
 4. `fallback_used` means independence was lost; do not count it as the configured model.
 5. `error`, `exception`, `runner_unavailable`, `missing_provider`, and `disabled` block phase completion. If the user explicitly accepts the gap, report it as an accepted exception instead of claiming a complete model panel.

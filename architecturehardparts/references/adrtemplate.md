@@ -2,9 +2,9 @@
 
 Use this template when a coding session creates a durable architecture decision.
 
-Default file pattern when the repo has no convention:
+This file is the canonical template source. `scripts/newadr.py` loads the fenced markdown block below at runtime, so edit the template here only.
 
-`docs/adr/YYYYMMDD_slug.md`
+Path convention: see SKILL.md and the `scripts/newadr.py` defaults.
 
 ## Template
 

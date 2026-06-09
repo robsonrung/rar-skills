@@ -18,6 +18,8 @@ Each model starts in its natural role:
 | GLM Critic | `critical_with_responsibility` | `codereviewer` or `adversarial` |
 | Minimax | `devils_advocate` | `challenger` |
 
+The Runner Role column above is the canonical stance-to-runner-role mapping (`supportive_with_integrity` -> `planner` or `implementer`, `critical_with_responsibility` -> `codereviewer` or `adversarial`, `balanced_synthesis` -> `synthesizer`, `devils_advocate` -> `challenger`, `pragmatic_engineering` -> `implementer`). For `blocked_on_context` investigation rounds, use the `researcher` runner role.
+
 ## Round 2: Cross-Stance Pressure
 
 Each seat adopts a stance that challenges its Round 1 position:

@@ -20,8 +20,7 @@ idea."
 Settle two things before exploring; infer from the request when you can, ask at most one
 short question when you can't:
 
-- **Scope** — whole repo, one service (`core-api`, `dispatch`, `eda-worker`,
-  `erp-sync-workflow`, `frontend`, `common`/`gslogic`), one feature/flow, or one module.
+- **Scope** — whole repo, one service, one feature/flow, or one module.
 - **Audience / depth**:
   - *Newcomer* — onboarding overview, minimal jargon, "where do I start".
   - *Implementer* — enough to add a feature here: extension points, conventions, gotchas.
@@ -29,6 +28,10 @@ short question when you can't:
 
 Default to *newcomer + whole-repo overview* if the user just says "explain the architecture"
 with no qualifier.
+
+Once audience is fixed, read `references/viewpoints.md` for that viewpoint's template and
+length guidance before exploring. If working in greenspark-aws, also read
+`references/greenspark.md` for the known service map, seam inventory, and layer mapping.
 
 ## Step 1 — Explore (don't guess)
 
@@ -38,31 +41,27 @@ Ground every claim in files you actually read. Move outside-in:
    `CLAUDE.md` files, READMEs, `docs/`, config. These declare intent cheaply.
 2. **Top-level structure** — map the directory tree to responsibilities. Name each major
    unit and its one-line job.
-3. **The seams** — how units communicate: HTTP routes, EventBridge events, shared
-   `common` entities/TypeORM, RTK Query API layer, cron/workers. The seams *are* the
-   architecture.
+3. **The seams** — how units communicate: HTTP routes, message buses/events, shared data
+   layer, cron/workers. The seams *are* the architecture.
 4. **One real flow end-to-end** — trace a representative request or event through the
    layers (e.g. frontend action → API route → service → entity/DB → emitted event →
    worker). A concrete trace beats abstract description.
-5. **Cross-cutting** — auth, multi-tenancy (org-scoping), error handling, migrations,
-   codegen (OpenAPI → RTK Query).
+5. **Cross-cutting** — auth, multi-tenancy, error handling, migrations, codegen.
 
 Use `Explore`/`general-purpose` subagents for breadth on large scopes so you keep only the
 conclusions, not the file dumps. Cite findings as `file:line`.
 
-## Step 2 — Organize into layers (this repo)
+## Step 2 — Organize into layers
 
 Group components into the three layers (from the book), so the reader sees order, not a list:
 
-- **Business** — domain rules & invariants: `backend/common` entities/domain, `gslogic`.
-- **Application** — software automating the domain: `core-api` routes & services,
-  `dispatch`, `eda-worker`, `erp-sync-workflow`, `compliance`, `pdf-generator`, frontend
-  RTK/API layer & React app.
-- **Technology** — infra plumbing: AWS SAM/Lambda/EventBridge/S3, Postgres/TypeORM,
-  Amplify auth, Vite build/deploy.
+- **Business** — domain rules & invariants.
+- **Application** — software automating the domain: services, routes, workers, the
+  frontend app.
+- **Technology** — infra plumbing: cloud runtime, database, auth, build/deploy.
 
-For a non-greenspark repo, derive the equivalent layers from what you find rather than
-forcing these names.
+Derive the layers from what you actually find rather than forcing these names. (For
+greenspark-aws, use the layer mapping in `references/greenspark.md`.)
 
 ## Step 3 — Explain (output)
 
@@ -106,10 +105,10 @@ Rules from the book's "modeling best practices", applied to prose:
 ## Step 4 — Offer a diagram (don't auto-generate)
 
 After the written explanation, offer a visual if it would help:
-- A quick **Mermaid** block inline (component or sequence diagram) for most cases.
+- A quick **Mermaid** block inline for most cases — a component graph (`graph LR`) for
+  structure, `sequenceDiagram` for a flow.
 - For a polished standalone artifact, suggest `visual-explainer:generate-web-diagram` or
-  `visual-explainer:project-recap`.
+  `visual-explainer:project-recap` (the latter when they want the broader "state of the
+  project" rather than a pure structure diagram).
 
 Only produce the diagram if the user wants it — keep the default response readable text.
-
-See `references/viewpoints.md` for per-audience templates and example flows.

@@ -16,25 +16,21 @@ Template:
 6. Compliance: how the decision will be checked.
 7. Notes: author, approval, links, and superseded records.
 
+Put more weight on why than how.
+
 Decision quality test:
 
 1. Does it explain why, not only how?
 2. Does it include business value?
-3. Does it name rejected alternatives when useful?
+3. Does it name rejected alternatives when useful or when the decision is likely to be revisited?
 4. Does it say how compliance will be measured?
 5. Does it have one system of record?
 
 ## Risk Analysis
 
-Use impact and likelihood.
+Rate risks with the low, medium, and high scale in the Risk Pass of SKILL.md. Unknown or unproven technology should be treated as high risk until tested.
 
-1. Impact: low, medium, high.
-2. Likelihood: low, medium, high.
-3. Rating: low, medium, high.
-
-Unknown or unproven technology should be treated as high risk until tested.
-
-For each risk:
+For each risk, record:
 
 1. Area.
 2. Attribute affected.
@@ -44,7 +40,7 @@ For each risk:
 6. Mitigation.
 7. Verification.
 
-## Codex Solo Risk Storming
+## Solo Risk Storming
 
 When no team session is possible:
 

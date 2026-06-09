@@ -5,7 +5,7 @@ description: Guide OpenCode CLI runs through the host agent approval flow. Use w
 
 # OpenCode Runner
 
-Use this skill as a safe OpenCode handoff guide. This package intentionally does not ship an executable OpenCode wrapper. The host agent must use its normal shell approval, sandbox, and logging flow for any OpenCode command.
+Use this skill as a safe OpenCode handoff guide. This package intentionally does not ship an executable OpenCode wrapper.
 
 ## Safety Model
 
@@ -17,15 +17,21 @@ Before running OpenCode:
 2. Confirm the working directory and prompt scope.
 3. Prefer read only review or planning prompts.
 4. Avoid attaching secrets, credentials, private keys, tokens, or unrelated files.
-5. Use the host agent approval flow for the shell command.
+5. Use the host agent's normal shell approval, sandbox, and logging flow for the command.
 
 If the user asks for unattended editing, explain that this skill does not provide an unattended wrapper. Use a normal host approved command instead.
 
 ## Manual Invocation Pattern
 
-When approved by the user and permitted by the host, run the local OpenCode CLI directly from the target repository. Keep the command narrow and pass a concise prompt. Capture stdout and stderr in the normal host tool output.
+After the checklist above passes, run the local OpenCode CLI directly from the target repository. Keep the command narrow and pass a concise prompt. Capture stdout and stderr in the normal host tool output.
 
-For review tasks, ask OpenCode for analysis only. For implementation tasks, ask OpenCode for a patch plan first, then apply changes through the primary host agent.
+```bash
+opencode run "<concise prompt>"
+opencode run -m <provider/model> "<concise prompt>"
+opencode run --agent plan "<concise review prompt>"
+```
+
+For review tasks, ask OpenCode for analysis only; the `plan` agent variant above keeps the run read only. For implementation tasks, ask OpenCode for a patch plan first, then apply changes through the primary host agent.
 
 ## Output Contract
 
@@ -35,6 +41,8 @@ Return a short summary with:
 2. Main result
 3. Files or areas discussed
 4. Any uncertainty, failure, or missing prerequisite
+
+When acting as a seat in a cross-runner workflow (for example models-consensus or council), return this same summary to the orchestrating skill verbatim.
 
 ## Missing Prerequisite
 

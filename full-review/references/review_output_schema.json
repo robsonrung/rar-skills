@@ -77,7 +77,10 @@
             "type": "string"
           },
           "evidence": {
-            "type": "string"
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           },
           "suggested_fix": {
             "type": "string"

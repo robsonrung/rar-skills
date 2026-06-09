@@ -62,13 +62,12 @@ Is the test double standing in for a dependency the SUT TALKS TO?
             → In unit tests, prefer redesigning so this I/O isn't in the unit at all.
 ```
 
-Two more rules:
-- **Mock only at the system edge.** If the interface you're mocking wraps another interface
-  that does the real I/O, mock the *outermost* one (closest to the edge) — it exercises more
-  code and better preserves the contract.
-- **Mock only types you own.** Don't mock a third-party SDK directly. Wrap it in your own
-  thin adapter interface and mock the adapter. (Lets you encode only the behavior you rely on
-  and survive SDK upgrades.)
+Why the two SKILL.md edge rules hold:
+- **System edge:** if the interface you're mocking wraps another interface that does the real
+  I/O, mocking the *outermost* one (closest to the edge) exercises more code and better
+  preserves the contract.
+- **Types you own:** mocking your own thin adapter (not the third-party SDK) lets you encode
+  only the behavior you rely on and survive SDK upgrades.
 
 **A double can be both:** set up a return on one method (stub role) AND assert a call to a
 *different* method (mock role). That doesn't violate "never assert a stub" — different methods.
@@ -138,27 +137,12 @@ specifically at producing **output-based** tests.
 
 ## 4. The code quadrant → Humble Object refactor
 
-```
-            Few collaborators            Many collaborators
-          ┌────────────────────────┬────────────────────────┐
-   high   │ DOMAIN MODEL /         │ OVERCOMPLICATED        │
- complex/ │ ALGORITHMS             │ (fat controller doing  │
- domain   │ → unit-test hard       │  logic + I/O)          │
- signif.  │   (best ROI)           │ → SPLIT (see below)    │
-          ├────────────────────────┼────────────────────────┤
-   low    │ TRIVIAL                │ CONTROLLERS            │
-          │ → don't test           │ → a few integration    │
-          │                        │   tests                │
-          └────────────────────────┴────────────────────────┘
-```
+Quadrant table and coverage rule: see SKILL.md Lens 4.
 
 To drain the overcomplicated quadrant, apply **Humble Object**: pull the logic into a
 pure algorithm/domain object (lands in top-left, unit-tested), leaving a humble wrapper that
 only orchestrates dependencies (lands in bottom-right, integration-tested). Aim for *nothing*
-in the top-right. "The more important the code, the fewer collaborators it should have."
-
-Do **not** chase 100% coverage. Coverage is a poor target — it's possible to have high
-coverage and worthless tests (and vice versa). Target value per test.
+in the top-right.
 
 ---
 
@@ -213,11 +197,9 @@ class InactivityChecker {
 
 ## Relationship to sibling skills
 
-- `tdd` — the red-green-refactor *cadence*. `test-lens` judges whether the resulting test is
-  *valuable*; use them together.
+- `tdd` / `clean-code` / `code-review` — see the SKILL.md frontmatter and intro for how
+  `test-lens` differs from each.
 - `refactor-to-testability` — making scary legacy code safe to change. Overlaps on Humble
   Object / extracting logic; `test-lens` focuses on what makes the *new* test valuable.
-- `clean-code` — production-code readability, not test value.
-- `code-review` — finds bugs; `test-lens` finds *low-value or fragile tests*.
 - `model-lens` / `architect-lens` — the functional-core/mutable-shell split here is the same
   separation-of-concerns those lenses reward.

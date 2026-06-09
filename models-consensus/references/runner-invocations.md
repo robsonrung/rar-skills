@@ -25,7 +25,7 @@ Treat host tooling as a compatibility layer. Council logic stays the same; concr
 | Read persisted output | `Read` / `ReadFile` | `exec_command` (`sed`, `cat`, `python3 -m json.tool`) |
 
 Never refer to Claude-only tool names as if they are universal. Branch all seat launch instructions by host capability.
-When the workflow needs user input, always prefer the host's interactive question/input tool on CLI or app surfaces. Use plain-text questions only when no interactive tool is exposed in the current host or mode.
+When the workflow needs user input, use the Interactive Questions protocol in SKILL.md.
 
 ---
 

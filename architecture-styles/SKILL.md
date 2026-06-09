@@ -34,6 +34,8 @@ for *coupling/trade-offs* use `architect-lens`; for *tactical DDD* use `ddd-tact
      This is Conway's Law: align partitioning with team structure.
 4. **Score against the matrix** below, then read the matching `references/<style>.md` for
    the when-NOT-to red flags. A style is only a fit if its when-not-to list doesn't bite.
+   If recommending a distributed style (event-driven, microservices, space-based), also
+   read `references/traps.md` before finalizing.
 5. **Recommend** one style, or an explicit **hybrid** (these are common and expected:
    event-driven microservices, space-based microservices, event-driven microkernel).
    State the top trade-off you're accepting and the biggest risk from the when-not-to list.

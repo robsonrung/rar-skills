@@ -7,7 +7,7 @@ Rank any instance by three axes:
 - **Locality** — close elements (same function/class) tolerate strong coupling; distant elements (across modules/services) do not.
 - **Degree** — the number of elements bound together; lower is better.
 
-**Guiding rule:** the greater the distance between elements, the weaker their connascence should be. Refactor toward weaker forms, and toward locality.
+Most remedies move coupling *up* the tables below (toward Name) and *closer* (toward locality). The review workflow that drives these tables (identify → score strength × locality × degree → weaken → stop early) lives in SKILL.md's Coupling lens section.
 
 ## Static connascence (weaker → stronger)
 
@@ -27,15 +27,6 @@ Rank any instance by three axes:
 | **Timing** | Correctness depends on *when* things run (race conditions). | Works until load increases. | Synchronization, idempotency, removing shared mutable state. |
 | **Value** | Several values must change together to stay valid (invariants spanning fields/records). | Update one field, forget the linked one. | Encapsulate the invariant in one object/transaction that owns all the values. |
 | **Identity** | Multiple references must point to the *same* instance. | Two caches, two "sources of truth" that drift. | Single source of truth; pass identity explicitly. |
-
-## How to use during review
-
-1. Find the coupled elements; **name the type** from the tables above.
-2. Score strength × locality × degree.
-   - Static + local → usually leave it.
-   - Dynamic + distant, or high degree → flag and weaken.
-3. Suggest the concrete remedy from the table. Most remedies move coupling *up* the table (toward Name) and *closer* (toward locality).
-4. Stop early. You cannot remove all connascence and trying creates indirection that is its own coupling. Target the strong, distant, high-degree cases only.
 
 ## Cohesion companion check
 

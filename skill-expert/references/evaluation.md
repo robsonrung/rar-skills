@@ -6,7 +6,7 @@ Use this reference when a skill needs proof that it works, especially for file t
 
 Start small:
 
-- Create 2-3 realistic prompts that resemble what a user would actually type.
+- Create 2-3 realistic prompts that resemble what a user would actually type; expand only after the first results show useful signal.
 - Include expected outputs and input files when relevant.
 - Do not write detailed assertions until the task shape is clear.
 - Ask the user to review the prompts when interactive; in headless mode, continue with explicit assumptions.
@@ -57,10 +57,11 @@ For existing skills, snapshot the original before editing and use that snapshot 
 3. Save outputs, transcripts, and any available timing or token data immediately.
 4. While runs execute, draft objective expectations. Do not force numeric assertions onto subjective outputs.
 5. Inspect actual output files, not just the transcript summary.
-6. Grade each expectation with `text`, `passed`, and `evidence`.
-7. Aggregate pass rate, time, token/tool cost, errors, and notes.
-8. Show outputs and benchmark data to the user before revising when human judgment matters.
-9. Iterate until the user is satisfied, feedback is empty, or changes stop improving results.
+6. Review execution traces, not just final answers, to spot wasted work, vague instructions, over-triggering, or missing defaults.
+7. Grade each expectation with `text`, `passed`, and `evidence`.
+8. Aggregate pass rate, time, token/tool cost, errors, and notes.
+9. Show outputs and benchmark data to the user before revising when human judgment matters.
+10. Iterate until the user is satisfied, feedback is empty, or changes stop improving results, and until the skill improves reliability enough to justify its added context and execution cost.
 
 ## Grading
 

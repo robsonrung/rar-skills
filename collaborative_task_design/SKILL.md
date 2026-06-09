@@ -15,21 +15,17 @@ Convert a PRD into sequenced engineering tasks using real multi-model review, sp
 
 ## Routing and configurability
 
-This skill is self contained. Its routing file is `assets/routing.toml` inside this skill folder.
+This skill is self contained. Its routing file is `assets/routing.toml` inside this skill folder; the default model mapping is editable there. Read `references/workflow_contract.md` only when porting or editing this skill.
 
-Do not hardcode model choices in the workflow. Use role names such as `synthesis_anchor`, `adversarial_anchor`, `architecture`, `testing`, `interface`, `backend`, and `delivery`. The default routing keeps the native OpenAI synthesis anchor and Anthropic adversarial anchor mandatory, with Gemini and Kimi assigned to specialist roles, but the mapping is editable in `assets/routing.toml`.
+Do not hardcode model choices in the workflow. Use role names such as `synthesis_anchor`, `adversarial_anchor`, `architecture`, `testing`, `interface`, `backend`, and `delivery`. The default routing keeps the native OpenAI synthesis anchor and Anthropic adversarial anchor mandatory, with Gemini and Kimi assigned to specialist roles.
 
-Every configured phase must run through `scripts/panel_round.py` unless the user explicitly disables model collaboration. A phase is incomplete when `panel_summary.json` shows `prompt_only`, `awaiting_native_execution`, `dry_run`, `fallback_used`, a missing runner, or a failed required role. A generated native prompt is not participation; the native Codex response must be recorded in `.codex_workflow/task_design/native_responses/<phase>_<role>.md` or passed with `--native-response`. If a specialist role is not relevant to the current plan, it still participates and states why it has no material concern.
+Every configured phase must run through `scripts/panel_round.py` unless the user explicitly disables model collaboration. Every phase must include the synthesis anchor and the adversarial anchor, and every role listed for that phase must produce a real response before the phase is complete. Any `panel_summary.json` status other than `ok` or `native_response_recorded` blocks the phase; read `references/output_contract.md` for the status semantics. A generated native prompt is not participation; the native Codex response must be recorded in `.codex_workflow/task_design/native_responses/<phase>_<role>.md` or passed with `--native-response`. If a specialist role is not relevant to the current plan, it still participates and states why it has no material concern.
 
 ## Workflow
 
-Use this skill to convert specification into executable engineering work. The output is not a PRD and not a patch. It is the bridge between product intent and implementation.
+Use this skill to convert specification into executable engineering work. The output is not a PRD and not a patch. It is the bridge between product intent and implementation. Every task must trace back to a spec item and must define tests before code.
 
-Core rule
-
-Every phase must include the synthesis anchor and the adversarial anchor, and every role listed for that phase must produce a real response before the phase is complete. Every task must trace back to a spec item and must define tests before code. The default model mapping is editable in `assets/routing.toml`.
-
-Workflow
+Read `references/engineering_rules.md` before running `architecture_mapping` and `task_slicing`; it holds the spec driven development, domain driven design, clean architecture, and test driven development rules this skill applies.
 
 1. Read the PRD and codebase fit artifacts. If they do not exist, create a minimal assumptions section and mark missing inputs.
 2. Map the target architecture. Identify domain layer, application use cases, ports, adapters, infrastructure, presentation, data boundaries, and dependency direction.
@@ -39,7 +35,7 @@ Workflow
 6. Identify work that can be parallelized safely. Do not parallelize tasks that write the same files, migrations, shared contracts, or security sensitive paths unless there is an explicit merge plan.
 7. Produce a task sequence that supports red, green, refactor execution.
 
-Quality bar
+### Quality bar
 
 A task is ready only when another agent can execute it without reinterpreting the product requirement. Each task must have a clear test first entry point and a bounded diff surface.
 
@@ -49,20 +45,23 @@ Do not implement code in this skill. Do not change files outside the workflow ar
 
 Use the local runner for each model-panel phase. External roles run through the repo-local runner skills with fallback disabled, so a missing model cannot be silently replaced by another provider. Native Codex roles stay native, but must be executed by the host agent or an allowed native Codex subagent and then recorded as a response artifact.
 
-Example:
+Example (`<skill-root>` is this skill's folder; the scripts resolve their own routing from it, so any install path works):
 
 ```bash
-python3 .agents/skills/collaborative_task_design/scripts/panel_round.py \
+python3 <skill-root>/scripts/panel_round.py \
   --phase architecture_mapping \
   --goal "describe the current goal" \
   --context-file path/to/context.md \
-  --out .codex_workflow/task_design
+  --out .codex_workflow/task_design \
+  --fail-on-incomplete
 ```
+
+`--fail-on-incomplete` makes the per-phase gate deterministic: the script exits with code 2 when any required role is missing, pending, or failed, instead of relying on parsing `panel_summary.json`. `--roles` accepts a comma-separated role override for the phase; mandatory anchors are always added back.
 
 For each native role, read the generated prompt in `.codex_workflow/task_design/prompts/`, produce the native response, then record it with the helper:
 
 ```bash
-python3 .agents/skills/collaborative_task_design/scripts/record_native_response.py \
+python3 <skill-root>/scripts/record_native_response.py \
   --phase architecture_mapping \
   --role synthesis_anchor \
   --from-file /tmp/native-response.md
@@ -71,6 +70,8 @@ python3 .agents/skills/collaborative_task_design/scripts/record_native_response.
 The helper also accepts response text on stdin. It writes `.codex_workflow/task_design/native_responses/<phase>_<role>.md` and updates the matching entry in `panel_summary.json` when a panel run exists. Use `--dry-run` only after changing routing; dry runs do not count as model participation.
 
 ## Required outputs
+
+Read `references/output_contract.md` before writing phase artifacts; it defines the per-phase presence audit structure each artifact must include.
 
 Create these files under `.codex_workflow/task_design` unless the user asks for another path:
 
@@ -84,4 +85,4 @@ Create these files under `.codex_workflow/task_design` unless the user asks for 
 
 ## Completion gate
 
-Before finalizing, run `python3 .agents/skills/collaborative_task_design/scripts/validate_artifacts.py --artifact-dir .codex_workflow/task_design`. If it fails, either complete the missing panel/artifact work or report the failure honestly.
+Before finalizing, run `python3 <skill-root>/scripts/validate_artifacts.py --artifact-dir .codex_workflow/task_design`. If it fails, either complete the missing panel/artifact work or report the failure honestly.

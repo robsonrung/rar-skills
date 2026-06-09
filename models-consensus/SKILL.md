@@ -17,34 +17,27 @@ Do not claim a seat participated unless the preflight confirms a real execution 
 
 Council logic is host-agnostic, but concrete tools differ by platform. See [references/runner-invocations.md](references/runner-invocations.md) for the full host capability mapping and native vs. runner launch patterns. Branch all seat launch instructions by host capability.
 
-For any user-facing question, first detect whether the current host exposes an interactive question/input tool. Prefer host-native interactive input over plain text on both CLI and app surfaces. Treat plain-text questioning as a last resort only when no interactive tool is available in the current host or mode.
+For any user-facing question, use the [Interactive Questions](#interactive-questions) protocol.
 
 ## Mandatory Preflight
 
 Run preflight before building any round prompt.
 
 ### 0. Resolve seat selection mode
-Always resolve startup seat selection before smoke tests or round launches unless `--auto` or `auto:true` is explicitly set.
-If interactive tools are unavailable, use a plain-text manual list selection question and wait for user input.
-Set `selection_source=plain_text_manual` when this fallback branch is used.
-Emit selected and omitted seats before smoke tests.
-Only target all seats when `--auto` or `auto:true` is explicitly set.
-Do not auto-select seats just because interactive startup questioning is unavailable.
-In non-`--auto` runs, stop with `awaiting_user_decision` if startup selection is still unresolved.
 
-Before the full preflight, determine whether seat selection is automatic or user-directed.
+Before the full preflight, determine whether seat selection is automatic or user-directed. Always resolve startup seat selection before running smoke tests or launching any round.
 
 - Accept `auto: true` in a structured payload.
 - Accept `--auto` in a free-form user request as shorthand for `auto: true`.
-- If `auto` or `--auto` is present, skip the startup seat-selection question and target every available seat.
-- Otherwise, ask the user which models or CLIs to use before running smoke tests or launching any round.
+- If `auto` or `--auto` is present, skip the startup seat-selection question and target every available seat. Only target all seats when `--auto` or `auto: true` is explicitly set; do not auto-select seats just because interactive startup questioning is unavailable.
+- Otherwise, ask the user which models or CLIs to use before running smoke tests or launching any round. Never skip the startup seat-selection question in non-`--auto` runs.
+- In non-`--auto` runs, if startup selection is still unresolved after the available question channels, stop with `awaiting_user_decision`.
 
 Selection workflow:
 - Do a lightweight capability discovery first: detect host-native seat support and runner binary presence only.
 - Build a `candidate_seats` list from that lightweight discovery.
-- Ask one startup selection question using the best available interactive host tool.
-- Always probe interactive question tools before composing a plain-text question. If the first-choice tool is unavailable in the current host or mode, try the next available interactive tool before falling back to text.
-- Prefer one multi-select question when the host supports it. Include `All available (Recommended)` plus the detected candidate seats.
+- Ask one startup selection question following the [Interactive Questions](#interactive-questions) protocol.
+- Prefer one multi-select question when the host supports it, rather than a series of yes/no prompts. Include `All available (Recommended)` plus the detected candidate seats.
 - Multi-select startup prompt template:
   `Which models to use?`
   `[ ] All available (Recommended)`
@@ -61,14 +54,14 @@ Selection workflow:
   1. `All available (Recommended)`
   2. `Core seats only`
   3. `Specify seats manually`
-- If the user chooses manual selection, ask one concise follow-up question listing the detected seat IDs and accept a comma-separated subset.
-- When the host supports multiple short questions in one interactive call, batch startup follow-ups into that same call instead of switching to plain text.
-- Plain-text startup prompt template when interactive selection is unavailable:
+- If the user chooses manual selection, ask one concise follow-up question listing the detected seat IDs and accept a comma-separated subset. Use an interactive follow-up question when the host supports one; use a plain-text seat-picking follow-up only when needed.
+- Plain-text startup prompt template when no interactive selection tool is available:
   `Which models to use?`
   `Detected seats: <comma-separated seat IDs>`
   `Reply with a comma-separated subset or 'all'.`
+  Set `selection_source=plain_text_manual` when this fallback branch is used, and wait for user input.
 - Treat `Core seats only` as the highest-diversity non-duplicate set available. See [references/repo-configuration.md](references/repo-configuration.md) for the core-seats definition.
-- Persist `selected_seats` and `selection_source` in state before continuing.
+- Persist `selected_seats` and `selection_source` in state, and emit the selected and omitted seats, before continuing to smoke tests.
 
 ### 1. Detect host-native seats
 
@@ -101,11 +94,7 @@ Set artifact mode to:
 - `persisted` when `.ai-workflow/consensus/` exists or its parent is writable
 - `inline` when writes are blocked, risky, or unavailable in the current mode
 
-In `inline` mode:
-- build prompts in memory
-- keep moderator digests in memory
-- return report/state inline
-- set `report_path` and `state_path` to `null`
+Apply the per-mode behaviors from [Artifact Policy](#artifact-policy).
 
 ### 4. Build a seat table
 
@@ -146,20 +135,16 @@ When artifact mode is `persisted`, use:
 - prefer runner-level `--output-file` writes over shell redirection so incomplete seats do not leave misleading zero-byte artifacts
 
 When artifact mode is `inline`:
-- do not create temp prompt files
+- do not create temp prompt files; build prompts in memory
 - do not require `.ai-workflow/consensus/`
-- return the final report inline
-- keep round digests in memory
+- return the final report and state inline, with `report_path` and `state_path` set to `null`
+- keep round digests and moderator digests in memory
 
-## Runner Invocation Summary
-Require each runner seat to publish normalized envelope keys before moderation.
-If envelope missing required keys, retry once with schema reminder then mark malformed_output.
-Use disable-fallback by default for independence accounting.
-Track effective_provider duplication in state.
-
-Runner seats invoke local CLIs and may send prompt context, selected files, and runner metadata to their configured providers. Prefer `--restrict-tools` for review and planning seats. Do not pass permission bypass or full auto flags unless the user has explicitly approved unattended write capable execution for that run.
+## Runner Launch Policy
 
 Launch seats using native host tools when available; fall back to runner scripts only when native paths are unavailable. See [references/runner-invocations.md](references/runner-invocations.md) for complete invocation patterns, auth rules, and the runner output contract.
+
+Runner seats invoke local CLIs and may send prompt context, selected files, and runner metadata to their configured providers. Prefer `--restrict-tools` for review and planning seats. Do not pass permission bypass or full auto flags unless the user has explicitly approved unattended write capable execution for that run.
 
 Key flags for every runner-backed seat:
 - `--disable-fallback` (mandatory)
@@ -169,42 +154,12 @@ Key flags for every runner-backed seat:
 
 In `inline` mode, combine stance and brief into a single positional prompt. In `persisted` mode, use `--prompt-file` flags when the runner supports them.
 
-## Cost Governance
+## Cost Governance and Crash Recovery
 
-Multi-model councils can be expensive. Enforce cost transparency before launching seats.
+Both procedures live in [references/operations.md](references/operations.md); read them on demand:
 
-**Pre-flight cost estimate:**
-- After seat selection, estimate total cost: `(selected_seats.count) × (avg_input_tokens + avg_output_tokens) × per-1k-pricing`.
-- Use rough defaults: ~4k input tokens per seat (brief + context), ~2k output tokens per seat.
-- Warn the user when >4 seats are selected in non-auto mode: "Council will invoke N models. Estimated cost: $X–$Y. Proceed?"
-
-**Token budgets:**
-- Cap per-seat output at ~4k tokens for moderation feasibility.
-- If shared brief + context files exceed ~8k tokens per seat, truncate or summarize context files before the round.
-- Prefer concise briefs over verbatim file dumps.
-
-**Cost-conscious defaults:**
-- In non-`--auto` runs, make "Core seats only" the recommended startup choice rather than "all available."
-- When `--auto` selects 5+ seats, emit a cost warning before the first round.
-- Track cumulative token usage across rounds in state for post-council reporting.
-
-## Crash Recovery and State Resumption
-
-Council state is resumable. Treat `.ai-workflow/consensus/{session_id}.json` as the source of truth for progress.
-
-**Resume handshake:**
-- At preflight, check if `state_path` exists and `status != complete`.
-- If resuming, load prior round outputs, seat assignments, and moderator digests from state.
-- Set `resumed_from` to the previous state's `last_completed_round`.
-- Skip to the next uncompleted round; do not re-run completed rounds.
-
-**Orphaned process cleanup:**
-- When resuming, identify any runner PIDs or background tasks from the prior session and terminate them before launching new seats.
-- In `inline` mode, recovery is limited to what fits in the current context; persist key digests to state when possible.
-
-**State update cadence:**
-- In `persisted` mode, write state after every iteration.
-- In `inline` mode, still build the same state structure in memory so it can be returned or persisted if the mode changes.
+- When more than 4 seats are selected, read [references/operations.md#cost-governance](references/operations.md#cost-governance) before launching seats and apply its cost-transparency rules.
+- At preflight, if `state_path` exists with `status != complete`, read [references/operations.md#crash-recovery-and-state-resumption](references/operations.md#crash-recovery-and-state-resumption) and resume from state instead of restarting.
 
 ## Response Schema Validation
 
@@ -240,7 +195,7 @@ No markdown fencing. No extra commentary outside the JSON object.
 
 ## Interactive Questions
 
-In `interactive` mode, every user-facing question must use the best available interactive host tool first.
+Every user-facing question must use the best available interactive host tool first, on both CLI and app surfaces. Treat plain-text questioning as a last resort only when no interactive tool is available in the current host or mode.
 
 Questioning workflow:
 1. Detect which interactive question/input tools are exposed by the current host and current mode.
@@ -261,14 +216,7 @@ Additional rules:
 
 Never tell the user to reply with numbered choices when an interactive question tool exists.
 
-Startup seat-selection question:
-- Unless `--auto` is set, the first question of the run must ask which models or CLIs to use.
-- Prefer one multi-option question over a series of yes/no prompts.
-- If the host tool supports only a small single-choice menu, use the preset flow from preflight step 0 and follow with one plain-text seat-picking question only when needed.
-- If the host tool supports a follow-up interactive question, use that follow-up interactively instead of plain text.
-- In plain-text fallback mode, show the detected seat IDs inline and ask for a comma-separated subset or `all`.
-- Never skip the startup seat-selection question in non-`--auto` runs.
-- Do not proceed to runner smoke tests until the startup seat-selection question is resolved.
+Startup seat-selection question: unless `--auto` is set, the first question of the run must ask which models or CLIs to use, following the selection workflow and prompt templates in preflight step 0.
 
 ## Degrade Gracefully
 
@@ -320,13 +268,7 @@ Available stances:
 - `devils_advocate`
 - `pragmatic_engineering`
 
-Map stances to runner roles:
-- `supportive_with_integrity` -> `planner` or `implementer`
-- `critical_with_responsibility` -> `codereviewer` or `adversarial`
-- `balanced_synthesis` -> `synthesizer`
-- `devils_advocate` -> `challenger`
-- `pragmatic_engineering` -> `implementer`
-- `blocked_on_context` investigation rounds -> `researcher`
+The stance-to-runner-role mapping lives in the same reference.
 
 If fewer seats are available than unique stances, drop duplicate coverage before dropping unique stances.
 
@@ -352,14 +294,7 @@ Round 1 inputs:
 - no peer outputs
 - no moderator conclusion
 
-Required response schema:
-- `stance`
-- `position_summary`
-- `key_arguments`
-- `risks_or_limits`
-- `recommended_direction`
-- `confidence`
-- `questions_for_the_council`
+Required response schema: the Round 1 fields from [Response Schema Validation](#response-schema-validation).
 
 ### 3. Moderate the round
 
@@ -380,13 +315,7 @@ Later rounds get:
 - prior moderator digest
 - explicit instructions to rebut, concede, refine, or integrate
 
-Required response schema:
-- `updated_position`
-- `what_changed`
-- `points_conceded`
-- `remaining_objections`
-- `best_next_step`
-- `confidence`
+Required response schema: the later-rounds fields from [Response Schema Validation](#response-schema-validation).
 
 ### 5. Classify convergence
 
@@ -422,7 +351,7 @@ In `interactive` mode, ask focused questions with:
 2. minority alternative(s)
 3. `Run another round to refine positions` when another round could help
 
-Use the same interactive-question priority order defined above. Only fall back to plain text when no interactive host question tool is actually available.
+Ask these questions using the [Interactive Questions](#interactive-questions) protocol.
 
 If a required answer is still missing after available question channels, stop with `awaiting_user_decision`.
 

@@ -19,7 +19,7 @@ This skill invokes the local Qwen CLI from the current machine. Prompt text, pro
 
 ## Output Envelope
 
-All `--json` responses must conform to `.agents/skills/_shared/runner-envelope.schema.json`.
+All `--json` responses must conform to `.agents/skills/_shared/runner-envelope.schema.json` (an install-time path; the schema is not bundled in this repo, so the required-keys list below is the operative contract).
 Required top-level keys:
 - `runner`
 - `effective_runner`
@@ -31,14 +31,15 @@ Required top-level keys:
 - `return_code`
 
 ## Usage
-Normalize script invocation from repo root (ROOT=$(git rev-parse --show-toplevel || pwd)).
-Requirement: standardized seat_unavailable envelope when qwen/auth missing.
-Keep no-silent-provider-switch rule explicit.
-Separate return codes for missing binary vs auth failure.
+
+Invoke the script from the repository root:
 
 ```bash
-python3 .agents/skills/qwen-runner/scripts/run_qwen.py "your prompt here"
+ROOT=$(git rev-parse --show-toplevel || pwd)
+python3 "$ROOT/.agents/skills/qwen-runner/scripts/run_qwen.py" "your prompt here"
 ```
+
+Paths use the installed `.agents/skills/` layout; when running from this source repo, skills live at the repo root, so invoke `qwen-runner/scripts/run_qwen.py` instead.
 
 ## Supported Options
 
@@ -63,7 +64,7 @@ python3 .agents/skills/qwen-runner/scripts/run_qwen.py "your prompt here"
 - `--disable-fallback`
 - `--output-file`
 
-`--safe`, `--bare`, and `--disable-fallback` are accepted for cross-runner compatibility. Qwen-backed runners do not fall back to another provider.
+`--safe`, `--bare`, and `--disable-fallback` are accepted for cross-runner compatibility (see Behavior item 5 for the no-fallback rule). Run the script with `--help` for per-flag docs.
 
 ## Roles
 
@@ -99,10 +100,13 @@ python3 .agents/skills/qwen-runner/scripts/run_qwen.py "Return JSON matching the
 | 0 | Success |
 | -1 | Timeout exceeded |
 | -2 | Qwen CLI not found |
-| -3 | Invalid input or unexpected error |
+| -3 | Invalid input, native API/auth error, or unexpected error |
+
+On `-2` the envelope also carries `status: seat_unavailable`. There is no separate return code for auth failures: native API/auth errors are folded into `-3`, the `[API Error: ...]` text is appended to `stderr`, and `auth_ok` stays `null` in that case (only `-2` sets it to `false`).
 
 ## Gotchas
 
 - `--output-schema` is enforced by prompt instructions, not by a native Qwen schema flag.
 - `--restrict-tools` adds a read-only overlay to the prompt; it is not a hard tool sandbox.
 - Use the runner's `--json` flag when a workflow needs the wrapper envelope on stdout.
+- Chat recording is always disabled (the wrapper always passes `--chat-recording=false`); `--ephemeral` and `--no-session-persistence` are compatibility no-ops.
