@@ -1,0 +1,6 @@
+interface:
+  display_name: "Codex Mission Control"
+  short_description: "Coordinate context preserving Codex missions with native subagents and handoffs"
+  default_prompt: "Use $codex-mission-control to create a mission ledger, discover native subagent tools, spawn bounded workers when useful, and preserve context with compact handoffs."
+policy:
+  allow_implicit_invocation: true

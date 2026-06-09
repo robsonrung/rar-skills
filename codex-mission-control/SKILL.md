@@ -1,6 +1,6 @@
 ---
 name: codex-mission-control
-description: Coordinate Codex app work as a context light mission manager. Use when the user asks to preserve context, avoid compaction, run subagents, create focused Codex threads, split workstreams, manage handoffs, or supervise parallel agent execution.
+description: Coordinate Codex app missions as a context light manager that creates a run scoped ledger, discovers native subagent tools, spawns bounded workers when authorized, and writes compact handoffs for separate threads. Use when the user asks to preserve context, avoid compaction, run subagents, create focused Codex threads, split workstreams, manage handoffs, or supervise parallel agent execution.
 ---
 
 # Codex Mission Control
@@ -14,6 +14,19 @@ Act as a thin manager for a larger Codex mission. Keep this thread focused on de
 3. Separate Codex threads are best for context isolation, longer work, different branches, different worktrees, or multi turn follow up.
 4. Every mission must use a run scoped ledger path. Never rely on one global shared filename across missions.
 5. Every worker must return a compact report: result, files changed, tests run, risks, and next handoff.
+6. This skill is an orchestration workflow. It must discover and use host tools for subagents; it cannot create workers merely by describing them.
+
+## First Move
+
+1. Create the mission ledger before delegating meaningful work. Use an OS temp root when the current workspace should not receive support files.
+2. Run a native runtime preflight and record it in the ledger:
+   1. Check whether Codex subagent tools are already visible.
+   2. If they are not visible and `tool_search` exists, call it with a query like `multi agent spawn_agent wait_agent subagents`.
+   3. If tools become available, use `multi_agent_v1.spawn_agent`, `wait_agent`, `send_input`, and `close_agent`.
+   4. If no subagent tools are available, continue serially, say that no subagents were spawned, and do not imply parallel execution happened.
+3. Identify the immediate critical path task for the manager to do locally.
+4. Identify independent sidecar workstreams that can run while the manager continues local work.
+5. Spawn only the useful sidecar agents, then keep moving locally until an integration barrier requires their results.
 
 ## Start A Mission
 
@@ -67,6 +80,37 @@ Use a separate Codex thread when one of these is true:
 
 Do not fork a bloated manager context by default. Prefer a clean thread seeded by a compact prompt. Use context forking only when the worker truly needs the completed conversation history.
 
+## Native Subagent Runtime
+
+In Codex, prefer native subagents over CLI runner fallbacks when the tools are exposed.
+
+1. Use `multi_agent_v1.spawn_agent` for a new subagent.
+2. Use `agent_type="explorer"` for specific codebase questions.
+3. Use `agent_type="worker"` for bounded implementation with a clear write scope.
+4. Omit `model`, `reasoning_effort`, and `service_tier` unless the user explicitly asks or the work has a clear need. Let the worker inherit the parent defaults.
+5. Set `fork_context=false` by default and pass a compact brief. Use `fork_context=true` only when the worker truly needs the completed conversation history.
+6. For code edits, assign disjoint files or modules. Tell each worker that other agents may be editing in parallel and that it must not revert unrelated changes.
+7. Use `wait_agent` only at a real barrier. While agents run, do non overlapping manager work.
+8. When a worker finishes, inspect its report and changed files before integrating or presenting its result.
+9. Close agents that are no longer needed.
+10. Record every spawned agent id, role, scope, and final status in the ledger.
+
+## Separate Thread Reality
+
+Do not assume a skill file can directly open a new Codex UI thread.
+
+1. If the host exposes an explicit thread creation tool, use it and record the returned thread id.
+2. If no thread creation tool is exposed, create a compact handoff file and an exact seed prompt for the new thread.
+3. Keep the manager thread responsible for integration after the separate thread reports back.
+4. Prefer separate threads over subagents when the work needs long context isolation, a fresh worktree, or multiple future turns.
+
+## Configuration Reality
+
+1. Native Codex subagent availability is controlled by the host runtime and config, such as `~/.codex/config.toml` having the multi agent feature enabled.
+2. A project `routing.toml` is not required for Codex native subagents. TOML routing files are useful only for skills that parse them explicitly.
+3. `agents/openai.yaml` is useful for Codex UI metadata, default prompts, and invocation policy. It is not the subagent runtime itself.
+4. If the runtime preflight cannot expose `multi_agent_v1`, patching TOML inside this skill will not create subagent tools for the current turn.
+
 ## Handoff Contract
 
 Each handoff should fit on one screen when possible and include:
@@ -90,6 +134,7 @@ You are working inside mission <mission_id>.
 
 Goal: <specific workstream goal>
 Source ledger: <absolute path>
+Runtime target: <subagent role or separate thread>
 Write scope: <files or modules, or read only>
 Constraints: <important user and repo constraints>
 Do not revert unrelated changes. Other agents may be working in parallel.
@@ -106,13 +151,14 @@ Return a compact final with:
 
 Update the mission ledger after each meaningful event:
 
-1. Workstream started.
-2. Thread created or subagent spawned.
-3. Worker completed.
-4. Decision made.
-5. Files changed.
-6. Verification passed or failed.
-7. Final integration completed.
+1. Runtime preflight completed.
+2. Workstream started.
+3. Thread created, handoff written, or subagent spawned.
+4. Worker completed.
+5. Decision made.
+6. Files changed.
+7. Verification passed or failed.
+8. Final integration completed.
 
 Keep evidence compact. Link to files, thread ids, commands, and reports. Do not paste long terminal logs unless the exact error text is required.
 
@@ -122,3 +168,4 @@ Keep evidence compact. Link to files, thread ids, commands, and reports. Do not 
 2. A single fixed handoff file creates collisions across repeated runs. Always use mission scoped paths with a timestamp or unique suffix.
 3. The manager should not redo delegated work. It should integrate, verify, and resolve conflicts.
 4. Separate read only audits from mutating implementation threads unless the user explicitly asks to change code in the audit context.
+5. Do not treat a TOML routing file as a magic subagent switch. First prove whether native subagent tools are exposed.

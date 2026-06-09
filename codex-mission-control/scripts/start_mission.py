@@ -48,6 +48,13 @@ Capture the mission goal here in one sentence.
 
 Record user instructions, repo instructions, safety boundaries, branch state, and non goals.
 
+## Runtime Preflight
+
+| Capability | Status | Evidence | Notes |
+| --- | --- | --- | --- |
+| native subagent tools | unknown | pending | record tool_search or direct tool visibility |
+| thread creation tool | unknown | pending | record host capability or handoff fallback |
+
 ## Workstreams
 
 | Workstream | Owner | Status | Scope | Notes |
