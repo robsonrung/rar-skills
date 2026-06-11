@@ -9,7 +9,7 @@ Turn "which of the design lenses applies here?" from a judgment call into a look
 
 ## Workflow
 
-1. Identify the surfaces the change touches from the plan, slice contract, or diff scope. If lens flags were already set at planning time (see `ship`), use them and skip step 2.
+1. Identify the surfaces the change touches from the plan, slice contract, or diff scope. If lens flags were already set at planning time (the `to-tasks` Slice Contract), use them and skip step 2 — the cap below still applies; keep the 3 most central flags.
 2. Select lenses from the routing table. Multiple rows can match; cap at 3 lenses — pick the rows most central to the change's risk.
 3. Run each selected lens as a parallel read-only subagent. Give each: the plan or design problem, the files/boundaries in scope, and the instruction to return findings plus a `proceed` or `revise` recommendation with reasons.
 4. Merge: any `revise` with a concrete, load-bearing finding makes the gate verdict `revise`; cosmetic or speculative findings are listed but do not block.

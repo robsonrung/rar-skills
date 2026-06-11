@@ -22,7 +22,7 @@ During the phase 1 interview (`grill-with-docs` or `collaborative_discovery`), a
 
 ## Part 2 — Deep-pass triggers (deterministic)
 
-At planning time, mark a slice `security: deep` when it touches any of:
+At planning time (the `to-tasks` Slice Contract), mark a slice `security: deep` when it touches any of:
 
 - authentication, authorization, session, or permission logic
 - parsing or deserializing untrusted input (request bodies, file uploads, webhooks, query params used in queries)
@@ -36,7 +36,7 @@ At planning time, mark a slice `security: deep` when it touches any of:
 
 Otherwise mark `security: standard`.
 
-At verify time: `deep` slices get an explicit instruction to `full-review` to prioritize the security dimension against the checklist answers from Part 1 (verify the implementation matches the recorded auth, validation, logging, and tenancy decisions). `standard` slices rely on `full-review`'s normal security coverage with no extra pass.
+At verify time: `deep` slices run `full-review` with `security_focus=true`, passing the Part 1 checklist answers as the recorded security decisions to verify against (the implementation must match the recorded auth, validation, logging, and tenancy decisions). `standard` slices rely on `full-review`'s normal security coverage with no extra pass.
 
 ## Output contract
 

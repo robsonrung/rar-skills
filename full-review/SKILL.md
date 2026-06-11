@@ -36,6 +36,9 @@ Use these knobs when requested or when context makes them obvious:
 | `quick_mode` | false | Review only security, runtime, and compatibility blockers |
 | `verify_mode` | true | Run verification where execution is possible |
 | `confidence_threshold` | per mode | Override the active threshold from `references/filtering_pipeline.md` section 4 |
+| `security_focus` | false | Prioritize the security dimension; optionally takes recorded security decisions to verify against |
+
+When `security_focus=true` (set by the caller — e.g. a pipeline's `security-gate` for a `security: deep` change): treat any provided security decisions (recorded auth, validation, logging, and tenancy choices) as hard constraints and explicitly check the implementation against each; activate the `specialist_authorization`, `specialist_database`, and `specialist_data_integrity` specialists in Phase 3 regardless of trigger patterns; and never drop security-category findings to satisfy `max_comments`.
 
 ## Output Contract
 

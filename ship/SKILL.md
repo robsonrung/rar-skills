@@ -13,7 +13,7 @@ Run a feature through three interactive phases and four autonomous phases. All h
 |---|---|---|
 | 0. Frame | interactive, optional | `brainstorm` (fuzzy idea); `prototype` (design unknown only running code can settle) |
 | 1. Specify | interactive | `grill-with-docs` then `to-prd`; high-stakes or contested: `collaborative_discovery` then `collaborative_specification`. Run the `security-gate` spec-time checklist during the interview. |
-| 2. Plan | interactive — last human gate | `to-issues` (default) or `collaborative_task_design` (needs per-task test plans). Extend each slice with the Slice Contract below. User approves the breakdown. |
+| 2. Plan | interactive — last human gate | `to-tasks` (default) or `collaborative_task_design` (needs per-task test plans), then apply the `to-tasks` Slice Contract to its output. User approves the breakdown. |
 | 3. Design gate | autonomous, per task | `coding-design-plan`, then `design-gate` with the slice's lens flags |
 | 4. Implement | autonomous, per task | `tdd` + `small-steps` with `coding-implementation-guard` active; `refactor-to-testability` first when touching untested legacy code; `diagnose` for bugs found mid-work |
 | 5. Verify | autonomous | ordered, fail-fast: run the acceptance contract → `full-review` (deep security pass when flagged by `security-gate`) → `coding-review-simplify` → `verify`. Failures loop to phase 4 via `diagnose`. |
@@ -23,12 +23,7 @@ Skip phases 0–1 when the input is already a PRD or approved spec; skip to phas
 
 ## Slice Contract
 
-When breaking down work in phase 2, add two fields to every slice while the user is still present:
-
-1. `acceptance`: exact commands that must pass (test, lint, build, app-level check runnable by `verify`) plus observable behaviors. Done must be machine-checkable.
-2. `gates`: lens flags for `design-gate` (set from the routing table in that skill, by surfaces the slice touches) and `security: deep|standard` (set by the `security-gate` trigger list).
-
-Classify each slice HITL or AFK. HITL slices (irreversible migrations, externally visible contract sign-off, design approval) are scheduled first so human involvement clusters at the start. AFK slices are labeled `ready-for-agent` on the issue tracker; if no tracker is configured, keep the approved breakdown as the work queue in a `TASKS.md` at repo root.
+The Slice Contract — machine-checkable `acceptance` commands plus `gates` flags for `design-gate` and `security-gate`, HITL/AFK classification with HITL scheduled first, and the `ready-for-agent` / `TASKS.md` work queue — is defined in `to-tasks`. Phase 2 must produce slices carrying it; phases 3–6 consume it.
 
 ## Autonomous loop
 
@@ -45,7 +40,7 @@ For long-running slices, preserve context with `codex-mission-control` or `hando
 
 When an autonomous phase hits a contested or irreversible decision:
 
-1. Run `models-consensus` (or the lighter `council`) — multi-model deliberation substitutes for the user.
+1. Run `models-consensus` (or the lighter `council` with `--auto` — never plain `council`, whose default mode interviews the user) — multi-model deliberation substitutes for the user.
 2. Still unresolved: pick the most reversible default, record assumption + rationale in a decision log carried into the PR body, proceed.
 3. Hard-stop and wait for the human only for destructive or irreversible operations (data deletion, force-push, external publication, irreversible migration against real data).
 

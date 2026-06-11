@@ -17,7 +17,7 @@ Design principles:
  INTERACTIVE                                  │  AUTONOMOUS (per task, in a worktree)
                                               │
  0. FRAME      1. SPECIFY      2. PLAN        │  3. DESIGN GATE   4. IMPLEMENT     5. VERIFY        6. DELIVER
- brainstorm →  grill-with-docs to-issues /    │  coding-design-   tdd +            full-review      PR + triage
+ brainstorm →  grill-with-docs to-tasks /     │  coding-design-   tdd +            full-review      PR + triage
  (prototype)   → to-prd /      collaborative_ │  plan + lens      small-steps +    (incl. security  label move +
                collaborative_  task_design    │  router →         implementation-  + execution      handoff note
                specification   → APPROVAL ◄───┤  (models-         guard            verification)
@@ -55,10 +55,10 @@ Skip when the request is already concrete.
 
 | Situation | Skill |
 |---|---|
-| Default | `to-issues` — tracer-bullet vertical slices, HITL/AFK classification, dependency order, user approves breakdown |
+| Default | `to-tasks` — tracer-bullet vertical slices with the Slice Contract built in, HITL/AFK classification, dependency order, user approves breakdown |
 | Complex delivery needing test plans + architecture decisions per task | `collaborative_task_design` |
 
-Two additions to the slice template (a convention inside `ship`, not a new skill):
+Two fields in the slice template (carried natively by `to-tasks`):
 
 - **Acceptance contract**: exact commands that must pass (test command, lint, build, app-level check `verify` can run), plus observable behaviors. Machine-checkable = autonomously verifiable.
 - **Gate flags**: which design lenses apply (see router table) and whether the deep security pass is required. Set deterministically from the surfaces the slice touches.
@@ -138,13 +138,13 @@ Several skill clusters overlap; the pipeline picks **canonical defaults** and ke
 |---|---|---|
 | Interview/clarify | `grill-with-docs` | `grill-me` (no domain docs), `council` (wants a plan out, not just clarity), `collaborative_discovery` (multi-model stakes) |
 | Spec | `to-prd` | `collaborative_specification` (high stakes) |
-| Task breakdown | `to-issues` | `collaborative_task_design` (needs per-task test plans) |
+| Task breakdown | `to-tasks` | `collaborative_task_design` (needs per-task test plans), `to-issues` (human-executed tickets, no contracts) |
 | Implementation rhythm | `tdd` + `small-steps` | `collaborative_delivery` (panel-gated, audit trail required), `pragmatic-coding-session` (lens, not loop) |
 | Review | `full-review` | `review` (standards+spec axes), `code-review` (quick) |
 
 ## Rollout
 
 1. Author `ship`, `design-gate`, `security-gate` (use `skill-expert` to validate triggers/structure).
-2. Add the acceptance-contract + gate-flags fields to the `to-issues` slice template (additive).
+2. Done via the local `to-tasks` skill, which carries the acceptance-contract + gate-flags fields natively (supersedes editing the external `to-issues`).
 3. Pilot one feature end-to-end; measure user touchpoints after the Phase 2 gate (target: zero) and verify-phase pass rate.
 4. Tune the lens-router table from pilot misroutes.
