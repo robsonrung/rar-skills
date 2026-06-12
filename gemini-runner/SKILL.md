@@ -17,7 +17,7 @@ When `agy` is missing and fallback is disabled (or all fallbacks are unavailable
 
 ## Security Model
 
-This skill invokes the local Antigravity CLI from the current machine. Prompt text, prompt files, session files, metadata, and any files Antigravity reads during the run may be sent to the configured Google model. Permission checks stay enabled through the local Antigravity configuration.
+This skill invokes the local Antigravity CLI from the current machine. Prompt text, prompt files, session files, metadata, and any files Antigravity reads during the run may be sent to the configured Google model. Permission checks stay enabled through the local Antigravity configuration. Analysis roles (every role except `implementer`) default to a read-only prompt overlay (`agy` has no sandbox flag, so this is a soft constraint); pass `--allow-write` to opt out.
 
 
 ## Output Envelope
@@ -32,7 +32,7 @@ All `--json` responses follow the shared runner envelope contract used by every 
 - `success`
 - `return_code`
 
-The envelope also carries `stdout`, `stderr`, and any execution metadata from the run.
+The envelope also carries `stdout`, `stderr`, and any execution metadata from the run, plus `agent_message` (the trimmed `agy` print-mode response — `agy` exposes no session id, so `session_id` stays null).
 
 ## Usage
 
@@ -49,9 +49,12 @@ python3 .agents/skills/gemini-runner/scripts/run_gemini.py "your prompt here"
 | `--json`, `-j` | Wrap runner output in JSON | False |
 | `--model`, `-m` | Compatibility metadata label. `agy` uses its configured model from `/model` or settings. | `agy-configured-model` |
 | `--output-format`, `-o` | Response format hint: `text`, `json`, or `stream-json`. `agy` print mode has no output-format launch flag. | `text` |
-| `--prompt-file` | Read the prompt from a file | None |
+| `--prompt-file` | Read the prompt from a file (repeatable; files are concatenated in order) | None |
 | `--role` | Apply a role overlay | None |
-| `--session-file` | Append prior workflow context for continuation | None |
+| `--restrict-tools` | Add a read-only analysis overlay to the prompt | True for analysis roles |
+| `--allow-write` | Opt an analysis role out of the default read-only overlay | False |
+| `--background` | Run as a tracked background job and return a job id immediately | False |
+| `--session-file` | Append prior workflow context for cross-runner continuation | None |
 | `--agy-continue` | Resume the most recent Antigravity CLI conversation with native `agy --continue` | False |
 | `--metadata-json` | Attach structured execution metadata to the prompt | None |
 | `--disable-fallback` | Fail instead of routing to another runner | False |
@@ -67,6 +70,24 @@ Supported roles:
 - `adversarial`
 - `challenger`
 - `researcher`
+
+Every role except `implementer` is an analysis seat and defaults to the read-only prompt overlay. Pass `--allow-write` when an analysis role legitimately needs to write.
+
+## Background Jobs
+
+`--background` detaches the run as a tracked job under `<working-dir>/.ai-workflow/runner-jobs/<job-id>/` and immediately prints `{success, job_id, pid, job_dir, ...}`. Manage jobs with the shared CLI (`list`/`status`/`result`/`cancel`):
+
+```bash
+python3 .agents/skills/_shared/scripts/runner_jobs.py status [job-id]
+```
+
+## Presenting Results
+
+- Prefer `agent_message` over `stdout`; the raw payload is for debugging.
+- For reviews, keep findings ordered by severity and preserve file paths and line numbers exactly as reported.
+- Preserve evidence boundaries: if the model marked something as an inference or open question, keep that distinction.
+- Never auto-apply review findings; present them and ask which to fix.
+- If a run fails, report the failure with the most actionable stderr lines — do not silently substitute another model's answer (fallback runs are always labeled via `fallback_from`/`fallback_reason`).
 
 ## Examples
 

@@ -27,6 +27,9 @@ ROLE_INSTRUCTIONS = {
     "researcher": "Act as a research specialist. Distinguish facts from inference, gather evidence, and cite sources or concrete artifacts when available.",
 }
 
+# Roles that modify the workspace; every other role defaults to restricted analysis mode.
+WRITE_ROLES = {"implementer"}
+
 
 PROVIDER_BY_RUNNER = {
     "claude": "anthropic",
@@ -101,6 +104,24 @@ def normalize_prompt_files(prompt_files: list[str] | None) -> list[str]:
     return [str(Path(path).expanduser()) for path in (prompt_files or [])]
 
 
+def resolve_restrict_tools(role: str | None, restrict_tools: bool, allow_write: bool) -> bool:
+    if restrict_tools:
+        return True
+    if allow_write:
+        return False
+    return bool(role) and role not in WRITE_ROLES
+
+
+def load_runner_jobs():
+    shared_dir = Path(__file__).resolve().parents[2] / "_shared" / "scripts"
+    if not (shared_dir / "runner_jobs.py").is_file():
+        return None
+    sys.path.insert(0, str(shared_dir))
+    import runner_jobs
+
+    return runner_jobs
+
+
 def extract_assistant_text(content: Any) -> str | None:
     if isinstance(content, str):
         return content
@@ -126,9 +147,10 @@ def extract_assistant_text(content: Any) -> str | None:
     return None
 
 
-def inspect_native_stream(stdout: str) -> tuple[Any, str | None]:
+def inspect_native_stream(stdout: str) -> tuple[Any, str | None, str | None]:
     native_result = None
     assistant_message = None
+    session_id = None
 
     for line in stdout.splitlines():
         line = line.strip()
@@ -140,10 +162,13 @@ def inspect_native_stream(stdout: str) -> tuple[Any, str | None]:
             continue
 
         native_result = payload
-        if isinstance(payload, dict) and payload.get("role") == "assistant":
-            assistant_message = extract_assistant_text(payload.get("content"))
+        if isinstance(payload, dict):
+            if isinstance(payload.get("session_id"), str):
+                session_id = payload["session_id"]
+            if payload.get("role") == "assistant":
+                assistant_message = extract_assistant_text(payload.get("content"))
 
-    return native_result, assistant_message
+    return native_result, assistant_message, session_id
 
 
 def build_prompt(
@@ -203,6 +228,7 @@ def run_kimi(
     metadata_json: str | None = None,
     output_schema: str | None = None,
     restrict_tools: bool = False,
+    allow_write: bool = False,
     thinking: bool | None = None,
     continue_last: bool = False,
     session_id: str | None = None,
@@ -222,6 +248,7 @@ def run_kimi(
     prompt_files = normalize_prompt_files(prompt_files)
     model = model or DEFAULT_MODEL
     cwd = working_dir or os.getcwd()
+    restrict_tools = resolve_restrict_tools(role, restrict_tools, allow_write)
 
     if working_dir and not Path(working_dir).is_dir():
         return {
@@ -366,6 +393,7 @@ def run_kimi(
         "restrict_tools": restrict_tools,
         "continue_last": continue_last,
         "session_id": session_id,
+        "agent_message": None,
     }
 
     if thinking is not None:
@@ -388,11 +416,16 @@ def run_kimi(
         result["stderr"] = process.stderr
         result["return_code"] = process.returncode
         result["success"] = process.returncode == 0
-        native_result, assistant_message = inspect_native_stream(process.stdout)
+        native_result, assistant_message, stream_session_id = inspect_native_stream(process.stdout)
         if native_result is not None:
             result["native_result"] = native_result
         if assistant_message:
             result["assistant_message"] = assistant_message
+            result["agent_message"] = assistant_message
+        elif result["success"] and output_format == "text":
+            result["agent_message"] = process.stdout.strip() or None
+        if stream_session_id:
+            result["session_id"] = stream_session_id
 
     except subprocess.TimeoutExpired as exc:
         result["stderr"] = f"Timeout expired after {timeout} seconds"
@@ -497,7 +530,17 @@ Examples:
     parser.add_argument(
         "--restrict-tools",
         action="store_true",
-        help="Add a read-only analysis overlay to the prompt",
+        help="Add a read-only analysis overlay to the prompt (default for analysis roles)",
+    )
+    parser.add_argument(
+        "--allow-write",
+        action="store_true",
+        help="Opt an analysis role out of the default read-only overlay",
+    )
+    parser.add_argument(
+        "--background",
+        action="store_true",
+        help="Run as a tracked background job and return a job id immediately",
     )
     parser.add_argument(
         "--role",
@@ -576,6 +619,29 @@ def main(
     elif args.no_thinking:
         thinking = False
 
+    if args.background:
+        jobs = load_runner_jobs()
+        if jobs is None:
+            parser.error(
+                "--background requires the shared jobs module (_shared/scripts/runner_jobs.py), which was not found"
+            )
+        prompt_source = args.prompt or (
+            f"prompt files: {', '.join(args.prompt_file)}" if args.prompt_file else ""
+        )
+        try:
+            summary = jobs.launch_background(
+                runner_name,
+                Path(sys.argv[0]),
+                sys.argv[1:],
+                working_dir=args.working_dir,
+                prompt_excerpt=prompt_source,
+                manifest_extra={"role": args.role, "model": args.model or default_model},
+            )
+        except ValueError as exc:
+            parser.error(str(exc))
+        print(json.dumps(summary, indent=2, ensure_ascii=False))
+        sys.exit(0)
+
     result = run_kimi(
         prompt=args.prompt,
         timeout=args.timeout,
@@ -588,6 +654,7 @@ def main(
         metadata_json=args.metadata_json,
         output_schema=args.output_schema,
         restrict_tools=args.restrict_tools,
+        allow_write=args.allow_write,
         thinking=thinking,
         continue_last=args.continue_last,
         session_id=args.session,

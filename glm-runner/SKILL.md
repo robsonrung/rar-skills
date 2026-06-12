@@ -20,7 +20,7 @@ Pass `--model` if you need a different GLM model that is available to the local 
 
 ## Security Model
 
-This skill delegates to `qwen-runner`, so it has the same execution and data sharing model as the Qwen wrapper. Prompt text, prompt files, session files, metadata, and any files Qwen reads during the run may be sent to the selected GLM provider. Approval mode defaults to `default`.
+This skill delegates to `qwen-runner`, so it has the same execution and data sharing model as the Qwen wrapper. Prompt text, prompt files, session files, metadata, and any files Qwen reads during the run may be sent to the selected GLM provider. Analysis roles (every role except `implementer`) default to restricted mode (read-only overlay plus plan approval mode); pass `--allow-write` to opt out. Otherwise approval mode defaults to `default`.
 
 
 ## Output Envelope
@@ -34,6 +34,8 @@ The wrapper `--json` envelope always contains these top-level keys:
 - `fallback_reason`
 - `success`
 - `return_code`
+
+The envelope also carries `agent_message` (the clean final answer) and `session_id` when the native stream reports one — see the qwen-runner SKILL.md for details.
 
 ## Usage
 

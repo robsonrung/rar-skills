@@ -22,6 +22,11 @@ ROLE_INSTRUCTIONS = {
     "researcher": "Act as a research specialist. Distinguish facts from inference, gather evidence, and cite sources or concrete artifacts when available.",
 }
 
+# Roles that modify the workspace; every other role defaults to restricted (plan) mode.
+WRITE_ROLES = {"implementer"}
+
+EFFORT_LEVELS = ("low", "medium", "high", "xhigh", "max")
+
 
 PROVIDER_BY_RUNNER = {
     "claude": "anthropic",
@@ -90,6 +95,68 @@ def write_json_output_file(path: str, payload: dict[str, Any]) -> str:
         temp_name = handle.name
     os.replace(temp_name, target)
     return str(target)
+
+
+def resolve_restrict_tools(role: Optional[str], restrict_tools: bool, allow_write: bool) -> bool:
+    if restrict_tools:
+        return True
+    if allow_write:
+        return False
+    return bool(role) and role not in WRITE_ROLES
+
+
+def extract_output_fields(stdout: str, output_format: str) -> tuple[Optional[str], Optional[str]]:
+    """Return (agent_message, session_id) parsed from Claude print-mode stdout."""
+    if output_format == "json":
+        try:
+            payload = json.loads(stdout)
+        except json.JSONDecodeError:
+            return None, None
+        # claude -p --output-format json returns an array of events ending in a
+        # result event; older versions returned a single result object.
+        events = payload if isinstance(payload, list) else [payload]
+        agent_message = None
+        session_id = None
+        for event in events:
+            if not isinstance(event, dict):
+                continue
+            if isinstance(event.get("session_id"), str):
+                session_id = event["session_id"]
+            if event.get("type") == "result" and isinstance(event.get("result"), str):
+                agent_message = event["result"].strip() or None
+        return agent_message, session_id
+
+    if output_format == "stream-json":
+        agent_message = None
+        session_id = None
+        for line in stdout.splitlines():
+            line = line.strip()
+            if not line.startswith("{"):
+                continue
+            try:
+                event = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if not isinstance(event, dict):
+                continue
+            if isinstance(event.get("session_id"), str):
+                session_id = event["session_id"]
+            if event.get("type") == "result" and isinstance(event.get("result"), str):
+                agent_message = event["result"].strip() or None
+        return agent_message, session_id
+
+    text = stdout.strip()
+    return (text or None), None
+
+
+def load_runner_jobs():
+    shared_dir = Path(__file__).resolve().parents[2] / "_shared" / "scripts"
+    if not (shared_dir / "runner_jobs.py").is_file():
+        return None
+    sys.path.insert(0, str(shared_dir))
+    import runner_jobs
+
+    return runner_jobs
 
 
 def infer_claude_success(return_code: int, stdout: str, output_format: str) -> bool:
@@ -260,10 +327,32 @@ def run_claude(
     bare: bool = False,
     no_session_persistence: bool = False,
     restrict_tools: bool = False,
+    allow_write: bool = False,
+    effort: Optional[str] = None,
+    resume: Optional[str] = None,
+    continue_last: bool = False,
     disable_fallback: bool = False,
 ) -> dict[str, Any]:
     cwd = working_dir if working_dir else os.getcwd()
+    restrict_effective = resolve_restrict_tools(role, restrict_tools, allow_write)
+    restrict_tools = restrict_effective
     cmd = ["claude"]
+
+    if resume and continue_last:
+        return {
+            "success": False,
+            "stdout": "",
+            "stderr": "Use either --resume SESSION_ID or --continue, not both.",
+            "return_code": -3,
+            "command": "claude -p",
+            "working_dir": cwd,
+            "model": model,
+            "safe_mode": safe_mode,
+            "output_format": output_format,
+            "bare": bare,
+            "no_session_persistence": no_session_persistence,
+            "restrict_tools": restrict_tools,
+        }
 
     for pf in (prompt_files or []):
         if not Path(pf).is_file():
@@ -299,6 +388,11 @@ def run_claude(
         }
 
     final_prompt = build_prompt(prompt, prompt_files or [], role, session_file, metadata_json)
+    if (resume or continue_last) and not final_prompt.strip():
+        final_prompt = (
+            "Continue from the current conversation state. Pick the next "
+            "highest-value step and follow through until the task is resolved."
+        )
     if bare:
         cmd.append("--bare")
 
@@ -313,6 +407,14 @@ def run_claude(
 
     if model:
         cmd.extend(["--model", model])
+
+    if effort:
+        cmd.extend(["--effort", effort])
+
+    if resume:
+        cmd.extend(["--resume", resume])
+    elif continue_last:
+        cmd.append("--continue")
 
     cmd.extend(["-p", final_prompt])
 
@@ -389,6 +491,10 @@ def run_claude(
         "role": role,
         "session_file": session_file,
         "prompt_files": prompt_files or [],
+        "effort": effort,
+        "resume": resume or ("--continue" if continue_last else None),
+        "agent_message": None,
+        "session_id": None,
     }
 
     child_env = os.environ.copy()
@@ -424,6 +530,9 @@ def run_claude(
         )
         if not result["success"] and result["return_code"] == 0:
             result["return_code"] = 1
+        agent_message, session_id = extract_output_fields(process.stdout, output_format)
+        result["agent_message"] = agent_message
+        result["session_id"] = session_id
     except subprocess.TimeoutExpired as e:
         result["stderr"] = f"Timeout expired after {timeout} seconds"
         result["stdout"] = (
@@ -529,7 +638,38 @@ Examples:
     parser.add_argument(
         "--restrict-tools",
         action="store_true",
-        help="Use Claude planning mode for read-only analysis seats",
+        help="Use Claude planning mode (read-only; default for analysis roles)",
+    )
+    parser.add_argument(
+        "--allow-write",
+        action="store_true",
+        help="Opt an analysis role out of the default restricted planning mode",
+    )
+    parser.add_argument(
+        "--effort",
+        "-e",
+        type=str,
+        choices=EFFORT_LEVELS,
+        default=None,
+        help="Claude effort level override",
+    )
+    parser.add_argument(
+        "--resume",
+        type=str,
+        default=None,
+        metavar="SESSION_ID",
+        help="Natively resume a Claude session by session id",
+    )
+    parser.add_argument(
+        "--continue",
+        dest="continue_last",
+        action="store_true",
+        help="Natively resume the most recent Claude conversation in this project",
+    )
+    parser.add_argument(
+        "--background",
+        action="store_true",
+        help="Run as a tracked background job and return a job id immediately",
     )
     parser.add_argument(
         "--role",
@@ -564,8 +704,31 @@ Examples:
 
     args = parser.parse_args()
 
-    if not args.prompt and not args.prompt_files:
-        parser.error("Provide a prompt argument or --prompt-file")
+    if not args.prompt and not args.prompt_files and not (args.resume or args.continue_last):
+        parser.error("Provide a prompt argument, --prompt-file, or --resume/--continue")
+
+    if args.background:
+        jobs = load_runner_jobs()
+        if jobs is None:
+            parser.error(
+                "--background requires the shared jobs module (_shared/scripts/runner_jobs.py), which was not found"
+            )
+        prompt_source = args.prompt or (
+            f"prompt files: {', '.join(args.prompt_files)}" if args.prompt_files else "(resume)"
+        )
+        try:
+            summary = jobs.launch_background(
+                "claude",
+                Path(__file__),
+                sys.argv[1:],
+                working_dir=args.working_dir,
+                prompt_excerpt=prompt_source,
+                manifest_extra={"role": args.role, "model": args.model, "effort": args.effort},
+            )
+        except ValueError as exc:
+            parser.error(str(exc))
+        print(json.dumps(summary, indent=2, ensure_ascii=False))
+        sys.exit(0)
 
     result = run_claude(
         prompt=args.prompt,
@@ -581,6 +744,10 @@ Examples:
         bare=args.bare,
         no_session_persistence=args.no_session_persistence,
         restrict_tools=args.restrict_tools,
+        allow_write=args.allow_write,
+        effort=args.effort,
+        resume=args.resume,
+        continue_last=args.continue_last,
         disable_fallback=args.disable_fallback,
     )
 

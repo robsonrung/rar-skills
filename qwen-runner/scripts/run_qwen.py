@@ -29,6 +29,9 @@ ROLE_INSTRUCTIONS = {
     "researcher": "Act as a research specialist. Distinguish facts from inference, gather evidence, and cite sources or concrete artifacts when available.",
 }
 
+# Roles that modify the workspace; every other role defaults to restricted analysis mode.
+WRITE_ROLES = {"implementer"}
+
 
 PROVIDER_BY_RUNNER = {
     "claude": "anthropic",
@@ -103,6 +106,24 @@ def normalize_prompt_files(prompt_files: list[str] | None) -> list[str]:
     return [str(Path(path).expanduser()) for path in (prompt_files or [])]
 
 
+def resolve_restrict_tools(role: str | None, restrict_tools: bool, allow_write: bool) -> bool:
+    if restrict_tools:
+        return True
+    if allow_write:
+        return False
+    return bool(role) and role not in WRITE_ROLES
+
+
+def load_runner_jobs():
+    shared_dir = Path(__file__).resolve().parents[2] / "_shared" / "scripts"
+    if not (shared_dir / "runner_jobs.py").is_file():
+        return None
+    sys.path.insert(0, str(shared_dir))
+    import runner_jobs
+
+    return runner_jobs
+
+
 def parse_sandbox_flag(raw_value: str | None) -> str | None:
     if raw_value is None:
         return None
@@ -116,9 +137,10 @@ def parse_sandbox_flag(raw_value: str | None) -> str | None:
     return "true"
 
 
-def inspect_native_stream(stdout: str) -> tuple[Any, str | None]:
+def inspect_native_stream(stdout: str) -> tuple[Any, str | None, str | None]:
     result_payload = None
     native_error = None
+    session_id = None
 
     for line in stdout.splitlines():
         line = line.strip()
@@ -131,6 +153,9 @@ def inspect_native_stream(stdout: str) -> tuple[Any, str | None]:
 
         if not isinstance(event, dict):
             continue
+
+        if isinstance(event.get("session_id"), str):
+            session_id = event["session_id"]
 
         if event.get("type") == "assistant":
             message = event.get("message") or {}
@@ -152,7 +177,7 @@ def inspect_native_stream(stdout: str) -> tuple[Any, str | None]:
     if native_error is None and isinstance(result_payload, str) and result_payload.startswith("[API Error:"):
         native_error = result_payload
 
-    return result_payload, native_error
+    return result_payload, native_error, session_id
 
 
 def build_prompt(
@@ -215,6 +240,7 @@ def run_qwen(
     output_schema: str | None = None,
     sandbox: str | None = None,
     restrict_tools: bool = False,
+    allow_write: bool = False,
     disable_fallback: bool = False,
     no_session_persistence: bool = False,
     ephemeral: bool = False,
@@ -229,6 +255,9 @@ def run_qwen(
     prompt_files = normalize_prompt_files(prompt_files)
     model = model or DEFAULT_MODEL
     cwd = working_dir or os.getcwd()
+    restrict_tools = resolve_restrict_tools(role, restrict_tools, allow_write)
+    if restrict_tools and approval_mode == DEFAULT_APPROVAL_MODE:
+        approval_mode = "plan"
 
     if working_dir and not Path(working_dir).is_dir():
         return {
@@ -359,6 +388,8 @@ def run_qwen(
         "restrict_tools": restrict_tools,
         "ephemeral": ephemeral,
         "chat_recording": False,
+        "agent_message": None,
+        "session_id": None,
     }
 
     if len(prompt_files) == 1:
@@ -378,9 +409,25 @@ def run_qwen(
         result["stderr"] = process.stderr
         result["return_code"] = process.returncode
         result["success"] = process.returncode == 0
-        native_result, native_error = inspect_native_stream(process.stdout)
+        native_result, native_error, session_id = inspect_native_stream(process.stdout)
         if native_result is not None:
             result["native_result"] = native_result
+        if session_id:
+            result["session_id"] = session_id
+        if isinstance(native_result, str) and native_result.strip() and not native_error:
+            result["agent_message"] = native_result.strip()
+        elif result["success"] and output_format == "json":
+            try:
+                payload = json.loads(process.stdout)
+            except json.JSONDecodeError:
+                payload = None
+            if isinstance(payload, dict):
+                if isinstance(payload.get("result"), str):
+                    result["agent_message"] = payload["result"].strip() or None
+                if isinstance(payload.get("session_id"), str):
+                    result["session_id"] = payload["session_id"]
+        elif result["success"] and output_format == "text":
+            result["agent_message"] = process.stdout.strip() or None
         if native_error:
             result["success"] = False
             result["stderr"] = (
@@ -490,7 +537,17 @@ Examples:
     parser.add_argument(
         "--restrict-tools",
         action="store_true",
-        help="Add a read-only analysis overlay to the prompt",
+        help="Add a read-only analysis overlay and plan approval mode (default for analysis roles)",
+    )
+    parser.add_argument(
+        "--allow-write",
+        action="store_true",
+        help="Opt an analysis role out of the default restricted mode",
+    )
+    parser.add_argument(
+        "--background",
+        action="store_true",
+        help="Run as a tracked background job and return a job id immediately",
     )
     parser.add_argument(
         "--role",
@@ -563,6 +620,29 @@ def main(
     )
     args = parser.parse_args()
 
+    if args.background:
+        jobs = load_runner_jobs()
+        if jobs is None:
+            parser.error(
+                "--background requires the shared jobs module (_shared/scripts/runner_jobs.py), which was not found"
+            )
+        prompt_source = args.prompt or (
+            f"prompt files: {', '.join(args.prompt_file)}" if args.prompt_file else ""
+        )
+        try:
+            summary = jobs.launch_background(
+                runner_name,
+                Path(sys.argv[0]),
+                sys.argv[1:],
+                working_dir=args.working_dir,
+                prompt_excerpt=prompt_source,
+                manifest_extra={"role": args.role, "model": args.model or default_model},
+            )
+        except ValueError as exc:
+            parser.error(str(exc))
+        print(json.dumps(summary, indent=2, ensure_ascii=False))
+        sys.exit(0)
+
     result = run_qwen(
         prompt=args.prompt,
         timeout=args.timeout,
@@ -578,6 +658,7 @@ def main(
         output_schema=args.output_schema,
         sandbox=args.sandbox,
         restrict_tools=args.restrict_tools,
+        allow_write=args.allow_write,
         disable_fallback=args.disable_fallback,
         no_session_persistence=args.no_session_persistence,
         ephemeral=args.ephemeral,

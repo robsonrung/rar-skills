@@ -98,6 +98,7 @@ python3 .agents/skills/codex-runner/scripts/run_codex.py \
   --timeout 900 \
   --role challenger \
   --model gpt-5.5 \
+  --effort high \
   --json \
   --ephemeral \
   --restrict-tools \
@@ -106,7 +107,7 @@ python3 .agents/skills/codex-runner/scripts/run_codex.py \
   --metadata-json '{"session":"{session_id}","round":{n},"seat":"codex","stance":"devils_advocate"}'
 ```
 
-Do not use undocumented `--effort` flags with `codex-runner`.
+`codex-runner` supports `--effort none|minimal|low|medium|high|xhigh`. Use `high` for adversarial or research-heavy rounds, mirroring the native Codex seat guidance.
 
 ### Gemini
 
@@ -245,7 +246,7 @@ All runner-script paths return a wrapper envelope with fields such as:
 Important:
 - `--json` controls the wrapper envelope.
 - Native CLI JSON or JSONL output stays in `stdout`.
-- Do not assume `agent_message`, `usage`, or token-cost fields exist unless the specific runner emitted them.
+- Every runner skill in this repo emits `agent_message` (the clean final answer) when it can extract one, and `session_id` when the underlying CLI reports it — prefer `agent_message` over parsing `stdout`. For the Claude seat this requires `--output-format json` or `stream-json`. Do not assume `usage` or token-cost fields exist unless the specific runner emitted them.
 - When `--output-file` is used, treat the file as the source of truth. Stdout may be only a small acknowledgment payload.
 
 Normalize native-seat output into the same envelope shape before comparing seats.

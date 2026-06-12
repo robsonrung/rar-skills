@@ -57,7 +57,7 @@ For native Codex seats:
 
 Use:
 - native Claude subagents for Opus and Sonnet
-- `codex-runner` with `--role planner --restrict-tools` for the Codex seat
+- `codex-runner` with `--role planner --restrict-tools --effort xhigh` for the Codex seat (matching the native-seat effort guidance)
 - `gemini-runner` with `--role planner` for Gemini, when the local Gemini CLI is available
 
 Do not use `claude-runner` for Opus or Sonnet when native Claude subagents are available.
@@ -205,7 +205,8 @@ On Codex host:
 - do not use `codex-runner`
 
 On non-Codex host:
-- use `codex-runner` in its automatic execution mode
+- use `codex-runner` with `--role implementer --full-auto`
+- for long-running executions, add `--background` and track the job with the shared jobs CLI (`_shared/scripts/runner_jobs.py` `status`/`result`/`cancel`); the result envelope's `session_id` allows follow-up runs via `--resume <session-id>`
 
 Do not ask the user which model to use in `--auto`.
 

@@ -14,7 +14,7 @@ Execute prompts through the local `qwen` CLI in one-shot headless mode. Prefer t
 
 ## Security Model
 
-This skill invokes the local Qwen CLI from the current machine. Prompt text, prompt files, session files, metadata, and any files Qwen reads during the run may be sent to the selected provider behind the local Qwen account. Approval mode defaults to `default`.
+This skill invokes the local Qwen CLI from the current machine. Prompt text, prompt files, session files, metadata, and any files Qwen reads during the run may be sent to the selected provider behind the local Qwen account. Analysis roles (every role except `implementer`) default to restricted mode: a read-only prompt overlay plus `--approval-mode plan`; pass `--allow-write` to opt out. Otherwise approval mode defaults to `default`.
 
 
 ## Output Envelope
@@ -29,6 +29,8 @@ Required top-level keys:
 - `fallback_reason`
 - `success`
 - `return_code`
+
+The envelope also carries `agent_message` (the clean final answer extracted from the native result event, or trimmed stdout in `text` mode) and `session_id` when the native stream reports one. Orchestrators should read `agent_message` instead of parsing `stdout`.
 
 ## Usage
 
@@ -52,7 +54,9 @@ Paths use the installed `.agents/skills/` layout; when running from this source 
 - `--input-format`
 - `--approval-mode` with default `default`
 - `--sandbox`
-- `--restrict-tools`
+- `--restrict-tools` (default for analysis roles)
+- `--allow-write` (opt an analysis role out of restricted mode)
+- `--background` (tracked background job; manage with `_shared/scripts/runner_jobs.py`)
 - `--role`
 - `--session-file`
 - `--metadata-json`
@@ -104,9 +108,21 @@ python3 .agents/skills/qwen-runner/scripts/run_qwen.py "Return JSON matching the
 
 On `-2` the envelope also carries `status: seat_unavailable`. There is no separate return code for auth failures: native API/auth errors are folded into `-3`, the `[API Error: ...]` text is appended to `stderr`, and `auth_ok` stays `null` in that case (only `-2` sets it to `false`).
 
+## Background Jobs
+
+`--background` detaches the run as a tracked job under `<working-dir>/.ai-workflow/runner-jobs/<job-id>/` and immediately prints `{success, job_id, pid, job_dir, ...}`. Manage jobs (`list`/`status`/`result`/`cancel`) with `python3 .agents/skills/_shared/scripts/runner_jobs.py`. This also applies to the gemma/glm/minimax shims, which tag jobs with their own runner name.
+
+## Presenting Results
+
+- Prefer `agent_message` over `stdout`; the raw stream is for debugging.
+- For reviews, keep findings ordered by severity and preserve file paths and line numbers exactly as reported.
+- Preserve evidence boundaries: if the model marked something as an inference or open question, keep that distinction.
+- Never auto-apply review findings; present them and ask which to fix.
+- If a run fails, report the failure with the most actionable stderr lines — do not silently substitute another model's answer.
+
 ## Gotchas
 
-- `--output-schema` is enforced by prompt instructions, not by a native Qwen schema flag.
-- `--restrict-tools` adds a read-only overlay to the prompt; it is not a hard tool sandbox.
+- `--output-schema` is enforced by prompt instructions, not by a native Qwen schema flag. A ready-made review schema (verdict/findings/next_steps) is bundled at `codex-runner/schemas/review-output.schema.json` and works with any runner.
+- `--restrict-tools` adds a read-only overlay to the prompt and switches headless approval mode to `plan`; it is not a hard tool sandbox.
 - Use the runner's `--json` flag when a workflow needs the wrapper envelope on stdout.
 - Chat recording is always disabled (the wrapper always passes `--chat-recording=false`); `--ephemeral` and `--no-session-persistence` are compatibility no-ops.

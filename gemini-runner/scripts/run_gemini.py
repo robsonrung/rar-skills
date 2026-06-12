@@ -30,6 +30,9 @@ ROLE_INSTRUCTIONS = {
     "researcher": "Act as a research specialist. Distinguish facts from inference, gather evidence, and cite sources or concrete artifacts when available.",
 }
 
+# Roles that modify the workspace; every other role defaults to a read-only prompt overlay.
+WRITE_ROLES = {"implementer"}
+
 
 PROVIDER_BY_RUNNER = {
     "claude": "anthropic",
@@ -101,6 +104,24 @@ def write_json_output_file(path: str, payload: dict[str, Any]) -> str:
     return str(target)
 
 
+def resolve_restrict_tools(role: Optional[str], restrict_tools: bool, allow_write: bool) -> bool:
+    if restrict_tools:
+        return True
+    if allow_write:
+        return False
+    return bool(role) and role not in WRITE_ROLES
+
+
+def load_runner_jobs():
+    shared_dir = Path(__file__).resolve().parents[2] / "_shared" / "scripts"
+    if not (shared_dir / "runner_jobs.py").is_file():
+        return None
+    sys.path.insert(0, str(shared_dir))
+    import runner_jobs
+
+    return runner_jobs
+
+
 def format_print_timeout(timeout: int) -> str:
     return f"{max(1, int(timeout))}s"
 
@@ -122,14 +143,21 @@ def output_format_instruction(output_format: str) -> str:
 
 def build_prompt(
     prompt: str,
-    prompt_file: Optional[str],
+    prompt_files: Optional[list[str]],
     role: Optional[str],
     session_file: Optional[str],
     metadata_json: Optional[str],
+    restrict_tools: bool = False,
 ) -> str:
     sections: list[str] = []
     if role:
         sections.append(f"Role: {role}\n{ROLE_INSTRUCTIONS.get(role, '')}".strip())
+    if restrict_tools:
+        sections.append(
+            "Execution constraint:\n"
+            "Stay in read-only analysis mode. Do not edit files, create commits, "
+            "or take write actions unless the prompt explicitly overrides this."
+        )
     if metadata_json:
         sections.append(f"Execution metadata:\n{metadata_json}")
     if session_file:
@@ -137,8 +165,10 @@ def build_prompt(
             "Prior conversation context to continue from:\n"
             f"{load_text_file(session_file)}"
         )
-    prompt_text = load_text_file(prompt_file) if prompt_file else prompt
-    sections.append(prompt_text)
+    if prompt_files:
+        sections.extend(load_text_file(path) for path in prompt_files)
+    else:
+        sections.append(prompt)
     return "\n\n".join(section for section in sections if section.strip())
 
 
@@ -147,16 +177,18 @@ def invoke_fallback(
     prompt: str,
     timeout: int,
     working_dir: Optional[str],
-    prompt_file: Optional[str],
+    prompt_files: Optional[list[str]],
     role: Optional[str],
     session_file: Optional[str],
     metadata_json: Optional[str],
+    restrict_tools: bool = False,
 ) -> dict[str, Any]:
     command = [sys.executable, str(runner_script), "--json"]
     command.append("--disable-fallback")
 
-    if prompt_file:
-        command.extend(["--prompt-file", prompt_file])
+    if prompt_files:
+        for prompt_file in prompt_files:
+            command.extend(["--prompt-file", prompt_file])
     else:
         command.append(prompt)
 
@@ -170,6 +202,8 @@ def invoke_fallback(
         command.extend(["--session-file", session_file])
     if metadata_json:
         command.extend(["--metadata-json", metadata_json])
+    if restrict_tools:
+        command.append("--restrict-tools")
 
     try:
         completed = subprocess.run(
@@ -224,11 +258,13 @@ def run_gemini(
     working_dir: Optional[str] = None,
     model: Optional[str] = None,
     output_format: str = "text",
-    prompt_file: Optional[str] = None,
+    prompt_files: Optional[list[str]] = None,
     role: Optional[str] = None,
     session_file: Optional[str] = None,
     metadata_json: Optional[str] = None,
     agy_continue: bool = False,
+    restrict_tools: bool = False,
+    allow_write: bool = False,
     disable_fallback: bool = False,
 ) -> dict:
     """
@@ -249,21 +285,23 @@ def run_gemini(
     """
     requested_model = model
     model = model or DEFAULT_MODEL
+    restrict_tools = resolve_restrict_tools(role, restrict_tools, allow_write)
 
-    if prompt_file and not Path(prompt_file).is_file():
-        return {
-            "success": False,
-            "stdout": "",
-            "stderr": f"Prompt file does not exist: {prompt_file}",
-            "return_code": -3,
-            "command": f"{AGY_CLI} --print",
-            "working_dir": working_dir or os.getcwd(),
-            "model": model,
-            "requested_model": requested_model,
-            "effective_model": DEFAULT_MODEL,
-            "output_format": output_format,
-            "agy_continue": agy_continue,
-        }
+    for prompt_file in prompt_files or []:
+        if not Path(prompt_file).is_file():
+            return {
+                "success": False,
+                "stdout": "",
+                "stderr": f"Prompt file does not exist: {prompt_file}",
+                "return_code": -3,
+                "command": f"{AGY_CLI} --print",
+                "working_dir": working_dir or os.getcwd(),
+                "model": model,
+                "requested_model": requested_model,
+                "effective_model": DEFAULT_MODEL,
+                "output_format": output_format,
+                "agy_continue": agy_continue,
+            }
 
     if session_file and not Path(session_file).is_file():
         return {
@@ -280,7 +318,12 @@ def run_gemini(
             "agy_continue": agy_continue,
         }
 
-    final_prompt = build_prompt(prompt, prompt_file, role, session_file, metadata_json)
+    final_prompt = build_prompt(prompt, prompt_files, role, session_file, metadata_json, restrict_tools)
+    if agy_continue and not final_prompt.strip():
+        final_prompt = (
+            "Continue from the current conversation state. Pick the next "
+            "highest-value step and follow through until the task is resolved."
+        )
     format_instruction = output_format_instruction(output_format)
     if format_instruction:
         final_prompt = "\n\n".join([final_prompt, format_instruction])
@@ -325,10 +368,11 @@ def run_gemini(
                         prompt,
                         timeout,
                         working_dir,
-                        prompt_file,
+                        prompt_files,
                         role,
                         session_file,
                         metadata_json,
+                        restrict_tools,
                     )
                     if (
                         fallback_result.get("return_code") == -2
@@ -388,7 +432,11 @@ def run_gemini(
         "effective_runner": "agy",
         "role": role,
         "session_file": session_file,
-        "prompt_file": prompt_file,
+        "prompt_file": prompt_files[0] if prompt_files and len(prompt_files) == 1 else None,
+        "prompt_files": prompt_files or [],
+        "restrict_tools": restrict_tools,
+        "agent_message": None,
+        "session_id": None,
     }
 
     try:
@@ -403,6 +451,8 @@ def run_gemini(
         result["stderr"] = process.stderr
         result["return_code"] = process.returncode
         result["success"] = process.returncode == 0
+        if result["success"]:
+            result["agent_message"] = process.stdout.strip() or None
         combined_output = f"{process.stdout}\n{process.stderr}".lower()
         if (
             "authentication required" in combined_output
@@ -472,9 +522,25 @@ Examples:
     )
     parser.add_argument(
         "--prompt-file",
-        type=str,
+        action="append",
         default=None,
-        help="Read the prompt body from a file instead of the positional argument",
+        dest="prompt_files",
+        help="Read the prompt body from a file (repeatable; files are concatenated in order)",
+    )
+    parser.add_argument(
+        "--restrict-tools",
+        action="store_true",
+        help="Add a read-only analysis overlay to the prompt (default for analysis roles)",
+    )
+    parser.add_argument(
+        "--allow-write",
+        action="store_true",
+        help="Opt an analysis role out of the default read-only overlay",
+    )
+    parser.add_argument(
+        "--background",
+        action="store_true",
+        help="Run as a tracked background job and return a job id immediately",
     )
 
     parser.add_argument(
@@ -535,8 +601,31 @@ Examples:
 
     args = parser.parse_args()
 
-    if not args.prompt and not args.prompt_file:
-        parser.error("Provide a prompt argument or --prompt-file")
+    if not args.prompt and not args.prompt_files and not args.agy_continue:
+        parser.error("Provide a prompt argument, --prompt-file, or --agy-continue")
+
+    if args.background:
+        jobs = load_runner_jobs()
+        if jobs is None:
+            parser.error(
+                "--background requires the shared jobs module (_shared/scripts/runner_jobs.py), which was not found"
+            )
+        prompt_source = args.prompt or (
+            f"prompt files: {', '.join(args.prompt_files)}" if args.prompt_files else "(continue)"
+        )
+        try:
+            summary = jobs.launch_background(
+                "gemini",
+                Path(__file__),
+                sys.argv[1:],
+                working_dir=args.working_dir,
+                prompt_excerpt=prompt_source,
+                manifest_extra={"role": args.role, "model": args.model},
+            )
+        except ValueError as exc:
+            parser.error(str(exc))
+        print(json.dumps(summary, indent=2, ensure_ascii=False))
+        sys.exit(0)
 
     result = run_gemini(
         prompt=args.prompt,
@@ -544,11 +633,13 @@ Examples:
         working_dir=args.working_dir,
         model=args.model,
         output_format=args.output_format,
-        prompt_file=args.prompt_file,
+        prompt_files=args.prompt_files,
         role=args.role,
         session_file=args.session_file,
         metadata_json=args.metadata_json,
         agy_continue=args.agy_continue,
+        restrict_tools=args.restrict_tools,
+        allow_write=args.allow_write,
         disable_fallback=args.disable_fallback,
     )
 

@@ -22,7 +22,7 @@ If `kimi-cli` is missing or auth fails, the seat is blocked, never substituted: 
 
 ## Security Model
 
-This skill invokes the local Kimi CLI from the current machine. Prompt text, prompt files, session files, metadata, and any files Kimi reads during the run may be sent to Moonshot according to the local Kimi configuration. Use `--restrict-tools` for review seats; it adds a read-only overlay to the prompt, so treat it as a prompt level constraint rather than a hard sandbox.
+This skill invokes the local Kimi CLI from the current machine. Prompt text, prompt files, session files, metadata, and any files Kimi reads during the run may be sent to Moonshot according to the local Kimi configuration. Analysis roles (every role except `implementer`) default to a read-only overlay on the prompt; pass `--allow-write` to opt out, or `--restrict-tools` to force it without a role. The overlay is a prompt level constraint rather than a hard sandbox.
 
 
 ## Output Envelope
@@ -37,6 +37,8 @@ Required top-level keys:
 - `fallback_reason`
 - `success`
 - `return_code`
+
+The envelope also carries `agent_message` (the clean final assistant answer — same value as the legacy `assistant_message` field, or trimmed stdout in `text` mode) and `session_id` when the native stream reports one. Orchestrators should read `agent_message` instead of parsing `stdout`.
 
 ## Usage
 
@@ -57,7 +59,9 @@ The Kimi runner supports these verified options:
 - `--no-thinking`
 - `--continue`
 - `--session`
-- `--restrict-tools`
+- `--restrict-tools` (default for analysis roles)
+- `--allow-write` (opt an analysis role out of the read-only overlay)
+- `--background` (tracked background job; manage with `_shared/scripts/runner_jobs.py`)
 - `--role`
 - `--session-file`
 - `--metadata-json`
@@ -82,6 +86,20 @@ Supported roles:
 - `challenger`
 - `researcher`
 
+Every role except `implementer` is an analysis seat and defaults to the read-only prompt overlay. Pass `--allow-write` when an analysis role legitimately needs to write.
+
+## Background Jobs
+
+`--background` detaches the run as a tracked job under `<working-dir>/.ai-workflow/runner-jobs/<job-id>/` and immediately prints `{success, job_id, pid, job_dir, ...}`. Manage jobs (`list`/`status`/`result`/`cancel`) with `python3 .agents/skills/_shared/scripts/runner_jobs.py`.
+
+## Presenting Results
+
+- Prefer `agent_message` over `stdout`; the raw stream is for debugging.
+- For reviews, keep findings ordered by severity and preserve file paths and line numbers exactly as reported.
+- Preserve evidence boundaries: if the model marked something as an inference or open question, keep that distinction.
+- Never auto-apply review findings; present them and ask which to fix.
+- If a run fails, report the failure with the most actionable stderr lines — do not silently substitute another model's answer.
+
 ## Examples
 
 ```bash
@@ -99,7 +117,7 @@ python3 .agents/skills/kimi-runner/scripts/run_kimi.py "Continue the last Kimi s
 3. Returns a wrapper envelope with `success`, `stdout`, `stderr`, `return_code`, `runner`, and `effective_runner`.
 4. Keeps native Kimi output in `stdout`; the wrapper `--json` flag only controls the outer envelope.
 5. Never falls back to another provider. Missing CLI or auth failures block the seat explicitly.
-6. Preserves Kimi's resume hint lines in raw `stdout`, while also extracting `assistant_message` and `native_result` when the native stream is parseable.
+6. Preserves Kimi's resume hint lines in raw `stdout`, while also extracting `agent_message` (alias `assistant_message`), `session_id`, and `native_result` when the native stream is parseable.
 
 ## Return Codes
 
@@ -113,5 +131,5 @@ python3 .agents/skills/kimi-runner/scripts/run_kimi.py "Continue the last Kimi s
 ## Gotchas
 
 - Kimi print mode still emits a resume hint after the final answer. The wrapper keeps raw output and also extracts the assistant message separately when possible.
-- `--output-schema` is prompt-enforced, not validated by a native Kimi schema flag.
+- `--output-schema` is prompt-enforced, not validated by a native Kimi schema flag. A ready-made review schema (verdict/findings/next_steps) is bundled at `codex-runner/schemas/review-output.schema.json` and works with any runner.
 - `--restrict-tools` is a prompt overlay, not a sandbox — see Security Model.
