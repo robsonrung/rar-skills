@@ -4,14 +4,47 @@ Exact launch patterns for the implement-and-review seats. Paths assume the insta
 
 ## Table of Contents
 
-1. [Shared rules](#shared-rules)
-2. [Frontend implementer — Opus subagent](#frontend-implementer--opus-subagent)
-3. [Backend implementer — Codex](#backend-implementer--codex)
-4. [Frontend reviewer — Kimi](#frontend-reviewer--kimi)
-5. [Backend reviewer — Opus subagent](#backend-reviewer--opus-subagent)
-6. [Joint review & simplify — Opus + Codex](#joint-review--simplify--opus--codex)
-7. [Collecting results](#collecting-results)
-8. [Host portability](#host-portability)
+1. [Launcher script (one-call setup)](#launcher-script-one-call-setup)
+2. [Shared rules](#shared-rules)
+3. [Frontend implementer — Opus subagent](#frontend-implementer--opus-subagent)
+4. [Backend implementer — Codex](#backend-implementer--codex)
+5. [Frontend reviewer — Kimi](#frontend-reviewer--kimi)
+6. [Backend reviewer — Opus subagent](#backend-reviewer--opus-subagent)
+7. [Joint review & simplify — Opus + Codex](#joint-review--simplify--opus--codex)
+8. [Collecting results](#collecting-results)
+9. [Host portability](#host-portability)
+
+## Launcher script (one-call setup)
+
+`scripts/launch.py` collapses Phase 1's deterministic setup into one call: it creates the per-track git worktrees+branches off a clean base, fires the runner-backed implementer(s) as tracked background jobs, writes `launch-manifest.json`, and polls them. It **cannot** spawn a native Opus `Agent` subagent (an in-process orchestrator tool), so the frontend has two modes.
+
+```bash
+L=.agents/skills/implement-and-review/scripts/launch.py
+
+# default: set up both worktrees + briefs, fire ONLY the backend (Codex) job;
+# you then spawn the native Opus FE subagent in the printed frontend worktree.
+python3 $L launch --session-id <id> --fe-brief <fe.md> --be-brief <be.md>
+
+# fire BOTH implementers as background jobs (frontend via claude-runner):
+python3 $L launch --session-id <id> --fe-brief <fe.md> --be-brief <be.md> --fe-mode runner
+
+# single-track task:
+python3 $L launch --session-id <id> --be-brief <be.md> --no-frontend
+
+# poll to a consolidated status (optionally block until terminal):
+python3 $L poll --session-id <id> --wait
+
+# remove the session's worktrees when done (branches kept unless --delete-branches):
+python3 $L cleanup --session-id <id>
+```
+
+Key flags: `--fe-mode {subagent|runner}` (default `subagent`), `--no-frontend`/`--no-backend`, `--no-full-auto` (Codex writes off), `--base <sha>`, `--worktrees-dir <dir>`, `--allow-dirty`, `--force` (recreate existing worktrees), `--dry-run`. The `launch`/`poll` output is JSON on stdout; `poll` exits non-zero if any runner track failed.
+
+- The manifest records each track's `worktree`, `branch`, `brief`, `job_id`, and `working_dir`. `poll` reuses `working_dir` to find each job under `<worktree>/.ai-workflow/runner-jobs/`, and on completion reports `success` and `runner_session_id` (use it for `--resume` fix rounds).
+- Briefs must already exist (you write them in Phase 0/1); the launcher copies them into the artifact dir for provenance.
+- The launcher only sets up and fires Phase 1 implement runs. Reviews, fix loops, integration, and the joint pass are driven by you using the commands below.
+
+When you want fine control, skip the launcher and use the per-seat commands directly.
 
 ## Shared rules
 
