@@ -1,0 +1,6 @@
+# Codex-host interface/registration config for this skill (display metadata and
+# default prompt shown in the Codex app). Not meant to be read at runtime.
+interface:
+  display_name: "Implement And Review"
+  short_description: "Two-track build (FE/BE) with cross-model review + joint simplify"
+  default_prompt: "Use $implement-and-review to build this: an Opus subagent implements the frontend (Kimi reviews) and Codex implements the backend (Opus reviews) in parallel worktrees, then Opus and Codex jointly review and simplify the integrated result."
