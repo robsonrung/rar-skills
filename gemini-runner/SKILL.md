@@ -8,7 +8,7 @@ description: Execute prompts using Antigravity CLI (`agy`) headless print mode f
 Execute prompts via Antigravity CLI (`agy`) headless print mode with role overlays and continuation support.
 
 ## Runtime Compatibility
-When `agy` is missing and fallback is disabled (or all fallbacks are unavailable), the envelope carries `status: seat_unavailable` and `return_code` -2; council orchestrators must treat that seat as absent. When a fallback runner does produce the output, any seats skipped before it are listed in `fallback_attempts` on the returned envelope.
+When `agy` is missing and fallback is disabled (or all fallbacks are unavailable), the envelope carries `status: seat_unavailable` and `return_code` -2; council orchestrators must treat that seat as absent. When a fallback runner does produce the output, unavailable fallback seats attempted before it are listed in `fallback_attempts` on the returned envelope.
 
 1. Check whether Antigravity CLI (`agy`) is available.
 2. If available, run this skill.
@@ -18,7 +18,6 @@ When `agy` is missing and fallback is disabled (or all fallbacks are unavailable
 ## Security Model
 
 This skill invokes the local Antigravity CLI from the current machine. Prompt text, prompt files, session files, metadata, and any files Antigravity reads during the run may be sent to the configured Google model. Permission checks stay enabled through the local Antigravity configuration. Analysis roles (every role except `implementer`) default to a read-only prompt overlay (`agy` has no sandbox flag, so this is a soft constraint); pass `--allow-write` to opt out.
-
 
 ## Output Envelope
 
@@ -39,6 +38,8 @@ The envelope also carries `stdout`, `stderr`, and any execution metadata from th
 ```bash
 python3 .agents/skills/gemini-runner/scripts/run_gemini.py "your prompt here"
 ```
+
+Paths in the examples use the installed `.agents/skills/` layout. When running from this source repo, skills live at the repo root, so invoke `gemini-runner/scripts/run_gemini.py` instead.
 
 ## Options
 

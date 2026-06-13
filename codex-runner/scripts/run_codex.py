@@ -72,9 +72,9 @@ def normalize_envelope(
 
     result.setdefault("fallback_reason", None)
 
-    if effective_runner != requested_runner and result.get("fallback_reason"):
-        result["auth_ok"] = False
-    elif "auth_ok" not in result or result.get("auth_ok") is None:
+    # Preserve the fallback runner's auth_ok when one was used; the fallback
+    # reason already explains why the originally requested runner did not run.
+    if "auth_ok" not in result or result.get("auth_ok") is None:
         code = result.get("return_code")
         if code == 0:
             result["auth_ok"] = True

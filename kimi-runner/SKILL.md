@@ -13,17 +13,9 @@ Execute prompts through the local `kimi-cli` in one-shot headless mode. Prefer t
 
 This matches the locally configured coding model in `~/.kimi/config.toml`. Pass `--model` if you need a different Kimi model exposed by the local CLI.
 
-## Prerequisites
-
-- `kimi-cli` installed and in `PATH`
-- Authentication configured via `kimi-cli login`
-
-If `kimi-cli` is missing or auth fails, the seat is blocked, never substituted: the envelope returns `success=false` with remediation guidance in `stderr`. A missing CLI maps to `return_code=-2` and `status=seat_unavailable`; auth failures surface as kimi-cli's native nonzero exit code with `auth_ok` unset — treat any `success=false` as a blocked seat.
-
 ## Security Model
 
-This skill invokes the local Kimi CLI from the current machine. Prompt text, prompt files, session files, metadata, and any files Kimi reads during the run may be sent to Moonshot according to the local Kimi configuration. Analysis roles (every role except `implementer`) default to a read-only overlay on the prompt; pass `--allow-write` to opt out, or `--restrict-tools` to force it without a role. The overlay is a prompt level constraint rather than a hard sandbox.
-
+This skill invokes the local Kimi CLI from the current machine. Prompt text, prompt files, session files, metadata, and any files Kimi reads during the run may be sent to Moonshot according to the local Kimi configuration. Analysis roles (every role except `implementer`) default to a read-only overlay on the prompt; pass `--allow-write` to opt out, or `--restrict-tools` to force it without a role. The overlay is a prompt-level constraint rather than a hard sandbox.
 
 ## Output Envelope
 
@@ -46,34 +38,37 @@ The envelope also carries `agent_message` (the clean final assistant answer — 
 python3 .agents/skills/kimi-runner/scripts/run_kimi.py "your prompt here"
 ```
 
+Paths in the examples use the installed `.agents/skills/` layout. When running from this source repo, skills live at the repo root, so invoke `kimi-runner/scripts/run_kimi.py` instead.
+
 ## Supported Options
 
-The Kimi runner supports these verified options:
-- `--timeout`
-- `--working-dir`
-- `--json`
-- `--prompt-file` (repeatable)
-- `--model`
-- `--output-format` with default `stream-json`
-- `--thinking`
-- `--no-thinking`
-- `--continue`
-- `--session`
-- `--restrict-tools` (default for analysis roles)
-- `--allow-write` (opt an analysis role out of the read-only overlay)
-- `--background` (tracked background job; manage with `_shared/scripts/runner_jobs.py`)
-- `--role`
-- `--session-file`
-- `--metadata-json`
-- `--output-schema`
-- `--ephemeral`
-- `--no-session-persistence`
-- `--safe`
-- `--bare`
-- `--disable-fallback`
-- `--output-file`
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--timeout`, `-t` | Maximum execution time in seconds | `3600` |
+| `--working-dir`, `-w` | Working directory for execution | Current dir |
+| `--json`, `-j` | Output wrapper results in JSON format | `False` |
+| `--prompt-file` | Read prompt content from a file; repeatable | None |
+| `--model`, `-m` | Kimi model to use | `kimi-code/kimi-for-coding` |
+| `--output-format`, `-o` | Kimi CLI output format: `text` or `stream-json` | `stream-json` |
+| `--thinking` | Enable Kimi thinking mode explicitly | CLI default |
+| `--no-thinking` | Disable Kimi thinking mode explicitly | CLI default |
+| `--continue` | Resume the previous Kimi session for the working directory | `False` |
+| `--session` | Resume a specific Kimi session by ID | None |
+| `--restrict-tools` | Add a read-only analysis overlay to the prompt | `True` for analysis roles |
+| `--allow-write` | Opt an analysis role out of the read-only overlay | `False` |
+| `--background` | Run as a tracked background job and return a job id immediately | `False` |
+| `--role` | Apply a role overlay | None |
+| `--session-file` | Append prior workflow context from a file | None |
+| `--metadata-json` | JSON string to embed as execution metadata | None |
+| `--output-schema` | Path to a JSON Schema file for the final response shape | None |
+| `--ephemeral` | Accepted for runner parity; no effect on Kimi CLI | `False` |
+| `--no-session-persistence` | Accepted for runner parity; no effect on Kimi CLI | `False` |
+| `--safe` | Accepted for runner parity; no effect on Kimi CLI | `False` |
+| `--bare` | Accepted for runner parity; no effect on Kimi CLI | `False` |
+| `--disable-fallback` | Accepted for runner parity; Kimi runner never falls back | `False` |
+| `--output-file` | Write the wrapper JSON result to this file atomically | None |
 
-`--ephemeral`, `--no-session-persistence`, `--safe`, `--bare`, and `--disable-fallback` are accepted for cross-runner compatibility. They do not currently change Kimi CLI behavior; in particular, `--no-session-persistence` is inert because the current Kimi CLI still records resumable session metadata in print mode.
+`--ephemeral`, `--no-session-persistence`, `--safe`, `--bare`, and `--disable-fallback` are accepted so callers can use the same flag set across runner skills. They do not currently change Kimi CLI behavior; in particular, `--no-session-persistence` is inert because the current Kimi CLI still records resumable session metadata in print mode.
 
 ## Roles
 
@@ -133,3 +128,10 @@ python3 .agents/skills/kimi-runner/scripts/run_kimi.py "Continue the last Kimi s
 - Kimi print mode still emits a resume hint after the final answer. The wrapper keeps raw output and also extracts the assistant message separately when possible.
 - `--output-schema` is prompt-enforced, not validated by a native Kimi schema flag. A ready-made review schema (verdict/findings/next_steps) is bundled at `codex-runner/schemas/review-output.schema.json` and works with any runner.
 - `--restrict-tools` is a prompt overlay, not a sandbox — see Security Model.
+
+## Prerequisites
+
+- `kimi-cli` installed and in `PATH`
+- Authentication configured via `kimi-cli login`
+
+If `kimi-cli` is missing or auth fails, the seat is blocked, never substituted: the envelope returns `success=false` with remediation guidance in `stderr`. A missing CLI maps to `return_code=-2` and `status=seat_unavailable`; auth failures surface as kimi-cli's native nonzero exit code with `auth_ok` unset — treat any `success=false` as a blocked seat.

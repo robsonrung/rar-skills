@@ -49,6 +49,8 @@ def normalize_envelope(
     requested_runner: str,
     requested_model: str | None = None,
 ) -> dict[str, Any]:
+    # The Kimi runner never falls back to another provider, so effective_runner
+    # should always match requested_runner. Normalize it defensively anyway.
     effective_runner = str(result.get("effective_runner") or result.get("runner") or requested_runner)
     result["runner"] = requested_runner
     result["effective_runner"] = effective_runner
@@ -58,9 +60,7 @@ def normalize_envelope(
 
     result.setdefault("fallback_reason", None)
 
-    if effective_runner != requested_runner and result.get("fallback_reason"):
-        result["auth_ok"] = False
-    elif "auth_ok" not in result or result.get("auth_ok") is None:
+    if "auth_ok" not in result or result.get("auth_ok") is None:
         code = result.get("return_code")
         if code == 0:
             result["auth_ok"] = True
@@ -570,27 +570,27 @@ Examples:
     parser.add_argument(
         "--ephemeral",
         action="store_true",
-        help="Compatibility flag accepted for runner parity",
+        help="Accepted for runner parity; no effect on Kimi CLI",
     )
     parser.add_argument(
         "--no-session-persistence",
         action="store_true",
-        help="Compatibility flag accepted for runner parity",
+        help="Accepted for runner parity; no effect on Kimi CLI",
     )
     parser.add_argument(
         "--safe",
         action="store_true",
-        help="Compatibility flag accepted for runner parity",
+        help="Accepted for runner parity; no effect on Kimi CLI",
     )
     parser.add_argument(
         "--bare",
         action="store_true",
-        help="Compatibility flag accepted for runner parity",
+        help="Accepted for runner parity; no effect on Kimi CLI",
     )
     parser.add_argument(
         "--disable-fallback",
         action="store_true",
-        help="Accepted for runner parity. Kimi runner never falls back to another provider.",
+        help="Accepted for runner parity; Kimi runner never falls back to another provider",
     )
     parser.add_argument(
         "--output-file",
