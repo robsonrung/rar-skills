@@ -1,0 +1,53 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Roundtable discussion response",
+  "description": "One model seat's response in a free, role-free discussion round. The seat sees the settled agreements and the still-open points (with every seat's current position) and responds on the merits — changing its mind, refining, proposing a merged reading, or holding.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["point_responses", "changed_mind", "held", "confidence"],
+  "properties": {
+    "point_responses": {
+      "type": "array",
+      "description": "One entry per open point (D1, D2, ...) presented in the brief.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["point_id", "position", "agree", "reasoning"],
+        "properties": {
+          "point_id": {
+            "type": "string",
+            "description": "The open point's id, e.g. 'D1'."
+          },
+          "position": {
+            "type": "string",
+            "description": "The seat's current reading of this point after considering the others' positions."
+          },
+          "agree": {
+            "type": "boolean",
+            "description": "True if the seat now agrees with the emerging shared reading of this point."
+          },
+          "reasoning": {
+            "type": "string",
+            "description": "Why the seat holds this position, argued from the request itself."
+          }
+        }
+      }
+    },
+    "changed_mind": {
+      "type": "array",
+      "description": "Points the seat changed its position on this round, and why.",
+      "items": { "type": "string" }
+    },
+    "held": {
+      "type": "array",
+      "description": "Points the seat is holding its prior position on, with the reason it was not persuaded.",
+      "items": { "type": "string" }
+    },
+    "confidence": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 100,
+      "description": "The seat's confidence (0-100) in its current overall interpretation."
+    }
+  }
+}

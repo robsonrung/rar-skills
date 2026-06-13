@@ -1,0 +1,6 @@
+# Codex-host interface/registration config for this skill (display metadata and
+# default prompt shown in the Codex app). Not meant to be read at runtime.
+interface:
+  display_name: "Model Roundtable"
+  short_description: "Models interpret one prompt, then discuss to consensus"
+  default_prompt: "Use $model-roundtable to have Codex, Gemini, Kimi, and an Opus 4.8 subagent independently interpret this prompt, then discuss until they agree on what it means."

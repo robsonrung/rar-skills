@@ -1,0 +1,59 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Roundtable opening interpretation",
+  "description": "One model seat's independent, blinded interpretation of the user's prompt. The seat only determines what is being asked; it does not solve, plan, or implement.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "restated_request",
+    "intent",
+    "scope_in",
+    "scope_out",
+    "assumptions",
+    "ambiguities",
+    "open_questions",
+    "confidence"
+  ],
+  "properties": {
+    "restated_request": {
+      "type": "string",
+      "description": "A plain-language restatement of what the user is asking for, in the seat's own words."
+    },
+    "intent": {
+      "type": "array",
+      "description": "The core goals or outcomes the user appears to want.",
+      "items": { "type": "string" }
+    },
+    "scope_in": {
+      "type": "array",
+      "description": "What the seat believes is included in the request.",
+      "items": { "type": "string" }
+    },
+    "scope_out": {
+      "type": "array",
+      "description": "What the seat believes is explicitly NOT being asked for.",
+      "items": { "type": "string" }
+    },
+    "assumptions": {
+      "type": "array",
+      "description": "Assumptions the seat is making to arrive at this interpretation.",
+      "items": { "type": "string" }
+    },
+    "ambiguities": {
+      "type": "array",
+      "description": "Points in the request that could reasonably be read more than one way.",
+      "items": { "type": "string" }
+    },
+    "open_questions": {
+      "type": "array",
+      "description": "Questions whose answers would change this interpretation.",
+      "items": { "type": "string" }
+    },
+    "confidence": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 100,
+      "description": "The seat's confidence (0-100) that its interpretation matches the user's intent."
+    }
+  }
+}
