@@ -1,0 +1,30 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Roundtable opening answer",
+  "description": "One model seat's independent, blinded answer to the task. The seat answers the raw prompt without seeing any other seat's answer or any orchestrator framing.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["answer", "key_points", "assumptions", "confidence"],
+  "properties": {
+    "answer": {
+      "type": "string",
+      "description": "The seat's full, self-contained answer to the task."
+    },
+    "key_points": {
+      "type": "array",
+      "description": "The main claims, recommendations, or conclusions in the answer — each a concise standalone statement so the orchestrator can diff them across seats.",
+      "items": { "type": "string" }
+    },
+    "assumptions": {
+      "type": "array",
+      "description": "Assumptions the seat made to answer.",
+      "items": { "type": "string" }
+    },
+    "confidence": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 100,
+      "description": "The seat's confidence (0-100) in its answer."
+    }
+  }
+}

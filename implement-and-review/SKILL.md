@@ -1,6 +1,6 @@
 ---
 name: implement-and-review
-description: Orchestrate a test-first, multi-model implementation that executes a whole task breakdown. Break the work into tracer-bullet vertical slices (via to-tasks), then build the slices — independent ones in parallel via subagents — each split across a frontend track (a native Opus 4.8 subagent implements, Kimi reviews) and a backend track (Codex implements, an Opus 4.8 subagent reviews) in isolated git worktrees, via TDD and the repo's lens skills; each slice loops implement→cross-review→fix (max 3), integrates, and must meet its acceptance contract. The orchestrator then runs the full-review skill on the result, applies findings, and leaves tests/build green. Opus orchestrates. Use to build/implement a feature with split frontend/backend work, TDD, cross-model review, and parallel task execution. Distinct from model-roundtable (interpretation only), collaborative_delivery (panel-gated TDD), and ship (single-model pipeline).
+description: Orchestrate a test-first, multi-model implementation that executes a whole task breakdown. Break the work into tracer-bullet vertical slices (via to-tasks), then build the slices — independent ones in parallel via subagents — each split across a frontend track (a native Opus 4.8 subagent implements, Kimi reviews) and a backend track (Codex implements, an Opus 4.8 subagent reviews) in isolated git worktrees, via TDD and the repo's lens skills; each slice loops implement→cross-review→fix (max 3), integrates, and must meet its acceptance contract. The orchestrator then runs the full-review skill on the result, applies findings, and leaves tests/build green. Opus orchestrates. Use to build/implement a feature with split frontend/backend work, TDD, cross-model review, and parallel task execution. Distinct from models-round-table (multi-model answer/decision, no code), collaborative_delivery (panel-gated TDD), and ship (single-model pipeline).
 ---
 
 # Implement And Review
@@ -62,7 +62,7 @@ Per slice, apply only the lenses its `to-tasks` `gates` selected — don't force
 
 ## Phase 0 — Plan & Decompose Into Slices (gate)
 
-**Intake A — from `model-roundtable`.** If the task came through `model-roundtable` (`--from-roundtable <path>`, or `.ai-workflow/roundtable/<session_id>/report.md`), take its *Agreed interpretation* as the settled task per the **Handoff contract**. **Gate:** any *Unresolved disagreements / clarifying questions* must be resolved with the user before code; in `--auto`, record an assumption per fork and proceed.
+**Intake A — from `models-round-table`.** If the task came through `models-round-table` (`--from-roundtable <path>`, or `.ai-workflow/roundtable/<session_id>/report.md`), take its *Consensus answer* as the settled task per the **Handoff contract**. **Gate:** resolve any *Open caveats* (low-confidence or orchestrator-decided points) with the user before code; in `--auto`, record an assumption per caveat and proceed.
 
 **Intake B — from `to-tasks`.** If a breakdown already exists (a `TASKS.md` or tracker issues with `acceptance`, `gates`, `blocked_by`), use it as the slice list. Otherwise:
 - **Non-trivial feature →** run **`to-tasks`** to produce tracer-bullet vertical slices, each with an acceptance contract, gate flags (lenses + `security`), and `blocked_by` deps. (`to-tasks` is preferred over `to-issues` for autonomous execution.)
@@ -163,4 +163,4 @@ Return:
 - `--resume <session_id>` continues the *same* Codex thread; `SendMessage` continues the *same* Opus subagent. Re-spawning loses context.
 - Fixes/simplifications must not regress behavior; TDD still applies — add/adjust a test per behavioral fix and re-verify.
 - Two-plus Opus instances is intended. A reviewer Opus must be a separate subagent from any implementer, and the orchestrator never reviews or writes a slice itself.
-- **Handoff contract with `model-roundtable`** (understand → build): its *Agreed interpretation* is your settled task; its *Unresolved disagreements / clarifying questions* are a hard gate — resolve before code. `model-roundtable` only *offers* the handoff; it never builds.
+- **Handoff contract with `models-round-table`** (answer → build): its *Consensus answer* is your settled task; its *Open caveats* are a hard gate — resolve before code. `models-round-table` is read-only and never builds; `feature-models-round-table` chains the two.

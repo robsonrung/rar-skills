@@ -1,0 +1,6 @@
+# Codex-host interface/registration config for this skill (display metadata and
+# default prompt shown in the Codex app). Not meant to be read at runtime.
+interface:
+  display_name: "Feature Models Round Table"
+  short_description: "Multi-model consensus, then multi-model TDD build"
+  default_prompt: "Use $feature-models-round-table to reach a multi-model consensus on this feature with models-round-table, then build it with implement-and-review."

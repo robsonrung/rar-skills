@@ -1,0 +1,31 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Roundtable disagreement-round response",
+  "description": "One model seat's final opinion on the open disagreement points, after seeing every seat's position on each. One round only.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["item_responses", "confidence"],
+  "properties": {
+    "item_responses": {
+      "type": "array",
+      "description": "One entry per open disagreement point (D1, D2, ...).",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["point_id", "position", "agree", "reasoning"],
+        "properties": {
+          "point_id": { "type": "string", "description": "The disagreement point's id, e.g. 'D1'." },
+          "position": { "type": "string", "description": "The seat's final position on this point after weighing the others." },
+          "agree": { "type": "boolean", "description": "True if the seat now backs the emerging majority/consensus view on this point." },
+          "reasoning": { "type": "string", "description": "Why the seat holds this position, on the merits." }
+        }
+      }
+    },
+    "confidence": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 100,
+      "description": "The seat's confidence (0-100) in its final positions."
+    }
+  }
+}
