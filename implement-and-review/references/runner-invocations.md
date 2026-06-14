@@ -31,7 +31,8 @@ python3 $L launch --session-id <id> --fe-brief <fe.md> --be-brief <be.md> --fe-m
 # single-track task:
 python3 $L launch --session-id <id> --be-brief <be.md> --no-frontend
 
-# one slice of a parallel build — --slice namespaces worktrees/branches/artifacts:
+# one task of a parallel feature build — --slice namespaces worktrees/branches/artifacts
+# (used by implement-feature to isolate per-task builds):
 python3 $L launch --session-id <id> --slice <S> --be-brief <s-be.md> --fe-brief <s-fe.md>
 python3 $L poll  --session-id <id> --slice <S> --wait
 
@@ -42,9 +43,9 @@ python3 $L poll --session-id <id> --wait
 python3 $L cleanup --session-id <id> [--slice <S>]
 ```
 
-Key flags: `--slice <S>` (namespace a slice for parallel builds: worktrees at `…/impl-review-<id>/<S>/{frontend,backend}`, branches `impl/<S>-<track>-<id>`, artifacts under `…/<id>/<S>/`), `--fe-mode {subagent|runner}` (default `subagent`), `--no-frontend`/`--no-backend`, `--no-full-auto` (Codex writes off), `--base <sha>` (branch a slice off the current integration head, not stale base), `--worktrees-dir <dir>`, `--allow-dirty`, `--force` (recreate existing worktrees), `--dry-run`. The `launch`/`poll` output is JSON on stdout; `poll` exits non-zero if any runner track failed.
+Key flags: `--slice <S>` (per-task namespace for parallel feature builds: worktrees at `…/impl-review-<id>/<S>/{frontend,backend}`, branches `impl/<S>-<track>-<id>`, artifacts under `…/<id>/<S>/`), `--fe-mode {subagent|runner}` (default `subagent`), `--no-frontend`/`--no-backend`, `--no-full-auto` (Codex writes off), `--base <sha>` (branch off a given head, not stale base), `--worktrees-dir <dir>`, `--allow-dirty`, `--force` (recreate existing worktrees), `--dry-run`. The `launch`/`poll` output is JSON on stdout; `poll` exits non-zero if any runner track failed.
 
-To run slices in parallel, call `launch … --slice <S> --base <integration-head>` once per ready slice (each gets isolated worktrees), then `poll … --slice <S>` each; integrate finished slices in dependency order (see [worktree-and-integration.md](worktree-and-integration.md)).
+For a standalone single task, omit `--slice`. The `--slice` namespacing exists so **`implement-feature`** can run many per-task builds in parallel without collision; cross-task scheduling and integration live in that skill, not here.
 
 - The manifest records each track's `worktree`, `branch`, `brief`, `job_id`, and `working_dir`. `poll` reuses `working_dir` to find each job under `<worktree>/.ai-workflow/runner-jobs/`, and on completion reports `success` and `runner_session_id` (use it for `--resume` fix rounds).
 - Briefs must already exist (you write them in Phase 0/1); the launcher copies them into the artifact dir for provenance.

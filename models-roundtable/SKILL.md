@@ -1,5 +1,5 @@
 ---
-name: models-round-table
+name: models-roundtable
 description: Answer a task by polling several models blind, then reconciling them into one consensus answer. Fan the RAW prompt out to five seats (Codex, Gemini, Kimi, Opus 4.8, Sonnet 4.6) with no orchestrator analysis so the seats stay unbiased; the orchestrator collects answers, separates agreements from disagreements, runs one disagreement round where each model sees the others' views and gives a final opinion, then convenes two judges (Opus + Codex subagents) on the still-open points and makes the final call. Read-only — produces a consensus answer + report, not code. Use when you want a higher-confidence answer/decision/analysis than one model gives, a multi-model second opinion, or to reconcile differing model answers. Distinct from models-consensus (stance/role-driven rounds) and council (single blind round, Codex decides).
 ---
 
@@ -7,7 +7,7 @@ description: Answer a task by polling several models blind, then reconciling the
 
 Answer one task with five models instead of one. Each model answers the **raw prompt blind** — you, the orchestrator, add no analysis, framing, or preferred answer before they respond, so the seats stay independent and unbiased. Then you reconcile: separate agreement from disagreement, run one disagreement round, bring in two judges, and make the final call. The deliverable is a single consensus answer plus a report of how it was reached.
 
-Read-only: seats and judges answer and analyze; they do not modify the repo. (Turning a consensus into code is the job of `feature-models-round-table` / `implement-and-review`.)
+Read-only: seats and judges answer and analyze; they do not modify the repo. (Turning a consensus into code is the job of `feature-models-roundtable` / `implement-and-review`.)
 
 ## Hard Rules
 
@@ -127,4 +127,4 @@ Return:
 - Opus seat ≠ Opus judge ≠ orchestrator. Keep the three Opus contexts separate; a judge must be a fresh subagent.
 - Read each seat/judge result from `agent_message` / `--output-file`, never raw stdout (Kimi appends a resume hint; Codex emits a transcript).
 - One disagreement round, then judges, then your call — don't turn it into an open-ended debate (that's `models-consensus`).
-- Read-only throughout. To build from the consensus, hand off to `feature-models-round-table` / `implement-and-review`.
+- Read-only throughout. To build from the consensus, hand off to `feature-models-roundtable` / `implement-and-review`.

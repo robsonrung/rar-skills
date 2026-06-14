@@ -1,0 +1,6 @@
+# Codex-host interface/registration config for this skill (display metadata and
+# default prompt shown in the Codex app). Not meant to be read at runtime.
+interface:
+  display_name: "Implement Feature"
+  short_description: "Break a plan into tasks; build each with implement-and-review"
+  default_prompt: "Use $implement-feature to break this plan into to-tasks slices and build each with implement-and-review (parallel where independent), then run a feature-wide full-review."

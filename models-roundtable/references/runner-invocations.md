@@ -21,9 +21,9 @@ Exact launch patterns for the five seats and two judges. Everything here is laun
 - **Schema enforcement:** `--output-schema` is supported only by **Codex and Kimi**. Gemini and the Opus/Sonnet (native or claude-runner) seats have no schema flag — for them the JSON shape is enforced by the brief's trailing `Return ONLY JSON …` line.
 
 Schemas:
-- opening: `.agents/skills/models-round-table/schemas/opening-answer.schema.json`
-- disagreement round: `.agents/skills/models-round-table/schemas/disagreement-round.schema.json`
-- judge: `.agents/skills/models-round-table/schemas/judge.schema.json`
+- opening: `.agents/skills/models-roundtable/schemas/opening-answer.schema.json`
+- disagreement round: `.agents/skills/models-roundtable/schemas/disagreement-round.schema.json`
+- judge: `.agents/skills/models-roundtable/schemas/judge.schema.json`
 
 ## Launching concurrently
 
@@ -40,7 +40,7 @@ python3 .agents/skills/codex-runner/scripts/run_codex.py \
   --prompt-file <dir>/round1-brief.md \
   --restrict-tools --effort high --timeout 600 \
   --json --disable-fallback \
-  --output-schema .agents/skills/models-round-table/schemas/opening-answer.schema.json \
+  --output-schema .agents/skills/models-roundtable/schemas/opening-answer.schema.json \
   --output-file <dir>/round1-codex.json \
   --metadata-json '{"session":"<id>","round":1,"seat":"codex"}'
 ```
@@ -66,7 +66,7 @@ python3 .agents/skills/kimi-runner/scripts/run_kimi.py \
   --model kimi-code/kimi-for-coding \
   --restrict-tools --output-format stream-json --timeout 600 \
   --json --disable-fallback \
-  --output-schema .agents/skills/models-round-table/schemas/opening-answer.schema.json \
+  --output-schema .agents/skills/models-roundtable/schemas/opening-answer.schema.json \
   --output-file <dir>/round1-kimi.json \
   --metadata-json '{"session":"<id>","round":1,"seat":"kimi"}'
 ```
@@ -103,7 +103,7 @@ python3 .agents/skills/codex-runner/scripts/run_codex.py \
   --prompt-file <dir>/judges-brief.md \
   --restrict-tools --effort high --timeout 600 \
   --json --disable-fallback \
-  --output-schema .agents/skills/models-round-table/schemas/judge.schema.json \
+  --output-schema .agents/skills/models-roundtable/schemas/judge.schema.json \
   --output-file <dir>/judge-codex.json \
   --metadata-json '{"session":"<id>","role":"judge","judge":"codex"}'
 ```

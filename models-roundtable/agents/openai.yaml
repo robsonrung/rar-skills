@@ -3,4 +3,4 @@
 interface:
   display_name: "Models Round Table"
   short_description: "Five models answer blind; judges + orchestrator reconcile"
-  default_prompt: "Use $models-round-table to answer this with Codex, Gemini, Kimi, Opus 4.8, and Sonnet 4.6 blind, then reconcile disagreements with a two-judge panel and a final call."
+  default_prompt: "Use $models-roundtable to answer this with Codex, Gemini, Kimi, Opus 4.8, and Sonnet 4.6 blind, then reconcile disagreements with a two-judge panel and a final call."
