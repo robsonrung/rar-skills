@@ -1,49 +1,88 @@
-# Worktrees & Integration
+# Worktrees, Slices & Integration
 
-How the orchestrator isolates the two tracks, integrates them, and cleans up. The orchestrator owns the worktree lifecycle so every seat (native subagents and CLI runners) can target a known path. `<id>` = session id, `<base>` = commit recorded at preflight.
+How the orchestrator isolates slices and tracks, schedules parallel slices, integrates in dependency order, and cleans up. The orchestrator owns the worktree lifecycle so every seat (native subagents and CLI runners) can target a known path. `<id>` = session id, `<S>` = slice id (e.g. `S1`), `<base>` = commit recorded at preflight.
 
 ## Table of Contents
 
-1. [Setup](#setup)
-2. [During the tracks](#during-the-tracks)
-3. [Integration](#integration)
-4. [Verification](#verification)
-5. [Cleanup](#cleanup)
-6. [Sequential fallback (no git)](#sequential-fallback-no-git)
+1. [Layout & naming](#layout--naming)
+2. [The integration branch](#the-integration-branch)
+3. [Per-slice setup](#per-slice-setup)
+4. [Scheduling & parallelism (DAG)](#scheduling--parallelism-dag)
+5. [Slice integration + acceptance](#slice-integration--acceptance)
+6. [Final verification](#final-verification)
+7. [Cleanup](#cleanup)
+8. [Fallbacks (single slice / no git)](#fallbacks-single-slice--no-git)
 
-## Setup
+## Layout & naming
 
-Record the base and create one worktree+branch per non-empty track, off `<base>`. Put worktrees in a writable location **outside** the main tree to avoid nesting surprises (here, a sibling `.worktrees/` dir).
+Two levels of isolation: a worktree per **slice**, and within it a worktree per **track**. Keep them outside the main tree (a sibling `.worktrees/` dir).
+
+```
+<root>/../.worktrees/impl-review-<id>/
+  <S1>/frontend   branch impl/<S1>-frontend-<id>
+  <S1>/backend    branch impl/<S1>-backend-<id>
+  <S2>/frontend   ...
+```
+
+A slice may be single-track (only `frontend` or only `backend`). The integration branch `impl/integration-<id>` accumulates merged slices in dependency order.
+
+## The integration branch
+
+Create it once, off `<base>`:
 
 ```bash
 base=$(git rev-parse HEAD)
 root=$(git rev-parse --show-toplevel)
-wt_dir="$root/../.worktrees/impl-review-<id>"
-git worktree add -b impl/frontend-<id> "$wt_dir/frontend" "$base"   # only if FE track is non-empty
-git worktree add -b impl/backend-<id>  "$wt_dir/backend"  "$base"   # only if BE track is non-empty
+git branch impl/integration-<id> "$base"
 ```
 
-Use `$wt_dir/frontend` as `<wt-fe>` and `$wt_dir/backend` as `<wt-be>` in the seat commands. If the repo has uncommitted changes at start, ask the user whether to stash/commit them first — worktrees branch from a clean `<base>`.
+This branch is the **current integration head** — new slices branch off it (not stale `<base>`) so later slices build on already-integrated work. If the repo has uncommitted (tracked) changes at start, ask the user to stash/commit first.
 
-## During the tracks
+## Per-slice setup
 
-Each implementer commits on its own branch inside its worktree. Diffs for review are always `git -C <worktree> diff <base>..HEAD`. The tracks never touch each other's worktree, so they run fully in parallel without clobbering.
-
-## Integration
-
-After both tracks are approved (or escalated), integrate into a fresh branch off `<base>`:
+When a slice becomes ready (all `blocked_by` integrated), create its track worktrees off the **current** `impl/integration-<id>` head:
 
 ```bash
-git switch -c impl/integration-<id> "$base"
-git merge --no-ff impl/backend-<id>   -m "integrate backend (<id>)"
-git merge --no-ff impl/frontend-<id>  -m "integrate frontend (<id>)"
+head=$(git rev-parse impl/integration-<id>)
+wt="$root/../.worktrees/impl-review-<id>/<S>"
+git worktree add -b impl/<S>-frontend-<id> "$wt/frontend" "$head"   # if slice has FE work
+git worktree add -b impl/<S>-backend-<id>  "$wt/backend"  "$head"   # if slice has BE work
 ```
 
-Phase 0's disjoint file scopes should make this conflict-free. If a conflict appears (a shared file slipped through), resolve it yourself using both diffs — preserve each track's intent and the shared contracts — then commit. Do the joint review & simplify pass on this integration branch.
+The launcher does this for you: `launch.py launch --session-id <id> --slice <S> ...` (see runner-invocations). Within a slice the two tracks use **disjoint file scopes**, so they run fully in parallel without clobbering. Review diffs are always `git -C <wt/track> diff <head>..HEAD`.
 
-## Verification
+## Scheduling & parallelism (DAG)
 
-Run the project's detected commands (from preflight) on the integration branch; they must pass before reporting done, and again after the joint simplify pass:
+1. Build the dependency graph from each slice's `blocked_by`.
+2. A slice is **ready** when every blocker is integrated. Launch ready slices **concurrently up to the concurrency cap** (default 3 in flight); each runs the full per-slice build in its own worktrees.
+3. When a slice integrates, recompute readiness and pull the next ready slices into flight.
+4. **HITL** slices first (cluster human touchpoints early); **AFK** slices unattended.
+5. An **escalated** slice (3-cycle cap) blocks only its dependents — independent slices keep going. Record it.
+
+Because ready slices branch off the moving integration head, two in-flight slices that don't depend on each other still won't see each other's commits until each integrates — that's fine for disjoint work; if two ready slices are likely to touch the same files, serialize them (mark one `blocked_by` the other).
+
+## Slice integration + acceptance
+
+When a slice's tracks are approved (or the slice is escalated with usable work):
+
+```bash
+git switch impl/integration-<id>
+git merge --no-ff impl/<S>-backend-<id>   -m "<S>: backend"
+git merge --no-ff impl/<S>-frontend-<id>  -m "<S>: frontend"
+```
+
+Resolve any conflict using both diffs (preserve each track's intent and the shared contracts). Then run the slice's **acceptance contract** on the integration branch:
+
+```bash
+git -C "$root" switch impl/integration-<id>
+<slice acceptance commands>     # the exact commands to-tasks recorded for this slice
+```
+
+Plus its `gates`: if `security: deep`, run `full-review security_focus=true` scoped to this slice now. Red → bounded slice-fix loop (≤3): route to the responsible track, re-merge, re-test. Green → mark the slice **done**, unblock dependents.
+
+## Final verification
+
+After all slices are integrated, on `impl/integration-<id>` run the project's full detected commands; they must pass before reporting done, and again after applying full-review findings:
 
 ```bash
 git -C "$root" switch impl/integration-<id>
@@ -51,25 +90,18 @@ git -C "$root" switch impl/integration-<id>
 <detected build command>     # e.g. npm run build
 ```
 
-If red, route the failure to the responsible track (FE → `SendMessage` the Opus subagent; BE → Codex `--resume`), have it fix on its branch, re-merge, re-test — bounded to 3 integration-fix cycles, then escalate. If no test/build command exists, report that verification could not run.
-
 ## Cleanup
 
-Do **not** delete worktrees or branches, push, or open a PR unless the user asks — leave the integration branch for them to inspect or land. Report the integration branch name and the worktree paths. When the user is done, worktrees are removed with:
+Do **not** delete worktrees/branches, push, or open a PR unless asked — leave `impl/integration-<id>` for the user to inspect or land. Report the branch name and worktree paths. The launcher's `cleanup --session-id <id>` removes the session's worktrees; otherwise:
 
 ```bash
-git worktree remove "$wt_dir/frontend"
-git worktree remove "$wt_dir/backend"
+git worktree remove "$root/../.worktrees/impl-review-<id>/<S>/frontend"
+git worktree remove "$root/../.worktrees/impl-review-<id>/<S>/backend"
 git worktree prune
 ```
 
-## Sequential fallback (no git)
+## Fallbacks (single slice / no git)
 
-When the project is not a git repo (or the user declines worktrees), run **sequentially in the working tree** — no isolation, no merge:
-
-1. Backend track end-to-end: Codex implements in the working dir → Opus reviews → fix loop (≤3).
-2. Then frontend track end-to-end: Opus subagent implements in the working dir → Kimi reviews → fix loop (≤3).
-3. Run verification on the working tree; bounded fix loop if red.
-4. Joint Opus+Codex review & simplify on the cumulative diff (`git diff` if available, else the orchestrator's record of changed files); apply; re-verify.
-
-Running backend first lets the frontend build against settled backend contracts. Note in the report that isolation was unavailable, so the tracks were serialized.
+- **Single implicit slice** (small change / no breakdown): skip the DAG — one slice, FE/BE tracks off `<base>`, integrate once, run the change's tests as acceptance, then the final full-review.
+- **Not a git repo (or worktrees declined):** run **sequentially in the working tree**, no isolation, no parallelism — backend track end-to-end, then frontend (so the FE builds against settled backend contracts), per slice in dependency order; verification on the working tree; full-review against the local diff. Note in the report that isolation was unavailable.
+- **Tight seats/cost:** lower the concurrency cap toward 1 (sequential slices) while keeping per-slice worktrees.

@@ -31,14 +31,20 @@ python3 $L launch --session-id <id> --fe-brief <fe.md> --be-brief <be.md> --fe-m
 # single-track task:
 python3 $L launch --session-id <id> --be-brief <be.md> --no-frontend
 
+# one slice of a parallel build — --slice namespaces worktrees/branches/artifacts:
+python3 $L launch --session-id <id> --slice <S> --be-brief <s-be.md> --fe-brief <s-fe.md>
+python3 $L poll  --session-id <id> --slice <S> --wait
+
 # poll to a consolidated status (optionally block until terminal):
 python3 $L poll --session-id <id> --wait
 
 # remove the session's worktrees when done (branches kept unless --delete-branches):
-python3 $L cleanup --session-id <id>
+python3 $L cleanup --session-id <id> [--slice <S>]
 ```
 
-Key flags: `--fe-mode {subagent|runner}` (default `subagent`), `--no-frontend`/`--no-backend`, `--no-full-auto` (Codex writes off), `--base <sha>`, `--worktrees-dir <dir>`, `--allow-dirty`, `--force` (recreate existing worktrees), `--dry-run`. The `launch`/`poll` output is JSON on stdout; `poll` exits non-zero if any runner track failed.
+Key flags: `--slice <S>` (namespace a slice for parallel builds: worktrees at `…/impl-review-<id>/<S>/{frontend,backend}`, branches `impl/<S>-<track>-<id>`, artifacts under `…/<id>/<S>/`), `--fe-mode {subagent|runner}` (default `subagent`), `--no-frontend`/`--no-backend`, `--no-full-auto` (Codex writes off), `--base <sha>` (branch a slice off the current integration head, not stale base), `--worktrees-dir <dir>`, `--allow-dirty`, `--force` (recreate existing worktrees), `--dry-run`. The `launch`/`poll` output is JSON on stdout; `poll` exits non-zero if any runner track failed.
+
+To run slices in parallel, call `launch … --slice <S> --base <integration-head>` once per ready slice (each gets isolated worktrees), then `poll … --slice <S>` each; integrate finished slices in dependency order (see [worktree-and-integration.md](worktree-and-integration.md)).
 
 - The manifest records each track's `worktree`, `branch`, `brief`, `job_id`, and `working_dir`. `poll` reuses `working_dir` to find each job under `<worktree>/.ai-workflow/runner-jobs/`, and on completion reports `success` and `runner_session_id` (use it for `--resume` fix rounds).
 - Briefs must already exist (you write them in Phase 0/1); the launcher copies them into the artifact dir for provenance.

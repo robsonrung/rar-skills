@@ -11,6 +11,8 @@
     "scope_out",
     "assumptions",
     "ambiguities",
+    "terminology",
+    "code_findings",
     "open_questions",
     "confidence"
   ],
@@ -42,6 +44,25 @@
     "ambiguities": {
       "type": "array",
       "description": "Points in the request that could reasonably be read more than one way.",
+      "items": { "type": "string" }
+    },
+    "terminology": {
+      "type": "array",
+      "description": "Key domain terms the interpretation relies on, in the project's canonical vocabulary, flagging any conflict with the glossary (CONTEXT.md).",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["term", "meaning", "conflicts_glossary"],
+        "properties": {
+          "term": { "type": "string", "description": "The domain term." },
+          "meaning": { "type": "string", "description": "The meaning the seat assigns it for this request." },
+          "conflicts_glossary": { "type": "boolean", "description": "True if this meaning conflicts with the existing glossary definition." }
+        }
+      }
+    },
+    "code_findings": {
+      "type": "array",
+      "description": "Contradictions or confirmations the seat found by checking its reading against the actual code (read-only). Empty if no code was consulted.",
       "items": { "type": "string" }
     },
     "open_questions": {

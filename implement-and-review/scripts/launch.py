@@ -29,6 +29,10 @@ Examples:
   # backend-only task
   launch.py launch --session-id feat-x --be-brief be.md --no-frontend
 
+  # one slice of a parallel build (--slice namespaces worktrees/branches/artifacts)
+  launch.py launch --session-id feat-x --slice S1 --be-brief s1-be.md --fe-brief s1-fe.md
+  launch.py poll --session-id feat-x --slice S1 --wait
+
   # poll both tracks until terminal
   launch.py poll --session-id feat-x --wait
 
@@ -164,13 +168,21 @@ def cmd_launch(args) -> int:
         if git(["status", "--porcelain", "--untracked-files=no"], cwd=root).stdout.strip():
             fail("working tree has uncommitted (tracked) changes; commit/stash first or pass --allow-dirty")
 
+    slice_id = args.slice
     artifact_dir = root / ".ai-workflow" / "impl-review" / args.session_id
     wt_base = Path(args.worktrees_dir).resolve() if args.worktrees_dir else (root.parent / ".worktrees" / f"impl-review-{args.session_id}")
+    if slice_id:
+        artifact_dir = artifact_dir / slice_id
+        wt_base = wt_base / slice_id
     if not args.dry_run:
         artifact_dir.mkdir(parents=True, exist_ok=True)
 
+    def branch_for(track: str) -> str:
+        return f"impl/{slice_id}-{track}-{args.session_id}" if slice_id else f"impl/{track}-{args.session_id}"
+
     manifest = {
         "session_id": args.session_id,
+        "slice": slice_id,
         "base": base,
         "repo_root": str(root),
         "worktrees_dir": str(wt_base),
@@ -195,7 +207,7 @@ def cmd_launch(args) -> int:
     # backend first so a runner-mode frontend can build against settled contracts
     if args.backend:
         wt_be = wt_base / "backend"
-        info = setup_track("backend", be_brief, f"impl/backend-{args.session_id}", wt_be)
+        info = setup_track("backend", be_brief, branch_for("backend"), wt_be)
         info["runner"] = "codex"
         info["mode"] = "runner"
         be_argv = [
@@ -205,7 +217,7 @@ def cmd_launch(args) -> int:
             "--effort", args.codex_effort,
             "--timeout", str(args.timeout),
             "--disable-fallback",
-            "--metadata-json", json.dumps({"session": args.session_id, "track": "backend", "phase": "implement"}),
+            "--metadata-json", json.dumps({"session": args.session_id, "slice": slice_id, "track": "backend", "phase": "implement"}),
         ]
         if args.be_model:
             be_argv += ["--model", args.be_model]
@@ -216,7 +228,7 @@ def cmd_launch(args) -> int:
 
     if args.frontend:
         wt_fe = wt_base / "frontend"
-        info = setup_track("frontend", fe_brief, f"impl/frontend-{args.session_id}", wt_fe)
+        info = setup_track("frontend", fe_brief, branch_for("frontend"), wt_fe)
         if args.fe_mode == "runner":
             info["runner"] = "claude"
             info["mode"] = "runner"
@@ -229,7 +241,7 @@ def cmd_launch(args) -> int:
                 "--output-format", "json",
                 "--timeout", str(args.timeout),
                 "--disable-fallback",
-                "--metadata-json", json.dumps({"session": args.session_id, "track": "frontend", "phase": "implement"}),
+                "--metadata-json", json.dumps({"session": args.session_id, "slice": slice_id, "track": "frontend", "phase": "implement"}),
             ]
             info.update(fire_runner("claude", fe_argv, wt_fe, args.dry_run))
         else:
@@ -259,7 +271,10 @@ def load_manifest(args) -> dict:
         path = Path(args.manifest)
     else:
         root = repo_root()
-        path = root / ".ai-workflow" / "impl-review" / args.session_id / "launch-manifest.json"
+        path = root / ".ai-workflow" / "impl-review" / args.session_id
+        if getattr(args, "slice", None):
+            path = path / args.slice
+        path = path / "launch-manifest.json"
     if not path.is_file():
         fail(f"manifest not found: {path}")
     return json.loads(path.read_text(encoding="utf-8"))
@@ -362,6 +377,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     L = sub.add_parser("launch", help="create worktrees and fire implementers")
     L.add_argument("--session-id", required=True, help="stable id; also names the artifact dir and branches")
+    L.add_argument("--slice", default=None, help="slice id; namespaces worktrees/branches/artifacts so parallel slices don't collide")
     L.add_argument("--fe-brief", help="path to the frontend brief file (required if frontend active)")
     L.add_argument("--be-brief", help="path to the backend brief file (required if backend active)")
     L.add_argument("--no-frontend", dest="frontend", action="store_false", help="skip the frontend track")
@@ -383,6 +399,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     P = sub.add_parser("poll", help="poll the implementer jobs to a consolidated status")
     P.add_argument("--session-id", help="session id (resolves the manifest under .ai-workflow/impl-review/)")
+    P.add_argument("--slice", default=None, help="slice id (resolves the per-slice manifest)")
     P.add_argument("--manifest", help="explicit path to launch-manifest.json")
     P.add_argument("--wait", action="store_true", help="block until all runner jobs are terminal (or timeout)")
     P.add_argument("--interval", type=int, default=15, help="seconds between polls when --wait")
@@ -390,6 +407,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     C = sub.add_parser("cleanup", help="remove the session's worktrees (branches kept by default)")
     C.add_argument("--session-id", help="session id (resolves the manifest)")
+    C.add_argument("--slice", default=None, help="slice id (resolves the per-slice manifest)")
     C.add_argument("--manifest", help="explicit path to launch-manifest.json")
     C.add_argument("--delete-branches", action="store_true", help="also delete the track branches")
     C.add_argument("--force", action="store_true", help="force-remove worktrees with changes")
