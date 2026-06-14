@@ -1,3 +1,7 @@
+# Filename note: `agents/openai.yaml` is the agent-host interface descriptor read
+# by the OpenAI/Codex agent host. The name refers to that host harness, NOT the
+# provider this skill targets (Google/Gemini via agy). Every sibling runner skill
+# uses the same `agents/openai.yaml` filename; keep it for host discovery.
 interface:
   display_name: "Gemini Runner (agy)"
   short_description: "Run workspace prompts through Antigravity CLI"
