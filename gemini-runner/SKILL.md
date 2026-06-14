@@ -17,11 +17,15 @@ When `agy` is missing and fallback is disabled (or all fallbacks are unavailable
 
 ## Security Model
 
-This skill invokes the local Antigravity CLI from the current machine. Prompt text, prompt files, session files, metadata, and any files Antigravity reads during the run may be sent to the configured Google model. Permission checks stay enabled through the local Antigravity configuration. Analysis roles (every role except `implementer`) default to a read-only prompt overlay (`agy` has no sandbox flag, so this is a soft constraint); pass `--allow-write` to opt out.
+This skill invokes the local Antigravity CLI from the current machine. Prompt text, prompt files, session files, metadata, and any files Antigravity reads during the run may be sent to the configured Google model. Permission checks stay enabled through the local Antigravity configuration. Analysis roles (every role except `implementer`) default to a read-only prompt overlay; pass `--allow-write` to opt out.
+
+**The read-only overlay is a soft constraint, not a sandbox.** `agy` has no sandbox/read-only launch flag, so `--restrict-tools` only *instructs* the model to stay read-only via prompt text — it is not enforced. A seat fed untrusted input (e.g. an `adversarial`/`codereviewer` reviewing an attacker-influenced diff) could be prompt-injected into ignoring the overlay and taking write actions. Do not rely on `--restrict-tools` as a security boundary for untrusted content; isolate the working directory instead.
+
+Precedence when both overlay flags are passed: an explicit `--restrict-tools` always wins (read-only), then `--allow-write` opts out, otherwise analysis roles default to read-only and a bare role-less prompt does not.
 
 ## Output Envelope
 
-All `--json` responses follow the shared runner envelope contract used by every runner skill. Required top-level keys:
+All `--json` responses follow the shared runner envelope contract used by every runner skill, and **every** exit path (success, timeout, input error, missing CLI, fallback) is normalized — the same keys are present whether the wrapper is invoked via the CLI or imported and called programmatically. Required top-level keys:
 - `runner`
 - `effective_runner`
 - `effective_model`
@@ -32,6 +36,20 @@ All `--json` responses follow the shared runner envelope contract used by every 
 - `return_code`
 
 The envelope also carries `stdout`, `stderr`, and any execution metadata from the run, plus `agent_message` (the trimmed `agy` print-mode response — `agy` exposes no session id, so `session_id` stays null).
+
+Additional keys that may appear:
+- `status` — set to `seat_unavailable` (`-2`), `timeout` (`-1`), or `auth_failed` when relevant.
+- `fallback_from` / `fallback_reason` — present when a fallback runner produced the output (`fallback_from: gemini`).
+- `fallback_attempts` — the siblings tried and skipped before the returned result (including `not_installed` siblings), so the attempt log is always complete, even when every fallback was unavailable.
+- `output_json_valid` — for `--output-format json`, whether the (fence-stripped) `agent_message` parsed as JSON.
+
+### `auth_ok` semantics
+
+- A successful run (`return_code 0`) → `auth_ok: true`.
+- A **missing CLI** (`return_code -2`) → `auth_ok: null` (**untested** — no authentication was ever attempted; it is not reported as `false`).
+- A detected authentication failure → `auth_ok: false`, and the run is **forced to `success: false`** (with `status: auth_failed`) even if `agy` exited 0, so the envelope is never self-contradictory. Auth-failure detection is a heuristic scanned on `stderr` (and on `stdout` only when the run already failed) to avoid false positives from answers that merely mention authentication; treat it as best-effort.
+
+With `--output-file` set, the `--json` stdout pointer is `{success, return_code, output_file, runner, effective_runner, effective_provider, fallback_from, status}` so an orchestrator can see which seat/fallback answered without opening the file.
 
 ## Usage
 
@@ -49,7 +67,7 @@ Paths in the examples use the installed `.agents/skills/` layout. When running f
 | `--working-dir`, `-w` | Working directory | Current directory |
 | `--json`, `-j` | Wrap runner output in JSON | False |
 | `--model`, `-m` | Compatibility metadata label. `agy` uses its configured model from `/model` or settings. | `agy-configured-model` |
-| `--output-format`, `-o` | Response format hint: `text`, `json`, or `stream-json`. `agy` print mode has no output-format launch flag. | `text` |
+| `--output-format`, `-o` | Response format hint: `text`, `json`, or `stream-json`. **Advisory only** — `agy` print mode has no output-format launch flag, so the wrapper just asks the model for the format in the prompt. For `json` it does a best-effort fence-strip and reports `output_json_valid`; it does not guarantee or re-shape the output. | `text` |
 | `--prompt-file` | Read the prompt from a file (repeatable; files are concatenated in order) | None |
 | `--role` | Apply a role overlay | None |
 | `--restrict-tools` | Add a read-only analysis overlay to the prompt | True for analysis roles |
@@ -59,7 +77,7 @@ Paths in the examples use the installed `.agents/skills/` layout. When running f
 | `--agy-continue` | Resume the most recent Antigravity CLI conversation with native `agy --continue` | False |
 | `--metadata-json` | Attach structured execution metadata to the prompt | None |
 | `--disable-fallback` | Fail instead of routing to another runner | False |
-| `--output-file` | Write the full JSON envelope atomically to this path; with `--json`, stdout becomes a compact `{success, return_code, output_file}` pointer | None |
+| `--output-file` | Write the full JSON envelope atomically to this path; with `--json`, stdout becomes a compact pointer `{success, return_code, output_file, runner, effective_runner, effective_provider, fallback_from, status}` | None |
 
 ## Roles
 
@@ -79,8 +97,13 @@ Every role except `implementer` is an analysis seat and defaults to the read-onl
 `--background` detaches the run as a tracked job under `<working-dir>/.ai-workflow/runner-jobs/<job-id>/` and immediately prints `{success, job_id, pid, job_dir, ...}`. Manage jobs with the shared CLI (`list`/`status`/`result`/`cancel`):
 
 ```bash
+python3 .agents/skills/_shared/scripts/runner_jobs.py list
 python3 .agents/skills/_shared/scripts/runner_jobs.py status [job-id]
+python3 .agents/skills/_shared/scripts/runner_jobs.py result [job-id]
+python3 .agents/skills/_shared/scripts/runner_jobs.py cancel [job-id]
 ```
+
+`--background` requires the shared jobs module `_shared/scripts/runner_jobs.py`. It ships in this source repo; if a slimmed install lacks `_shared/`, `--background` exits with a clear error and the foreground modes are unaffected. (The shared launcher strips `--background`/`--json`/`--output-file` from the re-invoked argv, so the detached child runs in the foreground without recursing.)
 
 ## Presenting Results
 
@@ -102,10 +125,15 @@ python3 .agents/skills/gemini-runner/scripts/run_gemini.py "Continue the previou
 
 ## Behavior
 
-1. Executes `agy [--continue] --print-timeout <Ns> --print "<prompt>"`.
+1. Executes `agy [--continue] --print-timeout <Ns> --print "<prompt>"`. The `--print-timeout` is set slightly below the wrapper's `--timeout` so `agy` self-terminates (and returns its own exit code) before the hard subprocess timeout would kill it; a genuine wrapper timeout still reports `return_code -1` / `status: timeout`.
 2. Does not request a permission bypass.
 3. Keeps `runner=gemini` for workflow compatibility and sets `effective_runner=agy` when Antigravity CLI produced the output.
-4. Does not pass unsupported Gemini CLI flags such as `--model`, `--output-format`, `--thinking-budget`, or a read-only convenience mode to `agy`.
+4. Does not pass unsupported Gemini CLI flags such as `--model`, `--output-format`, `--thinking-budget`, or a read-only convenience mode to `agy`. `--model` is metadata only; when supplied it is reflected in `effective_model`, otherwise `effective_model` is the `agy-configured-model` placeholder (agy uses its configured model).
+5. Resolves relative `--prompt-file`/`--session-file` paths against `--working-dir` (not the process cwd).
+
+### Continuation caveat
+
+`agy` exposes no session id, so `--agy-continue` resumes **the most recent** Antigravity CLI conversation in the shared `agy` home — it cannot target a specific session and `session_id` stays null. Avoid running two `--agy-continue` invocations concurrently against the same `agy` home; they can cross-contaminate.
 
 ## Return Codes
 
