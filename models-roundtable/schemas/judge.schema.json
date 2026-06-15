@@ -1,20 +1,20 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Roundtable judge verdict",
-  "description": "One judge's ruling on each still-open disagreement point, after seeing every seat's final position. Judges are read-only and rule on the merits.",
+  "description": "One judge's ruling on each still-open point, after seeing every seat's final position and the organizer's structured analysis (which the judge validates/challenges rather than re-derives). Judges are read-only and rule on the merits.",
   "type": "object",
   "additionalProperties": false,
   "required": ["verdicts"],
   "properties": {
     "verdicts": {
       "type": "array",
-      "description": "One ruling per open disagreement point.",
+      "description": "One ruling per open point (C#/B#/U#, legacy D#).",
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["point_id", "ruling", "rationale", "confidence"],
+        "required": ["point_id", "ruling", "rationale", "confidence", "sensitivity_note"],
         "properties": {
-          "point_id": { "type": "string", "description": "The disagreement point's id, e.g. 'D1'." },
+          "point_id": { "type": "string", "description": "The open point's id, e.g. 'C1', 'B1', 'U1' (legacy 'D1')." },
           "ruling": { "type": "string", "description": "The judge's decision on this point — which position is correct, or a better synthesis." },
           "rationale": { "type": "string", "description": "Why, argued on the merits." },
           "confidence": {
@@ -22,7 +22,8 @@
             "minimum": 0,
             "maximum": 100,
             "description": "The judge's confidence (0-100) in this ruling."
-          }
+          },
+          "sensitivity_note": { "type": "string", "description": "Whether/how this ruling depends on judge choice — e.g. 'a weaker judge could plausibly rule the other way' or 'robust, any judge would agree'. Drives confidence-drag in the report. Empty string if not sensitive." }
         }
       }
     }

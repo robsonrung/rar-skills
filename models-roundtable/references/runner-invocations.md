@@ -1,29 +1,51 @@
-# Roundtable Seat & Judge Invocations
+# Roundtable Seat, Organizer, Judge & Synthesizer Invocations
 
-Exact launch patterns for the five seats and two judges. Everything here is launched **read-only** and with **no role/stance** — the non-negotiables of this skill. Paths assume the installed `.agents/skills/` layout; from the source repo, drop the `.agents/skills/` prefix.
+Exact launch patterns for the seats, the organizer, the two judges, and the synthesizer. Everything here is launched **read-only** (no write/exec) and with **no role/stance** — the non-negotiables of this skill. Paths assume the installed `.agents/skills/` layout; from the source repo, drop the `.agents/skills/` prefix.
 
 ## Table of Contents
 
 1. [Shared rules](#shared-rules)
-2. [Launching concurrently](#launching-concurrently)
-3. [Seats](#seats)
-4. [Disagreement round](#disagreement-round)
-5. [Judges](#judges)
-6. [Collecting results](#collecting-results)
-7. [Host portability](#host-portability)
+2. [Tool profiles](#tool-profiles)
+3. [Self-pairing (duplicate seats)](#self-pairing-duplicate-seats)
+4. [Launching concurrently](#launching-concurrently)
+5. [Seats](#seats)
+6. [Organizer](#organizer)
+7. [Gap-repair round](#gap-repair-round)
+8. [Judges](#judges)
+9. [Synthesizer](#synthesizer)
+10. [Collecting results](#collecting-results)
+11. [Host portability](#host-portability)
 
 ## Shared rules
 
-- **Read-only, no role:** pass `--restrict-tools` and **no** `--role` to every runner seat/judge (they answer/opine; they never write).
+- **No mutation, no role:** pass `--restrict-tools` and **no** `--role` to every runner seat/organizer/judge/synthesizer under the default `no_tools` profile (they answer/opine; they never write/exec). See **Tool profiles** for the read-only-tools exception.
 - **No silent swaps:** `--disable-fallback` on every runner.
 - **Keep transcripts out of context:** use `--output-file`; read `agent_message` from the file, not raw stdout.
 - **Timeout:** `--timeout 600` is ample for answering.
 - **Schema enforcement:** `--output-schema` is supported only by **Codex and Kimi**. Gemini and the Opus/Sonnet (native or claude-runner) seats have no schema flag — for them the JSON shape is enforced by the brief's trailing `Return ONLY JSON …` line.
+- **Transient retry:** a runner returning `success=false` with no output file (e.g. `return_code -3` on a busy concurrent launch) may be **retried once sequentially** before the seat is dropped — concurrent back-to-back launches occasionally trip this and a lone retry clears it.
 
 Schemas:
 - opening: `.agents/skills/models-roundtable/schemas/opening-answer.schema.json`
-- disagreement round: `.agents/skills/models-roundtable/schemas/disagreement-round.schema.json`
+- organizer analysis: `.agents/skills/models-roundtable/schemas/organizer-analysis.schema.json`
+- gap-repair round: `.agents/skills/models-roundtable/schemas/disagreement-round.schema.json`
 - judge: `.agents/skills/models-roundtable/schemas/judge.schema.json`
+- synthesis: `.agents/skills/models-roundtable/schemas/synthesis.schema.json`
+
+## Tool profiles
+
+Apply the **same** profile to every active seat (identical conditions — Hard Rule 5):
+
+- `no_tools` (default) — keep `--restrict-tools` on every runner; native seats run `mode:"plan"`, read-only by instruction. Best for repo/code decisions.
+- `repo_read_only` — allow read-only repo reads; the brief lists the paths. No web, no writes.
+- `research_read_only` — enable read-only web for runners that support it (Codex/Gemini/Kimi web search/fetch; native Claude seats via their web tools) and require each seat to return `sources_used[]` + `failed_lookups[]`. No repo, no writes.
+- `repo_plus_research` — both of the above, read-only.
+
+Never pass write/exec tools. If a seat's host cannot honor the chosen read-only profile, **drop that seat** rather than run it with a different toolset.
+
+## Self-pairing (duplicate seats)
+
+When self-pairing (auto-fallback to reach quorum, or a deliberate preset), launch the same model more than once with **distinct labels** in `--metadata-json` (`"seat":"opus#1"`, `"seat":"opus#2"`) and distinct `--output-file`s. Vary the brief trivially per sample (e.g. a `SAMPLE: n` line) so the runs are independent. Mark every duplicate `is_duplicate:true` in the seat table and lower **diversity confidence** in the report; never report duplicates as distinct models.
 
 ## Launching concurrently
 
@@ -31,7 +53,7 @@ Issue the three runner `Bash` calls (Codex, Gemini, Kimi) **and** the two `Agent
 
 ## Seats
 
-Phase 1 (opening) examples; `<id>` = session id, `<dir>` = `.ai-workflow/roundtable/<id>`. For the disagreement round, change `round1` → `round2` and swap the schema to `disagreement-round.schema.json`.
+Phase 1 (opening) examples; `<id>` = session id, `<dir>` = `.ai-workflow/roundtable/<id>`. For the gap-repair round, change `round1` → `round2` and swap the schema to `disagreement-round.schema.json`. Under a non-default tool profile, also relax `--restrict-tools` per [Tool profiles](#tool-profiles) — identically across all seats.
 
 ### Codex
 
@@ -87,15 +109,19 @@ Agent(
 
 Require the round's exact JSON shape in the prompt so output stays bounded. Fallback (no `Agent` tool): `claude-runner --model claude-opus-4-8` (or `--model claude-sonnet-4-6`) `--restrict-tools --disable-fallback --output-format json --json --output-file <dir>/round1-opus.json` (claude-runner has no `--output-schema`; the brief enforces the shape).
 
-## Disagreement round
+## Organizer
 
-Same five seats, `round2` brief = the open `D#` points + every seat's position + "give your final opinion on each," with `--output-schema …/disagreement-round.schema.json` (Codex/Kimi). One round only.
+After Phase 1, run **one** organizer over **all** seat answers — read-only, fresh, no role — to emit the five-dimension structured analysis. Default Opus 4.8 (native subagent, `model:"opus"`, `mode:"plan"`, a *different* subagent than the Opus seat); fall back to the strongest available seat model. The brief = every seat's answer + "produce the organizer analysis". Native seats enforce the shape via the brief; on a Codex host use `--output-schema …/organizer-analysis.schema.json`. The organizer's `material_gaps` flag gates Phase 3 (skip the gap-repair round when `false`).
+
+## Gap-repair round
+
+Run only when the organizer set `material_gaps:true`. Same seats, `round2` brief = the open `C#`/`B#`/`U#` points (+ each seat's position + the organizer analysis) and "resolve the contradiction / fill the blind spot / defend or refute the unique insight, **with evidence** — this is targeted repair, not re-voting." Use `--output-schema …/disagreement-round.schema.json` (Codex/Kimi). One round only.
 
 ## Judges
 
-After the disagreement round, run **two** judges on the still-open points — read-only, fresh, no role.
+After the gap-repair round, run **two** judges on the still-open points — read-only, fresh, no role. Each judge receives the open points + every seat's final position + **the organizer analysis** (which it validates/challenges, not re-derives) and must fill `sensitivity_note` per verdict.
 
-- **Opus judge** — native subagent, `model:"opus"`, `mode:"plan"`, given the open `D#` set + every seat's final position; return the judge JSON shape (must be a *different* subagent than the Opus seat).
+- **Opus judge** — native subagent, `model:"opus"`, `mode:"plan"`, given the open points + every seat's final position + the organizer analysis; return the judge JSON shape (must be a *different* subagent than the Opus seat).
 - **Codex judge** —
 
 ```bash
@@ -108,7 +134,11 @@ python3 .agents/skills/codex-runner/scripts/run_codex.py \
   --metadata-json '{"session":"<id>","role":"judge","judge":"codex"}'
 ```
 
-A point is resolved when both judges' `ruling` agrees; otherwise the orchestrator makes the final call.
+A point is resolved when both judges' `ruling` agrees; otherwise the orchestrator makes the final call. Carry every `sensitivity_note` into the report as confidence-drag.
+
+## Synthesizer
+
+After judging + the orchestrator's final calls, run **one** synthesizer — read-only, fresh, no role — to write the consensus answer. Default Opus 4.8 (native subagent, `model:"opus"`, `mode:"plan"`; a *different* context than the Opus seat/organizer/judge). The brief = the full record (organizer analysis + locked consensus + resolved/open points with rulings + every seat answer) and "write the consensus answer with an attribution map." Native seats enforce the shape via the brief; on a Codex host use `--output-schema …/synthesis.schema.json`. The orchestrator then **validates** every claim's attribution against the record before adopting the answer (send back once if it drifts).
 
 ## Collecting results
 
@@ -121,6 +151,7 @@ A point is resolved when both judges' `ruling` agrees; otherwise the orchestrato
 | Capability | Claude Code | Codex host |
 |------------|-------------|------------|
 | Opus / Sonnet seats & Opus judge | native `Agent`, `model:"opus"`/`"sonnet"` | `claude-runner --model claude-opus-4-8` / `--model claude-sonnet-4-6` |
+| Organizer & synthesizer (default Opus) | native `Agent`, `model:"opus"`, `mode:"plan"` | `claude-runner --model claude-opus-4-8` (schema via `--output-schema`) |
 | Codex seat & Codex judge | `codex-runner --effort high` | native `spawn_agent` (`fork_context=false`) |
 | Gemini seat | `gemini-runner` | `gemini-runner` |
 | Kimi seat | `kimi-runner` | `kimi-runner` |

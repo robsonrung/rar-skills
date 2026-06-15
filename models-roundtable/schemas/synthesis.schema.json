@@ -1,0 +1,37 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Roundtable synthesis",
+  "description": "The synthesizer's final consensus answer, written from the full record (organizer analysis + locked consensus + resolved/open points + every seat answer). The orchestrator validates every claim's attribution against the record before adopting it.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["consensus_answer", "attribution_map", "confidence_rationale", "confidence"],
+  "properties": {
+    "consensus_answer": {
+      "type": "string",
+      "description": "The single, self-contained answer to the task — the deliverable."
+    },
+    "attribution_map": {
+      "type": "array",
+      "description": "Each major claim in the consensus answer traced to its source in the record.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["claim", "source"],
+        "properties": {
+          "claim": { "type": "string", "description": "A major claim from the consensus answer." },
+          "source": { "type": "string", "description": "Where it comes from: 'consensus', a unique-insight id (e.g. 'U1'), a resolved point id (e.g. 'C2'), or 'orchestrator-call'." }
+        }
+      }
+    },
+    "confidence_rationale": {
+      "type": "string",
+      "description": "Why the answer warrants its confidence — what is solid vs. what rests on a contested or orchestrator-decided point."
+    },
+    "confidence": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 100,
+      "description": "The synthesizer's confidence (0-100) in the consensus answer."
+    }
+  }
+}

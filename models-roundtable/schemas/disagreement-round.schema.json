@@ -1,23 +1,26 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "Roundtable disagreement-round response",
-  "description": "One model seat's final opinion on the open disagreement points, after seeing every seat's position on each. One round only.",
+  "title": "Roundtable gap-repair round response",
+  "description": "One model seat's targeted repair of the open points after seeing every seat's position and the organizer's structured analysis — resolving a contradiction, filling a blind spot, or defending/refuting a unique insight, with evidence. Not re-voting. One round only.",
   "type": "object",
   "additionalProperties": false,
   "required": ["item_responses", "confidence"],
   "properties": {
     "item_responses": {
       "type": "array",
-      "description": "One entry per open disagreement point (D1, D2, ...).",
+      "description": "One entry per open point — contradictions (C#), blind spots (B#), or contested unique insights (U#).",
       "items": {
         "type": "object",
         "additionalProperties": false,
         "required": ["point_id", "position", "agree", "reasoning"],
         "properties": {
-          "point_id": { "type": "string", "description": "The disagreement point's id, e.g. 'D1'." },
-          "position": { "type": "string", "description": "The seat's final position on this point after weighing the others." },
+          "point_id": { "type": "string", "description": "The open point's id: a contradiction 'C1', blind spot 'B1', or unique insight 'U1' (legacy 'D1' also accepted)." },
+          "position": { "type": "string", "description": "The seat's resolution of this point: which view it now backs / how it fills the gap / whether the insight holds." },
           "agree": { "type": "boolean", "description": "True if the seat now backs the emerging majority/consensus view on this point." },
-          "reasoning": { "type": "string", "description": "Why the seat holds this position, on the merits." }
+          "reasoning": { "type": "string", "description": "Why the seat holds this position, on the merits." },
+          "evidence": { "type": "string", "description": "Concrete evidence or argument backing the position (a fact, source, derivation). Empty string if none." },
+          "uncertainty": { "type": "string", "description": "What the seat is still unsure about on this point. Empty string if none." },
+          "changes_answer": { "type": "boolean", "description": "True if resolving this point changes the seat's original answer." }
         }
       }
     },

@@ -1,0 +1,94 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Roundtable organizer analysis",
+  "description": "The organizer's five-dimension structured analysis of all seat answers, produced in Phase 2 before any adjudication. Consumed by the gap-repair round, the judges, and the synthesizer. Agreements/disagreements are derived views of this analysis, not its whole output.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["consensus", "contradictions", "partial_coverage", "unique_insights", "blind_spots", "material_gaps"],
+  "properties": {
+    "consensus": {
+      "type": "array",
+      "description": "Points all or most seats share — higher-confidence; the orchestrator locks these.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["statement", "seats"],
+        "properties": {
+          "statement": { "type": "string", "description": "The shared point, as a concise standalone claim." },
+          "seats": { "type": "array", "items": { "type": "string" }, "description": "Seats whose answers support it." }
+        }
+      }
+    },
+    "contradictions": {
+      "type": "array",
+      "description": "Points where seats materially conflict in conclusion, approach, or a key claim (not wording).",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["point_id", "statement", "positions"],
+        "properties": {
+          "point_id": { "type": "string", "description": "Stable id, e.g. 'C1'." },
+          "statement": { "type": "string", "description": "Neutral one-line statement of what is contested." },
+          "positions": {
+            "type": "array",
+            "description": "Each seat's position on this contradiction.",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["seat", "position"],
+              "properties": {
+                "seat": { "type": "string" },
+                "position": { "type": "string" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "partial_coverage": {
+      "type": "array",
+      "description": "Points only some seats addressed — not contested, but unevenly covered.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["point_id", "statement", "covered_by"],
+        "properties": {
+          "point_id": { "type": "string", "description": "Stable id, e.g. 'P1'." },
+          "statement": { "type": "string" },
+          "covered_by": { "type": "array", "items": { "type": "string" }, "description": "Seats that covered it." }
+        }
+      }
+    },
+    "unique_insights": {
+      "type": "array",
+      "description": "Valuable points raised by a single seat that no other seat contradicted — additive material to carry into synthesis.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["point_id", "statement", "seat"],
+        "properties": {
+          "point_id": { "type": "string", "description": "Stable id, e.g. 'U1'." },
+          "statement": { "type": "string" },
+          "seat": { "type": "string", "description": "The one seat that raised it." }
+        }
+      }
+    },
+    "blind_spots": {
+      "type": "array",
+      "description": "Necessary aspects of the task that NO seat addressed.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["point_id", "statement"],
+        "properties": {
+          "point_id": { "type": "string", "description": "Stable id, e.g. 'B1'." },
+          "statement": { "type": "string" }
+        }
+      }
+    },
+    "material_gaps": {
+      "type": "boolean",
+      "description": "True if there are material contradictions, blind spots, or contested unique insights worth a gap-repair round. When false, Phase 3 is skipped."
+    }
+  }
+}
