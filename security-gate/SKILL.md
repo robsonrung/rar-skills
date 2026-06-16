@@ -5,9 +5,11 @@ description: Shift security left in a development workflow — ask a threat-mode
 
 # Security Gate
 
-Two small jobs: (1) at spec time, while the human is still in the room, collect the security answers autonomous phases would otherwise have to guess; (2) at verify time, decide deterministically whether a change gets the deep security pass. This skill never performs the review — `full-review` does.
+Two small jobs: (1) run the **threat-model-lite** at spec time, while the human is still in the room, to collect the security answers autonomous phases would otherwise have to guess; (2) run the **deep-pass trigger list** at verify time to decide deterministically whether a change gets the deep security pass. This skill never performs the review — `full-review` does.
 
-## Part 1 — Spec-time checklist (interactive)
+The two leitwörter below are what you name as you work: a **threat-model-lite** question is something you ask the human now; a **deep-pass trigger** is a property of the change that forces a deeper review later.
+
+## Threat-model-lite — spec-time checklist (interactive)
 
 During the phase 1 interview (`grill-with-docs` or `collaborative_discovery`), ask only the questions relevant to the feature; skip rows with no exposure. Record every answer in the PRD's Implementation Decisions so phases 3–6 never have to ask.
 
@@ -20,7 +22,7 @@ During the phase 1 interview (`grill-with-docs` or `collaborative_discovery`), a
 7. **Abuse**: what does a malicious or careless user do with this feature? Rate limits, quotas, idempotency?
 8. **Failure exposure**: on error or timeout, what leaks (stack traces, internal IDs, partial writes)?
 
-## Part 2 — Deep-pass triggers (deterministic)
+## Deep-pass triggers (deterministic)
 
 At planning time (the `to-tasks` Slice Contract), mark a slice `security: deep` when it touches any of:
 
@@ -36,7 +38,7 @@ At planning time (the `to-tasks` Slice Contract), mark a slice `security: deep` 
 
 Otherwise mark `security: standard`.
 
-At verify time: `deep` slices run `full-review` with `security_focus=true`, passing the Part 1 checklist answers as the recorded security decisions to verify against (the implementation must match the recorded auth, validation, logging, and tenancy decisions). `standard` slices rely on `full-review`'s normal security coverage with no extra pass.
+At verify time: `deep` slices run `full-review` with `security_focus=true`, passing the threat-model-lite answers as the recorded security decisions to verify against (the implementation must match the recorded auth, validation, logging, and tenancy decisions). `standard` slices rely on `full-review`'s normal security coverage with no extra pass.
 
 ## Output contract
 

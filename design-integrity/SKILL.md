@@ -53,13 +53,15 @@ Use this checklist before finalizing a design heavy change:
 1. The real problem is named.
 2. Hidden requirements and constraints were searched for.
 3. At least two alternatives were considered, or the change was small enough to justify skipping that step.
-4. The selected design has a single central concept.
+4. **Conceptual integrity**: the design has a single central concept.
 5. Names match the concept.
-6. Boundaries match ownership.
+6. **Change ownership**: boundaries match ownership, so a change wants to live in exactly one place.
 7. Public interfaces are predictable.
 8. Error cases and edge cases follow the same model as the happy path.
-9. The design is no larger than the problem requires.
+9. **Smallest coherent shape**: the design is no larger than the problem requires.
 10. Tests or verification exercise the main contract.
+
+Name the check as you apply it. "This keeps **conceptual integrity** but at the cost of **change ownership** — two modules would move together" is the kind of sentence that makes the tradeoff legible.
 
 ## Output Contract
 

@@ -7,6 +7,8 @@ description: Apply a Pragmatic Programmer inspired coding session lens across pl
 
 Use this skill as a phase by phase operating lens for real coding work. The goal is practical mastery in the current repo: take responsibility, make the system easier to change, prefer feedback over speculation, and leave a clear trail.
 
+The through-line for every phase is the **smallest reversible move**: the cheapest action that creates real learning and can be undone if it teaches you something unwelcome. Say it by name when you choose what to do next — naming the move keeps you from over-committing to speculation. Speed comes from feedback and reversibility, never from skipping them.
+
 This is not a book summary. Apply the durable practices from *The Pragmatic Programmer* as decisions, checks, and verification.
 
 ## Session Loop

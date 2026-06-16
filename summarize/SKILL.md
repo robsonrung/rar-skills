@@ -7,6 +7,8 @@ description: Create a concise handoff summary from visible session context. Use 
 
 Create a short handoff from information already visible in the active session, written so a fresh agent session can resume the work without other context.
 
+The bar is the **cold-start test**: a fresh agent that has only this summary — no transcript, no memory of the session — must be able to pick the work back up and take the next action without guessing. Write to that reader, and check each section against the cold-start test before you finish: if a cold-start agent would still have to ask "what was the goal?" or "what was already verified?", the summary is not done.
+
 ## Privacy Boundary
 
 Use only conversation context, command results, and files that were already opened or produced during the active work. Do not search unrelated local files. Do not include secrets, tokens, private keys, credentials, personal identifiers, or hidden system details. Replace any sensitive value with a short redacted label.

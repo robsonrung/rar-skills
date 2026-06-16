@@ -51,7 +51,17 @@ Improve existing code so it is easier to read, safer to change, and simpler to t
 
 ## Smell Checklist
 
-Look for unclear names, long functions, mixed responsibilities, duplicated logic, deep nesting, complex booleans, flag arguments, hidden mutations, large classes, primitive obsession, data clumps, long parameter lists, inconsistent abstraction levels, noisy comments, magic values, inconsistent error handling, and brittle or missing tests.
+Diagnose by name. Before you change anything, say which smell you see — naming the smell is what makes the fix obvious and keeps the change behavior-preserving. Each smell below is a term of art; use the term, don't paraphrase it.
+
+- **Naming smells**: unclear names, magic values.
+- **Function smells**: long functions, deep nesting, complex booleans, flag arguments, inconsistent abstraction levels.
+- **Responsibility smells**: mixed responsibilities, large classes, hidden mutations.
+- **Data smells**: primitive obsession, data clumps, long parameter lists.
+- **Duplication smells**: duplicated logic (only when it is the same concept with the same reason to change).
+- **Comment smells**: noisy comments that repeat or excuse the code.
+- **Safety smells**: inconsistent error handling, brittle or missing tests.
+
+State the smell, then apply the matching improvement. "This has **primitive obsession** and a **data clump** in the parameters" is the kind of sentence that should precede each edit.
 
 ## Naming Guide
 
