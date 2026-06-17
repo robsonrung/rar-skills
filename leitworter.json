@@ -1,0 +1,63 @@
+{
+  "_comment": "Machine-readable registry for the leitwörter convention (see LEITWORTER.md). The `guards` block is enforced by scripts/check_leitworter.py and the CI workflow: must_contain entries are deletion tripwires (the leitwort must still be present), must_not_contain entries are drift tripwires (an old generic phrasing must not return). The `canon` block is the cross-skill vocabulary, used by skill-expert and for warn-only drift hints. Matching is case-insensitive substring.",
+  "guards": [
+    {
+      "file": "clean-code/SKILL.md",
+      "concept": "named smells",
+      "must_contain": ["Diagnose by name", "primitive obsession", "data clump"],
+      "must_not_contain": []
+    },
+    {
+      "file": "design-integrity/SKILL.md",
+      "concept": "conceptual integrity / change ownership / smallest coherent shape",
+      "must_contain": ["conceptual integrity", "change ownership", "smallest coherent shape"],
+      "must_not_contain": []
+    },
+    {
+      "file": "pragmatic-coding-session/SKILL.md",
+      "concept": "smallest reversible move",
+      "must_contain": ["smallest reversible move"],
+      "must_not_contain": []
+    },
+    {
+      "file": "security-gate/SKILL.md",
+      "concept": "threat-model-lite / deep-pass trigger",
+      "must_contain": ["threat-model-lite", "deep-pass trigger"],
+      "must_not_contain": ["## Part 1", "## Part 2"]
+    },
+    {
+      "file": "summarize/SKILL.md",
+      "concept": "cold-start test",
+      "must_contain": ["cold-start test"],
+      "must_not_contain": []
+    },
+    {
+      "file": "brainstorm/SKILL.md",
+      "concept": "the why before the how / expand the solution space",
+      "must_contain": ["the why before the how", "expand the solution space"],
+      "must_not_contain": []
+    },
+    {
+      "file": "coding-review-simplify/SKILL.md",
+      "concept": "connascence",
+      "must_contain": ["Connascence Pass", "connascent", "behavior-preserving", "observable behavior"],
+      "must_not_contain": ["## Coupling Pass"]
+    }
+  ],
+  "canon": [
+    { "concept": "not changing what the code does", "leitwort": "behavior-preserving", "drift_terms": ["behavior unchanged", "invariant-safe", "correctness-preserving"] },
+    { "concept": "coupling as the unit of analysis", "leitwort": "connascence", "drift_terms": [] },
+    { "concept": "keeping scope minimal", "leitwort": "smallest coherent shape", "drift_terms": ["don't boil the ocean"] },
+    { "concept": "cheapest reversible learning step", "leitwort": "smallest reversible move", "drift_terms": [] },
+    { "concept": "test value", "leitwort": "four pillars", "drift_terms": [] },
+    { "concept": "testing what not how", "leitwort": "observable behavior", "drift_terms": [] },
+    { "concept": "one coherent design idea", "leitwort": "conceptual integrity", "drift_terms": [] },
+    { "concept": "where a change wants to live", "leitwort": "change ownership", "drift_terms": [] },
+    { "concept": "failures must be loud", "leitwort": "observable failure", "drift_terms": [] },
+    { "concept": "end-to-end thin path", "leitwort": "vertical slice", "drift_terms": [] },
+    { "concept": "domain words in code", "leitwort": "ubiquitous language", "drift_terms": [] },
+    { "concept": "resumable handoff", "leitwort": "cold-start test", "drift_terms": [] },
+    { "concept": "pinning legacy behavior before change", "leitwort": "characterization test", "drift_terms": [] }
+  ],
+  "filler_verbs": ["carefully", "thoroughly", "make sure", "be sure to", "as appropriate", "as needed", "properly"]
+}

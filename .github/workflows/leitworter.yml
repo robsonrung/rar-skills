@@ -1,0 +1,31 @@
+name: leitwörter
+
+# Guards the leitwörter convention (see LEITWORTER.md). Fails the build when a
+# leitwort is deleted from the skill that owns it, or when a forbidden generic
+# phrasing drifts back in. Synonym hints and filler verbs are warnings only.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "**/SKILL.md"
+      - "leitworter.json"
+      - "scripts/check_leitworter.py"
+      - ".github/workflows/leitworter.yml"
+  pull_request:
+    paths:
+      - "**/SKILL.md"
+      - "leitworter.json"
+      - "scripts/check_leitworter.py"
+      - ".github/workflows/leitworter.yml"
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+      - name: Check leitwörter
+        run: python3 scripts/check_leitworter.py

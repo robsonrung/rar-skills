@@ -73,6 +73,7 @@ Create skills that are small enough to load, specific enough to trigger correctl
    - Use imperative instructions for the host agent.
    - Do not put discovery-only "when to use" guidance in the body; the body loads only after the skill is selected.
    - Start with the smallest useful mental model, then the execution workflow.
+   - Anchor each load-bearing concept with a **leitwort** — a named, evocative term of art (`connascence`, `behavior-preserving`, `cold-start test`) the host agent will repeat back while acting, rather than a generic instruction it reads once. Name it where the agent narrates its decisions, not only in a heading; model the sentence you want echoed. When the repo defines a leitwörter convention (e.g. `LEITWORTER.md` and `leitworter.json`), follow it and reuse the canonical word over a synonym. See References.
    - Include concrete examples only when they clarify behavior or prevent common mistakes.
    - Add a short gotchas section when the agent is likely to make a non-obvious mistake.
    - Provide defaults, not menus. Pick the recommended path and mention alternatives only as escape hatches.
@@ -95,6 +96,7 @@ Create skills that are small enough to load, specific enough to trigger correctl
      python3 .agents/skills/skill-creator/scripts/package_skill.py .agents/skills/<skill-name> /tmp
      ```
    - If those helpers are unavailable, manually verify frontmatter, name matching, description quality, paths, resource references, and file organization.
+   - When the repo guards leitwörter (e.g. `scripts/check_leitworter.py`), run it so an edit does not silently delete a named anchor or drift a canonical word back to a generic phrasing.
    - Run any added scripts at least once with representative inputs.
    - Grep for stale project names, old stack assumptions, or copied-template leftovers before finalizing.
 
@@ -125,6 +127,7 @@ Create skills that are small enough to load, specific enough to trigger correctl
 - The skill has one clear purpose and a discoverable description.
 - The metadata alone is enough for a host agent to choose the skill correctly.
 - The body explains how to execute, not why the skill exists.
+- Load-bearing concepts are named with leitwörter the agent will repeat while acting; generic filler verbs ("carefully", "thoroughly", "make sure") are replaced by named anchors, and shared concepts use the canonical word, not a synonym.
 - The skill avoids stale, time-sensitive, or repo-foreign assumptions.
 - All referenced files exist and are linked from `SKILL.md`.
 - Scripts communicate success and failure through clear stdout, stderr, and exit codes.
@@ -139,6 +142,7 @@ Create skills that are small enough to load, specific enough to trigger correctl
 - If the body is long, extract rarely used details into `references/`.
 - If the agent would need to guess a path, command, schema, or output shape, add that detail or provide a fallback.
 - If instructions are ignored, cut verbosity, move detailed material to references, surface gotchas earlier, and add a validation loop.
+- If the body feels generic and unmemorable, find its load-bearing concept and give it a leitwort — a precise, narratable term of art — then make the agent state it as it works.
 
 ## Delivery Contract
 
@@ -154,3 +158,4 @@ When creating or updating a skill, finish with:
 
 - Read `references/evaluation.md` when the user asks to test, benchmark, compare, or prove a skill is better, when the skill has objectively verifiable outputs, or when you need the detailed eval workspace, grading, benchmark, and human-review loop.
 - Read `references/description-optimization.md` when the user asks why a skill does or does not trigger, when improving frontmatter `description` text, or when optimizing a skill description for trigger accuracy.
+- Read the repo's `LEITWORTER.md` (with the `leitworter.json` registry) when authoring or improving a skill's body, to apply the leitwörter convention and the canonical cross-skill vocabulary.
