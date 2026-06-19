@@ -42,6 +42,24 @@
       "concept": "connascence",
       "must_contain": ["Connascence Pass", "connascent", "behavior-preserving", "observable behavior"],
       "must_not_contain": ["## Coupling Pass"]
+    },
+    {
+      "file": "full-review/SKILL.md",
+      "concept": "intent gate",
+      "must_contain": ["Intent Gate"],
+      "must_not_contain": []
+    },
+    {
+      "file": "to-tasks/SKILL.md",
+      "concept": "acceptance contract",
+      "must_contain": ["acceptance contract"],
+      "must_not_contain": []
+    },
+    {
+      "file": "clean-code/SKILL.md",
+      "concept": "earned comment",
+      "must_contain": ["earned comment"],
+      "must_not_contain": []
     }
   ],
   "canon": [
@@ -57,7 +75,10 @@
     { "concept": "end-to-end thin path", "leitwort": "vertical slice", "drift_terms": [] },
     { "concept": "domain words in code", "leitwort": "ubiquitous language", "drift_terms": [] },
     { "concept": "resumable handoff", "leitwort": "cold-start test", "drift_terms": [] },
-    { "concept": "pinning legacy behavior before change", "leitwort": "characterization test", "drift_terms": [] }
+    { "concept": "pinning legacy behavior before change", "leitwort": "characterization test", "drift_terms": [] },
+    { "concept": "restate the real request before acting", "leitwort": "intent gate", "drift_terms": [] },
+    { "concept": "a task is done only when its acceptance criteria pass", "leitwort": "acceptance contract", "drift_terms": [] },
+    { "concept": "a comment that carries what the code cannot", "leitwort": "earned comment", "drift_terms": [] }
   ],
   "filler_verbs": ["carefully", "thoroughly", "make sure", "be sure to", "as appropriate", "as needed", "properly"]
 }

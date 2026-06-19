@@ -128,6 +128,7 @@ Create skills that are small enough to load, specific enough to trigger correctl
 - The metadata alone is enough for a host agent to choose the skill correctly.
 - The body explains how to execute, not why the skill exists.
 - Load-bearing concepts are named with leitwörter the agent will repeat while acting; generic filler verbs ("carefully", "thoroughly", "make sure") are replaced by named anchors, and shared concepts use the canonical word, not a synonym.
+- When the skill completes a task or produces an artifact, its Output Contract states an **acceptance contract** — the explicit, checkable criteria (real commands, observable behavior) that define done — so the host agent verifies completion instead of declaring done by assumption.
 - The skill avoids stale, time-sensitive, or repo-foreign assumptions.
 - All referenced files exist and are linked from `SKILL.md`.
 - Scripts communicate success and failure through clear stdout, stderr, and exit codes.

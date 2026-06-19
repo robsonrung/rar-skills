@@ -70,6 +70,9 @@ agent sees one consistent token across the whole library:
 | Domain words in code | **ubiquitous language** | domain language, business terms |
 | Resumable handoff | **cold-start test** | fresh-agent, continuity |
 | Pinning legacy behavior before change | **characterization test** (the **net**) | approval test (acceptable synonym), golden test |
+| Restating the real request before acting | **intent gate** | understand the ask, clarify the request, take it literally |
+| A task is done only when its criteria pass | **acceptance contract** | definition of done, completion criteria, completeness contract |
+| A comment that carries what the code can't | **earned comment** | good comments, useful comments, helpful comments |
 
 A skill may introduce a new leitwort when it genuinely owns a concept no other
 skill covers. Add it to this table when you do.

@@ -72,8 +72,10 @@ State the smell, then apply the matching improvement. "This has **primitive obse
 
 ## Comments
 
-- Keep comments that explain business rules, external constraints, security concerns, performance tradeoffs, historical context, or non-obvious decisions.
-- Remove or rewrite comments that repeat the code, explain code that should be renamed or extracted, are outdated, or add noise.
+Diagnose every comment as an **earned comment** or noise. A comment is earned only when it carries what the code cannot — a business rule, external constraint, security concern, performance tradeoff, historical context, or non-obvious decision. Say it while editing: "this is an **earned comment** — it records the auth constraint the parameter name can't." Everything else is noise: comments that repeat the code, restate the obvious, excuse code that should be renamed or extracted, or read like AI slop (apologetic, placeholder, or narrate-the-diff lines a senior would never leave).
+
+- Keep **earned comments**: business rules, external constraints, security concerns, performance tradeoffs, historical context, non-obvious decisions.
+- Cut the unearned: code-restating, obvious, outdated, or AI-slop comments.
 
 ## Output Contract
 
