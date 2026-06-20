@@ -3,8 +3,8 @@
   "guards": [
     {
       "file": "clean-code/SKILL.md",
-      "concept": "named smells",
-      "must_contain": ["Diagnose by name", "primitive obsession", "data clump"],
+      "concept": "named smells / earned comment",
+      "must_contain": ["Diagnose by name", "primitive obsession", "data clump", "earned comment"],
       "must_not_contain": []
     },
     {
@@ -48,6 +48,12 @@
       "concept": "seat fidelity",
       "must_contain": ["seat fidelity"],
       "must_not_contain": []
+    },
+    {
+      "file": "skill-expert/SKILL.md",
+      "concept": "acceptance contract",
+      "must_contain": ["acceptance contract"],
+      "must_not_contain": []
     }
   ],
   "canon": [
@@ -64,7 +70,9 @@
     { "concept": "domain words in code", "leitwort": "ubiquitous language", "drift_terms": [] },
     { "concept": "resumable handoff", "leitwort": "cold-start test", "drift_terms": [] },
     { "concept": "pinning legacy behavior before change", "leitwort": "characterization test", "drift_terms": [] },
-    { "concept": "a seat's output is only ever that seat's", "leitwort": "seat fidelity", "drift_terms": [] }
+    { "concept": "a seat's output is only ever that seat's", "leitwort": "seat fidelity", "drift_terms": [] },
+    { "concept": "a task is done only when its acceptance criteria pass", "leitwort": "acceptance contract", "drift_terms": [] },
+    { "concept": "a comment that carries what the code cannot", "leitwort": "earned comment", "drift_terms": [] }
   ],
   "filler_verbs": ["carefully", "thoroughly", "make sure", "be sure to", "as appropriate", "as needed", "properly"]
 }
