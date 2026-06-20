@@ -1,0 +1,128 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://rar-skills/runner-envelope.schema.json",
+  "title": "Runner Envelope",
+  "description": "Wrapper envelope emitted by the shared qwen-runner implementation (and its qwen-backed shims: glm, gemma, minimax). All --json responses conform to this contract.",
+  "type": "object",
+  "required": [
+    "runner",
+    "effective_runner",
+    "effective_model",
+    "effective_provider",
+    "auth_ok",
+    "fallback_reason",
+    "success",
+    "return_code"
+  ],
+  "properties": {
+    "runner": {
+      "type": "string",
+      "description": "Requested runner identity (qwen, glm, gemma, minimax, ...)."
+    },
+    "effective_runner": {
+      "type": "string",
+      "description": "Runner that actually produced output; equals runner unless a fallback occurred."
+    },
+    "effective_model": {
+      "type": ["string", "null"],
+      "description": "Model that actually answered; equals model unless overridden by the CLI/provider."
+    },
+    "effective_provider": {
+      "type": "string",
+      "description": "Provider backing the effective runner (anthropic, openai, google, qwen, z-ai, moonshot, minimax, ...)."
+    },
+    "auth_ok": {
+      "type": ["boolean", "null"],
+      "description": "True on success, false when the CLI binary is missing or a fallback occurred, null when the run errored before auth could be established."
+    },
+    "fallback_reason": {
+      "type": ["string", "null"],
+      "description": "Why a fallback was used, or null when no fallback occurred. Qwen-backed runners never fall back, so this stays null."
+    },
+    "success": {
+      "type": "boolean",
+      "description": "Whether the run completed with return_code 0 and no native error."
+    },
+    "return_code": {
+      "type": "integer",
+      "description": "0 success, -1 timeout, -2 CLI not found (seat_unavailable), -3 invalid input / native API or auth error / unexpected error.",
+      "enum": [0, -1, -2, -3]
+    },
+    "stdout": {
+      "type": "string",
+      "description": "Raw CLI stdout (native stream-json, json, or text). For debugging; prefer agent_message."
+    },
+    "stderr": {
+      "type": "string",
+      "description": "CLI stderr plus any native [API Error: ...] text appended by the wrapper."
+    },
+    "command": {
+      "type": "string",
+      "description": "Shell-quoted command line that was executed."
+    },
+    "working_dir": {
+      "type": "string",
+      "description": "Working directory the CLI ran in."
+    },
+    "model": {
+      "type": ["string", "null"],
+      "description": "Model requested by the caller."
+    },
+    "output_format": {
+      "type": "string",
+      "enum": ["text", "json", "stream-json"]
+    },
+    "input_format": {
+      "type": "string",
+      "enum": ["text", "stream-json"]
+    },
+    "approval_mode": {
+      "type": "string",
+      "enum": ["plan", "default", "auto-edit", "auto", "yolo"]
+    },
+    "role": {
+      "type": ["string", "null"],
+      "description": "Role overlay applied (planner, codereviewer, implementer, synthesizer, adversarial, challenger, researcher), or null."
+    },
+    "session_file": {
+      "type": ["string", "null"]
+    },
+    "restrict_tools": {
+      "type": "boolean",
+      "description": "Whether a read-only analysis overlay was applied."
+    },
+    "ephemeral": {
+      "type": "boolean"
+    },
+    "chat_recording": {
+      "type": "boolean",
+      "description": "Always false; the wrapper forces --chat-recording=false."
+    },
+    "agent_message": {
+      "type": ["string", "null"],
+      "description": "Clean final answer: trimmed result text for plain runs, or JSON-serialized output for --output-schema (structured_output) runs. Orchestrators should read this instead of parsing stdout."
+    },
+    "session_id": {
+      "type": ["string", "null"],
+      "description": "Session id reported by the native stream, when available."
+    },
+    "native_result": {
+      "description": "Raw result payload from the native result event. May be a string, object, or array; presence indicates the CLI emitted a result event. For --output-schema runs this is the structured object (agent_message is its JSON serialization)."
+    },
+    "status": {
+      "type": "string",
+      "description": "Present only when return_code is -2, set to 'seat_unavailable'.",
+      "enum": ["seat_unavailable"]
+    },
+    "prompt_file": {
+      "type": "string",
+      "description": "Present when exactly one --prompt-file was supplied."
+    },
+    "prompt_files": {
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "Present when more than one --prompt-file was supplied."
+    }
+  },
+  "additionalProperties": false
+}
