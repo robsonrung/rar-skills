@@ -10,7 +10,7 @@ Execute prompts through the local `qwen` CLI in one-shot headless mode. Prefer t
 ## Prerequisites
 
 - `qwen` installed and in `PATH`
-- `qwen auth` configured for the models you want to call
+- A model provider configured in the qwen CLI — a `modelProviders` entry in `~/.qwen/settings.json` (with its API key env var set) or credentials supplied via `--openai-api-key` / `--auth-type`. The legacy `qwen auth` subcommand has been removed.
 
 ## Security Model
 
@@ -19,8 +19,7 @@ This skill invokes the local Qwen CLI from the current machine. Prompt text, pro
 
 ## Output Envelope
 
-All `--json` responses must conform to `.agents/skills/_shared/runner-envelope.schema.json` (an install-time path; the schema is not bundled in this repo, so the required-keys list below is the operative contract).
-Required top-level keys:
+All `--json` responses conform to `_shared/runner-envelope.schema.json` (bundled in this repo; installed at `.agents/skills/_shared/runner-envelope.schema.json`). The required top-level keys are:
 - `runner`
 - `effective_runner`
 - `effective_model`
@@ -52,7 +51,7 @@ Paths use the installed `.agents/skills/` layout; when running from this source 
 - `--model`
 - `--output-format` with default `stream-json`
 - `--input-format`
-- `--approval-mode` with default `default`
+- `--approval-mode` with default `default`; choices `plan`, `default`, `auto-edit`, `auto`, `yolo`
 - `--sandbox`
 - `--restrict-tools` (default for analysis roles)
 - `--allow-write` (opt an analysis role out of restricted mode)
@@ -122,7 +121,9 @@ On `-2` the envelope also carries `status: seat_unavailable`. There is no separa
 
 ## Gotchas
 
-- `--output-schema` is enforced by prompt instructions, not by a native Qwen schema flag. A ready-made review schema (verdict/findings/next_steps) is bundled at `codex-runner/schemas/review-output.schema.json` and works with any runner.
+- `--output-schema` is enforced natively via the qwen CLI's `--json-schema` flag (a synthetic `structured_output` tool; the session ends on the first valid call). The schema is passed as `@<path>` and is not injected into the prompt. The structured object surfaces in `native_result`; `agent_message` is its JSON serialization (parse with `json.loads` to recover the object). A ready-made review schema (verdict/findings/next_steps) is bundled at `codex-runner/schemas/review-output.schema.json` and works with any runner.
+- `--output-schema` and `--restrict-tools` interact: when `--output-schema` is set, the `restrict_tools` → `plan` rewrite is skipped (plan mode can block the synthetic `structured_output` tool). For a schema run that must stay read-only, pass `--approval-mode auto` explicitly — the LLM classifier approves the structured output without auto-approving edits.
+- `--approval-mode yolo` auto-approves every tool, including edits and destructive actions. Reserve for ephemeral sandboxes. `auto` is safer: an LLM classifier approves safe actions and blocks risky ones.
 - `--restrict-tools` adds a read-only overlay to the prompt and switches headless approval mode to `plan`; it is not a hard tool sandbox.
 - Use the runner's `--json` flag when a workflow needs the wrapper envelope on stdout.
 - Chat recording is always disabled (the wrapper always passes `--chat-recording=false`); `--ephemeral` and `--no-session-persistence` are compatibility no-ops.

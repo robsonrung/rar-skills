@@ -186,7 +186,6 @@ def build_prompt(
     role: str | None,
     session_file: str | None,
     metadata_json: str | None,
-    output_schema: str | None,
     restrict_tools: bool,
 ) -> str:
     sections: list[str] = []
@@ -208,12 +207,6 @@ def build_prompt(
         sections.append(
             "Prior conversation context to continue from:\n"
             f"{load_text_file(session_file)}"
-        )
-
-    if output_schema:
-        sections.append(
-            "Return valid JSON matching this schema exactly:\n"
-            f"{load_text_file(output_schema)}"
         )
 
     if prompt_files:
@@ -256,7 +249,7 @@ def run_qwen(
     model = model or DEFAULT_MODEL
     cwd = working_dir or os.getcwd()
     restrict_tools = resolve_restrict_tools(role, restrict_tools, allow_write)
-    if restrict_tools and approval_mode == DEFAULT_APPROVAL_MODE:
+    if restrict_tools and approval_mode == DEFAULT_APPROVAL_MODE and not output_schema:
         approval_mode = "plan"
 
     if working_dir and not Path(working_dir).is_dir():
@@ -318,7 +311,6 @@ def run_qwen(
         role=role,
         session_file=session_file,
         metadata_json=metadata_json,
-        output_schema=output_schema,
         restrict_tools=restrict_tools,
     )
 
@@ -353,6 +345,9 @@ def run_qwen(
     sandbox_flag = parse_sandbox_flag(sandbox)
     if sandbox_flag is not None:
         command.append(f"--sandbox={sandbox_flag}")
+
+    if output_schema:
+        command.extend(["--json-schema", f"@{output_schema}"])
 
     command.append(final_prompt)
     command_display = " ".join(shlex.quote(part) for part in command)
@@ -416,6 +411,8 @@ def run_qwen(
             result["session_id"] = session_id
         if isinstance(native_result, str) and native_result.strip() and not native_error:
             result["agent_message"] = native_result.strip()
+        elif isinstance(native_result, dict) and not native_error:
+            result["agent_message"] = json.dumps(native_result, ensure_ascii=False)
         elif result["success"] and output_format == "json":
             try:
                 payload = json.loads(process.stdout)
@@ -523,9 +520,14 @@ Examples:
     parser.add_argument(
         "--approval-mode",
         type=str,
-        choices=["plan", "default", "auto-edit"],
+        choices=["plan", "default", "auto-edit", "auto", "yolo"],
         default=DEFAULT_APPROVAL_MODE,
-        help=f"Approval mode for headless execution (default: {DEFAULT_APPROVAL_MODE})",
+        help=(
+            f"Approval mode for headless execution (default: {DEFAULT_APPROVAL_MODE}). "
+            "'auto' uses an LLM classifier that approves safe actions and blocks risky ones; "
+            "'yolo' auto-approves every tool (including edits and destructive actions) — "
+            "reserve for ephemeral sandboxes."
+        ),
     )
     parser.add_argument(
         "--sandbox",
@@ -572,7 +574,11 @@ Examples:
         "--output-schema",
         type=str,
         default=None,
-        help="Append a JSON Schema file to the prompt as an output contract",
+        help=(
+            "Path to a JSON Schema file enforced natively via the qwen CLI's "
+            "--json-schema flag (synthetic structured_output tool; session ends on "
+            "first valid call). The schema is NOT injected into the prompt."
+        ),
     )
     parser.add_argument(
         "--ephemeral",
