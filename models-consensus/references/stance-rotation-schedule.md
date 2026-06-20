@@ -8,7 +8,7 @@ Each model starts in its natural role:
 
 | Seat | Round 1 Stance | Runner Role |
 |------|----------------|-------------|
-| Claude Opus 4.7 | `critical_with_responsibility` | `codereviewer` or `adversarial` |
+| Claude Opus 4.8 | `critical_with_responsibility` | `codereviewer` or `adversarial` |
 | Claude Sonnet 4.6 | `supportive_with_integrity` | `planner` or `implementer` |
 | Codex | `devils_advocate` | `challenger` |
 | Gemini | `balanced_synthesis` | `synthesizer` |
@@ -26,7 +26,7 @@ Each seat adopts a stance that challenges its Round 1 position:
 
 | Seat | Round 2 Stance | Purpose |
 |------|----------------|---------|
-| Claude Opus 4.7 | `balanced_synthesis` | Step back and weigh alternatives fairly |
+| Claude Opus 4.8 | `balanced_synthesis` | Step back and weigh alternatives fairly |
 | Claude Sonnet 4.6 | `critical_with_responsibility` | Stress-test the supportive position |
 | Codex | `critical_with_responsibility` | Ground devil's advocacy in constructive critique |
 | Gemini | `pragmatic_engineering` | Move from synthesis to actionable evaluation |
@@ -42,7 +42,7 @@ Final round focuses on integration or decisive critique:
 
 | Seat | Round 3 Stance | Purpose |
 |------|----------------|---------|
-| Claude Opus 4.7 | `pragmatic_engineering` | Recommend specific implementation path |
+| Claude Opus 4.8 | `pragmatic_engineering` | Recommend specific implementation path |
 | Claude Sonnet 4.6 | `balanced_synthesis` | Reconcile findings and recommend direction |
 | Codex | `balanced_synthesis` | Synthesize objections into final assessment |
 | Gemini | `critical_with_responsibility` | Final sanity check on consensus direction |

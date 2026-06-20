@@ -7,6 +7,8 @@ description: Execute prompts using Kimi CLI in headless mode with stream-json ou
 
 Execute prompts through the local `kimi-cli` in one-shot headless mode. Prefer this skill for councils, scripted validation, and Kimi-specific runs where stream-friendly output and a consistent runner envelope matter.
 
+Roles, the output-envelope key contract, presenting-results rules, the background-jobs CLI, and the **seat fidelity** invariant are shared across runners — see `../_shared/references/runner-common.md`. Only this runner's deltas are inline below.
+
 ## Default Model
 
 - `kimi-code/kimi-for-coding`
@@ -19,18 +21,7 @@ This skill invokes the local Kimi CLI from the current machine. Prompt text, pro
 
 ## Output Envelope
 
-All `--json` responses conform to the shared runner envelope contract (`_shared/runner-envelope.schema.json`, bundled in this repo and installed at `.agents/skills/_shared/runner-envelope.schema.json`).
-Required top-level keys:
-- `runner`
-- `effective_runner`
-- `effective_model`
-- `effective_provider`
-- `auth_ok`
-- `fallback_reason`
-- `success`
-- `return_code`
-
-The envelope also carries `agent_message` (the clean final assistant answer — same value as the legacy `assistant_message` field, or trimmed stdout in `text` mode) and `session_id` when the native stream reports one. Orchestrators should read `agent_message` instead of parsing `stdout`.
+The required key contract is shared — see `../_shared/references/runner-common.md`. Kimi-specific extensions: `agent_message` (the clean final assistant answer — same value as the legacy `assistant_message` field, or trimmed stdout in `text` mode) and `session_id` when the native stream reports one.
 
 ## Usage
 
@@ -61,39 +52,22 @@ Paths in the examples use the installed `.agents/skills/` layout. When running f
 | `--session-file` | Append prior workflow context from a file | None |
 | `--metadata-json` | JSON string to embed as execution metadata | None |
 | `--output-schema` | Path to a JSON Schema file for the final response shape | None |
-| `--ephemeral` | Accepted for runner parity; no effect on Kimi CLI | `False` |
-| `--no-session-persistence` | Accepted for runner parity; no effect on Kimi CLI | `False` |
-| `--safe` | Accepted for runner parity; no effect on Kimi CLI | `False` |
-| `--bare` | Accepted for runner parity; no effect on Kimi CLI | `False` |
-| `--disable-fallback` | Accepted for runner parity; Kimi runner never falls back | `False` |
+| `--ephemeral`, `--no-session-persistence`, `--safe`, `--bare`, `--disable-fallback` | Accepted for cross-runner parity; no effect on Kimi CLI (Kimi never falls back) | `False` |
 | `--output-file` | Write the wrapper JSON result to this file atomically | None |
 
-`--ephemeral`, `--no-session-persistence`, `--safe`, `--bare`, and `--disable-fallback` are accepted so callers can use the same flag set across runner skills. They do not currently change Kimi CLI behavior; in particular, `--no-session-persistence` is inert because the current Kimi CLI still records resumable session metadata in print mode.
+The parity no-op flags above are accepted so callers can use the same flag set across runner skills. They do not currently change Kimi CLI behavior; in particular, `--no-session-persistence` is inert because the current Kimi CLI still records resumable session metadata in print mode.
 
 ## Roles
 
-Supported roles:
-- `planner`
-- `codereviewer`
-- `implementer`
-- `synthesizer`
-- `adversarial`
-- `challenger`
-- `researcher`
-
-Every role except `implementer` is an analysis seat and defaults to the read-only prompt overlay. Pass `--allow-write` when an analysis role legitimately needs to write.
+The role list and the analysis-seat read-only default are shared — see `../_shared/references/runner-common.md`. For Kimi, analysis roles default to a read-only prompt overlay (a prompt-level constraint, not a sandbox); pass `--allow-write` to opt out.
 
 ## Background Jobs
 
-`--background` detaches the run as a tracked job under `<working-dir>/.ai-workflow/runner-jobs/<job-id>/` and immediately prints `{success, job_id, pid, job_dir, ...}`. Manage jobs (`list`/`status`/`result`/`cancel`) with `python3 .agents/skills/_shared/scripts/runner_jobs.py`.
+`--background` runs as a tracked job; manage it with the shared jobs CLI (`list`/`status`/`result`/`cancel`) — see `../_shared/references/runner-common.md`.
 
 ## Presenting Results
 
-- Prefer `agent_message` over `stdout`; the raw stream is for debugging.
-- For reviews, keep findings ordered by severity and preserve file paths and line numbers exactly as reported.
-- Preserve evidence boundaries: if the model marked something as an inference or open question, keep that distinction.
-- Never auto-apply review findings; present them and ask which to fix.
-- If a run fails, report the failure with the most actionable stderr lines — do not silently substitute another model's answer.
+Shared rules (prefer `agent_message`, severity-ordered findings, evidence boundaries, never auto-apply, **seat fidelity** on failure) live in `../_shared/references/runner-common.md`.
 
 ## Examples
 
@@ -134,4 +108,4 @@ python3 .agents/skills/kimi-runner/scripts/run_kimi.py "Continue the last Kimi s
 - `kimi-cli` installed and in `PATH`
 - Authentication configured via `kimi-cli login`
 
-If `kimi-cli` is missing or auth fails, the seat is blocked, never substituted: the envelope returns `success=false` with remediation guidance in `stderr`. A missing CLI maps to `return_code=-2` and `status=seat_unavailable`; auth failures surface as kimi-cli's native nonzero exit code with `auth_ok` unset — treat any `success=false` as a blocked seat.
+This is **seat fidelity** for a no-fallback runner: if `kimi-cli` is missing or auth fails, the seat is blocked and reported absent, never substituted by another model. The envelope returns `success=false` with remediation guidance in `stderr`. A missing CLI maps to `return_code=-2` and `status=seat_unavailable`; auth failures surface as kimi-cli's native nonzero exit code with `auth_ok` unset — treat any `success=false` as a blocked seat.

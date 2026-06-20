@@ -16,7 +16,7 @@ When adapting this skill to another project, update the base path or set a `RUNN
 
 | Seat | Native Tool | Runner Fallback | Default Model |
 |------|-------------|-----------------|---------------|
-| Claude Opus 4.7 | `Agent` (Claude Code) | `claude-runner --model claude-opus-4-7` | `claude-opus-4-7` |
+| Claude Opus 4.8 | `Agent` (Claude Code) | `claude-runner --model claude-opus-4-8` | `claude-opus-4-8` |
 | Claude Sonnet 4.6 | `Agent` (Claude Code) | `claude-runner --model claude-sonnet-4-6` | `claude-sonnet-4-6` |
 | Codex | `spawn_agent` + `wait_agent` (Codex host) | `codex-runner --model gpt-5.5` | `gpt-5.5` |
 | Gemini | — | `gemini-runner` | runner default or verified local CLI model |

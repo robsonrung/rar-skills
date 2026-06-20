@@ -9,7 +9,7 @@ Create skills that are small enough to load, specific enough to trigger correctl
 
 ## Operating Principles
 
-- Treat the context window as a shared budget. Add only instructions, examples, scripts, references, and assets that materially improve execution.
+- Treat the context window as a **shared budget**: the skill loads alongside the host agent's own task, so every line you add spends budget another agent needs. Add only instructions, examples, scripts, references, and assets that change what the agent does.
 - Assume the host agent is capable. Preserve space for non-obvious domain knowledge, fragile command sequences, exact validation steps, and reusable artifacts.
 - Keep one skill focused on one durable capability. Split unrelated domains into separate skills.
 - Prefer runtime-neutral language such as "host agent" unless the target repository explicitly requires Claude Code, Codex, or another runtime.
@@ -80,9 +80,9 @@ Create skills that are small enough to load, specific enough to trigger correctl
    - Define fallback paths for missing scripts, optional tools, unavailable services, or non-interactive execution.
    - Define the output contract for any generated artifacts: path, file name pattern, required sections, and validation expectations.
 
-7. Apply progressive disclosure.
+7. Apply progressive disclosure to defend the shared budget.
 
-   - Keep `SKILL.md` lean; split content as it approaches 100-500 lines or mixes distinct domains.
+   - Keep `SKILL.md` lean; split content as it approaches 100-500 lines or mixes distinct domains. Reference files cost nothing until read, so move rarely-needed detail there.
    - Keep references one level deep from `SKILL.md`, such as `references/schema.md`.
    - Tell the agent exactly when to read each reference.
    - Add a table of contents to any reference longer than 100 lines.
@@ -103,24 +103,6 @@ Create skills that are small enough to load, specific enough to trigger correctl
 9. Evaluate real behavior when risk justifies it.
    - Test trigger accuracy and output quality against a baseline before trusting the skill.
    - See References below for when to load the detailed eval and description-tuning guides.
-
-## Degrees of Freedom
-
-- Use text instructions when multiple approaches are valid and context should guide execution.
-- Use pseudocode, examples, or parameterized commands when there is a preferred pattern with valid variation.
-- Use scripts with narrow inputs when the workflow is fragile, error-prone, security-sensitive, or likely to be repeated.
-
-## Script Standards
-
-- Prefer a one-off pinned command when an existing tool with a few flags is enough.
-- Move complex or repeatedly generated commands into `scripts/`.
-- Reference bundled files with paths relative to the skill root.
-- Make scripts non-interactive. Accept inputs through flags, environment variables, files, or stdin.
-- Provide `--help` output with usage, flags, and examples.
-- Send machine-readable results to stdout and diagnostics to stderr.
-- Use clear error messages that say what failed, what was expected, and what to try next.
-- Prefer structured output such as JSON, CSV, or TSV for data the agent will consume.
-- Add idempotency and `--dry-run` support for stateful or destructive operations.
 
 ## Quality Bar
 
@@ -156,6 +138,7 @@ When creating or updating a skill, finish with:
 
 ## References
 
+- Read `references/script-standards.md` when a skill bundles `scripts/`, or when deciding how tightly to constrain the host agent (text vs. pseudocode vs. script — the degrees of freedom).
 - Read `references/evaluation.md` when the user asks to test, benchmark, compare, or prove a skill is better, when the skill has objectively verifiable outputs, or when you need the detailed eval workspace, grading, benchmark, and human-review loop.
 - Read `references/description-optimization.md` when the user asks why a skill does or does not trigger, when improving frontmatter `description` text, or when optimizing a skill description for trigger accuracy.
 - Read the repo's `LEITWORTER.md` (with the `leitworter.json` registry) when authoring or improving a skill's body, to apply the leitwörter convention and the canonical cross-skill vocabulary.

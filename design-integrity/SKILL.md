@@ -56,10 +56,8 @@ Use this checklist before finalizing a design heavy change:
 4. **Conceptual integrity**: the design has a single central concept.
 5. Names match the concept.
 6. **Change ownership**: boundaries match ownership, so a change wants to live in exactly one place.
-7. Public interfaces are predictable.
-8. Error cases and edge cases follow the same model as the happy path.
-9. **Smallest coherent shape**: the design is no larger than the problem requires.
-10. Tests or verification exercise the main contract.
+7. **Smallest coherent shape**: the design is no larger than the problem requires.
+8. Tests or verification exercise the main contract.
 
 Name the check as you apply it. "This keeps **conceptual integrity** but at the cost of **change ownership** — two modules would move together" is the kind of sentence that makes the tradeoff legible.
 

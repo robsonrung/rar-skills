@@ -6,6 +6,10 @@ license: Complete terms in LICENSE.txt
 
 This skill guides creation of distinctive, production-grade frontend interfaces: implement real working code with exceptional attention to aesthetic details and creative choices.
 
+The load-bearing idea is **conceptual integrity**: every interface commits to one coherent design idea, and every typographic, color, motion, and layout choice serves it. State that aesthetic out loud before coding and obey it throughout — a striking-but-incoherent screen fails this skill.
+
+For systematic style/color/font lookups from a design-system database, see ui-ux-pro-max; this skill is for purely creative, bespoke aesthetic direction.
+
 Note: this skill supersedes the bundled `frontend-design:frontend-design` plugin skill; its triggers and guidance are a superset of that copy. If both are available, prefer this one (or disable the plugin copy to avoid nondeterministic activation).
 
 The user provides frontend requirements: a component, page, application, or interface to build. They may include context about the purpose, audience, or technical constraints.
@@ -18,13 +22,12 @@ Before coding, understand the context and commit to a BOLD aesthetic direction:
 - **Constraints**: Technical requirements (framework, performance, accessibility).
 - **Differentiation**: What makes this UNFORGETTABLE? What's the one thing someone will remember?
 
-**CRITICAL**: Choose a clear conceptual direction and execute it with precision.
+**CRITICAL**: Choose a clear conceptual direction and execute it — this is conceptual integrity in practice.
 
 Then implement working code (HTML/CSS/JS, React, Vue, etc.) that is:
 - Production-grade and functional
 - Visually striking and memorable
 - Cohesive with a clear aesthetic point-of-view
-- Meticulously refined in every detail
 
 ## Frontend Aesthetics Guidelines
 
@@ -35,11 +38,9 @@ Focus on:
 - **Spatial Composition**: Unexpected layouts. Asymmetry. Overlap. Diagonal flow. Grid-breaking elements. Generous negative space OR controlled density.
 - **Backgrounds & Visual Details**: Create atmosphere and depth rather than defaulting to solid colors. Add contextual effects and textures that match the overall aesthetic. Apply creative forms like gradient meshes, noise textures, geometric patterns, layered transparencies, dramatic shadows, decorative borders, custom cursors, and grain overlays.
 
-NEVER use generic AI-generated aesthetics like overused font families (Inter, Roboto, Arial, system fonts), cliched color schemes (particularly purple gradients on white backgrounds), predictable layouts and component patterns, and cookie-cutter design that lacks context-specific character.
+NEVER use generic AI-generated aesthetics: overused font families (Inter, Roboto, Arial, system fonts, and don't converge on Space Grotesk either), cliched color schemes (particularly purple gradients on white backgrounds), predictable layouts and component patterns, and cookie-cutter design that lacks context-specific character. Make unexpected choices that feel genuinely designed for the context. No two designs should be the same — vary themes, fonts, and aesthetics across generations.
 
-Interpret creatively and make unexpected choices that feel genuinely designed for the context. No design should be the same. Vary between light and dark themes, different fonts, different aesthetics. NEVER converge on common choices (Space Grotesk, for example) across generations.
-
-**IMPORTANT**: Match implementation complexity to the aesthetic vision. Maximalist designs need elaborate code with extensive animations and effects. Minimalist or refined designs need restraint, precision, and careful attention to spacing, typography, and subtle details. Elegance comes from executing the vision well.
+**IMPORTANT**: Match implementation complexity to the aesthetic vision. Maximalist designs need elaborate code with extensive animations and effects. Minimalist or refined designs need restraint and attention to spacing, typography, and subtle details. Elegance comes from executing the vision well.
 
 ## Execution Contract
 
@@ -51,5 +52,3 @@ Every delivery must include:
 5. A one-paragraph desktop vs. mobile behavior summary
 
 If the requested framework/tooling is unavailable, ship a working plain HTML/CSS/JS fallback and say so.
-
-Remember: Claude is capable of extraordinary creative work. Don't hold back, show what can truly be created when thinking outside the box and committing fully to a distinctive vision.

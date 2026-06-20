@@ -1,11 +1,13 @@
 ---
 name: claude-runner
-description: Execute prompts using Claude CLI in headless print mode from the current workspace. Use when users explicitly request Claude execution, when a cross-runner workflow selects Claude as the preferred model, or when repo automation needs a Claude CLI seat alongside Codex, Gemini, GLM, or Qwen.
+description: Execute prompts using Claude CLI in headless print mode from the current workspace. Use when users explicitly request Claude execution, when a cross-runner workflow selects Claude as the preferred model, or when repo automation needs a Claude CLI seat alongside the other runner seats.
 ---
 
 # Claude Runner
 
 Execute prompts via Claude CLI `-p` mode with role overlays and continuation support.
+
+Roles, the output-envelope key contract, presenting-results rules, the background-jobs CLI, and the **seat fidelity** invariant are shared across runners — see `../_shared/references/runner-common.md`. Only this runner's deltas are inline below.
 
 ## Runtime Compatibility
 Fallback: codex-runner only (invoked with `--disable-fallback`; the chain does not continue to qwen, kimi, or gemini).
@@ -13,8 +15,10 @@ With `--disable-fallback`, fail fast with a prerequisite message instead of rout
 
 1. Check whether `claude` CLI is available.
 2. If available, execute this skill normally.
-3. If unavailable and `codex` is available, route to `$codex-runner` as fallback and report the provider switch.
+3. If unavailable and `codex` is available, route to `$codex-runner` as fallback and report the provider switch (`fallback_from`).
 4. If neither is available, stop with a clear prerequisite message.
+
+This upholds **seat fidelity**: the Claude seat's output is only ever Claude's, or the seat is reported absent — a codex fallback is always labeled via `fallback_from`, never passed off as Claude.
 
 ## Security Model
 
@@ -23,18 +27,7 @@ This skill invokes the local Claude CLI from the current machine. Prompt text, p
 
 ## Output Envelope
 
-All `--json` responses conform to `_shared/runner-envelope.schema.json` (bundled in this repo; installed at `.agents/skills/_shared/runner-envelope.schema.json`).
-Required top-level keys, always emitted:
-- `runner`
-- `effective_runner`
-- `effective_model`
-- `effective_provider`
-- `auth_ok` (auth preflight result)
-- `fallback_reason`
-- `success`
-- `return_code`
-
-The envelope also carries `stdout`, `stderr`, and execution metadata, plus:
+The required key contract is shared — see `../_shared/references/runner-common.md`. Claude-specific envelope extensions:
 - `agent_message` — the clean final answer. With `--output-format json`/`stream-json` it is parsed from the result event; with `text` it is the trimmed stdout.
 - `session_id` — the Claude session id (available with `--output-format json`/`stream-json`), usable for `--resume <id>` follow-ups.
 
@@ -73,16 +66,7 @@ Use `--working-dir` when the prompt depends on package-local files or generated 
 
 ## Roles
 
-Supported roles:
-- `planner`
-- `codereviewer`
-- `implementer`
-- `synthesizer`
-- `adversarial`
-- `challenger`
-- `researcher`
-
-Every role except `implementer` is an analysis seat and defaults to Claude planning mode (read-only). Pass `--allow-write` when an analysis role legitimately needs to write.
+The role list and the analysis-seat read-only default are shared — see `../_shared/references/runner-common.md`. For Claude, analysis roles default to Claude planning mode (`--permission-mode plan`); pass `--allow-write` to opt out.
 
 ## Session Continuation
 
@@ -91,22 +75,11 @@ Every role except `implementer` is an analysis seat and defaults to Claude plann
 
 ## Background Jobs
 
-`--background` detaches the run as a tracked job under `<working-dir>/.ai-workflow/runner-jobs/<job-id>/` and immediately prints `{success, job_id, pid, job_dir, ...}`. Manage jobs with the shared CLI:
-
-```bash
-python3 .agents/skills/_shared/scripts/runner_jobs.py list [--runner claude]
-python3 .agents/skills/_shared/scripts/runner_jobs.py status [job-id]
-python3 .agents/skills/_shared/scripts/runner_jobs.py result [job-id]
-python3 .agents/skills/_shared/scripts/runner_jobs.py cancel [job-id]
-```
+`--background` runs as a tracked job; manage it with the shared jobs CLI (`list --runner claude` / `status` / `result` / `cancel`) — see `../_shared/references/runner-common.md`.
 
 ## Presenting Results
 
-- Prefer `agent_message` over `stdout`; the raw payload is for debugging.
-- For reviews, keep findings ordered by severity and preserve file paths and line numbers exactly as reported.
-- Preserve evidence boundaries: if the model marked something as an inference or open question, keep that distinction.
-- Never auto-apply review findings; present them and ask which to fix.
-- If a run fails, report the failure with the most actionable stderr lines — do not silently substitute another model's answer.
+Shared rules (prefer `agent_message`, severity-ordered findings, evidence boundaries, never auto-apply, **seat fidelity** on failure) live in `../_shared/references/runner-common.md`.
 
 ## Examples
 

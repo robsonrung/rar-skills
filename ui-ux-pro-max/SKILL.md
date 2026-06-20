@@ -6,6 +6,10 @@ description: Searchable UI/UX design database (styles, color palettes, font pair
 
 Comprehensive design guide for web and mobile applications. Contains 67 styles, 96 color palettes, 57 font pairings, 99 UX guidelines, and 25 chart types across 13 technology stacks. Searchable database with priority-based recommendations.
 
+The load-bearing artifact is the **design system** — the output of `--design-system` (persisted as `MASTER.md`). Generate it first, then obey it: every page, component, and review decision cites the design system as the source of truth rather than improvising fresh choices.
+
+For purely creative/bespoke aesthetic direction without the design-system database, see frontend-design.
+
 ## Prerequisites
 
 Check if Python is available:
@@ -78,9 +82,9 @@ This also creates:
 2. If the page file exists, its rules **override** the Master file
 3. If not, use `design-system/<project-slug>/MASTER.md` exclusively
 
-### Step 3: Supplement with Detailed Searches (as needed)
+### Step 3: Supplement with Detailed Searches
 
-After getting the design system, use domain searches to get additional details:
+After getting the design system, use domain searches when you need additional details:
 
 ```bash
 python3 <skill-dir>/scripts/search.py "<keyword>" --domain <domain> [-n <max_results>]
@@ -104,48 +108,9 @@ Get implementation-specific best practices. If user doesn't specify a stack, **d
 python3 <skill-dir>/scripts/search.py "layout responsive form" --stack html-tailwind
 ```
 
-Available stacks: `html-tailwind`, `react`, `nextjs`, `astro`, `vue`, `nuxtjs`, `nuxt-ui`, `svelte`, `swiftui`, `react-native`, `flutter`, `shadcn`, `jetpack-compose`
+For the full list of `--domain` and `--stack` values, see `references/search-reference.md`.
 
-**Then:** Synthesize design system + detailed searches and implement the design.
-
----
-
-## Search Reference
-
-### Available Domains
-
-| Domain | Use For | Example Keywords |
-|--------|---------|------------------|
-| `product` | Product type recommendations | SaaS, e-commerce, portfolio, healthcare, beauty, service |
-| `style` | UI styles, colors, effects; results include AI prompt keywords and CSS/technical keywords per style | glassmorphism, minimalism, dark mode, brutalism, (style name) |
-| `typography` | Font pairings, Google Fonts | elegant, playful, professional, modern |
-| `color` | Color palettes by product type | saas, ecommerce, healthcare, beauty, fintech, service |
-| `landing` | Page structure, CTA strategies | hero, hero-centric, testimonial, pricing, social-proof |
-| `chart` | Chart types, library recommendations | trend, comparison, timeline, funnel, pie |
-| `ux` | Best practices, anti-patterns | animation, accessibility, z-index, loading |
-| `icons` | SVG icon names, libraries, import code | menu, arrow, search, social, settings, chart |
-| `react` | React/Next.js performance | waterfall, bundle, suspense, memo, rerender, cache |
-| `web` | Web interface guidelines | aria, focus, keyboard, semantic, virtualize |
-
-### Available Stacks
-
-| Stack | Focus |
-|-------|-------|
-| `html-tailwind` | Tailwind utilities, responsive, a11y (DEFAULT) |
-| `react` | State, hooks, performance, patterns |
-| `nextjs` | SSR, routing, images, API routes |
-| `astro` | Islands architecture, content, view transitions, SEO |
-| `vue` | Composition API, Pinia, Vue Router |
-| `nuxtjs` | File-based routing, data fetching, SSR, auto-imports |
-| `nuxt-ui` | Nuxt UI components, theming, forms, dashboards |
-| `svelte` | Runes, stores, SvelteKit |
-| `swiftui` | Views, State, Navigation, Animation |
-| `react-native` | Components, Navigation, Lists |
-| `flutter` | Widgets, State, Layout, Theming |
-| `shadcn` | shadcn/ui components, theming, forms, patterns |
-| `jetpack-compose` | Composables, Modifiers, State Hoisting, Recomposition |
-
-**Tip:** Be specific with keywords ("healthcare SaaS dashboard" > "app"). If results are weak, retry with more specific or different keywords — different keywords reveal different insights.
+**Then:** Synthesize the design system + detailed searches and implement the design, citing the design system for every choice.
 
 ---
 
@@ -191,15 +156,12 @@ These are frequently overlooked issues that make UI look unprofessional:
 
 ## Pre-Delivery Checklist
 
-Before delivering UI code, verify every **Do** column above, plus:
+The `--design-system` output appends the canonical checklist (emoji icons, consistent icon set, cursor-pointer, transitions 150-300ms, 4.5:1 contrast, visible focus states, responsive breakpoints, no content behind fixed navbars, no mobile horizontal scroll, `prefers-reduced-motion`). Treat that generated checklist as the source of truth and run it before delivery.
 
-- [ ] Use theme colors directly (bg-primary) not var() wrapper
-- [ ] Test both light and dark modes before delivery
-- [ ] Responsive at 375px, 768px, 1024px, 1440px
-- [ ] No horizontal scroll on mobile
+Also verify every **Do** column above, plus these items the generated checklist does not cover:
+
+- [ ] Use theme colors directly (bg-primary) not `var()` wrapper
+- [ ] Test both light and dark modes
 - [ ] All images have alt text
 - [ ] Form inputs have labels
 - [ ] Color is not the only indicator
-- [ ] `prefers-reduced-motion` respected
-
-(The `--design-system` output also appends a runtime checklist covering emoji icons, cursor-pointer, transitions 150-300ms, 4.5:1 contrast, and visible focus states.)

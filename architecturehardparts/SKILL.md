@@ -7,9 +7,11 @@ description: Apply Software Architecture The Hard Parts style tradeoff analysis 
 
 Use this when a coding session contains an architecture decision, not just an implementation task.
 
+**Distinct from** `architect-lens` (code-level connascence and trade-offs): this skill works at the service level — service-decomposition, data-ownership, and saga territory.
+
 ## Mental Model
 
-Architecture choices are contextual tradeoffs. No pattern is best outside the current constraints. Anchor each recommendation in coupling, data ownership, deployability, runtime behavior, and validation.
+Architecture choices are contextual tradeoffs. No pattern is best outside the current constraints. Anchor each recommendation in **connascence** (strength × locality × degree — see `architect-lens`), data ownership, deployability, runtime behavior, and validation.
 
 ## Workflow
 
@@ -21,9 +23,9 @@ Architecture choices are contextual tradeoffs. No pattern is best outside the cu
 
    Read the relevant modules, schemas, migrations, tests, dependency manifests, deployment descriptors, service contracts, queues, jobs, logs, and dashboards. Prefer current repo evidence over remembered architecture.
 
-3. Map coupling before proposing a change.
+3. Map **connascence** before proposing a change.
 
-   Check static coupling through imports, package dependencies, shared libraries, schema access, deployment coupling, configuration, and infrastructure dependencies. Check dynamic coupling through request flow, messaging, consistency requirements, workflow state, coordination ownership, retries, timeout behavior, and compensation paths.
+   Check static connascence (visible in source) through imports, package dependencies, shared libraries, schema access, deployment coupling, configuration, and infrastructure dependencies. Check dynamic connascence (only at runtime) through request flow, messaging, consistency requirements, workflow state, coordination ownership, retries, timeout behavior, and compensation paths. Judge each by strength × locality × degree: strong, distant, high-degree connascence is the decomposition target.
 
 4. Decide whether the work is pulling apart or putting back together.
 
@@ -43,7 +45,7 @@ Architecture choices are contextual tradeoffs. No pattern is best outside the cu
 
    Give the user or stakeholder the practical choice in terms of outcome. Examples: choose faster response over immediate consistency, choose independent deployability over shared transaction simplicity, choose a shared library over a shared service because the function is domain local and latency sensitive.
 
-8. Implement the smallest architecture preserving change.
+8. Implement the **smallest coherent shape** — a **behavior-preserving** move when the decision is structural.
 
    Keep edits scoped to the decision. Preserve existing module boundaries unless the decision is to change them. Add tests or fitness functions that guard the architecture property, not only the domain behavior.
 

@@ -158,7 +158,7 @@ Return:
 ## Gotchas
 
 - The opening fan-out is **blind** — do not prepend your own analysis, summary, or leaning; that is the whole point of the unbiased seats.
-- **You don't write the answer.** The synthesizer does; you validate it against the record. Don't collapse organizer/synthesizer/judge back into the orchestrator to save a call — that re-introduces the orchestrator-stitched synthesis this pipeline removes.
+- Don't collapse organizer/synthesizer/judge back into the orchestrator to save a call — that re-introduces the orchestrator-stitched synthesis this pipeline removes, and you don't write the answer yourself (Hard Rule 1).
 - Keep the Opus contexts separate: Opus seat ≠ Opus organizer/synthesizer ≠ Opus judge ≠ orchestrator. A judge must be a fresh subagent.
 - Read each seat/judge result from `agent_message` / `--output-file`, never raw stdout (Kimi appends a resume hint; Codex emits a transcript).
 - **Identical tool profile for every seat** — never give one seat tools another lacks. Never enable write/exec tools; never trust Fusion-style research numbers for code/long-horizon tasks (keep `no_tools` the default there).

@@ -8,7 +8,7 @@ description: >-
   and want it test-first and easy to change; or when the user says "let's build
   X", "add Y", "work in small steps", "keep this small", "TDD this", or asks how
   to approach a piece of work. Also use to sanity-check, before committing, that
-  a change is small, behaviour-focused, and still easy to change.
+  a change is small, behavior-focused, and still easy to change.
   Do NOT use for pure diagnosis (use `diagnose`) or macro architecture-style
   choices (use `architecture-styles`).
 ---
@@ -27,13 +27,14 @@ is **ease of change**: quality in code is your ability to change it safely.
 
 ## The core loop
 
-Run this loop for each increment of behaviour. Keep each pass small enough that
+Run this loop for each increment of behavior. Keep each pass small enough that
 you could throw it away without grief.
 
-1. **Frame the smallest next step.** Identify one user-visible (or
-   caller-visible) increment of behaviour — smaller than feels natural. The step
-   you want is usually simpler than you think, not more complex. If you can't
-   state the outcome in a sentence, the step is too big; split it.
+1. **Frame the smallest reversible move.** Identify one user-visible (or
+   caller-visible) increment of behavior — the cheapest reversible learning step,
+   smaller than feels natural. The step you want is usually simpler than you
+   think, not more complex. If you can't state the outcome in a sentence, the
+   step is too big; split it.
 
 2. **Write the test first, predict the failure, see it fail.** Express *what*
    the code should do from the perspective of its user (who may be another
@@ -65,7 +66,7 @@ alike.
 You can only learn from a step if you can attribute its effect. So reduce what's
 changing at once:
 
-- **One change at a time.** Don't bundle a refactor with a behaviour change with
+- **One change at a time.** Don't bundle a refactor with a behavior change with
   a config tweak. Separate them so a failure points at one cause.
 - **Isolate test data.** Each test starts from a known, empty state and creates
   what it needs; share no writable data between tests; generate unique IDs.
@@ -75,20 +76,21 @@ changing at once:
   infra. If the environment can drift, your feedback is lying to you.
 - Treat an intermittent test as a **failure**, never a pass to be re-run.
 
-## Behaviour, not implementation
+## Observable behavior, not implementation
 
-Keep tests (and your thinking) on *what* the system does, not *how*:
+Keep tests (and your thinking) on *what* the system does — its observable
+behavior — not *how*:
 
 - Start the description with **"should"** — "should reject passwords shorter
   than 8 characters". Frame it as Given / When / Then if it helps.
-- A good test survives a reimplementation. Litmus test: *if I swapped the
-  implementation for a completely different one, would this test still be valid?*
-  It should be.
-- Avoid UI/mechanism language ("click Buy") in favour of intent ("place order").
+- A good test pins observable behavior, so it survives a reimplementation. Litmus
+  test: *if I swapped the implementation for a completely different one, would
+  this test still be valid?* It should be.
+- Avoid UI/mechanism language ("click Buy") in favor of intent ("place order").
   The UI is not the user's perspective.
 - Push I/O and edges (UI, storage, network, third parties) behind a thin
   abstraction — `storeAccount(account)`, not a raw SQL string in your logic.
-  Minimise edge code; maximise the easily-testable core.
+  Minimize edge code; maximize the easily-testable core.
 
 ## Judge each step by ease of change
 

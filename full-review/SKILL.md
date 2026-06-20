@@ -1,6 +1,6 @@
 ---
 name: full-review
-description: "Full-spectrum code review combining parallel specialist review, multi-model triangulation, execution-based bug verification, and ambitious structural maintainability review. Use when the user asks for PR review, commit review, deep review, ultrareview, bughunt, find bugs, find vulnerabilities, security review, thermonuclear review, code quality audit, maintainability audit, review my branch, review my changes, or thorough actionable feedback on a diff."
+description: "Full-spectrum code review combining parallel specialist review, multi-model triangulation, execution-based bug verification, and ambitious structural maintainability review. Use when the user asks to review a PR, commit, branch, or diff; to find bugs (bughunt); for a security review (find vulnerabilities); for a maintainability or code-quality audit; or for a deep/thorough review (ultrareview, thermonuclear review)."
 allowed-tools:
   - Bash
   - Read

@@ -7,6 +7,8 @@ description: Execute prompts using Antigravity CLI (`agy`) headless print mode f
 
 Execute prompts via Antigravity CLI (`agy`) headless print mode with role overlays and continuation support.
 
+Roles, the output-envelope key contract, presenting-results rules, the background-jobs CLI, and the **seat fidelity** invariant are shared across runners — see `../_shared/references/runner-common.md`. Only this runner's deltas (including its extended envelope keys and `auth_ok` semantics) are inline below.
+
 ## Runtime Compatibility
 When `agy` is missing and fallback is disabled (or all fallbacks are unavailable), the envelope carries `status: seat_unavailable` and `return_code` -2; council orchestrators must treat that seat as absent. When a fallback runner does produce the output, unavailable fallback seats attempted before it are listed in `fallback_attempts` on the returned envelope.
 
@@ -14,6 +16,8 @@ When `agy` is missing and fallback is disabled (or all fallbacks are unavailable
 2. If available, run this skill.
 3. If unavailable, route through the fallback order `$qwen-runner`, `$kimi-runner`, `$codex-runner`, then `$claude-runner`, and report the fallback.
 4. Never claim the Gemini/Google seat participated when a fallback provider produced the output.
+
+This is **seat fidelity**: the Gemini/Google seat's output is only ever that seat's, or the seat is reported absent — a fallback provider's answer is always labeled via `fallback_from`/`fallback_attempts`, never passed off as Gemini.
 
 ## Security Model
 
@@ -25,19 +29,9 @@ Precedence when both overlay flags are passed: an explicit `--restrict-tools` al
 
 ## Output Envelope
 
-All `--json` responses follow the shared runner envelope contract used by every runner skill, and **every** exit path (success, timeout, input error, missing CLI, fallback) is normalized — the same keys are present whether the wrapper is invoked via the CLI or imported and called programmatically. Required top-level keys:
-- `runner`
-- `effective_runner`
-- `effective_model`
-- `effective_provider`
-- `auth_ok`
-- `fallback_reason`
-- `success`
-- `return_code`
+The required key contract is shared — see `../_shared/references/runner-common.md`. Every exit path (success, timeout, input error, missing CLI, fallback) is normalized — the same keys are present whether the wrapper is invoked via the CLI or imported and called programmatically. `agent_message` holds the trimmed `agy` print-mode response; `agy` exposes no session id, so `session_id` stays null.
 
-The envelope also carries `stdout`, `stderr`, and any execution metadata from the run, plus `agent_message` (the trimmed `agy` print-mode response — `agy` exposes no session id, so `session_id` stays null).
-
-Additional keys that may appear:
+Gemini-specific extended keys that may appear:
 - `status` — set to `seat_unavailable` (`-2`), `timeout` (`-1`), or `auth_failed` when relevant.
 - `fallback_from` / `fallback_reason` — present when a fallback runner produced the output (`fallback_from: gemini`).
 - `fallback_attempts` — the siblings tried and skipped before the returned result (including `not_installed` siblings), so the attempt log is always complete, even when every fallback was unavailable.
@@ -81,37 +75,15 @@ Paths in the examples use the installed `.agents/skills/` layout. When running f
 
 ## Roles
 
-Supported roles:
-- `planner`
-- `codereviewer`
-- `implementer`
-- `synthesizer`
-- `adversarial`
-- `challenger`
-- `researcher`
-
-Every role except `implementer` is an analysis seat and defaults to the read-only prompt overlay. Pass `--allow-write` when an analysis role legitimately needs to write.
+The role list and the analysis-seat read-only default are shared — see `../_shared/references/runner-common.md`. For Gemini, analysis roles default to a read-only prompt overlay (a soft constraint, not a sandbox — see Security Model); pass `--allow-write` to opt out.
 
 ## Background Jobs
 
-`--background` detaches the run as a tracked job under `<working-dir>/.ai-workflow/runner-jobs/<job-id>/` and immediately prints `{success, job_id, pid, job_dir, ...}`. Manage jobs with the shared CLI (`list`/`status`/`result`/`cancel`):
-
-```bash
-python3 .agents/skills/_shared/scripts/runner_jobs.py list
-python3 .agents/skills/_shared/scripts/runner_jobs.py status [job-id]
-python3 .agents/skills/_shared/scripts/runner_jobs.py result [job-id]
-python3 .agents/skills/_shared/scripts/runner_jobs.py cancel [job-id]
-```
-
-`--background` requires the shared jobs module `_shared/scripts/runner_jobs.py`. It ships in this source repo; if a slimmed install lacks `_shared/`, `--background` exits with a clear error and the foreground modes are unaffected. (The shared launcher strips `--background`/`--json`/`--output-file` from the re-invoked argv, so the detached child runs in the foreground without recursing.)
+`--background` runs as a tracked job; manage it with the shared jobs CLI (`list`/`status`/`result`/`cancel`) — see `../_shared/references/runner-common.md`. `--background` requires the shared jobs module `_shared/scripts/runner_jobs.py`. It ships in this source repo; if a slimmed install lacks `_shared/`, `--background` exits with a clear error and the foreground modes are unaffected. (The shared launcher strips `--background`/`--json`/`--output-file` from the re-invoked argv, so the detached child runs in the foreground without recursing.)
 
 ## Presenting Results
 
-- Prefer `agent_message` over `stdout`; the raw payload is for debugging.
-- For reviews, keep findings ordered by severity and preserve file paths and line numbers exactly as reported.
-- Preserve evidence boundaries: if the model marked something as an inference or open question, keep that distinction.
-- Never auto-apply review findings; present them and ask which to fix.
-- If a run fails, report the failure with the most actionable stderr lines — do not silently substitute another model's answer (fallback runs are always labeled via `fallback_from`/`fallback_reason`).
+Shared rules (prefer `agent_message`, severity-ordered findings, evidence boundaries, never auto-apply, **seat fidelity** on failure — fallback runs labeled via `fallback_from`/`fallback_reason`) live in `../_shared/references/runner-common.md`.
 
 ## Examples
 

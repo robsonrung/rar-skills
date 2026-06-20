@@ -31,13 +31,13 @@ When the workflow needs user input, use the Interactive Questions protocol in SK
 
 ## Native Seat Patterns
 
-### Claude Opus 4.7 (Claude Code host)
+### Claude Opus 4.8 (Claude Code host)
 
 ```text
 Agent(
   subagent_type="general-purpose",
-  description="Claude Opus 4.7 council seat — round {n}",
-  model="claude-opus-4-7",
+  description="Claude Opus 4.8 council seat — round {n}",
+  model="claude-opus-4-8",
   prompt="<stance overlay>\n\n---\n\n<shared brief>",
   run_in_background=true
 )
@@ -68,7 +68,7 @@ If full-history context inheritance is needed, either spawn without explicit `mo
 
 Use runner scripts only when the native seat path is unavailable. Pass `--disable-fallback` so councils fail a seat explicitly instead of silently borrowing another provider.
 
-### Claude Opus 4.7 / Sonnet 4.6 (runner fallback)
+### Claude Opus 4.8 / Sonnet 4.6 (runner fallback)
 
 ```bash
 python3 .agents/skills/claude-runner/scripts/run_claude.py \
@@ -76,7 +76,7 @@ python3 .agents/skills/claude-runner/scripts/run_claude.py \
   --prompt-file .ai-workflow/consensus/{session_id}-round-{n}-brief.md \
   --timeout 900 \
   --role planner \
-  --model claude-opus-4-7 \
+  --model claude-opus-4-8 \
   --output-format json \
   --json \
   --no-session-persistence \

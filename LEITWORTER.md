@@ -70,6 +70,7 @@ agent sees one consistent token across the whole library:
 | Domain words in code | **ubiquitous language** | domain language, business terms |
 | Resumable handoff | **cold-start test** | fresh-agent, continuity |
 | Pinning legacy behavior before change | **characterization test** (the **net**) | approval test (acceptable synonym), golden test |
+| A seat's output is only ever that seat's | **seat fidelity** | never substitute, block the seat, treat seat as absent |
 
 A skill may introduce a new leitwort when it genuinely owns a concept no other
 skill covers. Add it to this table when you do.

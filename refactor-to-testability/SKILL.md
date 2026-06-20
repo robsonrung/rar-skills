@@ -4,12 +4,11 @@ description: >-
   Tame untested or hard-to-change legacy code by following Dave Farley's five
   ordered steps to testability (from "The Software Developers' Guidebook"). Use
   whenever you must change code that has no tests, is scary to touch, or is
-  tangled/deeply-nested/long; whenever the user says "this is legacy", "there
-  are no tests", "I'm afraid to change this", "characterise this", "add tests
-  before I refactor", "untangle this function", or "make this testable"; and as
-  the safety-net step BEFORE applying test-first work to existing code. The
-  defining move is building a behaviour-preserving net first (approval /
-  characterisation tests) rather than retrofitting unit tests. Distinct from
+  tangled/deeply-nested/long; whenever the user says "this is legacy", "add tests
+  before I refactor", or "make this testable"; and as the safety-net step BEFORE
+  applying test-first work to existing code. The defining move is building a
+  behavior-preserving net first (approval / characterization tests) rather than
+  retrofitting unit tests. Distinct from
   `tdd`/`small-steps` (new code, test-first) and `clean-code` (tidy code that's
   already tested). Do NOT use to design new functionality from scratch.
 ---
@@ -25,10 +24,10 @@ Two principles frame everything below:
 - **Quality is your ability to change the code.** Legacy code is a problem
   precisely because it's hard to change; the goal of every step is to make it
   easier to change.
-- **Refactoring is *always* behaviour-preserving.** If a change alters what the
-  code does, it isn't refactoring — it's a behaviour change, and it needs its
+- **Refactoring is *always* behavior-preserving.** If a change alters what the
+  code does, it isn't refactoring — it's a behavior change, and it needs its
   own test and its own step. Run the approval tests (the net from step 1) after
-  every transformation, in every step, to confirm behaviour is unchanged.
+  every transformation, in every step, to confirm behavior is unchanged.
 
 Work **incrementally on the area you actually need to touch**, not the whole
 codebase, and never as a big-bang rewrite. Stabilise the code you're about to
@@ -39,21 +38,21 @@ change, change it, move on.
 The order matters: you can't safely simplify code until you have a net under it,
 and you can't see the structure until the clutter is gone.
 
-### 1. Approval (characterisation) tests — build the net
+### 1. Approval (characterization) tests — build the net
 
 > "Legacy code is code without tests." — Michael Feathers
 
-Before changing anything, capture the code's *current* behaviour and pin it,
-even if that behaviour is weird or buggy — you're documenting reality, not
+Before changing anything, capture the code's *current* behavior and pin it,
+even if that behavior is weird or buggy — you're documenting reality, not
 judging it.
 
 - Drive the code with representative inputs and capture its output.
 - If output is nondeterministic (timestamps, UUIDs, random seeds) or
-  side-effect-only, normalise/scrub the variable parts or introduce a minimal
+  side-effect-only, normalize/scrub the variable parts or introduce a minimal
   seam to capture it before pinning.
 - An approval test records that output on first run, then fails on any future
   run whose output differs. That difference is your alarm: it proves a change
-  was *not* behaviour-preserving.
+  was *not* behavior-preserving.
 - **Do not retrofit fine-grained, TDD-style unit tests to legacy code.** The
   code isn't shaped for them yet, and writing them now bakes in the bad
   structure. Approval/acceptance tests at a coarser boundary are the right net
@@ -63,7 +62,7 @@ judging it.
   innards.
 
 You now have a safety net: you can modify the code and *know* whether you
-changed its behaviour.
+changed its behavior.
 
 ### 2. Remove clutter
 
@@ -120,7 +119,7 @@ naturally, and — most importantly — the code is safe and pleasant to change.
 ## After the net is in place
 
 Once the code is testable, hand off to the normal test-first rhythm: switch to
-the `small-steps` / `tdd` loop for the actual behaviour change you came here to
+the `small-steps` / `tdd` loop for the actual behavior change you came here to
 make. The approval tests stay as a backstop; add finer-grained tests as the new
 structure supports them.
 
@@ -128,10 +127,10 @@ structure supports them.
 
 | Step | Move | Done when |
 |------|------|-----------|
-| 1. Approval tests | Pin current behaviour | A behaviour change makes a test fail |
+| 1. Approval tests | Pin current behavior | A behavior change makes a test fail |
 | 2. Remove clutter | Delete dead/commented code | Only live code remains |
 | 3. Reduce complexity | Extract blocks, flatten flow | Low indentation, fewer paths |
 | 4. Compose methods | Name & arrange sub-methods | Top function reads as a story |
 | 5. Refactor to testability | Modularity + cohesion + seams | You can write real tests |
 
-Keep every step behaviour-preserving, confirmed by the net from step 1.
+Keep every step behavior-preserving, confirmed by the net from step 1.

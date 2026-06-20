@@ -1,13 +1,13 @@
 ---
 name: data-systems-coding-lens
-description: Use this skill whenever a coding task touches stored state, databases, queues, caches, search indexes, event streams, background jobs, migrations, external APIs, concurrency, retries, consistency, scalability, reliability, observability, or production data risk. This skill helps turn data systems design ideas into concrete implementation checks, review findings, and verification steps during coding sessions.
+description: Review the data-systems risk of a coding task — turn data-systems design ideas into concrete implementation checks, review findings, and verification steps. Use whenever a change touches stored state and async data paths (databases, queues, caches, search indexes, event streams, background jobs), migrations, external APIs, concurrency, retries, consistency, scalability, reliability, observability, or production data risk.
 ---
 
 # Data Systems Coding Lens
 
 Use this skill to add a practical data systems review pass to coding work. The goal is not to explain theory. The goal is to catch failure modes before they become production bugs.
 
-<!-- Authoring note: do not quote or summarize any copyrighted source. This is an original engineering workflow. -->
+Two leitwörter anchor every pass and recur in the checks below. **Source of truth**: name the one place that durably owns each fact, so derived copies (caches, indexes, read models) can always be rebuilt from it. **Idempotent**: every write that can be retried or replayed must produce the same result the second time — no duplicate money, emails, jobs, or records. State both by name as you review.
 
 ## First Pass
 

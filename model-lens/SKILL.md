@@ -86,9 +86,10 @@ dependencies flow a defined way. Check:
 - **Service vs. component (book distinction)** — depend on the *exposed service/interface*,
   not the implementation. Importing internals = depending on structure, not behavior.
 
-## Lens 4 — Scope discipline ("don't boil the ocean")
+## Lens 4 — Scope discipline (the smallest coherent shape)
 
-The book's "Effort Blackhole" and "boil the ocean" warnings, applied to a change:
+Hold the change to its **smallest coherent shape**. The book's "Effort Blackhole" and
+"boil the ocean" warnings, applied to a change:
 
 - **Premature abstraction / gold-plating** — generic frameworks, config knobs, or
   extension points with one caller and no second use case in sight. Deliver the MVP slice.

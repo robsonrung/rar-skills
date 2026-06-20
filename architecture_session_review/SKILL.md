@@ -1,6 +1,6 @@
 ---
 name: architecture_session_review
-description: Use when a coding task may affect software architecture, module boundaries, service boundaries, data ownership, dependencies, deployment behavior, quality attributes, architecture decisions, technical risk, or long lived implementation direction. Use for architecture reviews, refactors, migrations, feature design, pull request review, and ADR drafting.
+description: Session-level architecture review for a change that is architecturally significant but has no single specific lens — it ties the lenses together into one pass plus an ADR. Use for whole-session architecture reviews, refactors, migrations, feature design, pull request review, and ADR drafting. Distinct from design-gate, which ROUTES a change to the right specific lenses; if you need to pick lenses, use design-gate. Distinct from architect-lens (code-level connascence/trade-offs) and model-lens (layer placement/cohesion), which this skill points to rather than re-implementing.
 ---
 
 # Architecture Session Review
@@ -34,32 +34,16 @@ Treat a choice as architecturally significant when it affects at least one of th
 
 If none apply, keep the work at normal code review depth.
 
-## Trade Off Frame
+## Lenses to run, not re-implement
 
-For important choices, compare options using this compact frame:
+This skill is the session-level frame; it does not re-derive the per-lens analyses. Delegate them:
 
-1. Option.
-2. Benefits.
-3. Costs.
-4. Quality attributes helped.
-5. Quality attributes harmed.
-6. Business reason.
-7. Failure mode.
-8. Verification.
+- **Trade-offs and coupling** → run `architect-lens`: name the **connascence** type (strength × locality × degree) for any coupling the change adds, and use its decision lens to compare options (every option states what it gains and gives up — no option is free).
+- **Layer placement and cohesion** → run `model-lens`: does each module keep one clear responsibility, and does the dependency direction stay clean?
+- **Runtime / data flow** → confirm the owning component or service stays clear and that sync vs async matches the needed reliability, latency, and consistency.
+- **Fitness function** → for each boundary worth protecting, name the automated check that guards it in future changes.
 
-Never present an option as universally correct. Favor the option with the least harmful trade off for the current domain, team, and constraints.
-
-## Boundary Review
-
-Use this pass before large edits and during review:
-
-1. Cohesion: does each module or component have one clear responsibility at the current granularity?
-2. Coupling: what now depends on what, and did the change add an incoming or outgoing dependency that makes the module harder to reuse or change?
-3. Connascence: will a change in one place force another change elsewhere because of names, types, values, order, timing, identity, or shared algorithm?
-4. Locality: are strong dependencies kept close and weaker dependencies used across boundaries?
-5. Data flow: does the owning component or service remain clear?
-6. Runtime flow: does sync or async communication match the needed reliability, latency, and consistency?
-7. Fitness function: what automated check can guard this boundary in future changes?
+Carry the findings from these lenses into the risk pass and the decision note below.
 
 ## Decision Record Trigger
 
@@ -79,17 +63,7 @@ For each high risk item, provide a mitigation, verification step, and owner if t
 
 ## Verification Menu
 
-Choose checks that match the quality attributes:
-
-1. Modularity: dependency cycle checks, forbidden import checks, architecture tests, public API tests.
-2. Maintainability: complexity budgets, cohesive file and module boundaries, duplication checks, clear naming.
-3. Performance: benchmarks, query plans, p95 checks, load focused smoke tests.
-4. Scalability and elasticity: queue depth checks, concurrency tests, capacity assumptions, back pressure tests.
-5. Availability and resilience: retry behavior, timeout checks, fallback tests, chaos or failure mode tests when appropriate.
-6. Security and privacy: auth path tests, least privilege checks, dependency scans, sensitive data checks.
-7. Data integrity: migration tests, contract tests, idempotency tests, transaction and consistency tests.
-8. Deployability: build checks, migration dry runs, rollback notes, release checklist.
-9. Observability: logs, metrics, traces, alert coverage, local log review.
+Choose checks matching your top quality attributes — pick checks for the two or three attributes the change most affects, not every attribute. The full per-attribute catalog of concrete checks is in `references/verification_menu.md`; read it when you need the specific checks for an attribute.
 
 ## Output Contract
 
@@ -110,3 +84,4 @@ Read only what is needed:
 2. `references/style_fit.md` for architecture style selection.
 3. `references/adr_risk.md` for ADRs, risk analysis, and diagrams.
 4. `references/team_checklists.md` for team boundaries, review checklists, and release checks.
+5. `references/verification_menu.md` for the per-attribute catalog of concrete verification checks.

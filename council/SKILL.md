@@ -1,6 +1,6 @@
 ---
 name: council
-description: Clarify ambiguous or underspecified tasks until confidence exceeds 95%, then run a four-seat planning council across Claude Opus, Claude Sonnet, Gemini, and Codex in parallel, summarize consensus and discrepancies, route a report-only decision to Codex for the final plan, and optionally start execution. If the user explicitly invokes `council`, always run the full council workflow even when the request seems trivial, obvious, or answerable without deliberation. Use when a user wants a simpler alternative to full multi-round consensus for implementation, debugging, design, architecture, planning, or even quick repo questions and wants targeted follow-up questions before action.
+description: Clarify ambiguous or underspecified tasks until confidence exceeds 95%, then run a lightweight single-round planning council across Claude Opus, Claude Sonnet, Gemini, and Codex in parallel, summarize consensus and discrepancies, route a report-only decision to Codex for the final plan, and optionally start execution. If the user explicitly invokes `council`, always run the full council workflow even when the request seems trivial or obvious. Use for lightweight single-round planning on implementation, debugging, design, architecture, or planning tasks where the user wants a short clarify-interview before action. Picks this over models-consensus when you want a short clarify-interview + one blind round, not multi-round debate.
 ---
 
 # Council
@@ -37,34 +37,15 @@ If the user explicitly invokes `council` by name, you must run the actual counci
 
 ## Host Mapping
 
-Detect the host first, before choosing the seat implementation.
+Detect the host first, before choosing the seat implementation. The rule is the same everywhere: **prefer the native seat path; fall back to the runner only when the native path is unavailable**, and never use a runner for a seat that has a native path on this host.
 
-### Codex Host
+| Host | Opus + Sonnet | Codex | Gemini |
+|------|---------------|-------|--------|
+| Codex host | `claude-runner` | native `spawn_agent` | `gemini-runner --role planner` (when local Gemini CLI present) |
+| Claude host | native Claude subagents | `codex-runner --role planner --restrict-tools --effort xhigh` | `gemini-runner --role planner` (when local Gemini CLI present) |
+| Other hosts (Gemini/Qwen/Kimi CLI, etc.) | `claude-runner` | `codex-runner --role planner --restrict-tools --effort xhigh` | `gemini-runner --role planner` (when local Gemini CLI present) |
 
-Use:
-- native `spawn_agent` for the Codex seat
-- `claude-runner` for Opus and Sonnet
-- `gemini-runner` with `--role planner` for Gemini, when the local Gemini CLI is available
-
-Do not use `codex-runner` for the Codex seat when native Codex subagents are available.
-
-For native Codex seats:
-- set `fork_context` to `false`
-- use the strongest reasoning effort available, usually `xhigh`
-- tell the seat to behave like a planner and produce only an initial thought
-
-### Claude Host
-
-Use:
-- native Claude subagents for Opus and Sonnet
-- `codex-runner` with `--role planner --restrict-tools --effort xhigh` for the Codex seat (matching the native-seat effort guidance)
-- `gemini-runner` with `--role planner` for Gemini, when the local Gemini CLI is available
-
-Do not use `claude-runner` for Opus or Sonnet when native Claude subagents are available.
-
-### Other Hosts
-
-On any other host (Gemini CLI, Qwen CLI, Kimi CLI, etc.), use the runner skills for all four seats with the same flags as above.
+All seats run as planners producing only an initial thought, with no write access during the council round. Use the strongest reasoning effort available — `xhigh` for Codex (native or runner). For native Codex seats also set `fork_context=false`.
 
 ### Fallbacks
 
@@ -269,6 +250,4 @@ This skill should activate for requests like:
 - "Use council to clarify this feature request and propose a plan."
 - "Run a quick council on this bug, then let Codex choose the plan."
 - "I want a simpler alternative to models-consensus with a short interview first."
-- "council where is the login screen"
-- "use council to find the file that handles sign-in"
 - "council what's the fix for this failing test"

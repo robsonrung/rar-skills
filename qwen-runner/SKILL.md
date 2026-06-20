@@ -5,7 +5,9 @@ description: Execute prompts using Qwen Code CLI in headless mode with JSON-stre
 
 # Qwen Runner
 
-Execute prompts through the local `qwen` CLI in one-shot headless mode. Prefer this skill for automation, councils, and scripted validation where structured stream output is helpful.
+Execute prompts through the local `qwen` CLI in one-shot headless mode. Prefer this skill for automation, councils, and scripted validation where structured stream output is helpful. This is also the canonical wrapper doc the gemma/glm/minimax shims point at.
+
+Roles, the output-envelope key contract, presenting-results rules, the background-jobs CLI, and the **seat fidelity** invariant are shared across runners — see `../_shared/references/runner-common.md`. Only this runner's deltas (the qwen-specific approval-mode/wrapper detail and gotchas) are inline below.
 
 ## Prerequisites
 
@@ -19,17 +21,7 @@ This skill invokes the local Qwen CLI from the current machine. Prompt text, pro
 
 ## Output Envelope
 
-All `--json` responses conform to `_shared/runner-envelope.schema.json` (bundled in this repo; installed at `.agents/skills/_shared/runner-envelope.schema.json`). The required top-level keys are:
-- `runner`
-- `effective_runner`
-- `effective_model`
-- `effective_provider`
-- `auth_ok`
-- `fallback_reason`
-- `success`
-- `return_code`
-
-The envelope also carries `agent_message` (the clean final answer extracted from the native result event, or trimmed stdout in `text` mode) and `session_id` when the native stream reports one. Orchestrators should read `agent_message` instead of parsing `stdout`.
+The required key contract is shared — see `../_shared/references/runner-common.md`. Qwen-specific extensions: `agent_message` (the clean final answer extracted from the native result event, or trimmed stdout in `text` mode) and `session_id` when the native stream reports one.
 
 ## Usage
 
@@ -71,14 +63,7 @@ Paths use the installed `.agents/skills/` layout; when running from this source 
 
 ## Roles
 
-Supported roles:
-- `planner`
-- `codereviewer`
-- `implementer`
-- `synthesizer`
-- `adversarial`
-- `challenger`
-- `researcher`
+The role list and the analysis-seat read-only default are shared — see `../_shared/references/runner-common.md`. For Qwen, analysis roles default to restricted mode: a read-only prompt overlay plus `--approval-mode plan`; pass `--allow-write` to opt out. Otherwise approval mode defaults to `default`.
 
 ## Examples
 
@@ -94,7 +79,7 @@ python3 .agents/skills/qwen-runner/scripts/run_qwen.py "Return JSON matching the
 2. Defaults to `--output-format stream-json` so automation can consume the native event stream.
 3. Returns a wrapper envelope with `success`, `stdout`, `stderr`, `return_code`, `runner`, and `effective_runner`.
 4. Keeps the native Qwen JSON or JSONL output in `stdout`; the wrapper `--json` flag only controls the outer envelope.
-5. Never falls back to another provider. Missing CLI or auth failures block the seat explicitly.
+5. Never falls back to another provider. Missing CLI or auth failures block the seat explicitly and report it absent (**seat fidelity**) — the seat is never substituted by another model.
 
 ## Return Codes
 
@@ -109,15 +94,11 @@ On `-2` the envelope also carries `status: seat_unavailable`. There is no separa
 
 ## Background Jobs
 
-`--background` detaches the run as a tracked job under `<working-dir>/.ai-workflow/runner-jobs/<job-id>/` and immediately prints `{success, job_id, pid, job_dir, ...}`. Manage jobs (`list`/`status`/`result`/`cancel`) with `python3 .agents/skills/_shared/scripts/runner_jobs.py`. This also applies to the gemma/glm/minimax shims, which tag jobs with their own runner name.
+`--background` runs as a tracked job; manage it with the shared jobs CLI (`list`/`status`/`result`/`cancel`) — see `../_shared/references/runner-common.md`. This also applies to the gemma/glm/minimax shims, which tag jobs with their own runner name.
 
 ## Presenting Results
 
-- Prefer `agent_message` over `stdout`; the raw stream is for debugging.
-- For reviews, keep findings ordered by severity and preserve file paths and line numbers exactly as reported.
-- Preserve evidence boundaries: if the model marked something as an inference or open question, keep that distinction.
-- Never auto-apply review findings; present them and ask which to fix.
-- If a run fails, report the failure with the most actionable stderr lines — do not silently substitute another model's answer.
+Shared rules (prefer `agent_message`, severity-ordered findings, evidence boundaries, never auto-apply, **seat fidelity** on failure) live in `../_shared/references/runner-common.md`.
 
 ## Gotchas
 

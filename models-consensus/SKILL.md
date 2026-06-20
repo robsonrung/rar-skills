@@ -1,6 +1,6 @@
 ---
 name: models-consensus
-description: Orchestrate a multi-model council across Claude Opus 4.7, Claude Sonnet 4.6, Codex, Gemini, Gemma, GLM, Kimi, and Minimax-backed seats using stance-driven rounds, blinded opening analyses, moderated rebuttals, and a final decision report. Use when a repository decision benefits from structured disagreement, tradeoff surfacing, or deliberate synthesis instead of a single-model answer. Also use when the user asks for multi-model validation, consensus review, or wants multiple AI perspectives on a design or architecture decision.
+description: Run a multi-round, stance-driven multi-model council — blinded opening analyses, moderated rebuttals, and a final decision report — over native and runner-backed seats (Claude Opus 4.8, Sonnet, Codex, Gemini, Gemma, GLM, Kimi, Minimax). Use when a repository decision benefits from structured disagreement, tradeoff surfacing, or deliberate synthesis instead of a single-model answer; also when the user asks for multi-model validation, consensus review, or multiple AI perspectives on a design or architecture decision. Distinct from models-roundtable (blind poll + synthesizer, one gap round) and council (single round, Codex decides) — pick this for multi-round stance-driven debate.
 ---
 
 # Models Consensus
@@ -41,7 +41,7 @@ Selection workflow:
 - Multi-select startup prompt template:
   `Which models to use?`
   `[ ] All available (Recommended)`
-  `[ ] Claude Opus 4.7`
+  `[ ] Claude Opus 4.8`
   `[ ] Claude Sonnet 4.6`
   `[ ] Codex`
   `[ ] Gemini`
@@ -65,7 +65,7 @@ Selection workflow:
 
 ### 1. Detect host-native seats
 
-- If `Agent` exists, Claude Opus 4.7 and Claude Sonnet 4.6 use native seats.
+- If `Agent` exists, Claude Opus 4.8 and Claude Sonnet 4.6 use native seats.
 - If `spawn_agent` and `wait_agent` exist, Codex uses a native seat.
 - Otherwise, those seats may use runner scripts if the local CLI exists.
 
@@ -94,7 +94,7 @@ Set artifact mode to:
 - `persisted` when `.ai-workflow/consensus/` exists or its parent is writable
 - `inline` when writes are blocked, risky, or unavailable in the current mode
 
-Apply the per-mode behaviors from [Artifact Policy](#artifact-policy).
+Apply the per-mode behaviors from [references/operations.md#artifact-policy](references/operations.md#artifact-policy).
 
 ### 4. Build a seat table
 
@@ -125,35 +125,6 @@ Use these rules:
 10. Treat Gemma, GLM, and Minimax as separate providers for diversity accounting unless the smoke test proves they resolve to the same effective provider and model.
 11. Continue with the remaining seats and lower confidence; never fabricate a missing seat.
 
-## Artifact Policy
-
-When artifact mode is `persisted`, use:
-- state: `.ai-workflow/consensus/{session_id}.json`
-- report: `.ai-workflow/consensus/{session_id}.md`
-- per-round outputs: `.ai-workflow/consensus/{session_id}-round-{n}-{seat}-output.json`
-- optional prompt files only when the selected runner requires them
-- prefer runner-level `--output-file` writes over shell redirection so incomplete seats do not leave misleading zero-byte artifacts
-
-When artifact mode is `inline`:
-- do not create temp prompt files; build prompts in memory
-- do not require `.ai-workflow/consensus/`
-- return the final report and state inline, with `report_path` and `state_path` set to `null`
-- keep round digests and moderator digests in memory
-
-## Runner Launch Policy
-
-Launch seats using native host tools when available; fall back to runner scripts only when native paths are unavailable. See [references/runner-invocations.md](references/runner-invocations.md) for complete invocation patterns, auth rules, and the runner output contract.
-
-Runner seats invoke local CLIs and may send prompt context, selected files, and runner metadata to their configured providers. Prefer `--restrict-tools` for review and planning seats. Do not pass permission bypass or full auto flags unless the user has explicitly approved unattended write capable execution for that run.
-
-Key flags for every runner-backed seat:
-- `--disable-fallback` (mandatory)
-- `--timeout 900`
-- `--json` for wrapper envelope
-- `--output-file` for persisted artifacts
-
-In `inline` mode, combine stance and brief into a single positional prompt. In `persisted` mode, use `--prompt-file` flags when the runner supports them.
-
 ## Cost Governance and Crash Recovery
 
 Both procedures live in [references/operations.md](references/operations.md); read them on demand:
@@ -163,35 +134,7 @@ Both procedures live in [references/operations.md](references/operations.md); re
 
 ## Response Schema Validation
 
-Validate seat outputs before accepting them into the moderator digest.
-
-**Round 1 required fields:**
-- `stance`
-- `position_summary`
-- `key_arguments`
-- `risks_or_limits`
-- `recommended_direction`
-- `confidence`
-- `questions_for_the_council`
-
-**Later rounds required fields:**
-- `updated_position`
-- `what_changed`
-- `points_conceded`
-- `remaining_objections`
-- `best_next_step`
-- `confidence`
-
-**Validation behavior:**
-- If a response is missing required fields, retry once with a compact schema reminder prepended to the prompt.
-- If the retry also fails, mark the seat as `malformed_output`, exclude it from the digest, and degrade gracefully.
-- Do not fabricate missing fields from the seat's partial output.
-
-**Schema reminder template** (prepend to prompts when retrying):
-```text
-Respond in JSON with exactly these top-level keys: [list keys].
-No markdown fencing. No extra commentary outside the JSON object.
-```
+Seat outputs ARE schema-validated before they enter the moderator digest: each is checked against the per-round required-field list, retried once on failure, then marked `malformed_output` and excluded if still invalid. The field lists, validation behavior, and the retry schema-reminder template live in [references/operations.md#response-schema-validation](references/operations.md#response-schema-validation).
 
 ## Interactive Questions
 
@@ -216,7 +159,7 @@ Additional rules:
 
 Never tell the user to reply with numbered choices when an interactive question tool exists.
 
-Startup seat-selection question: unless `--auto` is set, the first question of the run must ask which models or CLIs to use, following the selection workflow and prompt templates in preflight step 0.
+Startup seat-selection question: governed by [preflight step 0](#0-resolve-seat-selection-mode) — that is the single normative rule for when and how to ask.
 
 ## Degrade Gracefully
 
@@ -239,23 +182,9 @@ Moderator time budget:
 - Once at least 3 independent providers have completed and the major disagreements are already clear, stop waiting unless another seat is likely to change the decision materially.
 - After moderation cutoff, close native seats you no longer need and kill unfinished runner processes so councils do not leave background work behind.
 
-## Input Format
+## Input Format and Mode Behavior
 
-Expected input payload:
-- `question`: required
-- `context_files`: optional list of repo-relative or absolute file paths
-- `max_iterations`: optional, default `4`
-- `session_id`: required unique identifier
-- `auto`: optional boolean, default `false`
-- `mode`: optional, `interactive` (default) or `autonomous`
-
-Free-form shortcut:
-- `--auto` is equivalent to `auto=true`
-
-## Mode Behavior
-
-- `interactive`: ask the startup seat-selection question unless `--auto` is set, then pause later only when disagreement is material or preference-sensitive
-- `autonomous`: still ask the startup seat-selection question unless `--auto` is set, then run the remaining rounds without further pauses and return recommendations and reasoning
+The input payload schema (`question`, `context_files`, `max_iterations`, `session_id`, `auto`, `mode`, plus the `--auto` shortcut) and the per-mode pausing behavior are in [references/operations.md#input-format](references/operations.md#input-format) and [references/operations.md#mode-behavior](references/operations.md#mode-behavior). Startup seat selection is governed by [preflight step 0](#0-resolve-seat-selection-mode) in all modes.
 
 ## Council Model
 
@@ -420,7 +349,7 @@ Return:
 ## Important Rules
 
 1. Preflight first. Never launch seats from assumptions.
-2. Unless `--auto` is set, resolve the startup seat-selection question before running smoke tests or rounds.
+2. Resolve seat selection per [preflight step 0](#0-resolve-seat-selection-mode) before running smoke tests or rounds.
 3. Use the same shared brief for every participant in a round; only the stance overlay changes.
 4. Keep opening statements blinded from peer outputs.
 5. Treat the moderator as separate from all council seats.

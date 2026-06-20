@@ -27,9 +27,10 @@ Turn "which of the design lenses applies here?" from a judgment call into a look
 | Stored state, databases, queues, caches, migrations, retries, concurrency, external APIs | `data-systems-coding-lens` |
 | React components, hooks, contexts, rendering performance | `react-performance` |
 | Two or more competing approaches with real trade-offs | `architect-lens` |
-| Architectural impact needing a session-level review or ADR | `architecture_session_review` |
 
-No row matches → the change is local; return `proceed` with the note "no design gate required" and do not invent a review.
+**Fallback row (only when no specific row above fits):** no specific lens fits but the change is architecturally significant → `architecture_session_review` for a session-level review / ADR. Do not pair it with the rows above — it is the catch-all when a change is significant yet unroutable, not a peer lens.
+
+No row matches and the change is not architecturally significant → the change is local; return `proceed` with the note "no design gate required" and do not invent a review.
 
 ## Output contract
 

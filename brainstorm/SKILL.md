@@ -1,6 +1,6 @@
 ---
 name: brainstorm
-description: "Creative exploration of half-baked ideas, plans, designs, and bugs. Acts as a creative thinking partner: digs into the motivation behind a request, explores the codebase, expands the solution space with alternatives the user hasn't considered, and closes with a strategic BUILD/DEFER/REDUCE SCOPE/REJECT verdict. Use when the user wants to brainstorm, shares a half-baked idea and wants help sharpening it, asks 'should we build this' or 'sharpen this idea', wants to poke holes in an idea, play devil's advocate, or mentions 'challenge this' or 'what am I missing'."
+description: "Creative exploration of half-baked ideas, plans, designs, and bugs. Acts as a creative thinking partner: digs into the motivation behind a request, explores the codebase, expands the solution space with alternatives the user hasn't considered, and closes with a strategic BUILD/DEFER/REDUCE SCOPE/REJECT verdict. Use when the user wants to brainstorm, shares a half-baked idea and wants help sharpening it, asks 'should we build this' or 'sharpen this idea', or wants to play devil's advocate on an idea (poke holes, challenge this, what am I missing)."
 ---
 
 # Brainstorm: Creative Exploration
@@ -36,7 +36,7 @@ Once you understand the why, open up the solution space before narrowing it down
 3. **Challenge the framing** — is this the right change to make? Could the underlying goal be achieved differently? Play devil's advocate. For example, if the user wants to patch a bug where two views show different counts, maybe the real issue is a data model that stores the same fact in two places.
 4. **Surface trade-offs** — every choice has consequences. What are the ripple effects? Does this create inconsistency elsewhere? Does it set a precedent?
 
-Be creative here. Bring ideas the user hasn't thought of. Reference design principles, UX research, or patterns from the codebase. This is where you add the most value — not by asking "which of these 4 options do you want?" but by expanding what the user thought was possible.
+Reference design principles, UX research, or patterns from the codebase. This is where you add the most value — not by asking "which of these 4 options do you want?" but by expanding what the user thought was possible.
 
 ## Phase 3: Narrow Down Together
 

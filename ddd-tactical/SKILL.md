@@ -87,54 +87,22 @@ Flag combinations that fight each other: a domain model wired through a layered
 architecture that leaks persistence into the aggregate; an event-sourced model with no
 read-side projection.
 
-## Lens 3 — Aggregate correctness (Ch. 6) — only when it's a domain model
+## Lenses 3–5 — Domain-model correctness (only when it's a domain model)
 
-Review each aggregate against these hard rules:
+These three apply **only on the domain-model branch** of Lens 1. Each has full hard
+rules in `references/decision-trees.md` — read that file before reviewing the matching
+code, and review against *every* rule there, not just the first that catches.
 
-- **One aggregate per transaction.** A single operation may modify exactly one aggregate
-  instance, committed atomically. Needing to write two aggregates in one transaction =
-  **wrong boundary**. Eventual consistency (domain events) across aggregates; strong
-  consistency within.
-- **State changes only through the aggregate's own command methods.** External code reads
-  state but never mutates it. Public setters on an aggregate/entity = leak. The aggregate's
-  public interface validates input and enforces *all* invariants in one place.
-- **The application layer stays thin:** load → execute command → save → return. Business
-  rules that live in the service instead of the aggregate are misplaced.
-- **Concurrency is guarded** — version field + optimistic check on write. Without it,
-  concurrent updates silently corrupt state.
-- **Boundaries as small as the invariants allow.** Don't pull unrelated entities into an
-  aggregate just because they're related in the DB. Reference other aggregates by **id**,
-  not by holding the object.
-
-## Lens 4 — Value objects & ubiquitous language (Ch. 6)
-
-- **Primitive obsession.** Domain concepts modeled as bare `string`/`number`/`Date` —
-  `countryCode: string`, `email: string`, `amount: number` — should be value objects
-  (`Money`, `EmailAddress`, `Weight`) that centralize validation + behavior and make
-  invalid states unrepresentable. Especially money, weights, and measures in this domain.
-- **Value objects are immutable.** A change produces a new instance. A "value object" with
-  setters is really an entity (or a bug).
-- **Behavior, not just data.** Logic that manipulates a value belongs *on* the value object
-  (`weight.convertTo(...)`, `money.add(...)`), not scattered in services.
-- **Names speak the business language.** Code that reads as generic CRUD when the domain
-  experts speak in processes is a naming/modeling smell — see `ddd-strategic` for the
-  full ubiquitous-language lens.
-
-## Lens 5 — Reliable domain-event publishing (Ch. 9) — EDA-critical here
-
-This repo's event-driven backbone (see "Repo mapping" above) makes this lens critical
-here. Flag:
-
-- **Publishing from inside the aggregate**, or **publishing before the DB commit** — a
-  subscriber can see an event that contradicts (or never matches) committed state.
-- **Publish-after-commit in app code without an outbox** — if the process dies between
-  commit and publish, the event is lost and the system is inconsistent.
-- **Correct shape = outbox:** state change + outgoing event committed in one atomic
-  transaction; a relay reads the outbox and publishes to the bus, marking sent. Look for
-  this when domain events cross a transaction/bus boundary.
-- **Cross-aggregate / cross-context workflows** that need a **saga** (reacts to events,
-  issues commands, compensates on failure) or **process manager** (owns the state of a
-  multi-step flow) — not a synchronous multi-aggregate write.
+- **Lens 3 — Aggregate correctness (Ch. 6).** Transaction boundaries, command-only state
+  changes, thin app layer, concurrency guard, smallest boundary. **Review each aggregate
+  against ALL the hard rules** in the reference — passing one rule does not make it clean.
+- **Lens 4 — Value objects & ubiquitous language (Ch. 6).** Primitive obsession,
+  immutability, behavior-on-the-value, business-language names. See the reference for the
+  rules; `ddd-strategic` owns the full ubiquitous-language lens.
+- **Lens 5 — Reliable domain-event publishing (Ch. 9).** Don't publish from inside the
+  aggregate or before commit; use an outbox; route cross-aggregate flows through a saga or
+  process manager. EDA-critical here. Outbox mechanics and saga-vs-process-manager are in
+  the reference.
 
 ## Lens 6 — Has the pattern been outgrown? (Ch. 11)
 

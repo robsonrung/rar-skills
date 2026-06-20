@@ -7,12 +7,16 @@ description: Execute prompts using Codex CLI in non-interactive exec mode. Use w
 
 Execute prompts via Codex CLI `exec` mode with role overlays, native session resume, background jobs, and continuation support.
 
+Roles, the output-envelope key contract, presenting-results rules, the background-jobs CLI, and the **seat fidelity** invariant are shared across runners — see `../_shared/references/runner-common.md`. Only this runner's deltas are inline below.
+
 ## Runtime Compatibility
 
 1. Check whether `codex` CLI is available.
 2. If available, execute this skill normally.
 3. If unavailable, the script automatically falls back to the claude-runner skill (`run_claude.py`) and reports the provider switch (`fallback_from`, `fallback_reason`); runner provenance fields stay mandatory in the envelope.
 4. If `--disable-fallback` is set, `--resume`/`--resume-last` is requested (Codex sessions cannot be resumed by another runner), or no fallback runner is found, the script exits non-zero with `return_code` -2 and a clear prerequisite message.
+
+This upholds **seat fidelity**: the Codex seat's output is only ever Codex's, or the seat is reported absent — a claude fallback is always labeled via `fallback_from`/`fallback_reason`, never passed off as Codex.
 
 The broader cross-runner probe chain (codex -> qwen -> kimi -> gemini -> claude) is a contract owned by the runner skills that implement it (see the claude-runner skill's SKILL.md for its own fallback order); this wrapper implements only the codex -> claude leg.
 
@@ -22,19 +26,8 @@ This skill invokes the local Codex CLI from the current machine. Prompt text, pr
 
 ## Output Envelope
 
-All `--json` responses conform to `_shared/runner-envelope.schema.json` (bundled in this repo; installed at `.agents/skills/_shared/runner-envelope.schema.json`).
-Required top-level keys:
-- `runner`
-- `effective_runner`
-- `effective_model`
-- `effective_provider`
-- `auth_ok`
-- `fallback_reason`
-- `success`
-- `return_code`
-
-Envelopes also include `stdout`, `stderr`, and execution metadata (command, working directory, role, sandbox, and related fields), plus:
-- `agent_message` — the clean final answer from Codex (captured via `--output-last-message`), free of the activity transcript in `stdout`. Orchestrators should read this field instead of parsing `stdout`.
+The required key contract is shared — see `../_shared/references/runner-common.md`. Envelopes also include execution metadata (command, working directory, role, sandbox, and related fields). Codex-specific extensions:
+- `agent_message` — the clean final answer from Codex (captured via `--output-last-message`), free of the activity transcript in `stdout`.
 - `session_id` — the Codex session id when detectable, so the run can be continued with `--resume <id>` (or reopened interactively with `codex resume <id>`).
 
 ## Usage
@@ -82,16 +75,7 @@ When `--json` and `--output-file` are combined, stdout becomes a compact `{succe
 
 ## Roles
 
-Supported roles:
-- `planner`
-- `codereviewer`
-- `implementer`
-- `synthesizer`
-- `adversarial`
-- `challenger`
-- `researcher`
-
-Every role except `implementer` is an analysis seat and defaults to the Codex read-only sandbox. Pass `--allow-write` (or an explicit `--sandbox`/`--full-auto`) when an analysis role legitimately needs to write.
+The role list and the analysis-seat read-only default are shared — see `../_shared/references/runner-common.md`. For Codex, analysis roles default to the Codex read-only sandbox; pass `--allow-write` (or an explicit `--sandbox`/`--full-auto`) to opt out.
 
 ## Session Continuation
 
@@ -114,29 +98,14 @@ python3 .agents/skills/codex-runner/scripts/run_codex.py "Review the staged diff
 
 ## Background Jobs
 
-`--background` detaches the run as a tracked job under `<working-dir>/.ai-workflow/runner-jobs/<job-id>/` (manifest, log, and final envelope as `result.json`) and immediately prints `{success, job_id, pid, job_dir, ...}`.
-
-Manage jobs with the shared jobs CLI (used by all runner skills):
-
-```bash
-python3 .agents/skills/_shared/scripts/runner_jobs.py list [--runner codex]
-python3 .agents/skills/_shared/scripts/runner_jobs.py status [job-id]
-python3 .agents/skills/_shared/scripts/runner_jobs.py result [job-id]
-python3 .agents/skills/_shared/scripts/runner_jobs.py cancel [job-id]
-```
-
-`job-id` defaults to the most recent job. All subcommands accept `--working-dir` and `--json`. `status` reports `running`, `completed`, `failed`, `cancelled`, or `died` plus a log tail; `result` prints the stored `agent_message` (or the full envelope with `--json`) and the session id for follow-up resumes; `cancel` terminates the job's process group.
+`--background` runs as a tracked job (job dir holds the manifest, log, and final envelope as `result.json`); manage it with the shared jobs CLI (`list --runner codex` / `status` / `result` / `cancel`) — see `../_shared/references/runner-common.md`.
 
 ## Presenting Results
 
-When relaying Codex output back to a user or an orchestrator:
+Shared rules (prefer `agent_message`, severity-ordered findings, evidence boundaries, never auto-apply, **seat fidelity** on failure) live in `../_shared/references/runner-common.md`. Codex-specific additions:
 
-- Prefer `agent_message` over `stdout`; the transcript is for debugging.
-- For reviews, keep findings ordered by severity and preserve file paths and line numbers exactly as reported.
-- Preserve evidence boundaries: if Codex marked something as an inference, uncertainty, or open question, keep that distinction.
 - If Codex made edits, say so explicitly and list the touched files.
-- Never auto-apply review findings. After presenting a review, stop and ask which findings to fix.
-- If a Codex run fails mid-flight, report the failure with the most actionable stderr lines — do not silently substitute another model's answer. (Fallback applies only when the Codex CLI is missing, and it is always labeled via `fallback_from`/`fallback_reason`.)
+- Fallback applies only when the Codex CLI is missing, and it is always labeled via `fallback_from`/`fallback_reason`.
 
 ## Examples
 

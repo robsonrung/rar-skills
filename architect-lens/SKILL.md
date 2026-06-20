@@ -9,6 +9,8 @@ Two reusable lenses, distilled from *Fundamentals of Software Architecture* (Ric
 
 Core principle that governs both: **everything is a trade-off, and *why* matters more than *how*.** If an analysis ends with a single obviously-correct option and no cost, you have not finished analyzing.
 
+**Distinct from** `architecturehardparts` (service-decomposition / data-ownership / saga territory): this lens works at the code level — connascence and trade-offs in the code under your hands.
+
 ## When to use which lens
 
 - **Decision / trade-off lens** — you are *choosing*: an approach, a boundary, a library, sync vs async, monolith vs split, build vs reuse. → see `Decision lens` below.
