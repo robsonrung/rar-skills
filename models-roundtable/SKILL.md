@@ -1,6 +1,6 @@
 ---
 name: models-roundtable
-description: Answer a task by polling several models blind, then reconciling them into one consensus answer. Fan the RAW prompt out to five seats (Codex, Gemini, Kimi, Opus 4.8, Sonnet 4.6) with no orchestrator analysis so the seats stay unbiased; a dedicated organizer maps the answers into a five-dimension structured analysis (consensus, contradictions, partial coverage, unique insights, blind spots), one bounded gap-repair round closes the open points, two judges (Opus + Codex subagents) validate the still-open ones, and a dedicated synthesizer writes the final consensus answer. Read-only — produces a consensus answer + report, not code. Use when you want a higher-confidence answer/decision/analysis than one model gives, a multi-model second opinion, or to reconcile differing model answers. Distinct from models-consensus (stance/role-driven rounds) and council (single blind round, Codex decides).
+description: Answer a task by polling several models blind, then reconciling them into one consensus answer. Fan the RAW prompt out to six default seats, including GLM 5.2, with no orchestrator analysis so the seats stay unbiased; a dedicated organizer maps the answers into a five-dimension structured analysis (consensus, contradictions, partial coverage, unique insights, blind spots), one bounded gap-repair round closes the open points, two fresh judges validate the still-open ones, and a dedicated synthesizer writes the final consensus answer. Read-only — produces a consensus answer + report, not code. Use when you want a higher-confidence answer/decision/analysis than one model gives, a multi-model second opinion, or to reconcile differing model answers. Distinct from models-consensus (stance/role-driven rounds) and council (single blind round with a final decision model).
 ---
 
 # Models Round Table
@@ -22,7 +22,7 @@ Read-only: seats, organizer, judges, and synthesizer answer and analyze; they do
 
 ## Seats
 
-Five default seats. Launch each by its preferred path for the current host; fall back only when the native path is unavailable.
+Six default seats. Launch each by its preferred path for the current host; fall back only when the native path is unavailable.
 
 | Seat | Claude Code host (primary) | Fallback |
 |------|----------------------------|----------|
@@ -31,6 +31,7 @@ Five default seats. Launch each by its preferred path for the current host; fall
 | Codex | `codex-runner` (`--effort high`) | native `spawn_agent` on a Codex host |
 | Gemini | `gemini-runner` (Antigravity `agy`) | — (skip if `agy` missing) |
 | Kimi | `kimi-runner --model kimi-code/kimi-for-coding` | — (skip if `kimi-cli` missing) |
+| GLM 5.2 | `glm-runner --model z-ai/glm-5.2` | — (skip if `qwen` missing or GLM is unavailable) |
 
 **Quorum:** proceed only with **≥3 seats**.
 
@@ -53,10 +54,10 @@ Opus appears four ways (orchestrator, a seat, the organizer/synthesizer, a judge
 
 ## Preflight
 
-1. **Host & seats.** Detect the `Agent` tool (native Opus/Sonnet). Check `codex`, `agy` (Gemini), `kimi-cli` in `PATH`; mark missing seats `unavailable`. Enforce the ≥3 quorum, auto-engaging self-pairing only if needed to reach it.
+1. **Host & seats.** Detect the `Agent` tool (native Opus/Sonnet). Check `codex`, `agy` (Gemini), `kimi-cli` in `PATH`; mark missing seats `unavailable`. Also check `qwen` for GLM; mark GLM `unavailable` when `qwen` is missing or the runner reports a blocked seat. Enforce the ≥3 quorum, auto-engaging self-pairing only if needed to reach it.
 2. **Preset.** Pick a preset (default `quality`); it bundles panel size, whether self-pairing is on, tool profile, per-seat budget, judge count, and synthesizer strength:
    - `quality` — all available distinct seats, strongest organizer/synthesizer, two judges.
-   - `budget` — cheaper panel (e.g. Gemini + Kimi + one Claude), lighter synthesizer; note the lower confidence band. A cheaper diverse panel can still rival a single frontier model at materially lower cost.
+   - `budget` — cheaper panel (e.g. GLM + Gemini + Kimi, or one Claude), lighter synthesizer; note the lower confidence band. A cheaper diverse panel can still rival a single frontier model at materially lower cost.
    - `research` — `quality` panel + the `research_read_only` tool profile (below).
 3. **Tool profile (identical for all seats).** Default `no_tools`. Choose by task type and apply the **same** profile + budget to every seat:
    - `no_tools` — default; best for repo/code decisions and self-contained reasoning.
@@ -64,6 +65,7 @@ Opus appears four ways (orchestrator, a seat, the organizer/synthesizer, a judge
    - `research_read_only` — web search/fetch only (no repo); for research/multi-source/current-facts tasks. Require each seat to report sources used and failed lookups.
    - `repo_plus_research` — both, read-only.
    Never grant write/exec (e.g. bash mutation) — that violates Rule 2.
+   For GLM, only include it in a research profile when the qwen-backed runner can honor the same read-only research tool access as every other active seat; otherwise drop the GLM seat for that run and record the reason.
 4. **Repo grounding (optional).** Only if the task is about this repo: collect `CONTEXT.md`/ADRs and the relevant files to pass as **read-only context** so seats use the project's vocabulary. For a general (non-repo) task, skip this.
 5. **Artifact mode.** `persisted` when `.ai-workflow/` is writable → `.ai-workflow/roundtable/<session_id>/`; else `inline` (return paths `null`).
 6. **Session id.** Short stable id (e.g. `roundtable-<slug>`); use it for the artifact dir and filenames.
