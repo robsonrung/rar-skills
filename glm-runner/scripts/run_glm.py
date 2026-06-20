@@ -11,7 +11,7 @@ sys.path.insert(0, str(QWEN_RUNNER_DIR))
 import run_qwen  # noqa: E402
 
 
-DEFAULT_MODEL = "glm-5.1"
+DEFAULT_MODEL = "z-ai/glm-5.2"
 
 
 if __name__ == "__main__":
