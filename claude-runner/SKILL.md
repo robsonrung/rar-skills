@@ -23,7 +23,7 @@ This skill invokes the local Claude CLI from the current machine. Prompt text, p
 
 ## Output Envelope
 
-All `--json` responses must conform to `.agents/skills/_shared/runner-envelope.schema.json` (provisioned at install time; when that schema file is absent, the required-keys list below is the authoritative contract).
+All `--json` responses conform to `_shared/runner-envelope.schema.json` (bundled in this repo; installed at `.agents/skills/_shared/runner-envelope.schema.json`).
 Required top-level keys, always emitted:
 - `runner`
 - `effective_runner`

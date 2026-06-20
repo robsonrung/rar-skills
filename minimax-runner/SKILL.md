@@ -16,7 +16,7 @@ Pass `--model` if you want to target another Minimax model exposed by the local 
 ## Prerequisites
 
 - `qwen` installed and in `PATH`
-- `qwen auth` configured for the Minimax models you intend to use
+- A Minimax provider configured in the qwen CLI — a `modelProviders` entry in `~/.qwen/settings.json` (with its API key env var set) or credentials supplied via `--openai-api-key` / `--auth-type`. The legacy `qwen auth` subcommand has been removed.
 
 ## Security Model
 

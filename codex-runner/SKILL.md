@@ -22,7 +22,7 @@ This skill invokes the local Codex CLI from the current machine. Prompt text, pr
 
 ## Output Envelope
 
-All `--json` responses must conform to `.agents/skills/_shared/runner-envelope.schema.json` (an install-time path; the schema is not bundled in this repo, so the required-keys list below is the operative contract).
+All `--json` responses conform to `_shared/runner-envelope.schema.json` (bundled in this repo; installed at `.agents/skills/_shared/runner-envelope.schema.json`).
 Required top-level keys:
 - `runner`
 - `effective_runner`

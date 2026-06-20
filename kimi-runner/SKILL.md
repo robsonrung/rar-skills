@@ -19,7 +19,7 @@ This skill invokes the local Kimi CLI from the current machine. Prompt text, pro
 
 ## Output Envelope
 
-All `--json` responses must conform to the shared runner envelope contract (`.agents/skills/_shared/runner-envelope.schema.json`, provided by the skills install root; if that file is absent, the key list below is authoritative).
+All `--json` responses conform to the shared runner envelope contract (`_shared/runner-envelope.schema.json`, bundled in this repo and installed at `.agents/skills/_shared/runner-envelope.schema.json`).
 Required top-level keys:
 - `runner`
 - `effective_runner`
