@@ -22,7 +22,7 @@ Exact launch patterns for the seats, the organizer, the two judges, and the synt
 - **No silent swaps:** `--disable-fallback` on every runner.
 - **Keep transcripts out of context:** use `--output-file`; read `agent_message` from the file, not raw stdout.
 - **Timeout:** `--timeout 600` is ample for answering.
-- **Schema enforcement:** `--output-schema` is supported only by **Codex and Kimi**. Gemini and the Opus/Sonnet (native or claude-runner) seats have no schema flag — for them the JSON shape is enforced by the brief's trailing `Return ONLY JSON …` line.
+- **Schema enforcement:** `--output-schema` is supported by **Codex, Kimi, and the qwen-backed seats** (qwen/glm/gemma/minimax — the shared wrapper maps `--output-schema <path>` to the qwen CLI's native `--json-schema` flag, a synthetic `structured_output` tool). Gemini and the Opus/Sonnet (native or claude-runner) seats have no schema flag — for them the JSON shape is enforced by the brief's trailing `Return ONLY JSON …` line.
 - **Transient retry:** a runner returning `success=false` with no output file (e.g. `return_code -3` on a busy concurrent launch) may be **retried once sequentially** before the seat is dropped — concurrent back-to-back launches occasionally trip this and a lone retry clears it.
 
 Schemas:

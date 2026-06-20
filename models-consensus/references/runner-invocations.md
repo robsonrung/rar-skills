@@ -166,7 +166,7 @@ python3 .agents/skills/glm-runner/scripts/run_glm.py \
   --prompt-file .ai-workflow/consensus/{session_id}-round-{n}-glm.md \
   --timeout 900 \
   --role implementer \
-  --model glm-5.1 \
+  --model z-ai/glm-5.2 \
   --output-format stream-json \
   --json \
   --no-session-persistence \
@@ -185,7 +185,7 @@ python3 .agents/skills/glm-runner/scripts/run_glm.py \
   --prompt-file .ai-workflow/consensus/{session_id}-round-{n}-glm-critical.md \
   --timeout 900 \
   --role codereviewer \
-  --model glm-5.1 \
+  --model z-ai/glm-5.2 \
   --output-format stream-json \
   --json \
   --no-session-persistence \

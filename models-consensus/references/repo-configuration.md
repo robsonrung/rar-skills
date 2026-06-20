@@ -22,8 +22,8 @@ When adapting this skill to another project, update the base path or set a `RUNN
 | Gemini | — | `gemini-runner` | runner default or verified local CLI model |
 | Kimi | — | `kimi-runner --model kimi-code/kimi-for-coding` | `kimi-code/kimi-for-coding` |
 | Gemma | — | `gemma-runner --model google/gemma-4-31b-it` | `google/gemma-4-31b-it` |
-| GLM Pragmatic | — | `glm-runner --model glm-5.1` | `glm-5.1` |
-| GLM Critic | — | `glm-runner --model glm-5.1` | `glm-5.1` |
+| GLM Pragmatic | — | `glm-runner --model z-ai/glm-5.2` | `z-ai/glm-5.2` |
+| GLM Critic | — | `glm-runner --model z-ai/glm-5.2` | `z-ai/glm-5.2` |
 | Minimax | — | `minimax-runner --model minimax/minimax-m2.7` | `minimax/minimax-m2.7` |
 
 ## CLI Prerequisites
