@@ -24,6 +24,7 @@ Turn "which of the design lenses applies here?" from a judgment call into a look
 | Business-logic structure inside one context (aggregates, invariants, events) | `domain-driven-design` |
 | Code structure choices, extensibility, sprawling conditionals | `design-patterns` |
 | Layer placement, cohesion, dependency direction, scope creep | `architecture-lens` |
+| Module/class/API interface design — depth, information hiding, interface complexity | `software-design-philosophy` |
 | Stored state, databases, queues, caches, migrations, retries, concurrency, external APIs | `data-systems-coding-lens` |
 | React components, hooks, contexts, rendering performance | `react-performance` |
 | Two or more competing approaches with real trade-offs | `architecture-lens` |

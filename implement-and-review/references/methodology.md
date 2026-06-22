@@ -17,6 +17,7 @@ How the implement-and-review tracks use the repository's skills, and the exact t
 - **`coding-design-plan`** — shape non-trivial work in Phase 0 before briefing.
 - **`coding-implementation-guard`** — keep changes safe, local, and verifiable (stored state, APIs, async, retries, migrations).
 - **`test-lens`** — sanity-check test quality/coverage of the changed behavior.
+- **`architecture-lens`** — coupling/connascence and layer-placement/cohesion checks when restructuring (applies to both tracks, not just backend).
 
 ### Frontend track
 - **`frontend-design`** — distinctive, production-grade UI; avoid generic AI aesthetics; accessibility and polish.
@@ -26,7 +27,6 @@ How the implement-and-review tracks use the repository's skills, and the exact t
 ### Backend track
 - **`data-systems-coding-lens`** — stored state and integration points: transactions/atomicity, idempotency & safe retries, concurrency, migration safety & backfill, pagination, timeouts/circuit-breaking, observability, production-data risk.
 - **`domain-driven-design`** — pick the business-logic pattern (transaction script / active record / domain model / event-sourced) and keep aggregate invariants, value-object immutability, and reliable event publishing (tactical); and when the change crosses a service/bounded-context boundary or integrates a third party, the bounded-context & integration patterns (anticorruption layer, open-host service, outbox/saga) (strategic).
-- **`architecture-lens`** — coupling/connascence and layer-placement checks when restructuring.
 
 ### Final review (Phase 4)
 - **`full-review`** — the whole-change review; multi-model, verified, with a structural-maintainability pass.
