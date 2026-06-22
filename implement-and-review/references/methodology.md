@@ -6,15 +6,14 @@ How the implement-and-review tracks use the repository's skills, and the exact t
 
 - The **orchestrator** is Claude Code and can invoke any of these skills directly. Use them in Phase 0 (planning/design), when constructing review prompts, and for the Phase 4 `full-review`.
 - The **implementer/reviewer seats** are runner CLIs (Codex, Kimi) and native subagents — they **cannot load Claude Code skills**. So you carry the *methodology* to them: paste the relevant snippets below into each track's brief. Don't tell a seat to "use the tdd skill" — give it the TDD instructions.
-- Pick only what fits the change. A small CSS tweak doesn't need `ddd-tactical`; a queue consumer doesn't need `frontend-design`. Over-applying lenses wastes budget and muddies briefs.
+- Pick only what fits the change. A small CSS tweak doesn't need `domain-driven-design`; a queue consumer doesn't need `frontend-design`. Over-applying lenses wastes budget and muddies briefs.
 
 ## Skill map
 
 ### Both tracks
 - **`tdd`** — red-green-refactor, vertical slices (one failing test → minimal code → refactor on green). Tests verify behavior through public interfaces and survive refactors.
-- **`small-steps`** — keep each increment tiny and committed.
+- **`safe-incremental-coding`** — keep each increment tiny and committed; for untested/legacy code, build a characterization-test net *before* changing it, then TDD on top.
 - **`clean-code`** — naming, small focused units, no duplication/dead code; the "good code" bar.
-- **`refactor-to-testability`** — when the code you must change is untested/legacy, add a characterization-test safety net *before* changing it, then TDD on top.
 - **`coding-design-plan`** — shape non-trivial work in Phase 0 before briefing.
 - **`coding-implementation-guard`** — keep changes safe, local, and verifiable (stored state, APIs, async, retries, migrations).
 - **`test-lens`** — sanity-check test quality/coverage of the changed behavior.
@@ -26,9 +25,8 @@ How the implement-and-review tracks use the repository's skills, and the exact t
 
 ### Backend track
 - **`data-systems-coding-lens`** — stored state and integration points: transactions/atomicity, idempotency & safe retries, concurrency, migration safety & backfill, pagination, timeouts/circuit-breaking, observability, production-data risk.
-- **`ddd-tactical`** — pick the business-logic pattern (transaction script / active record / domain model / event-sourced) and keep aggregate invariants, value-object immutability, and reliable event publishing.
-- **`ddd-strategic`** — when the change crosses a service/bounded-context boundary or integrates a third party (anticorruption layer, open-host service, outbox/saga).
-- **`architect-lens` / `model-lens`** — coupling/connascence and layer-placement checks when restructuring.
+- **`domain-driven-design`** — pick the business-logic pattern (transaction script / active record / domain model / event-sourced) and keep aggregate invariants, value-object immutability, and reliable event publishing (tactical); and when the change crosses a service/bounded-context boundary or integrates a third party, the bounded-context & integration patterns (anticorruption layer, open-host service, outbox/saga) (strategic).
+- **`architecture-lens`** — coupling/connascence and layer-placement checks when restructuring.
 
 ### Final review (Phase 4)
 - **`full-review`** — the whole-change review; multi-model, verified, with a structural-maintainability pass.
@@ -90,7 +88,7 @@ Add to the FE review (Kimi) or BE review (Opus) prompt, on top of the review-out
 
 ```text
 Review through these lenses: <frontend: react-performance + frontend-design | backend:
-data-systems-coding-lens + ddd-tactical>. Confirm the changed behavior is covered by
+data-systems-coding-lens + domain-driven-design>. Confirm the changed behavior is covered by
 behavior-level tests written test-first, and that touched code was left clean (no new
 duplication, dead code, or naming drift). Flag any behavior change beyond the task scope.
 ```

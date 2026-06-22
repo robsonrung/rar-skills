@@ -1,6 +1,6 @@
 ---
 name: software-design-philosophy
-description: Write and review code to minimize long-term complexity, using the deep-modules framework from John Ousterhout's "A Philosophy of Software Design". Use when designing a module, class, or API; deciding where a boundary goes; judging whether an interface is too complex; weighing strategic vs tactical effort; reviewing code for design (not bug) quality; or when the user mentions deep modules, shallow modules, information hiding, complexity, or pulling complexity down. Distinct from clean-code (local refactoring moves), model-lens (layer placement), and architect-lens (connascence/trade-offs).
+description: Write and review code to minimize long-term complexity, using the deep-modules framework from John Ousterhout's "A Philosophy of Software Design". Use when designing a module, class, or API; deciding where a boundary goes; judging whether an interface is too complex; weighing strategic vs tactical effort; reviewing code for design (not bug) quality; or when the user mentions deep modules, shallow modules, information hiding, complexity, or pulling complexity down. Distinct from clean-code (local refactoring moves) and architecture-lens (layer placement, connascence/trade-offs).
 ---
 
 # A Philosophy of Software Design

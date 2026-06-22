@@ -18,7 +18,7 @@ Design principles:
                                               │
  0. FRAME      1. SPECIFY      2. PLAN        │  3. DESIGN GATE   4. IMPLEMENT     5. VERIFY        6. DELIVER
  brainstorm →  grill-with-docs to-tasks /     │  coding-design-   tdd +            full-review      PR + triage
- (prototype)   → to-prd /      collaborative_ │  plan + lens      small-steps +    (incl. security  label move +
+ (prototype)   → to-prd /      collaborative_ │  plan + lens      safe-increment   (incl. security  label move +
                collaborative_  task_design    │  router →         implementation-  + execution      handoff note
                specification   → APPROVAL ◄───┤  (models-         guard            verification)
                                   GATE        │  consensus if     (refactor-to-    → diagnose on
@@ -71,13 +71,13 @@ HITL slices (rare: irreversible migrations, externally visible API contracts, de
 
 | Slice touches | Lens skill(s) |
 |---|---|
-| New system/service/subsystem shape | `architecture-styles`, `design-integrity` |
-| Module/service boundaries, cross-context calls | `ddd-strategic`, `architecturehardparts` |
-| Business-logic structure inside one context | `ddd-tactical`, `design-patterns` |
-| Layering, "where does this code belong" | `model-lens` |
+| New system/service/subsystem shape | `macro-architecture`, `design-integrity` |
+| Module/service boundaries, cross-context calls | `domain-driven-design`, `macro-architecture` |
+| Business-logic structure inside one context | `domain-driven-design`, `design-patterns` |
+| Layering, "where does this code belong" | `architecture-lens` |
 | Stored state, queues, caches, migrations, retries, concurrency | `data-systems-coding-lens` |
 | React components/hooks/contexts | `react-performance` |
-| Competing approaches with real trade-offs | `architect-lens` |
+| Competing approaches with real trade-offs | `architecture-lens` |
 
 Lenses run as parallel read-only subagents; each returns **proceed / revise-plan** with findings. Escalation ladder when a decision is contested or irreversible:
 
@@ -87,8 +87,8 @@ Lenses run as parallel read-only subagents; each returns **proceed / revise-plan
 
 ### Phase 4 — Implement (autonomous, per task, isolated worktree)
 
-- Touching untested/legacy code → `refactor-to-testability` **first** (characterization net before change).
-- New behavior → `tdd` red-green-refactor, paced by `small-steps`.
+- Touching untested/legacy code → `safe-incremental-coding` **first** (characterization net before change).
+- New behavior → `tdd` red-green-refactor, paced by `safe-incremental-coding`.
 - `coding-implementation-guard` active throughout (safe, local, verifiable changes; stored-state/API/async/retry/migration checks).
 - Bugs found mid-implementation → `diagnose` (reproduce → minimise → hypothesise → instrument → fix → regression-test).
 - Context economy on long tasks: `codex-mission-control` / `handoff` for compact continuation instead of degrading in a bloated context.
@@ -126,7 +126,7 @@ Today, choosing among ~10 overlapping architecture/design lenses is itself a jud
 
 Two small parts: (a) the threat-model-lite question set merged into Phase 1 grilling, (b) deterministic trigger conditions for the Phase 5 deep security pass (slice touches auth/authz, parses untrusted input, handles secrets/PII, adds dependencies, changes CORS/headers/serialization, writes migrations). Keeps `full-review` unchanged; just controls when its security dimension goes deep and guarantees security questions are answered while the human is still in the room.
 
-Deliberately **not** proposed: a task-contract skill (it's a template inside `ship`), a test-strategy skill (`tdd` + `refactor-to-testability` + `test-lens` + the contract cover it), or any mega-skill duplicating phase content.
+Deliberately **not** proposed: a task-contract skill (it's a template inside `ship`), a test-strategy skill (`tdd` + `safe-incremental-coding` + `test-lens` + the contract cover it), or any mega-skill duplicating phase content.
 
 ---
 
@@ -139,7 +139,7 @@ Several skill clusters overlap; the pipeline picks **canonical defaults** and ke
 | Interview/clarify | `grill-with-docs` | `grill-me` (no domain docs), `council` (wants a plan out, not just clarity), `collaborative_discovery` (multi-model stakes) |
 | Spec | `to-prd` | `collaborative_specification` (high stakes) |
 | Task breakdown | `to-tasks` | `collaborative_task_design` (needs per-task test plans), `to-issues` (human-executed tickets, no contracts) |
-| Implementation rhythm | `tdd` + `small-steps` | `collaborative_delivery` (panel-gated, audit trail required), `pragmatic-coding-session` (lens, not loop) |
+| Implementation rhythm | `tdd` + `safe-incremental-coding` | `collaborative_delivery` (panel-gated, audit trail required), `pragmatic-coding-session` (lens, not loop) |
 | Review | `full-review` | `review` (standards+spec axes), `code-review` (quick) |
 
 ## Rollout

@@ -1,6 +1,6 @@
 ---
 name: architecture_session_review
-description: Session-level architecture review for a change that is architecturally significant but has no single specific lens — it ties the lenses together into one pass plus an ADR. Use for whole-session architecture reviews, refactors, migrations, feature design, pull request review, and ADR drafting. Distinct from design-gate, which ROUTES a change to the right specific lenses; if you need to pick lenses, use design-gate. Distinct from architect-lens (code-level connascence/trade-offs) and model-lens (layer placement/cohesion), which this skill points to rather than re-implementing.
+description: Session-level architecture review for a change that is architecturally significant but has no single specific lens — it ties the lenses together into one pass plus an ADR. Use for whole-session architecture reviews, refactors, migrations, feature design, pull request review, and ADR drafting. Distinct from design-gate, which ROUTES a change to the right specific lenses; if you need to pick lenses, use design-gate. Distinct from architecture-lens (code-level connascence/trade-offs and layer placement/cohesion), which this skill points to rather than re-implementing.
 ---
 
 # Architecture Session Review
@@ -38,8 +38,8 @@ If none apply, keep the work at normal code review depth.
 
 This skill is the session-level frame; it does not re-derive the per-lens analyses. Delegate them:
 
-- **Trade-offs and coupling** → run `architect-lens`: name the **connascence** type (strength × locality × degree) for any coupling the change adds, and use its decision lens to compare options (every option states what it gains and gives up — no option is free).
-- **Layer placement and cohesion** → run `model-lens`: does each module keep one clear responsibility, and does the dependency direction stay clean?
+- **Trade-offs and coupling** → run `architecture-lens`: name the **connascence** type (strength × locality × degree) for any coupling the change adds, and use its decision lens to compare options (every option states what it gains and gives up — no option is free).
+- **Layer placement and cohesion** → run `architecture-lens`: does each module keep one clear responsibility, and does the dependency direction stay clean?
 - **Runtime / data flow** → confirm the owning component or service stays clear and that sync vs async matches the needed reliability, latency, and consistency.
 - **Fitness function** → for each boundary worth protecting, name the automated check that guards it in future changes.
 

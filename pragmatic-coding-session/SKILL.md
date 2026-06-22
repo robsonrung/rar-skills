@@ -49,7 +49,7 @@ Use this pass before adding abstractions, changing data flow, or touching module
 7. Choose configuration for values that vary by environment, deployment, tenant, or operator choice.
 8. Delete or postpone abstractions that do not protect a real variation point.
 
-Hand off to `design-integrity`, `architect-lens`, `ddd-strategic`, or `ddd-tactical` when the design problem needs deeper treatment.
+Hand off to `design-integrity`, `architecture-lens`, or `domain-driven-design` when the design problem needs deeper treatment.
 
 ## Implementation
 
@@ -64,7 +64,7 @@ Use this pass while editing.
 7. Strengthen names before adding comments. Add comments only for constraints, intent, history, or tradeoffs.
 8. When discomfort appears, pause and identify the smell: unclear name, mixed responsibility, hidden state, weak test seam, distant coupling, timing dependence, or unknown behavior.
 
-Hand off to `small-steps`, `coding-implementation-guard`, `clean-code`, or `refactor-to-testability` for deeper mechanics, or to `tdd` when that skill is installed.
+Hand off to `safe-incremental-coding`, `coding-implementation-guard`, or `clean-code` for deeper mechanics, or to `tdd` when that skill is installed.
 
 ## Debugging
 
@@ -105,7 +105,7 @@ Use this pass before final delivery or during code review.
 5. Simplify while the context is fresh. Delete speculative structure and tighten names.
 6. Confirm the final answer says what changed, how behavior changed or stayed stable, and what was verified.
 
-Hand off to `coding-review-simplify`, `full-review`, `test-lens`, or `model-lens` when the diff needs deeper review.
+Hand off to `coding-review-simplify`, `full-review`, `test-lens`, or `architecture-lens` when the diff needs deeper review.
 
 ## Team And Handoff
 

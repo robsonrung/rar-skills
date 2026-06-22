@@ -35,7 +35,7 @@ Length: medium, concrete, example-driven.
 
 **Concern:** "Where are the boundaries, dependencies, and risks?"
 
-- Emphasize dependency direction and layer boundaries (pairs well with `model-lens`).
+- Emphasize dependency direction and layer boundaries (pairs well with `architecture-lens`).
 - Surface invariants, multi-tenancy enforcement points, transaction boundaries, the
   event-driven seams and their contracts.
 - Note coupling hotspots and single-points-of-failure factually.

@@ -43,9 +43,9 @@ These are Claude Code skills. The **orchestrator** invokes them directly — in 
 
 | Scope | Skills to apply |
 |-------|-----------------|
-| Both tracks | `tdd` (+ `small-steps`), `clean-code`, `refactor-to-testability` (untested/legacy code → characterization-test net first), `coding-design-plan`, `coding-implementation-guard`, `test-lens` |
+| Both tracks | `tdd` (+ `safe-incremental-coding`), `clean-code`, `safe-incremental-coding` (untested/legacy code → characterization-test net first), `coding-design-plan`, `coding-implementation-guard`, `test-lens` |
 | Frontend | `frontend-design`, `react-performance` (when React — 17 + MUI + Redux Toolkit: re-renders, memo, context, stale closures, fetch races), `ui-ux-pro-max` |
-| Backend | `data-systems-coding-lens` (stored state, transactions, idempotency/retries, concurrency, migrations, observability), `ddd-tactical` (business-logic pattern + aggregate invariants), `ddd-strategic` / `architect-lens` (when crossing a service/context boundary) |
+| Backend | `data-systems-coding-lens` (stored state, transactions, idempotency/retries, concurrency, migrations, observability), `domain-driven-design` (business-logic pattern + aggregate invariants; bounded-context boundaries & integration when crossing a service/context boundary), `architecture-lens` (coupling/layer placement when restructuring) |
 | Final review | `full-review`; `security-gate` / full-review `security_focus=true` when the change is security-sensitive |
 
 Apply only the lenses that fit the task; don't force every skill onto every change. Checklists + paste-in snippets: [references/methodology.md](references/methodology.md).
@@ -60,7 +60,7 @@ Apply only the lenses that fit the task; don't force every skill onto every chan
 ## Phase 0 — Plan the Task (gate)
 
 1. **Understand the task.** If it is ambiguous, clarify first.
-2. **Design pass** (lightweight) with the planning/architecture lenses as warranted — `coding-design-plan`, `design-gate`, `ddd-tactical` (BE business-logic pattern). Informs the briefs, not a deliverable.
+2. **Design pass** (lightweight) with the planning/architecture lenses as warranted — `coding-design-plan`, `design-gate`, `domain-driven-design` (BE business-logic pattern). Informs the briefs, not a deliverable.
 3. **Split the task** into a **frontend** part and a **backend** part with **disjoint file scopes** (e.g. `client/**` vs `server/**`), the **behaviors to test first**, and the **shared contracts** (API shapes, types) both tracks must honor. A task may be single-track (pure-FE or pure-BE).
 4. **Present** the split, which model does what, the behaviors-to-test, the shared contracts, and the verification commands. **Get approval before any code is written**, unless `--auto`.
 

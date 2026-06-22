@@ -19,14 +19,14 @@ Turn "which of the design lenses applies here?" from a judgment call into a look
 
 | Change touches | Lens skill(s) |
 |---|---|
-| Overall shape of a new system, service, or subsystem | `architecture-styles`, `design-integrity` |
-| Module/service boundaries, cross-context integration, naming vs business language | `ddd-strategic`, `architecturehardparts` |
-| Business-logic structure inside one context (aggregates, invariants, events) | `ddd-tactical` |
+| Overall shape of a new system, service, or subsystem | `macro-architecture`, `design-integrity` |
+| Module/service boundaries, cross-context integration, naming vs business language | `domain-driven-design`, `macro-architecture` |
+| Business-logic structure inside one context (aggregates, invariants, events) | `domain-driven-design` |
 | Code structure choices, extensibility, sprawling conditionals | `design-patterns` |
-| Layer placement, cohesion, dependency direction, scope creep | `model-lens` |
+| Layer placement, cohesion, dependency direction, scope creep | `architecture-lens` |
 | Stored state, databases, queues, caches, migrations, retries, concurrency, external APIs | `data-systems-coding-lens` |
 | React components, hooks, contexts, rendering performance | `react-performance` |
-| Two or more competing approaches with real trade-offs | `architect-lens` |
+| Two or more competing approaches with real trade-offs | `architecture-lens` |
 
 **Fallback row (only when no specific row above fits):** no specific lens fits but the change is architecturally significant → `architecture_session_review` for a session-level review / ADR. Do not pair it with the rows above — it is the catch-all when a change is significant yet unroutable, not a peer lens.
 

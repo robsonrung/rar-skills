@@ -15,7 +15,7 @@ Improve existing code so it is easier to read, safer to change, and simpler to t
 - Keep domain language visible. Do not hide business rules behind generic helpers.
 - Remove duplication only when duplicated code represents the same concept and has the same reason to change.
 - Avoid new patterns, dependencies, formatting churn, and module moves unless they clearly reduce real complexity.
-- If tests are missing or weak and the refactor is risky, improve existing tests, or add or suggest focused characterization tests as the behavior-preserving net, before changing structure deeply. For legacy code with no net to stand on, build that net first via `refactor-to-testability`, then return here.
+- If tests are missing or weak and the refactor is risky, improve existing tests, or add or suggest focused characterization tests as the behavior-preserving net, before changing structure deeply. For legacy code with no net to stand on, build that net first via `safe-incremental-coding`, then return here.
 
 ## Workflow
 

@@ -130,7 +130,7 @@ test('appends to the latest file when it has room', () => {
 });
 ```
 
-This is the same idea as `refactor-to-testability` (extract logic from hard deps) but aimed
+This is the same idea as `safe-incremental-coding` (extract logic from hard deps) but aimed
 specifically at producing **output-based** tests.
 
 ---
@@ -199,7 +199,7 @@ class InactivityChecker {
 
 - `tdd` / `clean-code` / `code-review` — see the SKILL.md frontmatter and intro for how
   `test-lens` differs from each.
-- `refactor-to-testability` — making scary legacy code safe to change. Overlaps on Humble
+- `safe-incremental-coding` — making scary legacy code safe to change. Overlaps on Humble
   Object / extracting logic; `test-lens` focuses on what makes the *new* test valuable.
-- `model-lens` / `architect-lens` — the functional-core/mutable-shell split here is the same
-  separation-of-concerns those lenses reward.
+- `architecture-lens` — the functional-core/mutable-shell split here is the same
+  separation-of-concerns that lens rewards.
