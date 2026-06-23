@@ -15,7 +15,7 @@ Run a feature through three interactive phases and four autonomous phases. All h
 | 1. Specify | interactive | `grill-with-docs` then `to-spec`; high-stakes or contested: `collaborative_discovery` then `collaborative_specification`. Run the `security-gate` spec-time checklist during the interview; `to-spec` records the answers as the PRD's Security Decisions and names the test seams, so Phase 2 can lift both. |
 | 2. Plan | interactive — last human gate | `to-tasks` (default) or `collaborative_task_design` (needs per-task test plans), then apply the `to-tasks` Slice Contract to its output. User approves the breakdown. |
 | 3. Design gate | autonomous, per task | `coding-design-plan`, then `design-gate` with the slice's lens flags |
-| 4. Implement | autonomous, per task | `tdd` + `safe-incremental-coding` with `coding-implementation-guard` active; `safe-incremental-coding` builds a characterization-test net first when touching untested legacy code; `diagnose` for bugs found mid-work |
+| 4. Implement | autonomous, per task | `tdd` + `safe-incremental-coding` with `coding-implementation-guard` active; `safe-incremental-coding` builds a characterization-test net first when touching untested legacy code; `diagnose` for bugs found mid-work. Panel-gated alternative when an audit trail of multi-model participation is required: `collaborative_delivery`. |
 | 5. Verify | autonomous | ordered, fail-fast: run the acceptance contract → `full-review` (deep security pass when flagged by `security-gate`) → `coding-review-simplify` → `verify`. Failures loop to phase 4 via `diagnose`. |
 | 6. Deliver | autonomous | commit, open PR, move the issue's triage label, write a `summarize` handoff note. The human merges. |
 
