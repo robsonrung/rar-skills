@@ -1,6 +1,6 @@
 ---
 name: data-systems-coding-lens
-description: Review the data-systems risk of a coding task — turn data-systems design ideas into concrete implementation checks, review findings, and verification steps. Use whenever a change touches stored state and async data paths (databases, queues, caches, search indexes, event streams, background jobs), migrations, external APIs, concurrency, retries, consistency, scalability, reliability, observability, or production data risk.
+description: Review the data-systems risk of a coding task — turn data-systems design ideas into concrete implementation checks, review findings, and verification steps. Use whenever a change touches stored state and async data paths (databases, queues, caches, search indexes, event streams, background jobs), migrations, external APIs, concurrency, retries, consistency, scalability, reliability, observability, or production data risk. Distinct from macro-architecture, which decides data ownership and service decomposition — this lens implements and verifies those data choices at the code level (schema, queries, migrations, consistency), it does not make them.
 ---
 
 # Data Systems Coding Lens

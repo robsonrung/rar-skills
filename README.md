@@ -68,8 +68,14 @@ A few skills reference sibling skills that are **not** part of this collection. 
 |------------------|-----------|---------|
 | `tdd` | `implement-and-review`, `ship`, coding workflows | from your TDD skill source, e.g. `npx skills@latest add <owner>/<repo> --skill tdd` |
 | `adversarial-review` | cross-model review workflows | from its source collection, same `npx skills@latest add` form |
+| `grill-with-docs` | `ship` phase 1 (specify interview) | from your skill source, same `npx skills@latest add` form |
+| `prototype` | `ship` phase 0 (frame — design unknowns) | same |
+| `diagnose` | `ship`, `pragmatic-coding-session` (bugs found mid-work) | same |
+| `handoff` | `ship` (context preservation on long slices) | same |
 
-If a referenced skill is absent, the calling skill notes it and continues with the lenses it can apply.
+`verify` (called by `ship` phase 5) is a **Claude Code built-in** skill — no install needed when running under Claude Code; under another host, substitute an equivalent run-the-app check.
+
+If a referenced skill is absent, the calling skill notes it and continues with the lenses it can apply — the pipeline degrades, it does not break.
 
 ## License
 

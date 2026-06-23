@@ -1,6 +1,6 @@
 ---
 name: design-integrity
-description: Review and shape software designs for conceptual integrity before or during coding. Use when the user asks to design or review an architecture, API surface, data model, module boundary, UI flow, or feature shape, to evaluate a refactor's shape, to compare design alternatives or tradeoffs, to design before code, or mentions design review, Brooks, The Design of Design, conceptual integrity, or system shape. Do not use for tiny mechanical edits unless the design choice is the problem.
+description: Review and shape software designs for conceptual integrity before or during coding. Use when the user asks to design or review an architecture, API surface, data model, module boundary, UI flow, or feature shape, to evaluate a refactor's shape, to compare design alternatives or tradeoffs, to design before code, or mentions design review, Brooks, The Design of Design, conceptual integrity, or system shape. Distinct from software-design-philosophy (module-level complexity and information hiding), design-patterns (whether a specific GoF pattern fits), and architecture-lens (code-level coupling and placement) — design-integrity is about one coherent concept spanning the whole design. Do not use for tiny mechanical edits unless the design choice is the problem.
 ---
 
 # Design Integrity

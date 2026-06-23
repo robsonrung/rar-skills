@@ -12,7 +12,7 @@ Run a feature through three interactive phases and four autonomous phases. All h
 | Phase | Mode | Invoke |
 |---|---|---|
 | 0. Frame | interactive, optional | `brainstorm` (fuzzy idea); `prototype` (design unknown only running code can settle) |
-| 1. Specify | interactive | `grill-with-docs` then `to-spec`; high-stakes or contested: `collaborative_discovery` then `collaborative_specification`. Run the `security-gate` spec-time checklist during the interview. |
+| 1. Specify | interactive | `grill-with-docs` then `to-spec`; high-stakes or contested: `collaborative_discovery` then `collaborative_specification`. Run the `security-gate` spec-time checklist during the interview; `to-spec` records the answers as the PRD's Security Decisions and names the test seams, so Phase 2 can lift both. |
 | 2. Plan | interactive — last human gate | `to-tasks` (default) or `collaborative_task_design` (needs per-task test plans), then apply the `to-tasks` Slice Contract to its output. User approves the breakdown. |
 | 3. Design gate | autonomous, per task | `coding-design-plan`, then `design-gate` with the slice's lens flags |
 | 4. Implement | autonomous, per task | `tdd` + `safe-incremental-coding` with `coding-implementation-guard` active; `safe-incremental-coding` builds a characterization-test net first when touching untested legacy code; `diagnose` for bugs found mid-work |
