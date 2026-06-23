@@ -18,7 +18,7 @@ Design principles:
                                               │
  0. FRAME      1. SPECIFY      2. PLAN        │  3. DESIGN GATE   4. IMPLEMENT     5. VERIFY        6. DELIVER
  brainstorm →  grill-with-docs to-tasks /     │  coding-design-   tdd +            full-review      PR + triage
- (prototype)   → to-prd /      collaborative_ │  plan + lens      safe-increment   (incl. security  label move +
+ (prototype)   → to-spec /      collaborative_ │  plan + lens      safe-increment   (incl. security  label move +
                collaborative_  task_design    │  router →         implementation-  + execution      handoff note
                specification   → APPROVAL ◄───┤  (models-         guard            verification)
                                   GATE        │  consensus if     (refactor-to-    → diagnose on
@@ -46,7 +46,7 @@ Skip when the request is already concrete.
 
 | Situation | Skill |
 |---|---|
-| Default | `grill-with-docs` (stress-test against `CONTEXT.md`/ADRs, updates them inline) → `to-prd` |
+| Default | `grill-with-docs` (stress-test against `CONTEXT.md`/ADRs, updates them inline) → `to-spec` |
 | High-stakes / contested feature | `collaborative_discovery` → `collaborative_specification` (multi-model PRD + tech spec via the runner family) |
 
 **Security shifts left here**: the proposed `security-gate` skill (below) injects a threat-model-lite checklist into the grilling — auth/authz surface, untrusted input, secrets, data sensitivity, dependency additions. Answers land in the PRD's Implementation Decisions, so the autonomous phases never have to ask.
@@ -137,7 +137,7 @@ Several skill clusters overlap; the pipeline picks **canonical defaults** and ke
 | Cluster | Pipeline default | Alternatives (when) |
 |---|---|---|
 | Interview/clarify | `grill-with-docs` | `grill-me` (no domain docs), `council` (wants a plan out, not just clarity), `collaborative_discovery` (multi-model stakes) |
-| Spec | `to-prd` | `collaborative_specification` (high stakes) |
+| Spec | `to-spec` | `collaborative_specification` (high stakes) |
 | Task breakdown | `to-tasks` | `collaborative_task_design` (needs per-task test plans), `to-issues` (human-executed tickets, no contracts) |
 | Implementation rhythm | `tdd` + `safe-incremental-coding` | `collaborative_delivery` (panel-gated, audit trail required), `pragmatic-coding-session` (lens, not loop) |
 | Review | `full-review` | `review` (standards+spec axes), `code-review` (quick) |

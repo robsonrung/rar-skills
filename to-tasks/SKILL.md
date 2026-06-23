@@ -33,8 +33,8 @@ Classify each slice **HITL** or **AFK**. HITL slices require human interaction �
 
 Add two fields to every slice while the user is still present:
 
-1. **`acceptance`** — exact commands that must pass (the repo's real test, lint, build commands plus any app-level check a verification skill can run) and the observable behaviors that prove the slice works. Done must be machine-checkable; never invent commands — verify each one exists in the repo.
-2. **`gates`** — which design lenses apply, selected from the routing table in `design-gate` by the surfaces the slice touches, and `security: deep|standard`, set from the trigger list in `security-gate` Part 2. Do not copy those tables here — read them and record only the resulting flags.
+1. **`acceptance`** — exact commands that must pass (the repo's real test, lint, build commands plus any app-level check a verification skill can run) and the observable behaviors that prove the slice works. When the source is a `to-spec` PRD, lift the behaviors from its Testing Decisions / named seams; name each at the **highest seam** as external behavior (`test-lens`), never an implementation detail — these become the test-first targets when `implement-and-review` builds the slice. Done must be machine-checkable; never invent commands — verify each one exists in the repo.
+2. **`gates`** — which design lenses apply, selected from the routing table in `design-gate` by the surfaces the slice touches, and `security: deep|standard`, set from the trigger list in `security-gate` Part 2 (when the source PRD has a Security Decisions section pre-marking security-sensitive surfaces, lift the flag from there instead of re-deriving). Do not copy those tables here — read them and record only the resulting flags.
 
 ### 5. Quiz the user — the approval gate
 

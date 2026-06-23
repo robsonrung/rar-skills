@@ -9,6 +9,8 @@ Implement **one scoped task** with two model tracks that build in parallel and r
 
 This skill builds **one task**. To break a plan into many tasks and build them all, use **`implement-feature`**, which calls this skill per task. Keep this skill simple and self-contained.
 
+**Runs standalone on any input grade.** The task can arrive as a one-line prompt, a tracker-issue brief, or a full `to-tasks` Slice Contract — the engine is the same; only how much it has to derive changes. It needs no pipeline around it: invoke it directly on a bare prompt and it derives the split, lenses, and done-gate itself. For unattended / looped use, pass `--auto` to skip the Phase 0 approval gate. A richer input (a Slice Contract) is an enrichment it *lifts* (Phase 0, step 1), never a requirement.
+
 Both tracks are **test-first (TDD)** and follow the **boy-scout rule** — leave touched code cleaner than found. The defining shape is **cross-model review**: the model that writes a track never reviews its own track.
 
 | Track | Implementer | Reviewer |
@@ -54,13 +56,13 @@ Apply only the lenses that fit the task; don't force every skill onto every chan
 
 1. **Host & git.** Confirm the `Agent` tool exists (native Opus subagents). Confirm `git rev-parse --is-inside-work-tree`. No git → sequential fallback (worktree reference).
 2. **Seats.** `codex` in `PATH` (BE implementer + a full-review external runner); `kimi-cli` in `PATH` (FE reviewer). Mark missing seats and degrade.
-3. **Verification commands.** Detect how this project tests/builds and runs a *single* test (TDD needs a fast inner loop). These also back the done gate.
+3. **Verification commands.** Detect how this project tests/builds and runs a *single* test (TDD needs a fast inner loop). These back the done gate — unless the task carries a Slice Contract, whose `acceptance` commands are the authoritative done gate (confirm they exist and run; reconcile with the user if they don't, never silently swap).
 4. **Base & artifacts.** Record the current head as `<base>` (when called by `implement-feature`, this is the task's assigned base). When `.ai-workflow/` is writable, use `.ai-workflow/impl-review/<session_id>/`; else keep state inline.
 
 ## Phase 0 — Plan the Task (gate)
 
-1. **Understand the task.** If it is ambiguous, clarify first.
-2. **Design pass** (lightweight) with the planning/architecture lenses as warranted — `coding-design-plan`, `design-gate`, `domain-driven-design` (BE business-logic pattern). Informs the briefs, not a deliverable.
+1. **Understand the task.** The default input is just a task description (often a bare prompt) — read it, and if it's ambiguous, clarify first (or, under `--auto`, record an assumption and proceed). **Lift a Slice Contract when one is present:** a task from `to-tasks` additionally carries `acceptance` (exact commands + observable behaviors) and `gates` (design-lens flags + `security: deep|standard`). When those fields exist, **lift them, don't re-derive them** — the `acceptance` commands ARE the done gate (Hard Rule 9) and the `behaviors` are the test-first targets; the `gates` flags select which lenses each track applies (step 2) and whether the final review runs `security_focus=true` (Phase 4). Re-deriving what an approved contract already states invites drift between what was approved and what gets built. With no contract, derive all of this yourself in the steps below.
+2. **Design pass** (lightweight) running the lenses the `gates` flags select when a contract is present, otherwise the planning/architecture lenses as warranted — `coding-design-plan`, `design-gate`, `domain-driven-design` (BE business-logic pattern). Informs the briefs, not a deliverable.
 3. **Split the task** into a **frontend** part and a **backend** part with **disjoint file scopes** (e.g. `client/**` vs `server/**`), the **behaviors to test first**, and the **shared contracts** (API shapes, types) both tracks must honor. A task may be single-track (pure-FE or pure-BE).
 4. **Present** the split, which model does what, the behaviors-to-test, the shared contracts, and the verification commands. **Get approval before any code is written**, unless `--auto`.
 
