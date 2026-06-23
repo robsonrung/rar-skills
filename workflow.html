@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>rar-skills — the workflow</title>
+<style>
+  :root{
+    --bg:#0b0e14; --bg2:#0e1219; --panel:#141a24; --panel2:#171f2b;
+    --line:#26303f; --line2:#1c2533;
+    --txt:#e6edf3; --muted:#9aa7b8; --faint:#6b7888;
+    --human:#f0b429; --human-dim:#7a5e18;
+    --auto:#34d399; --auto-dim:#1c5e48;
+    --gate:#fb7185; --gate-dim:#7a2f3a;
+    --accent:#5eb1ef; --accent-dim:#234a66;
+    --violet:#a78bfa;
+    --mono:"SF Mono",ui-monospace,"JetBrains Mono",Menlo,Consolas,monospace;
+    --sans:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0;background:radial-gradient(1200px 700px at 78% -8%,#16202e 0%,var(--bg) 60%);
+    color:var(--txt);font-family:var(--sans);line-height:1.55;
+    -webkit-font-smoothing:antialiased;letter-spacing:.1px;
+  }
+  .wrap{max-width:1120px;margin:0 auto;padding:0 24px}
+  a{color:var(--accent);text-decoration:none}
+
+  /* ---------- hero ---------- */
+  header.hero{padding:74px 0 38px;border-bottom:1px solid var(--line2)}
+  .eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:3px;text-transform:uppercase;color:var(--accent);margin:0 0 14px}
+  h1{font-size:clamp(34px,5vw,56px);line-height:1.04;margin:0 0 18px;font-weight:800;letter-spacing:-1px}
+  h1 .g{background:linear-gradient(95deg,var(--human),var(--gate) 48%,var(--auto));-webkit-background-clip:text;background-clip:text;color:transparent}
+  .lede{font-size:clamp(16px,2.1vw,20px);color:var(--muted);max-width:760px;margin:0}
+  .lede b{color:var(--txt);font-weight:600}
+
+  .principles{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:38px 0 4px}
+  .principle{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 16px 18px}
+  .principle .n{font-family:var(--mono);font-size:12px;color:var(--faint)}
+  .principle h4{margin:8px 0 6px;font-size:15px}
+  .principle p{margin:0;font-size:13px;color:var(--muted)}
+
+  section{padding:52px 0}
+  .sec-head{display:flex;align-items:baseline;gap:14px;margin:0 0 8px}
+  .sec-head h2{font-size:clamp(22px,3vw,30px);margin:0;font-weight:750;letter-spacing:-.4px}
+  .sec-head .tag{font-family:var(--mono);font-size:11px;color:var(--faint);letter-spacing:2px;text-transform:uppercase}
+  .sec-sub{color:var(--muted);max-width:780px;margin:0 0 30px;font-size:15px}
+
+  /* ---------- zone banner ---------- */
+  .zones{display:grid;grid-template-columns:1fr auto 1fr;gap:0;align-items:stretch;margin-bottom:26px;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+  .zone{padding:14px 20px;display:flex;flex-direction:column;gap:3px}
+  .zone.h{background:linear-gradient(180deg,rgba(240,180,41,.10),transparent)}
+  .zone.a{background:linear-gradient(180deg,rgba(52,211,153,.10),transparent);text-align:right}
+  .zone .lbl{font-family:var(--mono);font-size:11px;letter-spacing:2px;text-transform:uppercase}
+  .zone.h .lbl{color:var(--human)} .zone.a .lbl{color:var(--auto)}
+  .zone .d{font-size:13px;color:var(--muted)}
+  .gatecol{background:var(--gate-dim);display:flex;align-items:center;justify-content:center;padding:0 18px;border-left:1px solid var(--line);border-right:1px solid var(--line)}
+  .gatecol span{font-family:var(--mono);font-size:11px;color:#ffe3e8;text-align:center;letter-spacing:1px;line-height:1.4}
+
+  /* ---------- pipeline ---------- */
+  .pipe{display:grid;grid-template-columns:repeat(7,1fr);gap:10px}
+  .phase{position:relative;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 13px 15px;display:flex;flex-direction:column;min-height:198px}
+  .phase.human{border-top:3px solid var(--human)}
+  .phase.gate{border-top:3px solid var(--gate);box-shadow:0 0 0 1px var(--gate-dim),0 8px 30px -16px var(--gate)}
+  .phase.auto{border-top:3px solid var(--auto)}
+  .phase .ph{font-family:var(--mono);font-size:11px;color:var(--faint);margin-bottom:2px}
+  .phase h3{font-size:15px;margin:0 0 8px;letter-spacing:-.2px}
+  .phase .role{font-size:11.5px;color:var(--muted);margin-bottom:10px;min-height:30px}
+  .chips{display:flex;flex-direction:column;gap:5px;margin-top:auto}
+  .chip{font-family:var(--mono);font-size:11px;padding:3px 7px;border-radius:6px;background:var(--panel2);border:1px solid var(--line);color:#cdd9e6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .chip.opt{opacity:.62;border-style:dashed}
+  .gatebadge{position:absolute;top:-11px;right:10px;background:var(--gate);color:#3a0a12;font-family:var(--mono);font-size:9.5px;font-weight:700;padding:2px 7px;border-radius:20px;letter-spacing:.5px}
+  .flowline{display:flex;align-items:center;justify-content:center;gap:8px;margin:18px 0 0;font-size:12px;color:var(--faint);font-family:var(--mono)}
+  .flowline .seg{height:1px;flex:1;background:linear-gradient(90deg,var(--human),var(--gate),var(--auto))}
+
+  /* ---------- contract ---------- */
+  .contract{display:grid;grid-template-columns:1fr 1fr 1fr;gap:0;border:1px solid var(--line);border-radius:14px;overflow:hidden;background:var(--panel)}
+  .cstep{padding:22px 22px 24px;border-right:1px solid var(--line);position:relative}
+  .cstep:last-child{border-right:none}
+  .cstep .skill{font-family:var(--mono);font-size:13px;color:var(--accent);font-weight:600}
+  .cstep h4{margin:6px 0 12px;font-size:16px}
+  .cstep p{margin:0 0 10px;font-size:13px;color:var(--muted)}
+  .field{font-family:var(--mono);font-size:11.5px;background:var(--bg2);border:1px solid var(--line);border-radius:7px;padding:8px 10px;margin:7px 0;color:#cdd9e6}
+  .field b{color:var(--human)}
+  .field.g b{color:var(--auto)}
+  .arrow{position:absolute;right:-11px;top:50%;transform:translateY(-50%);z-index:2;width:22px;height:22px;border-radius:50%;background:var(--accent);color:#06202f;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800}
+
+  /* ---------- router table ---------- */
+  table{width:100%;border-collapse:collapse;font-size:13.5px;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+  thead th{background:var(--panel2);text-align:left;padding:12px 16px;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--faint);font-weight:600}
+  tbody td{padding:11px 16px;border-top:1px solid var(--line2);vertical-align:top}
+  tbody tr:hover{background:rgba(94,177,239,.05)}
+  td .lens{font-family:var(--mono);font-size:12px;color:var(--violet)}
+  td.touch{color:var(--muted);width:54%}
+
+  /* ---------- engines ---------- */
+  .engines{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+  .engine{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px}
+  .engine .nm{font-family:var(--mono);font-size:14px;color:var(--auto);font-weight:600}
+  .engine .scope{font-size:11px;font-family:var(--mono);color:var(--faint);text-transform:uppercase;letter-spacing:1px;margin:3px 0 11px}
+  .engine p{margin:0;font-size:13px;color:var(--muted)}
+  .engine .calls{margin-top:12px;font-size:11.5px;color:var(--faint)}
+  .engine .calls code{font-family:var(--mono);color:#cdd9e6}
+
+  /* ---------- clusters ---------- */
+  .clusters{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}
+  .cluster{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px 18px 20px}
+  .cluster h4{margin:0 0 4px;font-size:15px;display:flex;align-items:center;gap:9px}
+  .dot{width:9px;height:9px;border-radius:50%;flex:none}
+  .cluster .desc{font-size:12.5px;color:var(--muted);margin:0 0 13px}
+  .tags{display:flex;flex-wrap:wrap;gap:6px}
+  .tags .t{font-family:var(--mono);font-size:11px;padding:3px 8px;border-radius:6px;background:var(--panel2);border:1px solid var(--line);color:#cdd9e6}
+  .tags .t.ext{opacity:.6;border-style:dashed}
+
+  footer{padding:40px 0 70px;border-top:1px solid var(--line2);color:var(--faint);font-size:13px}
+  .legend{display:flex;gap:22px;flex-wrap:wrap;margin-bottom:14px}
+  .legend span{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--muted)}
+  .sw{width:13px;height:13px;border-radius:3px}
+
+  @media(max-width:920px){
+    .principles{grid-template-columns:repeat(2,1fr)}
+    .pipe{grid-template-columns:repeat(2,1fr)}
+    .contract{grid-template-columns:1fr}.cstep{border-right:none;border-bottom:1px solid var(--line)}
+    .arrow{display:none}
+    .engines,.clusters{grid-template-columns:1fr}
+    .zones{grid-template-columns:1fr}.gatecol{padding:10px}
+    .zone.a{text-align:left}
+  }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <p class="eyebrow">rar-skills · composable agent skills</p>
+    <h1>One workflow,<br><span class="g">idea → spec → tasks → shipped PR.</span></h1>
+    <p class="lede">A collection of ~50 Claude Code skills for design review, multi-model orchestration, and coding. They aren't a grab-bag — they <b>compose into a single pipeline</b> where every human decision is collected up front, and everything after the approval gate runs autonomously while still optimizing architecture, tests, simplicity, and security.</p>
+
+    <div class="principles">
+      <div class="principle"><div class="n">01</div><h4>Compose, don't duplicate</h4><p>Conductor skills are thin routers. Each behavior lives in exactly one skill and is referenced, never copied.</p></div>
+      <div class="principle"><div class="n">02</div><h4>Front-load judgment</h4><p>Every question an agent might ask mid-flight is answered while the human is still in the room — then encoded.</p></div>
+      <div class="principle"><div class="n">03</div><h4>The contract is the boundary</h4><p>A task marked <span style="font-family:var(--mono);color:var(--auto)">ready-for-agent</span> carries everything needed to finish it unattended.</p></div>
+      <div class="principle"><div class="n">04</div><h4>Vertical slices</h4><p>The unit of work cuts through every layer, is demoable alone, and ships with a machine-checkable acceptance contract.</p></div>
+    </div>
+  </div>
+</header>
+
+<!-- ============ PIPELINE ============ -->
+<section>
+  <div class="wrap">
+    <div class="sec-head"><h2>The pipeline</h2><span class="tag">skill: ship</span></div>
+    <p class="sec-sub">Three interactive phases, one approval gate, four autonomous phases. <code style="font-family:var(--mono);color:var(--accent)">ship</code> conducts it and holds no logic of its own — every box below is a call into the named skill.</p>
+
+    <div class="zones">
+      <div class="zone h"><span class="lbl">◐ Interactive — human in the loop</span><span class="d">Framing, specification, planning. All judgment is collected here.</span></div>
+      <div class="gatecol"><span>APPROVAL<br>GATE</span></div>
+      <div class="zone a"><span class="lbl">Autonomous — per task, in a worktree ◑</span><span class="d">Design → build → verify → deliver. Escalates to multi-model consensus instead of asking you.</span></div>
+    </div>
+
+    <div class="pipe">
+      <div class="phase human"><div class="ph">phase 0</div><h3>Frame</h3><div class="role">Optional. Sharpen a fuzzy idea or settle an unknown only running code can answer.</div><div class="chips"><span class="chip opt">brainstorm</span><span class="chip opt">prototype</span></div></div>
+
+      <div class="phase human"><div class="ph">phase 1</div><h3>Specify</h3><div class="role">Stress-test against the codebase, fold in the security threat-model, write the PRD.</div><div class="chips"><span class="chip">grill-with-docs</span><span class="chip">security-gate</span><span class="chip">to-spec</span></div></div>
+
+      <div class="phase gate"><div class="gatebadge">LAST HUMAN GATE</div><div class="ph">phase 2</div><h3>Plan</h3><div class="role">Break the PRD into tracer-bullet slices, each with its contract. You approve the breakdown.</div><div class="chips"><span class="chip">to-tasks</span><span class="chip opt">collaborative_task_design</span></div></div>
+
+      <div class="phase auto"><div class="ph">phase 3</div><h3>Design gate</h3><div class="role">Shape the plan, then run only the design lenses the slice's flags select.</div><div class="chips"><span class="chip">coding-design-plan</span><span class="chip">design-gate</span></div></div>
+
+      <div class="phase auto"><div class="ph">phase 4</div><h3>Implement</h3><div class="role">Test-first. Characterization net first on legacy. Diagnose bugs as they surface.</div><div class="chips"><span class="chip">tdd</span><span class="chip">safe-incremental-coding</span><span class="chip">coding-implementation-guard</span></div></div>
+
+      <div class="phase auto"><div class="ph">phase 5</div><h3>Verify</h3><div class="role">Fail-fast: acceptance → review → simplify → run the real app.</div><div class="chips"><span class="chip">full-review</span><span class="chip">coding-review-simplify</span><span class="chip">verify</span></div></div>
+
+      <div class="phase auto"><div class="ph">phase 6</div><h3>Deliver</h3><div class="role">Open the PR with acceptance evidence and the decision log. The human merges.</div><div class="chips"><span class="chip">PR + triage</span><span class="chip">summarize</span></div></div>
+    </div>
+
+    <div class="flowline"><span>brainstorm</span><span class="seg"></span><span>approve once</span><span class="seg"></span><span>green PR</span></div>
+  </div>
+</section>
+
+<!-- ============ CONTRACT ============ -->
+<section style="background:var(--bg2);border-top:1px solid var(--line2);border-bottom:1px solid var(--line2)">
+  <div class="wrap">
+    <div class="sec-head"><h2>The autonomy contract</h2><span class="tag">the spine of the trio</span></div>
+    <p class="sec-sub">What makes the autonomous half possible: each skill <b>lifts</b> what the previous one decided rather than re-deriving it. The spec names the security surface and the test seams; the planner turns them into a machine-checkable contract; the builder treats that contract as its definition of done.</p>
+
+    <div class="contract">
+      <div class="cstep">
+        <div class="skill">to-spec</div>
+        <h4>Synthesize the PRD</h4>
+        <p>No new interview — distills what you discussed into a PRD that answers everything the autonomous phases would otherwise ask.</p>
+        <div class="field"><b>Security Decisions</b> — threat-model-lite answers, recorded while you're here</div>
+        <div class="field"><b>Testing seams</b> — observable behavior at the highest seam (test-lens)</div>
+        <div class="arrow">→</div>
+      </div>
+      <div class="cstep">
+        <div class="skill">to-tasks</div>
+        <h4>Cut vertical slices</h4>
+        <p>Each slice is a tracer bullet through every layer, carrying a Slice Contract lifted straight from the PRD.</p>
+        <div class="field g"><b>acceptance</b> — exact commands + behaviors = "done"</div>
+        <div class="field g"><b>gates</b> — design lenses + security: deep | standard</div>
+        <div class="arrow">→</div>
+      </div>
+      <div class="cstep">
+        <div class="skill">implement-and-review</div>
+        <h4>Build it</h4>
+        <p>Lifts the contract: <code style="font-family:var(--mono);color:var(--auto)">acceptance</code> becomes the done-gate, <code style="font-family:var(--mono);color:var(--auto)">gates</code> select the lenses. Runs standalone on a bare prompt too.</p>
+        <div class="field">FE + BE tracks build in parallel worktrees</div>
+        <div class="field">cross-model review — the writer never reviews itself</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ DESIGN GATE ROUTER ============ -->
+<section>
+  <div class="wrap">
+    <div class="sec-head"><h2>The design-gate router</h2><span class="tag">judgment → lookup</span></div>
+    <p class="sec-sub">"Which design lens applies?" is itself a mid-flight question waiting to happen. <code style="font-family:var(--mono);color:var(--accent)">design-gate</code> turns it into a table: it reads the surfaces a change touches (or the slice's pre-set flags), runs at most three lenses as parallel read-only reviewers, and returns one <b>proceed / revise</b> verdict.</p>
+    <table>
+      <thead><tr><th class="touch">When the change touches…</th><th>Lens skill(s)</th></tr></thead>
+      <tbody>
+        <tr><td class="touch">Overall shape of a new system, service, or subsystem</td><td><span class="lens">macro-architecture · design-integrity</span></td></tr>
+        <tr><td class="touch">Module / service boundaries, cross-context integration, naming vs. business language</td><td><span class="lens">domain-driven-design · macro-architecture</span></td></tr>
+        <tr><td class="touch">Business-logic structure inside one context (aggregates, invariants, events)</td><td><span class="lens">domain-driven-design</span></td></tr>
+        <tr><td class="touch">Code-structure choices, extensibility, sprawling conditionals</td><td><span class="lens">design-patterns</span></td></tr>
+        <tr><td class="touch">Layer placement, cohesion, dependency direction, scope creep</td><td><span class="lens">architecture-lens</span></td></tr>
+        <tr><td class="touch">Module / class / API interface — depth, information hiding, complexity</td><td><span class="lens">software-design-philosophy</span></td></tr>
+        <tr><td class="touch">Stored state, queues, caches, migrations, retries, concurrency, external APIs</td><td><span class="lens">data-systems-coding-lens</span></td></tr>
+        <tr><td class="touch">React components, hooks, contexts, rendering performance</td><td><span class="lens">react-performance</span></td></tr>
+        <tr><td class="touch">Architecturally significant but no single lens fits → session review + ADR</td><td><span class="lens">architecture_session_review</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ============ ENGINES ============ -->
+<section style="background:var(--bg2);border-top:1px solid var(--line2);border-bottom:1px solid var(--line2)">
+  <div class="wrap">
+    <div class="sec-head"><h2>Build engines</h2><span class="tag">one task → one feature → consensus-first</span></div>
+    <p class="sec-sub">The same TDD + cross-model-review core, wrapped at three scopes. Each outer engine <b>calls</b> the inner one — it never re-implements it.</p>
+    <div class="engines">
+      <div class="engine">
+        <div class="nm">implement-and-review</div>
+        <div class="scope">scope · one task</div>
+        <p>Splits a task into frontend (Opus subagent, Kimi reviews) and backend (Codex builds, Opus reviews) tracks in parallel worktrees, loops implement → cross-review → fix, integrates, then runs full-review. Works on a bare prompt or a Slice Contract.</p>
+        <div class="calls">applies <code>tdd · clean-code · architecture-lens · ddd · data-systems-coding-lens · test-lens</code></div>
+      </div>
+      <div class="engine">
+        <div class="nm">implement-feature</div>
+        <div class="scope">scope · many tasks</div>
+        <p>Decomposes a plan with <code style="font-family:var(--mono)">to-tasks</code>, runs the dependency DAG (independent tasks in parallel), integrates in order, and closes with a feature-wide review focused on the cross-task seams.</p>
+        <div class="calls">calls <code>to-tasks → implement-and-review (per task) → full-review</code></div>
+      </div>
+      <div class="engine">
+        <div class="nm">feature-models-roundtable</div>
+        <div class="scope">scope · consensus first</div>
+        <p>When the approach is contested: poll several models for a consensus plan, resolve open caveats with you, then hand the settled plan to <code style="font-family:var(--mono)">implement-feature</code> to build.</p>
+        <div class="calls">calls <code>models-roundtable → implement-feature</code></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ CLUSTERS ============ -->
+<section>
+  <div class="wrap">
+    <div class="sec-head"><h2>The skill library</h2><span class="tag">by cluster</span></div>
+    <p class="sec-sub">Every skill in the collection, grouped by the job it does. Solid chips are bundled here; <span style="opacity:.7">dashed</span> are external dependencies the pipeline references and degrades around if absent.</p>
+
+    <div class="clusters">
+      <div class="cluster">
+        <h4><span class="dot" style="background:var(--human)"></span>Frame &amp; specify</h4>
+        <p class="desc">Turn a fuzzy idea into an approved, contract-bearing plan — the interactive half.</p>
+        <div class="tags"><span class="t">brainstorm</span><span class="t">to-spec</span><span class="t">to-tasks</span><span class="t">security-gate</span><span class="t">collaborative_discovery</span><span class="t">collaborative_specification</span><span class="t">collaborative_task_design</span><span class="t ext">grill-with-docs</span><span class="t ext">prototype</span></div>
+      </div>
+
+      <div class="cluster">
+        <h4><span class="dot" style="background:var(--violet)"></span>Design &amp; architecture lenses</h4>
+        <p class="desc">Read-only reviewers routed by design-gate; each names one risk and returns proceed / revise.</p>
+        <div class="tags"><span class="t">design-gate</span><span class="t">architecture-lens</span><span class="t">macro-architecture</span><span class="t">domain-driven-design</span><span class="t">design-integrity</span><span class="t">design-patterns</span><span class="t">software-design-philosophy</span><span class="t">architecture_session_review</span><span class="t">data-systems-coding-lens</span><span class="t">react-performance</span><span class="t">explain-architecture</span></div>
+      </div>
+
+      <div class="cluster">
+        <h4><span class="dot" style="background:var(--auto)"></span>Build &amp; coding practice</h4>
+        <p class="desc">The autonomous craft: test-first, safe on legacy, clean as you go, debug methodically.</p>
+        <div class="tags"><span class="t">implement-and-review</span><span class="t">implement-feature</span><span class="t">clean-code</span><span class="t">test-lens</span><span class="t">safe-incremental-coding</span><span class="t">coding-design-plan</span><span class="t">coding-implementation-guard</span><span class="t">pragmatic-coding-session</span><span class="t ext">tdd</span><span class="t ext">diagnose</span></div>
+      </div>
+
+      <div class="cluster">
+        <h4><span class="dot" style="background:var(--gate)"></span>Review &amp; verify</h4>
+        <p class="desc">The quality net at the end of every slice — multi-model, execution-based, then simplify.</p>
+        <div class="tags"><span class="t">full-review</span><span class="t">coding-review-simplify</span><span class="t">verify</span><span class="t ext">review</span><span class="t ext">code-review</span><span class="t ext">adversarial-review</span></div>
+      </div>
+
+      <div class="cluster">
+        <h4><span class="dot" style="background:var(--accent)"></span>Multi-model orchestration</h4>
+        <p class="desc">When one model isn't enough — blind polls, stance-driven debate, panel-gated delivery. Replaces asking the user during autonomous phases.</p>
+        <div class="tags"><span class="t">models-roundtable</span><span class="t">models-consensus</span><span class="t">council</span><span class="t">feature-models-roundtable</span><span class="t">collaborative_delivery</span><span class="t">dynamic-harness</span></div>
+      </div>
+
+      <div class="cluster">
+        <h4><span class="dot" style="background:#c0cad8"></span>Runner seats &amp; meta</h4>
+        <p class="desc">Thin CLI shims that give the multi-model skills their seats — plus skills for context economy and authoring skills themselves.</p>
+        <div class="tags"><span class="t">claude-runner</span><span class="t">codex-runner</span><span class="t">gemini-runner</span><span class="t">kimi-runner</span><span class="t">qwen-runner</span><span class="t">glm-runner</span><span class="t">gemma-runner</span><span class="t">minimax-runner</span><span class="t">opencode-runner</span><span class="t">codex-mission-control</span><span class="t">skill-expert</span><span class="t">summarize</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div class="legend">
+      <span><span class="sw" style="background:var(--human)"></span>Interactive — human judgment</span>
+      <span><span class="sw" style="background:var(--gate)"></span>Approval gate — the last touchpoint</span>
+      <span><span class="sw" style="background:var(--auto)"></span>Autonomous — runs unattended</span>
+      <span><span class="sw" style="background:var(--violet)"></span>Design lens (read-only reviewer)</span>
+    </div>
+    <p style="margin:0">rar-skills — design review, multi-model orchestration, and coding workflows for Claude Code. The whole point: <b style="color:var(--txt)">approve once, then merge a green PR.</b></p>
+  </div>
+</footer>
+
+</body>
+</html>
