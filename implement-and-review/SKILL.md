@@ -55,7 +55,7 @@ Apply only the lenses that fit the task; don't force every skill onto every chan
 ## Preflight
 
 1. **Host & git.** Confirm the `Agent` tool exists (native Opus subagents). Confirm `git rev-parse --is-inside-work-tree`. No git → sequential fallback (worktree reference).
-2. **Seats.** `codex` in `PATH` (BE implementer + a full-review external runner); `kimi-cli` in `PATH` (FE reviewer). Mark missing seats and degrade.
+2. **Seats.** Use the shared probe: `python3 .agents/skills/_shared/scripts/discover_runners.py probe --native-agent yes --seat codex --seat kimi --format json`. Require `codex.available` (BE implementer + a full-review external runner) and `kimi.available` (FE reviewer). Mark missing seats and degrade.
 3. **Verification commands.** Detect how this project tests/builds and runs a *single* test (TDD needs a fast inner loop). These back the done gate — unless the task carries a Slice Contract, whose `acceptance` commands are the authoritative done gate (confirm they exist and run; reconcile with the user if they don't, never silently swap).
 4. **Base & artifacts.** Record the current head as `<base>` (when called by `implement-feature`, this is the task's assigned base). When `.ai-workflow/` is writable, use `.ai-workflow/impl-review/<session_id>/`; else keep state inline.
 

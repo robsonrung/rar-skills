@@ -37,6 +37,7 @@ Use these knobs when requested or when context makes them obvious:
 | `verify_mode` | true | Run verification where execution is possible |
 | `confidence_threshold` | per mode | Override the active threshold from `references/filtering_pipeline.md` section 4 |
 | `security_focus` | false | Prioritize the security dimension; optionally takes recorded security decisions to verify against |
+| `triangulation` | per mode | External-runner posture: `off`, `light`, or `quality`. Defaults: `quick_mode` → `light`; ultra/thorough → `quality`; otherwise `quality` when ≥3 runner CLIs are present, else `light` |
 
 When `security_focus=true` (set by the caller — e.g. a pipeline's `security-gate` for a `security: deep` change): treat any provided security decisions (recorded auth, validation, logging, and tenancy choices) as hard constraints and explicitly check the implementation against each; activate the `specialist_authorization`, `specialist_database`, and `specialist_data_integrity` specialists in Phase 3 regardless of trigger patterns; and never drop security-category findings to satisfy `max_comments`.
 
@@ -65,7 +66,7 @@ Bugs found: N | Verified: X | Refuted: Y | Verdict: APPROVE|COMMENT|REQUEST_CHAN
 | 5 | Synthesize | Merge, dedupe, confidence-filter, and cap findings |
 | 6 | Deliver | Emit verdict, report, JSON, and inline comments when supported |
 
-In quick mode, keep Phase 0 and Phase 1, narrow Phase 2 to security/runtime/compatibility blockers, run only bug finders plus at most one external runner in Phase 3, skip Phase 4, and apply the quick-mode synthesis threshold from `references/filtering_pipeline.md` section 4.
+In quick mode, keep Phase 0 and Phase 1, narrow Phase 2 to security/runtime/compatibility blockers, run only bug finders plus the `triangulation: light` external panel in Phase 3, skip Phase 4 (both execution-based verify and the adversarial-verify sub-pass), and apply the quick-mode synthesis threshold from `references/filtering_pipeline.md` section 4. The fresh-model synthesizer in Phase 5 still runs.
 
 ## Phase 0: Calibrate
 
@@ -184,19 +185,90 @@ Tag specialist findings with `specialist_database`, `specialist_api_contract`, `
 
 ### External Runners
 
-Invoke at least two external runners when available. Use `references/external_prompt_template.md`, write prompts to files under `artifacts/full-review/`, redirect runner output to persistent files, and check exit codes explicitly.
+External runners are a panel of distinct-model reviewers, each assigned a **specific lens** rather than a generic role. The roster is data-driven from the runners present on the host — not a fixed three.
 
-Never fail the review because an external runner is unavailable. If zero external runners execute, note that triangulation was unavailable and lower the confidence cap by `0.1` in synthesis. If exactly one external runner executes, note partial triangulation without changing confidence handling.
+#### Runner Discovery
+
+At preflight, run the shared probe and record the resulting seat table:
+
+```bash
+python3 .agents/skills/_shared/scripts/discover_runners.py probe \
+  --native-agent yes \
+  --format json
+```
+
+Pass `--native-agent yes` only when the host exposes the native `Agent` tool (Claude Code); otherwise pass `no` or omit. The script returns the JSON envelope documented in `_shared/scripts/discover_runners.py`: `seats[]` (each with `seat`, `execution_path`, `available`, `version`, `cli_path`, `blocked_reason`, `depends_on`, `notes`) plus `summary.light_quorum_met` and `summary.quality_quorum_met`. Use those fields directly — do not re-probe `PATH` inline.
+
+The probe covers this default candidate set, in priority order:
+
+| Seat | Execution path | Default lens |
+|------|----------------|--------------|
+| `opus` | native `Agent` subagent (`model: "opus"`) or `claude-runner --model claude-opus-4-8` | `structural_maintainability` |
+| `sonnet` | native `Agent` subagent (`model: "sonnet"`) or `claude-runner --model claude-sonnet-4-6` | `security_runtime` |
+| `codex` | `codex-runner --effort high` | `logic_state` |
+| `gemini` | `gemini-runner` (Antigravity `agy`) | `cross_file_consistency` |
+| `kimi` | `kimi-runner --model kimi-code/kimi-for-coding` | `broad_sweep` (input/auth) |
+| `glm` | `glm-runner --model z-ai/glm-5.2` | `broad_sweep` (resources/exposure) |
+| `gemma` | `gemma-runner` | `broad_sweep` (regression/perf) |
+| `qwen` | `qwen-runner` | `logic_state` backup |
+| `minimax` | `minimax-runner` | `cross_file_consistency` backup |
+
+Mark seats with `available: false` as `unavailable` in your run config and continue. Never fail the review because a runner is missing.
+
+#### Triangulation Preset
+
+The `triangulation` knob selects how many seats run and which lenses are mandatory:
+
+| Preset | Seats engaged | Lens coverage |
+|---|---|---|
+| `off` | none | Skip external runners entirely. Use only when the host has zero runners or the caller explicitly disables. |
+| `light` | 2 cheap seats (kimi + glm, falling back to gemma/qwen) | `broad_sweep` only, with two non-overlapping `category_emphasis` assignments. Default for `quick_mode`. |
+| `quality` | All available distinct seats, up to 6 | One seat per lens (`logic_state`, `cross_file_consistency`, `broad_sweep` ×1–3, `security_runtime`, `structural_maintainability`). Default otherwise. |
+
+When `security_focus=true`, force the `security_runtime` lens to be filled even if it costs the `structural_maintainability` seat.
+
+#### Quorum
+
+Require **at least 3 distinct external seats** in `quality` mode (`light` requires 2). If quorum is not met:
+
+1. Try to fill open lenses from the backup column of the discovery table.
+2. If still under quorum, run with what is available, mark the review's confidence cap at `0.85` (no finding can exceed this), and record `triangulation: degraded` in the report.
+3. In `quick_mode`, the quorum is **bypassed** — proceed with as few as one runner, and note the degraded posture.
+
+The prior "lower the confidence cap by 0.1 when zero runners execute" rule is **removed**; the cap above is the single posture.
+
+#### Seat → Lens Routing
+
+For each engaged seat, the orchestrator picks a lens from `references/external_prompt_template.md` (seat → lens default table), then composes the base template with that lens's `<role>`, `<what_to_look_for>`, `<focus_emphasis>`, `<context_window_policy>`, and `{category_emphasis}` slot.
+
+Two seats may share a lens (e.g. three `broad_sweep` seats) only when they receive non-overlapping `{category_emphasis}` values.
+
+#### Identical Conditions
+
+Every engaged seat receives **the same**:
+
+1. Diff (and the same `{extended_context}` payload when the lens calls for it).
+2. `rules_compact`.
+3. Tool profile and budget.
+4. `--disable-fallback` (or runner-equivalent) so a missing CLI does not silently borrow another provider.
+
+Uneven access biases the panel and breaks the multi-model corroboration boost in synthesis.
+
+#### Invocation
+
+Use `references/external_prompt_template.md`, write composed prompts to files under `artifacts/full-review/`, redirect runner output to persistent files, and check exit codes explicitly. Launch all engaged seats **concurrently**.
 
 For each successful runner:
 
 1. Parse JSON against `references/review_output_schema.json`.
-2. Tag comments with `external_claude`, `external_codex`, or `external_gemini`.
+2. Tag comments with `external_<seat>` — the seat id from runner discovery (e.g. `external_opus`, `external_codex`, `external_gemini`, `external_kimi`, `external_glm`, `external_gemma`, `external_qwen`, `external_minimax`, `external_sonnet`).
 3. Discard invalid JSON or nonzero exits and note the failure in the report.
 
 ## Phase 4: Verify
 
 Apply verification before synthesis.
+
+Start with a **pre-verify dedupe pass**: walk every candidate finding, group near-duplicates by `(path, line_range, category)` per `references/filtering_pipeline.md` section 3, and compute the `corroborated_models` count on each surviving candidate. This pass exists only to inform Phase 4 trigger decisions (the canonical dedupe + confidence boost run in Phase 5 — do not apply the confidence bumps here).
 
 Runtime, security, correctness, regression, performance, and reliability findings require execution-based proof when `verify_mode=true`.
 
@@ -212,19 +284,49 @@ Structural maintainability findings are evidence-checked rather than runtime-ver
 
 Do not modify project files during verification.
 
+### Adversarial-Verify Sub-Pass
+
+After execution-based verification, hot single-model findings get a refute-by-default skeptic vote from the cheap pool (Kimi/GLM/Gemma) following `references/adversarial_verify.md`. Trigger conditions, skeptic selection, voting math, and the surviving-finding confidence delta live in that reference.
+
+Run conditions in brief:
+
+- Skip when `triangulation: off`.
+- Trigger on `security|correctness|reliability|performance` findings at CRITICAL or HIGH severity with `corroborated_models == 1` and no Phase 4 verdict.
+- Up to 10 findings per review enter this sub-pass; prioritize by severity, then confidence.
+
+Refuted findings are dropped before Phase 5. Surviving findings carry `adversarial_verify` metadata into synthesis.
+
 ## Phase 5: Synthesize
 
-Combine candidate comments from all gates, bug finders, personas, specialists, external runners, existing PR comments, and orchestrator analysis.
+Synthesis is delegated to a **fresh-model synthesizer**, not run inline by the orchestrator. The orchestrator assembles the inputs, the synthesizer applies the filtering pipeline and writes the final candidate list, and the orchestrator validates the output against the record.
 
-Apply `references/filtering_pipeline.md`:
+### Synthesizer
 
-1. Normalize fields.
-2. Require path, line range, and concrete evidence.
-3. Dedupe by path, overlapping line range, and category.
-4. Merge corroborated sources.
-5. Drop comments below the active threshold per `references/filtering_pipeline.md` section 4.
-6. Keep all CRITICAL and HIGH findings even when over `max_comments`.
-7. Suppress cosmetic style, broad refactor wishes, generic hardening requests, pre-existing issues outside the diff, and already-raised issues.
+A fresh read-only subagent context — default Opus 4.8 (`Agent` with `subagent_type=general-purpose`, `model: "opus"`) — receives:
+
+1. All candidate comments from gates, bug finders, personas, specialists, external runners, and existing PR comments.
+2. A per-finding **corroboration map** keyed by `(path, line_range, category)` showing every originating source and the `corroborated_models` count.
+3. The `adversarial_verify` metadata block on findings that went through Phase 4's sub-pass.
+4. `rules_compact` and `triangulation` posture (`off | light | quality | degraded`).
+5. The current values of `max_comments`, `quiet_mode`, `quick_mode`, and `confidence_threshold`.
+
+The synthesizer:
+
+1. Applies `references/filtering_pipeline.md` end to end (normalize → evidence → dedupe + multi-model corroboration boost → confidence filter → risk-based cap → tone).
+2. Suppresses cosmetic style, broad refactor wishes, generic hardening requests, pre-existing issues outside the diff, and already-raised issues.
+3. Returns the final list of comments tagged with `source: synthesizer` only on net-new findings (rare — only when synthesis surfaces a missed cross-link); preserves the originating `source` and `corroborated_by` on every other comment.
+4. Returns a short "synthesis log" describing which corroboration bumps and adversarial-verify drops were applied — this becomes the report's "Synthesis activity" section.
+
+### Orchestrator Validation
+
+The orchestrator does **not** rewrite the synthesizer's output prose. It validates:
+
+1. Every emitted comment has `path`, `line_range`, and concrete evidence.
+2. No comment was added with a stronger severity than its originating source justified (the corroboration-boost upgrade in `references/filtering_pipeline.md` section 3 is the only allowed bump path).
+3. Refuted adversarial-verify findings are absent.
+4. Counts in the human report match the JSON.
+
+If validation fails, send the synthesizer one bounded repair round with the specific issue. Do not loop.
 
 Structural findings are allowed when changed code meets the blocking bar and "What To Flag" criteria in `references/structural_quality_review.md`.
 
@@ -272,3 +374,4 @@ Verification and corroboration boosts are applied per `references/filtering_pipe
 |---|---|
 | `scripts/collect_context.sh` | Gather PR, commit, range, or local diff context |
 | `scripts/diff_line_map.py` | Parse diffs into structured file and line ranges |
+| `_shared/scripts/discover_runners.py` | Standardized preflight probe used by Phase 3 to enumerate available runner seats |

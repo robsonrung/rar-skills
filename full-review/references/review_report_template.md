@@ -24,6 +24,16 @@ List CRITICAL and HIGH first, then MEDIUM quick wins. Include path and line rang
 
 Commands to run, plus any manual steps.
 
+## Panel Activity
+
+Two short subsections, present only when triangulation was active:
+
+- **Triangulation panel** — seats engaged, lens per seat, posture (`light | quality | degraded`), and any seats marked `unavailable` with reason.
+- **Adversarial-verify activity** — count of findings entered, count refuted, count survived, count inconclusive. List the refuted titles in one line each.
+- **Synthesis activity** — the synthesizer's short log: which multi-model corroboration bumps fired, which severity upgrades fired, which findings were dropped by the confidence filter vs. by the risk-based cap.
+
+Omit this entire section when `triangulation: off`.
+
 ## Questions
 
 Targeted questions for unclear intent or missing context.

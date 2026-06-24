@@ -54,7 +54,16 @@ Opus appears four ways (orchestrator, a seat, the organizer/synthesizer, a judge
 
 ## Preflight
 
-1. **Host & seats.** Detect the `Agent` tool (native Opus/Sonnet). Check `codex`, `agy` (Gemini), `kimi-cli` in `PATH`; mark missing seats `unavailable`. Also check `qwen` for GLM; mark GLM `unavailable` when `qwen` is missing or the runner reports a blocked seat. Enforce the ≥3 quorum, auto-engaging self-pairing only if needed to reach it.
+1. **Host & seats.** Run the shared probe and use its envelope as the seat table — do not re-probe `PATH` inline:
+
+   ```bash
+   python3 .agents/skills/_shared/scripts/discover_runners.py probe \
+     --native-agent yes \
+     --seat opus --seat sonnet --seat codex --seat gemini --seat kimi --seat glm \
+     --format json
+   ```
+
+   Pass `--native-agent yes` only when the host exposes the native `Agent` tool (Claude Code); otherwise pass `no`. The envelope returns one row per seat with `available`, `cli_path`, `version`, `blocked_reason`, and `depends_on`. Mark seats with `available: false` as `unavailable` in the seat table. The shared probe reports GLM `unavailable` automatically when its `qwen` dependency is missing; if the runner separately reports a blocked seat at launch time, record that as the `blocked_reason` instead. Enforce the ≥3 quorum, auto-engaging self-pairing only if needed to reach it.
 2. **Preset.** Pick a preset (default `quality`); it bundles panel size, whether self-pairing is on, tool profile, per-seat budget, judge count, and synthesizer strength:
    - `quality` — all available distinct seats, strongest organizer/synthesizer, two judges.
    - `budget` — cheaper panel (e.g. GLM + Gemini + Kimi, or one Claude), lighter synthesizer; note the lower confidence band. A cheaper diverse panel can still rival a single frontier model at materially lower cost.

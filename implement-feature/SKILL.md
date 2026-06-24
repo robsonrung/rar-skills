@@ -25,7 +25,7 @@ The detailed scheduling/integration commands are in [references/feature-orchestr
 ## Preflight
 
 1. **Host & git.** Worktrees (and thus parallel tasks) need git; no git → sequential fallback.
-2. **Seats.** Verify `codex` and `kimi-cli` exist (each task's `implement-and-review` needs them) so tasks don't all fail; the native `Agent` tool for Opus seats.
+2. **Seats.** Use the shared probe to verify both runners up front so tasks don't all fail: `python3 .agents/skills/_shared/scripts/discover_runners.py probe --native-agent yes --seat codex --seat kimi --seat opus --format json`. Each task's `implement-and-review` needs `codex` and `kimi` available; the native `Agent` tool (`opus.execution_path: agent_native`) handles Opus seats.
 3. **Verification commands.** Detect the project's feature-wide test/build commands. `to-tasks` acceptance contracts must use commands that exist.
 4. **Concurrency cap.** Default **3 tasks in flight** (each runs a full FE+BE build); lower it when seats/cost are tight.
 5. **Base & artifacts.** Record `HEAD` as the feature `<base>`; create the feature integration branch; use `.ai-workflow/impl-review/<session_id>/` for the breakdown, per-task subdirs, and the report.

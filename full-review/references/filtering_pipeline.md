@@ -6,6 +6,7 @@ Verification results from Phase 4 are applied **before** this pipeline:
 - Refuted findings are dropped immediately and never enter the pipeline.
 - Verified findings have their confidence boosted by +0.10 (already applied during Phase 4).
 - Unverified findings (when `verify_mode=false`) proceed with their original confidence.
+- Adversarial-verify deltas from `references/adversarial_verify.md` are applied during Phase 4: refuted findings are dropped, survived findings receive +0.05 (no challenger broke them) or -0.05 (at least one credible challenge), inconclusive findings keep their confidence.
 
 ---
 
@@ -72,6 +73,20 @@ When near-duplicates originate from **different sources** (bug finders, personas
 3. Cap `confidence` at `1.0`.
 
 Example: a finding at confidence `0.82` corroborated by one independent source becomes `0.87`, keeps the best fix, combines evidence, and expands the line range to cover both reports.
+
+### Multi-model corroboration boost
+
+In-house sources (bug finders, personas, specialists, quality_gate) all run in the same orchestrator context. They corroborate each other but they are not independent models. The bigger signal is when **distinct external seats** (e.g. `external_codex` + `external_gemini`) raise the same finding.
+
+Compute `corroborated_models` on the surviving comment as the count of **distinct external seats** in `corroborated_by` plus `1` if any in-house source raised it. Then:
+
+1. `corroborated_models == 1` → no extra boost beyond the per-source `+0.05`.
+2. `corroborated_models == 2` → additional `+0.05` (total bump from this rule and the prior one combined is at most `+0.15`).
+3. `corroborated_models >= 3` → additional `+0.10`, and the finding becomes **boost-eligible for an automatic blocker upgrade**: if its severity is `MEDIUM` and confidence after all bumps is `>= 0.90`, upgrade severity to `HIGH`. CRITICAL findings are never downgraded.
+
+Cap `confidence` at `1.0` after all bumps. Record the count in the comment's `corroborated_models` field.
+
+A single-model finding that did **not** survive the adversarial-verify sub-pass (see `references/adversarial_verify.md`) is dropped here regardless of its starting confidence.
 
 ---
 

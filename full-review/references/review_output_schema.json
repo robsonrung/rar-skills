@@ -107,31 +107,31 @@
           },
           "source": {
             "type": "string",
-            "enum": [
-              "quality_gate",
-              "persona_spec",
-              "persona_security",
-              "persona_reliability",
-              "persona_performance",
-              "persona_maintainability",
-              "persona_tests",
-              "bug_finder_injection",
-              "bug_finder_auth",
-              "bug_finder_logic",
-              "bug_finder_data",
-              "bug_finder_regression",
-              "bug_finder_performance",
-              "specialist_database",
-              "specialist_api_contract",
-              "specialist_authorization",
-              "specialist_performance",
-              "specialist_integration",
-              "specialist_data_integrity",
-              "external_claude",
-              "external_codex",
-              "external_gemini",
-              "orchestrator"
-            ]
+            "pattern": "^(quality_gate|persona_(spec|security|reliability|performance|maintainability|tests)|bug_finder_(injection|auth|logic|data|regression|performance)|specialist_(database|api_contract|authorization|performance|integration|data_integrity)|external_[a-z0-9_]+|skeptic_[a-z0-9_]+|orchestrator|synthesizer)$",
+            "description": "Source seat that originated the finding. `external_<seat>` is data-driven from the seats discovered at preflight (e.g. external_opus, external_codex, external_gemini, external_kimi, external_glm, external_gemma, external_qwen, external_minimax, external_sonnet). `skeptic_<seat>` is reserved for adversarial-verify refutation seats. `synthesizer` is reserved for the fresh-model Phase 5 synthesizer."
+          },
+          "corroborated_models": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Count of distinct models (not just distinct sources) that independently raised this finding. Used by the multi-model corroboration boost in references/filtering_pipeline.md section 3."
+          },
+          "adversarial_verify": {
+            "type": "object",
+            "description": "Result of the adversarial-verify sub-pass (Phase 4) when a hot single-model finding was challenged by skeptics.",
+            "properties": {
+              "skeptics": {
+                "type": "array",
+                "items": { "type": "string" },
+                "description": "Skeptic seat ids used (e.g. kimi, glm, gemma)."
+              },
+              "refuted_count": { "type": "integer", "minimum": 0 },
+              "verdict": {
+                "type": "string",
+                "enum": ["survived", "refuted", "inconclusive"]
+              },
+              "rationale": { "type": "string" }
+            },
+            "additionalProperties": false
           },
           "corroborated_by": {
             "type": "array",
