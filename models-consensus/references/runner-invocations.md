@@ -142,75 +142,21 @@ python3 .agents/skills/kimi-runner/scripts/run_kimi.py \
   --metadata-json '{"session":"{session_id}","round":{n},"seat":"kimi","stance":"pragmatic_engineering"}'
 ```
 
-### Gemma
-
-```bash
-python3 .agents/skills/gemma-runner/scripts/run_gemma.py \
-  --prompt-file .ai-workflow/consensus/{session_id}-round-{n}-gemma.md \
-  --timeout 900 \
-  --role planner \
-  --model google/gemma-4-31b-it \
-  --output-format stream-json \
-  --json \
-  --no-session-persistence \
-  --restrict-tools \
-  --disable-fallback \
-  --output-file .ai-workflow/consensus/{session_id}-round-{n}-gemma-output.json \
-  --metadata-json '{"session":"{session_id}","round":{n},"seat":"gemma","stance":"supportive_with_integrity"}'
-```
-
-### GLM Pragmatic
+### GLM
 
 ```bash
 python3 .agents/skills/glm-runner/scripts/run_glm.py \
   --prompt-file .ai-workflow/consensus/{session_id}-round-{n}-glm.md \
   --timeout 900 \
   --role implementer \
-  --model z-ai/glm-5.2 \
-  --output-format stream-json \
   --json \
-  --no-session-persistence \
   --restrict-tools \
   --disable-fallback \
   --output-file .ai-workflow/consensus/{session_id}-round-{n}-glm-output.json \
   --metadata-json '{"session":"{session_id}","round":{n},"seat":"glm","stance":"pragmatic_engineering"}'
 ```
 
-### GLM Critic
-
-Use only as a duplicate-coverage seat after unique-provider seats are accounted for.
-
-```bash
-python3 .agents/skills/glm-runner/scripts/run_glm.py \
-  --prompt-file .ai-workflow/consensus/{session_id}-round-{n}-glm-critical.md \
-  --timeout 900 \
-  --role codereviewer \
-  --model z-ai/glm-5.2 \
-  --output-format stream-json \
-  --json \
-  --no-session-persistence \
-  --restrict-tools \
-  --disable-fallback \
-  --output-file .ai-workflow/consensus/{session_id}-round-{n}-glm-critical-output.json \
-  --metadata-json '{"session":"{session_id}","round":{n},"seat":"glm-critical","stance":"critical_with_responsibility"}'
-```
-
-### Minimax
-
-```bash
-python3 .agents/skills/minimax-runner/scripts/run_minimax.py \
-  --prompt-file .ai-workflow/consensus/{session_id}-round-{n}-minimax.md \
-  --timeout 900 \
-  --role challenger \
-  --model minimax/minimax-m2.7 \
-  --output-format stream-json \
-  --json \
-  --no-session-persistence \
-  --restrict-tools \
-  --disable-fallback \
-  --output-file .ai-workflow/consensus/{session_id}-round-{n}-minimax-output.json \
-  --metadata-json '{"session":"{session_id}","round":{n},"seat":"minimax","stance":"devils_advocate"}'
-```
+`glm-runner` delegates to `dcode-runner`; the GLM identity is a seat label and the underlying model is whichever one `dcode` is configured with. `--model` is metadata only and is not forwarded — to make the GLM seat actually run GLM, configure `dcode` itself to point at a GLM provider (`~/.deepagents/config.toml` or `dcode --default-model openrouter:z-ai/glm-5.2`). The seat has no `--output-schema` flag; rely on the brief's trailing `Return ONLY JSON …` line to enforce shape.
 
 ---
 
@@ -224,9 +170,9 @@ Always pass `--disable-fallback` to runner-backed seats. Councils must fail a se
 
 Do not use `--bare` for Claude runner seats when relying on Claude OAuth or keychain-backed login. Claude's own help states that `--bare` disables OAuth and keychain auth, so a logged-in terminal can still fail with `Not logged in` in headless mode if `--bare` is passed. Only use `--bare` when `ANTHROPIC_API_KEY` or an explicit `apiKeyHelper`-based configuration is the intended auth path.
 
-### Qwen transport rule
+### GLM / dcode transport rule
 
-Treat the shared `qwen` CLI as transport, not independence. Gemma, GLM, and Minimax remain distinct seats when their effective providers or models differ, even though they share the same local wrapper binary.
+`glm-runner` delegates to `dcode-runner`; the GLM identity is a seat *label* in the envelope and dcode answers with whichever model it has been configured with. To preserve true GLM semantics, the user must point `dcode` at a GLM provider (`~/.deepagents/config.toml` or `~/.deepagents/.env`) — the runner deliberately never forwards `--model` to dcode. Treat the GLM seat as a single seat; do not pair it with another dcode-backed seat under a different label and call it diversity.
 
 ---
 

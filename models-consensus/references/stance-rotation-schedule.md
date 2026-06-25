@@ -13,10 +13,7 @@ Each model starts in its natural role:
 | Codex | `devils_advocate` | `challenger` |
 | Gemini | `balanced_synthesis` | `synthesizer` |
 | Kimi | `pragmatic_engineering` | `implementer` |
-| Gemma | `supportive_with_integrity` | `planner` |
-| GLM Pragmatic | `pragmatic_engineering` | `implementer` |
-| GLM Critic | `critical_with_responsibility` | `codereviewer` or `adversarial` |
-| Minimax | `devils_advocate` | `challenger` |
+| GLM | `pragmatic_engineering` | `implementer` |
 
 The Runner Role column above is the canonical stance-to-runner-role mapping (`supportive_with_integrity` -> `planner` or `implementer`, `critical_with_responsibility` -> `codereviewer` or `adversarial`, `balanced_synthesis` -> `synthesizer`, `devils_advocate` -> `challenger`, `pragmatic_engineering` -> `implementer`). For `blocked_on_context` investigation rounds, use the `researcher` runner role.
 
@@ -31,10 +28,7 @@ Each seat adopts a stance that challenges its Round 1 position:
 | Codex | `critical_with_responsibility` | Ground devil's advocacy in constructive critique |
 | Gemini | `pragmatic_engineering` | Move from synthesis to actionable evaluation |
 | Kimi | `balanced_synthesis` | Evaluate tradeoffs beyond implementation details |
-| Gemma | `pragmatic_engineering` | Translate support into concrete feasibility |
-| GLM Pragmatic | `balanced_synthesis` | Evaluate own pragmatism against alternatives |
-| GLM Critic | `devils_advocate` | Escalate critique to fundamental objection |
-| Minimax | `critical_with_responsibility` | Ground adversarial position in specific risks |
+| GLM | `balanced_synthesis` | Evaluate own pragmatism against alternatives |
 
 ## Round 3: Convergence / Integration
 
@@ -47,10 +41,7 @@ Final round focuses on integration or decisive critique:
 | Codex | `balanced_synthesis` | Synthesize objections into final assessment |
 | Gemini | `critical_with_responsibility` | Final sanity check on consensus direction |
 | Kimi | `critical_with_responsibility` | Identify last-mile risks in the leading option |
-| Gemma | `balanced_synthesis` | Reconcile support with discovered constraints |
-| GLM Pragmatic | `critical_with_responsibility` | Flag overlooked practical blockers |
-| GLM Critic | `balanced_synthesis` | Channel critique into constructive refinement |
-| Minimax | `balanced_synthesis` | Synthesize adversarial findings into final view |
+| GLM | `critical_with_responsibility` | Flag overlooked practical blockers |
 
 ## Fallback Rules
 

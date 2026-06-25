@@ -22,7 +22,7 @@ Exact launch patterns for the seats, the organizer, the two judges, and the synt
 - **No silent swaps:** `--disable-fallback` on every runner.
 - **Keep transcripts out of context:** use `--output-file`; read `agent_message` from the file, not raw stdout.
 - **Timeout:** `--timeout 600` is ample for answering.
-- **Schema enforcement:** `--output-schema` is supported by **Codex, Kimi, and the qwen-backed seats** (qwen/glm/gemma/minimax — the shared wrapper maps `--output-schema <path>` to the qwen CLI's native `--json-schema` flag, a synthetic `structured_output` tool). For qwen-backed schema runs, pass `--approval-mode auto` so the structured output tool can complete while the read-only overlay stays in place. Gemini and the Opus/Sonnet (native or claude-runner) seats have no schema flag — for them the JSON shape is enforced by the brief's trailing `Return ONLY JSON …` line.
+- **Schema enforcement:** `--output-schema` is supported by **Codex and Kimi only**. GLM (via dcode-runner), Gemini, and the Opus/Sonnet (native or claude-runner) seats have no schema flag — for them the JSON shape is enforced by the brief's trailing `Return ONLY JSON …` line.
 - **Transient retry:** a runner returning `success=false` with no output file (e.g. `return_code -3` on a busy concurrent launch) may be **retried once sequentially** before the seat is dropped — concurrent back-to-back launches occasionally trip this and a lone retry clears it.
 
 Schemas:
@@ -42,7 +42,7 @@ Apply the **same** profile to every active seat (identical conditions — Hard R
 - `repo_plus_research` — both of the above, read-only.
 
 Never pass write/exec tools. If a seat's host cannot honor the chosen read-only profile, **drop that seat** rather than run it with a different toolset.
-For GLM, use research profiles only after confirming the qwen transport exposes equivalent read-only web behavior; otherwise drop that seat for the run.
+For GLM, use research profiles only after confirming dcode is configured with `TAVILY_API_KEY` (in `~/.deepagents/.env` or the environment) so it exposes the same read-only web behavior as the other active seats; otherwise drop that seat for the run.
 
 ## Self-pairing (duplicate seats)
 
@@ -94,20 +94,18 @@ python3 .agents/skills/kimi-runner/scripts/run_kimi.py \
   --metadata-json '{"session":"<id>","round":1,"seat":"kimi"}'
 ```
 
-### GLM 5.2
+### GLM
 
 ```bash
 python3 .agents/skills/glm-runner/scripts/run_glm.py \
   --prompt-file <dir>/round1-brief.md \
-  --model z-ai/glm-5.2 \
-  --restrict-tools --approval-mode auto --output-format stream-json --timeout 600 \
+  --restrict-tools --timeout 600 \
   --json --disable-fallback \
-  --output-schema .agents/skills/models-roundtable/schemas/opening-answer.schema.json \
   --output-file <dir>/round1-glm.json \
   --metadata-json '{"session":"<id>","round":1,"seat":"glm"}'
 ```
 
-For the gap-repair round, change `round1` → `round2`, swap the schema to `disagreement-round.schema.json`, and write to `round2-glm.json`.
+`glm-runner` delegates to `dcode-runner`; the GLM identity is a seat label and the underlying model is whichever one `dcode` is configured with. `--model` is metadata only and is not forwarded — to make the GLM seat actually run GLM, configure `dcode` itself (`~/.deepagents/config.toml` or `dcode --default-model openrouter:z-ai/glm-5.2`). There is no `--output-schema` flag; the brief's trailing `Return ONLY JSON …` line enforces the shape. For the gap-repair round, change `round1` → `round2` and write to `round2-glm.json`.
 
 ### Opus 4.8 and Sonnet 4.6 (native subagents)
 
@@ -131,7 +129,7 @@ After Phase 1, run **one** organizer over **all** seat answers — read-only, fr
 
 ## Gap-repair round
 
-Run only when the organizer set `material_gaps:true`. Same seats, `round2` brief = the open `C#`/`B#`/`U#` points (+ each seat's position + the organizer analysis) and "resolve the contradiction / fill the blind spot / defend or refute the unique insight, **with evidence** — this is targeted repair, not re-voting." Use `--output-schema …/disagreement-round.schema.json` for runner seats that support schema output, including GLM. One round only.
+Run only when the organizer set `material_gaps:true`. Same seats, `round2` brief = the open `C#`/`B#`/`U#` points (+ each seat's position + the organizer analysis) and "resolve the contradiction / fill the blind spot / defend or refute the unique insight, **with evidence** — this is targeted repair, not re-voting." Use `--output-schema …/disagreement-round.schema.json` for runner seats that support schema output (Codex and Kimi); GLM, Gemini, and Claude seats rely on the brief's `Return ONLY JSON …` line. One round only.
 
 ## Judges
 
@@ -171,4 +169,4 @@ After judging + the orchestrator's final calls, run **one** synthesizer — read
 | Codex seat & Codex judge | `codex-runner --effort high` | native `spawn_agent` (`fork_context=false`) |
 | Gemini seat | `gemini-runner` | `gemini-runner` |
 | Kimi seat | `kimi-runner` | `kimi-runner` |
-| GLM 5.2 seat | `glm-runner --model z-ai/glm-5.2` | `glm-runner --model z-ai/glm-5.2` |
+| GLM seat | `glm-runner` (via `dcode-runner`) | `glm-runner` (via `dcode-runner`) |

@@ -1,6 +1,6 @@
 ---
 name: models-consensus
-description: Run a multi-round, stance-driven multi-model council — blinded opening analyses, moderated rebuttals, and a final decision report — over native and runner-backed seats (Claude Opus 4.8, Sonnet, Codex, Gemini, Gemma, GLM, Kimi, Minimax). Use when a repository decision benefits from structured disagreement, tradeoff surfacing, or deliberate synthesis instead of a single-model answer; also when the user asks for multi-model validation, consensus review, or multiple AI perspectives on a design or architecture decision. Distinct from models-roundtable (blind poll + synthesizer, one gap round) and council (single round, Codex decides) — pick this for multi-round stance-driven debate.
+description: Run a multi-round, stance-driven multi-model council — blinded opening analyses, moderated rebuttals, and a final decision report — over native and runner-backed seats (Claude Opus 4.8, Sonnet, Codex, Gemini, Kimi, GLM). Use when a repository decision benefits from structured disagreement, tradeoff surfacing, or deliberate synthesis instead of a single-model answer; also when the user asks for multi-model validation, consensus review, or multiple AI perspectives on a design or architecture decision. Distinct from models-roundtable (blind poll + synthesizer, one gap round) and council (single round, Codex decides) — pick this for multi-round stance-driven debate.
 ---
 
 # Models Consensus
@@ -46,9 +46,7 @@ Selection workflow:
   `[ ] Codex`
   `[ ] Gemini`
   `[ ] Kimi`
-  `[ ] Gemma`
   `[ ] GLM`
-  `[ ] Minimax`
   Omit seats that are not present in `candidate_seats`.
 - If the host tool only supports a small single-choice menu, ask a preset question with:
   1. `All available (Recommended)`
@@ -77,12 +75,12 @@ Minimum checks:
 - `claude` in `PATH`
 - `gemini` in `PATH`
 - `kimi-cli` in `PATH` when the Kimi seat is under consideration
-- `qwen` in `PATH` when any Gemma, GLM, or Minimax seat is under consideration
+- `dcode` in `PATH` when the GLM seat is under consideration
 
 Mandatory seat smoke tests:
 - Run a minimal non-interactive invocation for every runner-backed seat with the exact model you plan to use.
 - Run every runner-backed seat with `--disable-fallback`. Councils must fail a seat explicitly instead of silently borrowing another provider.
-- See [references/runner-invocations.md](references/runner-invocations.md) for per-seat auth rules, including the critical Claude `--bare` rule and Qwen transport rule.
+- See [references/runner-invocations.md](references/runner-invocations.md) for per-seat auth rules, including the critical Claude `--bare` rule and the GLM/dcode transport rule.
 
 Treat missing binaries, missing credentials, or failing smoke tests as seat blockers, not soft warnings.
 
@@ -120,10 +118,8 @@ Use these rules:
 5. Treat runner fallback to another provider as loss of seat independence.
 6. If Gemini CLI is missing, skip Gemini entirely.
 7. If Kimi CLI is missing, skip Kimi entirely.
-8. If Qwen CLI is missing, skip Gemma, GLM, and Minimax entirely.
-9. Use `GLM Critic` only after all unique-provider seats have been considered.
-10. Treat Gemma, GLM, and Minimax as separate providers for diversity accounting unless the smoke test proves they resolve to the same effective provider and model.
-11. Continue with the remaining seats and lower confidence; never fabricate a missing seat.
+8. If `dcode` CLI is missing, skip GLM entirely.
+9. Continue with the remaining seats and lower confidence; never fabricate a missing seat.
 
 ## Cost Governance and Crash Recovery
 

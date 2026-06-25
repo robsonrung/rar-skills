@@ -87,30 +87,11 @@ SEAT_SPECS: tuple[SeatSpec, ...] = (
         probe_cli="kimi-cli",
     ),
     SeatSpec(
-        seat="qwen",
-        execution_path="qwen_runner",
-        probe_cli="qwen",
-    ),
-    SeatSpec(
         seat="glm",
-        execution_path="glm_runner_via_qwen",
-        probe_cli="qwen",
-        depends_on=("qwen",),
-        notes="qwen-backed shim; requires the qwen CLI plus the GLM model alias on the provider.",
-    ),
-    SeatSpec(
-        seat="gemma",
-        execution_path="gemma_runner_via_qwen",
-        probe_cli="qwen",
-        depends_on=("qwen",),
-        notes="qwen-backed shim; requires the qwen CLI plus the Gemma model alias on the provider.",
-    ),
-    SeatSpec(
-        seat="minimax",
-        execution_path="minimax_runner_via_qwen",
-        probe_cli="qwen",
-        depends_on=("qwen",),
-        notes="qwen-backed shim; requires the qwen CLI plus the MiniMax model alias on the provider.",
+        execution_path="glm_runner_via_dcode",
+        probe_cli="dcode",
+        depends_on=("dcode",),
+        notes="dcode-backed shim; requires the dcode CLI configured with a GLM provider in ~/.deepagents/.",
     ),
 )
 
@@ -251,7 +232,7 @@ def apply_preset_filter(probes: list[SeatProbe], preset: Optional[str]) -> list[
         return probes
     if preset == "light":
         # `light` = two cheap broad-sweep seats. Surface the cheap pool only.
-        cheap = {"kimi", "glm", "gemma", "qwen"}
+        cheap = {"kimi", "glm"}
         return [p for p in probes if p.seat in cheap]
     if preset == "quality":
         return probes

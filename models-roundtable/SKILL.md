@@ -1,6 +1,6 @@
 ---
 name: models-roundtable
-description: Answer a task by polling several models blind, then reconciling them into one consensus answer. Fan the RAW prompt out to six default seats, including GLM 5.2, with no orchestrator analysis so the seats stay unbiased; a dedicated organizer maps the answers into a five-dimension structured analysis (consensus, contradictions, partial coverage, unique insights, blind spots), one bounded gap-repair round closes the open points, two fresh judges validate the still-open ones, and a dedicated synthesizer writes the final consensus answer. Read-only — produces a consensus answer + report, not code. Use when you want a higher-confidence answer/decision/analysis than one model gives, a multi-model second opinion, or to reconcile differing model answers. Distinct from models-consensus (stance/role-driven rounds) and council (single blind round with a final decision model).
+description: Answer a task by polling several models blind, then reconciling them into one consensus answer. Fan the RAW prompt out to six default seats (Claude Opus 4.8, Sonnet, Codex, Gemini, Kimi, GLM) with no orchestrator analysis so the seats stay unbiased; a dedicated organizer maps the answers into a five-dimension structured analysis (consensus, contradictions, partial coverage, unique insights, blind spots), one bounded gap-repair round closes the open points, two fresh judges validate the still-open ones, and a dedicated synthesizer writes the final consensus answer. Read-only — produces a consensus answer + report, not code. Use when you want a higher-confidence answer/decision/analysis than one model gives, a multi-model second opinion, or to reconcile differing model answers. Distinct from models-consensus (stance/role-driven rounds) and council (single blind round with a final decision model).
 ---
 
 # Models Round Table
@@ -31,7 +31,7 @@ Six default seats. Launch each by its preferred path for the current host; fall 
 | Codex | `codex-runner` (`--effort high`) | native `spawn_agent` on a Codex host |
 | Gemini | `gemini-runner` (Antigravity `agy`) | — (skip if `agy` missing) |
 | Kimi | `kimi-runner --model kimi-code/kimi-for-coding` | — (skip if `kimi-cli` missing) |
-| GLM 5.2 | `glm-runner --model z-ai/glm-5.2` | — (skip if `qwen` missing or GLM is unavailable) |
+| GLM | `glm-runner` (delegates to `dcode-runner`) | — (skip if `dcode` missing or not configured with a GLM provider) |
 
 **Quorum:** proceed only with **≥3 seats**.
 
@@ -63,7 +63,7 @@ Opus appears four ways (orchestrator, a seat, the organizer/synthesizer, a judge
      --format json
    ```
 
-   Pass `--native-agent yes` only when the host exposes the native `Agent` tool (Claude Code); otherwise pass `no`. The envelope returns one row per seat with `available`, `cli_path`, `version`, `blocked_reason`, and `depends_on`. Mark seats with `available: false` as `unavailable` in the seat table. The shared probe reports GLM `unavailable` automatically when its `qwen` dependency is missing; if the runner separately reports a blocked seat at launch time, record that as the `blocked_reason` instead. Enforce the ≥3 quorum, auto-engaging self-pairing only if needed to reach it.
+   Pass `--native-agent yes` only when the host exposes the native `Agent` tool (Claude Code); otherwise pass `no`. The envelope returns one row per seat with `available`, `cli_path`, `version`, `blocked_reason`, and `depends_on`. Mark seats with `available: false` as `unavailable` in the seat table. The shared probe reports GLM `unavailable` automatically when its `dcode` dependency is missing; if the runner separately reports a blocked seat at launch time, record that as the `blocked_reason` instead. Enforce the ≥3 quorum, auto-engaging self-pairing only if needed to reach it.
 2. **Preset.** Pick a preset (default `quality`); it bundles panel size, whether self-pairing is on, tool profile, per-seat budget, judge count, and synthesizer strength:
    - `quality` — all available distinct seats, strongest organizer/synthesizer, two judges.
    - `budget` — cheaper panel (e.g. GLM + Gemini + Kimi, or one Claude), lighter synthesizer; note the lower confidence band. A cheaper diverse panel can still rival a single frontier model at materially lower cost.
@@ -74,7 +74,7 @@ Opus appears four ways (orchestrator, a seat, the organizer/synthesizer, a judge
    - `research_read_only` — web search/fetch only (no repo); for research/multi-source/current-facts tasks. Require each seat to report sources used and failed lookups.
    - `repo_plus_research` — both, read-only.
    Never grant write/exec (e.g. bash mutation) — that violates Rule 2.
-   For GLM, only include it in a research profile when the qwen-backed runner can honor the same read-only research tool access as every other active seat; otherwise drop the GLM seat for that run and record the reason.
+   For GLM, only include it in a research profile when the dcode-backed runner can honor the same read-only research tool access as every other active seat (dcode's web search requires `TAVILY_API_KEY` in `~/.deepagents/.env` or the environment); otherwise drop the GLM seat for that run and record the reason.
 4. **Repo grounding (optional).** Only if the task is about this repo: collect `CONTEXT.md`/ADRs and the relevant files to pass as **read-only context** so seats use the project's vocabulary. For a general (non-repo) task, skip this.
 5. **Artifact mode.** `persisted` when `.ai-workflow/` is writable → `.ai-workflow/roundtable/<session_id>/`; else `inline` (return paths `null`).
 6. **Session id.** Short stable id (e.g. `roundtable-<slug>`); use it for the artifact dir and filenames.

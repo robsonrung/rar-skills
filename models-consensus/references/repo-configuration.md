@@ -21,10 +21,7 @@ When adapting this skill to another project, update the base path or set a `RUNN
 | Codex | `spawn_agent` + `wait_agent` (Codex host) | `codex-runner --model gpt-5.5` | `gpt-5.5` |
 | Gemini | — | `gemini-runner` | runner default or verified local CLI model |
 | Kimi | — | `kimi-runner --model kimi-code/kimi-for-coding` | `kimi-code/kimi-for-coding` |
-| Gemma | — | `gemma-runner --model google/gemma-4-31b-it` | `google/gemma-4-31b-it` |
-| GLM Pragmatic | — | `glm-runner --model z-ai/glm-5.2` | `z-ai/glm-5.2` |
-| GLM Critic | — | `glm-runner --model z-ai/glm-5.2` | `z-ai/glm-5.2` |
-| Minimax | — | `minimax-runner --model minimax/minimax-m2.7` | `minimax/minimax-m2.7` |
+| GLM | — | `glm-runner` (delegates to `dcode-runner`) | whichever model `dcode` is configured with |
 
 ## CLI Prerequisites
 
@@ -33,7 +30,7 @@ When adapting this skill to another project, update the base path or set a `RUNN
 | Claude (runner fallback) | `claude` | Must pass auth smoke test |
 | Gemini | `gemini` | Must pass auth smoke test |
 | Kimi | `kimi-cli` | Must pass auth smoke test |
-| Gemma, GLM, Minimax | `qwen` | Shared transport; must pass per-model smoke test |
+| GLM | `dcode` | DeepAgents CLI; must be configured with a GLM provider in `~/.deepagents/` |
 
 ## Core Seats Definition
 
@@ -42,9 +39,7 @@ When adapting this skill to another project, update the base path or set a `RUNN
 2. Native Claude seats (when on Claude Code host)
 3. Gemini
 4. Kimi
-5. One of Gemma or GLM
-
-Duplicate-coverage seats (e.g., GLM Critic) are only considered after core seats are exhausted.
+5. GLM
 
 ## Artifact Directory
 
