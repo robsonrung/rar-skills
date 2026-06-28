@@ -192,6 +192,7 @@ Available stances:
 - `balanced_synthesis`
 - `devils_advocate`
 - `pragmatic_engineering`
+- `outsider_fresh_eyes` — answer with zero assumed prior context: react only to what is in the brief, and flag anything that is unclear, jargon-laden, or obvious-only-to-an-insider. Catches the curse of knowledge the other stances share.
 
 The stance-to-runner-role mapping lives in the same reference.
 
@@ -239,6 +240,11 @@ Later rounds get:
 - current stance overlay
 - prior moderator digest
 - explicit instructions to rebut, concede, refine, or integrate
+
+To sharpen the rebuttal beyond open-ended "rebut or concede", include these three forcing questions in the round prompt (the digest is anonymized — positions are labeled by stance, not by model identity, so seats evaluate on merit):
+1. Which position in the digest is strongest, and why?
+2. Which position has the biggest blind spot, and what is it missing?
+3. What did every position miss that the council should still consider?
 
 Required response schema: the later-rounds fields from [Response Schema Validation](#response-schema-validation).
 
@@ -328,8 +334,9 @@ When artifact mode is `persisted`, write `.ai-workflow/consensus/{session_id}.md
 5. divergence points
 6. user decision summary for any non-unanimous result
 7. final recommendation
-8. recommended next runner and handoff goal
-9. confidence assessment
+8. the single most important next step — one concrete action, not a list
+9. recommended next runner and handoff goal
+10. confidence assessment
 
 When artifact mode is `inline`, return the same sections inline.
 

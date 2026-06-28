@@ -1,0 +1,204 @@
+---
+name: decision-council
+description: "Pressure-test a high-stakes decision through a persona council — one model wearing five fundamentally different thinking lenses (Contrarian, First Principles, Expansionist, Outsider, Executor) that answer independently, peer-review each other anonymously, then get synthesized into a single decisive verdict. Adapted from Karpathy's LLM Council. MANDATORY TRIGGERS: 'council this', 'run the council', 'war room this', 'pressure-test this', 'stress-test this', 'debate this'. STRONG TRIGGERS (when paired with a real decision or tradeoff): 'should I X or Y', 'which option', 'what would you do', 'is this the right move', 'validate this', 'get multiple perspectives', 'I can't decide', 'I'm torn between'. For business/product/strategy/life decisions where being wrong is expensive. Do NOT trigger on factual lookups, creation tasks, or casual 'should I' with no real tradeoff. Distinct from models-consensus / models-roundtable / council, which run multiple REAL models on repo/code decisions — this runs ONE model across five thinking lenses on a judgment call."
+---
+
+# Decision Council
+
+Ask one AI a question, get one answer. You can't tell if it's great or mid because you only saw one angle.
+
+The council fixes that. It runs your decision through five advisors, each thinking from a fundamentally different angle. They peer-review each other's work anonymously. Then a chairman synthesizes everything into a verdict that tells you where the advisors agree, where they clash, and what you should actually do.
+
+Adapted from Andrej Karpathy's LLM Council. He dispatches a query to multiple *models*, has them peer-review anonymously, then a chairman produces the final answer. Here the diversity comes from five **thinking lenses** on one model, not five different models — that is the whole distinction from the model-diversity skills (`models-consensus`, `models-roundtable`, `council`). Reach for those when you want genuinely independent providers on a repo/code decision; reach for this when you want independent *angles* on a judgment call.
+
+## When to run it
+
+The council is for decisions where being wrong is expensive and there is genuine uncertainty.
+
+Good council questions:
+- "Should I launch a $97 workshop or a $497 course?"
+- "Which of these 3 positioning angles is strongest?"
+- "I'm thinking of pivoting from X to Y. Am I crazy?"
+- "Here's my landing page copy. What's weak?"
+
+Bad council questions:
+- "What's the capital of France?" (one right answer)
+- "Write me a tweet" (creation task, not a decision)
+- "Summarize this article" (processing task, not judgment)
+
+If you already know the answer and just want validation, the council will likely tell you things you don't want to hear. That's the point. For repo/architecture/code decisions, hand off to `models-consensus` instead.
+
+## The five advisors
+
+Not job titles or personas — thinking styles that naturally create tension with each other.
+
+1. **The Contrarian** — actively looks for what's wrong, missing, or will fail. Assumes a fatal flaw and hunts for it. Not a pessimist; the friend who saves you from a bad deal by asking the questions you're avoiding.
+
+2. **The First Principles Thinker** — ignores the surface question and asks "what are we actually trying to solve?" Strips assumptions, rebuilds from the ground up. Sometimes the most valuable output is "you're asking the wrong question entirely."
+
+3. **The Expansionist** — looks for upside everyone else is missing. What could be bigger? What adjacent opportunity is hiding? Doesn't care about risk (that's the Contrarian's job) — cares what happens if this works better than expected.
+
+4. **The Outsider** — has zero context about you, your field, or your history. Responds purely to what's in front of them. The most underrated advisor: experts develop blind spots, and the Outsider catches the curse of knowledge — things obvious to you but confusing to everyone else.
+
+5. **The Executor** — only cares whether this can actually be done and the fastest path to doing it. Ignores theory and big-picture strategy. Looks at every idea through "OK, but what do you do Monday morning?" If it sounds brilliant but has no clear first step, the Executor says so.
+
+**Why these five:** three natural tensions. Contrarian vs Expansionist (downside vs upside). First Principles vs Executor (rethink everything vs just do it). The Outsider sits in the middle keeping everyone honest.
+
+## How a session works
+
+### Step 1: Enrich context, then frame the question
+
+**A. Scan the workspace (≤30s).** The user's question is usually the tip of the iceberg. Quickly `Glob`/`Read` for the 2–3 files that would let advisors give specific, grounded advice instead of generic takes:
+- `CLAUDE.md` / `claude.md` in the project root (business context, constraints, preferences)
+- any `memory/` folder (audience, voice, business details, past decisions)
+- files the user referenced or attached
+- recent council transcripts here (avoid re-counciling old ground)
+- topic-relevant files (asking about pricing → revenue data, past launch results)
+
+Don't spend more than 30 seconds. You're looking for context, not doing research.
+
+**B. Frame the question.** Reframe the raw question + enriched context as one clear, neutral prompt all five advisors receive. Include: the core decision, key context from the user, key context from workspace files (stage, audience, constraints, numbers, past results), and what's at stake. Don't add your own opinion or steer it — but give each advisor enough to be specific.
+
+If the question is too vague ("council this: my business"), ask exactly one clarifying question, then proceed. Save the framed question for the transcript.
+
+### Step 2: Convene the council (5 sub-agents in parallel)
+
+Spawn all 5 advisors **simultaneously** as sub-agents (one message, five `Agent` calls). Sequential spawning wastes time and lets earlier responses bleed into later ones. Each gets its lens, the framed question, and an instruction to lean fully in.
+
+Sub-agent prompt template:
+```text
+You are [Advisor Name] on a decision council.
+
+Your thinking style: [advisor description from above]
+
+A user has brought this question to the council:
+
+---
+[framed question]
+---
+
+Respond from your perspective. Be direct and specific. Don't hedge or try to
+be balanced. Lean fully into your assigned angle — the other advisors cover the
+angles you don't. If you see a fatal flaw, say it. If you see massive upside,
+say it.
+
+Keep your response between 150-300 words. No preamble. Go straight into your
+analysis.
+```
+
+### Step 3: Anonymized peer review (5 sub-agents in parallel)
+
+This is the step that makes it more than "ask 5 times" — the core of Karpathy's insight.
+
+Collect all 5 responses. Label them Response A–E, **randomizing** which advisor maps to which letter so there is no positional or persona bias. Spawn 5 fresh sub-agents; each sees all 5 anonymized responses and answers three questions.
+
+Reviewer prompt template:
+```text
+You are reviewing the outputs of a decision council. Five advisors
+independently answered this question:
+
+---
+[framed question]
+---
+
+Here are their anonymized responses:
+
+**Response A:**
+[response]
+
+**Response B:**
+[response]
+
+... (C, D, E)
+
+Answer these three questions. Be specific. Reference responses by letter.
+
+1. Which response is strongest? Why?
+2. Which response has the biggest blind spot? What is it missing?
+3. What did ALL five responses miss that the council should consider?
+
+Keep your review under 200 words. Be direct.
+```
+
+Anonymizing matters: if reviewers know who said what, they defer to certain thinking styles instead of judging on merit.
+
+### Step 4: Chairman synthesis
+
+One agent gets everything: the framed question, all 5 advisor responses (now **de-anonymized** so it knows who said what), and all 5 peer reviews. It produces the final verdict.
+
+The chairman may disagree with the majority. If 4 advisors say "do it" but the lone dissenter's reasoning is strongest, side with the dissenter and explain why.
+
+Chairman prompt template:
+```text
+You are the Chairman of a decision council. Synthesize the work of 5 advisors
+and their peer reviews into a final verdict.
+
+The question:
+---
+[framed question]
+---
+
+ADVISOR RESPONSES:
+**The Contrarian:** [response]
+**The First Principles Thinker:** [response]
+**The Expansionist:** [response]
+**The Outsider:** [response]
+**The Executor:** [response]
+
+PEER REVIEWS:
+[all 5 peer reviews]
+
+Produce the council verdict using this exact structure:
+
+## Where the Council Agrees
+[Points multiple advisors converged on independently. High-confidence signals.]
+
+## Where the Council Clashes
+[Genuine disagreements. Present both sides. Explain why reasonable advisors disagree. Don't smooth them over.]
+
+## Blind Spots the Council Caught
+[Things that only emerged through peer review — what individuals missed that others flagged.]
+
+## The Recommendation
+[A clear, direct recommendation. Not "it depends." A real answer with reasoning. You may side with the minority if its reasoning is strongest.]
+
+## The One Thing to Do First
+[A single concrete next step. Not a list. One thing.]
+
+Be direct. Don't hedge. The whole point is to give clarity a single perspective couldn't.
+```
+
+### Step 5: Present the verdict in chat
+
+Present the full verdict directly in chat as markdown. Do **not** generate an HTML report or any file. Keep it scannable — bullet points, the before/after where relevant.
+
+```
+## Council Verdict: {short topic}
+
+### Where the Council Agrees
+{content}
+
+### Where the Council Clashes
+{content}
+
+### Blind Spots the Council Caught
+{content}
+
+### The Recommendation
+{content}
+
+### The One Thing to Do First
+{content}
+```
+
+### Step 6: Save the transcript (optional)
+
+Only if the user asks, or the decision is significant enough to reference later. If saving, write `council-transcript-[timestamp].md` to the project's `active/` directory (or the scratchpad if none exists).
+
+## Important rules
+
+- **Always spawn the 5 advisors in parallel**, and the 5 reviewers in parallel. One message, five calls each.
+- **Always anonymize and randomize for peer review.** Named responses make reviewers defer to favored thinking styles.
+- **The chairman can overrule the majority** when the dissenter's reasoning is stronger.
+- **Don't council trivial questions.** One right answer → just answer it. The council is for genuine uncertainty where multiple angles add value.
+- **This is one model across five lenses, not five models.** For genuine model diversity on a repo/code/architecture decision, use `models-consensus` (multi-round, real seats) or `models-roundtable` (blind poll + synthesis).

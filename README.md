@@ -18,7 +18,7 @@ Skills install under `.agents/skills/` in the target repo. The runner scripts an
 
 Most skills here are **pure-prompt** (the design lenses, reviews, and planning skills — e.g. `design-gate`, `architecture-lens`, `clean-code`, `tdd`, `coding-design-plan`). They need nothing beyond Claude Code itself.
 
-The prerequisites below apply to the **multi-model and runner skills** — `models-roundtable`, `models-consensus`, `council`, `implement-and-review`, `implement-feature`, `feature-models-roundtable`, `full-review`, the `collaborative_*` skills, and the `*-runner` skills they drive. You only need the pieces for the seats you actually want; these skills run on a **quorum** (typically ≥3 seats) and degrade gracefully when a CLI is missing — they report the absent seat rather than faking it (*seat fidelity*).
+The prerequisites below apply to the **multi-model and runner skills** — `models-roundtable`, `models-consensus`, `council`, `diverse-plan`, `implement-and-review`, `implement-feature`, `feature-models-roundtable`, `full-review`, the `collaborative_*` skills, and the `*-runner` skills they drive. You only need the pieces for the seats you actually want; these skills run on a **quorum** (typically ≥3 seats) and degrade gracefully when a CLI is missing — they report the absent seat rather than faking it (*seat fidelity*).
 
 ### 1. Runtime
 

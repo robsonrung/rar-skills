@@ -15,7 +15,9 @@ Each model starts in its natural role:
 | Kimi | `pragmatic_engineering` | `implementer` |
 | GLM | `pragmatic_engineering` | `implementer` |
 
-The Runner Role column above is the canonical stance-to-runner-role mapping (`supportive_with_integrity` -> `planner` or `implementer`, `critical_with_responsibility` -> `codereviewer` or `adversarial`, `balanced_synthesis` -> `synthesizer`, `devils_advocate` -> `challenger`, `pragmatic_engineering` -> `implementer`). For `blocked_on_context` investigation rounds, use the `researcher` runner role.
+The Runner Role column above is the canonical stance-to-runner-role mapping (`supportive_with_integrity` -> `planner` or `implementer`, `critical_with_responsibility` -> `codereviewer` or `adversarial`, `balanced_synthesis` -> `synthesizer`, `devils_advocate` -> `challenger`, `pragmatic_engineering` -> `implementer`, `outsider_fresh_eyes` -> `reviewer` with no repo context). For `blocked_on_context` investigation rounds, use the `researcher` runner role.
+
+When 5 or more seats are available, assign one Round 1 seat the `outsider_fresh_eyes` stance (give it the brief with repo glossary/ADR context stripped) so the panel always carries one curse-of-knowledge check. With 4 or fewer seats, keep the natural-stance table above and reserve `outsider_fresh_eyes` for a later round only if no seat has surfaced a clarity/assumption objection.
 
 ## Round 2: Cross-Stance Pressure
 
