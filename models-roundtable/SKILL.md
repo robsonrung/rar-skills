@@ -27,7 +27,7 @@ Six default seats. Launch each by its preferred path for the current host; fall 
 | Seat | Claude Code host (primary) | Fallback |
 |------|----------------------------|----------|
 | Opus 4.8 | native `Agent` subagent, `model: "opus"` | `claude-runner --model claude-opus-4-8` |
-| Sonnet 4.6 | native `Agent` subagent, `model: "sonnet"` | `claude-runner --model claude-sonnet-4-6` |
+| Sonnet 5.0 | native `Agent` subagent, `model: "sonnet"` | `claude-runner --model claude-sonnet-5-0` |
 | Codex | `codex-runner` (`--effort high`) | native `spawn_agent` on a Codex host |
 | Gemini | `gemini-runner` (Antigravity `agy`) | — (skip if `agy` missing) |
 | Kimi | `kimi-runner --model kimi-code/kimi-for-coding` | — (skip if `kimi-cli` missing) |

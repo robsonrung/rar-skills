@@ -43,7 +43,7 @@ Agent(
 )
 ```
 
-Use `model="claude-sonnet-4-6"` for the Sonnet 4.6 seat.
+Use `model="claude-sonnet-5-0"` for the Sonnet 5.0 seat.
 
 ### Codex (Codex host)
 
@@ -68,7 +68,7 @@ If full-history context inheritance is needed, either spawn without explicit `mo
 
 Use runner scripts only when the native seat path is unavailable. Pass `--disable-fallback` so councils fail a seat explicitly instead of silently borrowing another provider.
 
-### Claude Opus 4.8 / Sonnet 4.6 (runner fallback)
+### Claude Opus 4.8 / Sonnet 5.0 (runner fallback)
 
 ```bash
 python3 .agents/skills/claude-runner/scripts/run_claude.py \
@@ -86,7 +86,7 @@ python3 .agents/skills/claude-runner/scripts/run_claude.py \
   --metadata-json '{"session":"{session_id}","round":{n},"seat":"claude-opus","stance":"supportive_with_integrity"}'
 ```
 
-Use `--model claude-sonnet-4-6` for the Sonnet 4.6 seat.
+Use `--model claude-sonnet-5-0` for the Sonnet 5.0 seat.
 
 In `inline` artifact mode, combine the prompt and pass it as a single positional prompt instead of `--prompt-file` flags.
 

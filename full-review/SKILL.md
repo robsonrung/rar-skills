@@ -204,7 +204,7 @@ The probe covers this default candidate set, in priority order:
 | Seat | Execution path | Default lens |
 |------|----------------|--------------|
 | `opus` | native `Agent` subagent (`model: "opus"`) or `claude-runner --model claude-opus-4-8` | `structural_maintainability` |
-| `sonnet` | native `Agent` subagent (`model: "sonnet"`) or `claude-runner --model claude-sonnet-4-6` | `security_runtime` |
+| `sonnet` | native `Agent` subagent (`model: "sonnet"`) or `claude-runner --model claude-sonnet-5-0` | `security_runtime` |
 | `codex` | `codex-runner --effort high` | `logic_state` |
 | `gemini` | `gemini-runner` (Antigravity `agy`) | `cross_file_consistency` |
 | `kimi` | `kimi-runner --model kimi-code/kimi-for-coding` | `broad_sweep` (input/auth) |

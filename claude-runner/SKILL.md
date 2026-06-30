@@ -47,7 +47,7 @@ Use `--working-dir` when the prompt depends on package-local files or generated 
 | `--working-dir`, `-w` | Working directory | Current dir |
 | `--json`, `-j` | Wrap runner output in a JSON envelope | False |
 | `--prompt-file` | Read prompt content from a file; may be repeated | None |
-| `--model`, `-m` | Claude model alias or full model name such as `claude-sonnet-4-6` or `claude-opus-4-7` | CLI default |
+| `--model`, `-m` | Claude model alias or full model name such as `claude-sonnet-5-0` or `claude-opus-4-8` | CLI default |
 | `--output-format`, `-o` | Claude print-mode output format: `text`, `json`, or `stream-json` | `text` |
 | `--safe` | Informational no-op; permission checks are always enabled whether or not the flag is passed | True |
 | `--bare` | Use Claude bare mode for faster startup and fewer implicit context sources | False |
@@ -85,8 +85,8 @@ Shared rules (prefer `agent_message`, severity-ordered findings, evidence bounda
 
 ```bash
 python3 .agents/skills/claude-runner/scripts/run_claude.py "Summarize the sync service"
-python3 .agents/skills/claude-runner/scripts/run_claude.py "Compare two implementation plans" --model claude-sonnet-4-6
-python3 .agents/skills/claude-runner/scripts/run_claude.py --prompt-file /tmp/overlay.md --prompt-file /tmp/brief.md --role codereviewer --model claude-opus-4-7
+python3 .agents/skills/claude-runner/scripts/run_claude.py "Compare two implementation plans" --model claude-sonnet-5-0
+python3 .agents/skills/claude-runner/scripts/run_claude.py --prompt-file /tmp/overlay.md --prompt-file /tmp/brief.md --role codereviewer --model claude-opus-4-8
 python3 .agents/skills/claude-runner/scripts/run_claude.py "Read-only architecture review" --restrict-tools --bare --no-session-persistence
 python3 .agents/skills/claude-runner/scripts/run_claude.py "Continue from the accepted report" --role implementer --session-file .ai-workflow/consensus/feature-x.md
 python3 .agents/skills/claude-runner/scripts/run_claude.py "Deep audit of the auth module" --role codereviewer --effort xhigh --output-format json --json

@@ -42,7 +42,7 @@ Selection workflow:
   `Which models to use?`
   `[ ] All available (Recommended)`
   `[ ] Claude Opus 4.8`
-  `[ ] Claude Sonnet 4.6`
+  `[ ] Claude Sonnet 5.0`
   `[ ] Codex`
   `[ ] Gemini`
   `[ ] Kimi`
@@ -63,7 +63,7 @@ Selection workflow:
 
 ### 1. Detect host-native seats
 
-- If `Agent` exists, Claude Opus 4.8 and Claude Sonnet 4.6 use native seats.
+- If `Agent` exists, Claude Opus 4.8 and Claude Sonnet 5.0 use native seats.
 - If `spawn_agent` and `wait_agent` exist, Codex uses a native seat.
 - Otherwise, those seats may use runner scripts if the local CLI exists.
 

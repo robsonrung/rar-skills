@@ -11,7 +11,6 @@ import tempfile
 from pathlib import Path
 from typing import Any, Optional
 
-
 ROLE_INSTRUCTIONS = {
     "planner": "Act as a planning specialist. Break work into phases, call out risks, and keep the output actionable.",
     "codereviewer": "Act as a rigorous code reviewer. Prioritize correctness, regressions, missing tests, and concrete evidence.",
@@ -46,7 +45,9 @@ def normalize_envelope(
     requested_runner: str,
     requested_model: str | None = None,
 ) -> dict[str, Any]:
-    effective_runner = str(result.get("effective_runner") or result.get("runner") or requested_runner)
+    effective_runner = str(
+        result.get("effective_runner") or result.get("runner") or requested_runner
+    )
     result["runner"] = requested_runner
     result["effective_runner"] = effective_runner
 
@@ -66,7 +67,9 @@ def normalize_envelope(
         else:
             result["auth_ok"] = None
 
-    result["effective_provider"] = result.get("effective_provider") or PROVIDER_BY_RUNNER.get(
+    result["effective_provider"] = result.get(
+        "effective_provider"
+    ) or PROVIDER_BY_RUNNER.get(
         effective_runner,
         effective_runner,
     )
@@ -97,7 +100,9 @@ def write_json_output_file(path: str, payload: dict[str, Any]) -> str:
     return str(target)
 
 
-def resolve_restrict_tools(role: Optional[str], restrict_tools: bool, allow_write: bool) -> bool:
+def resolve_restrict_tools(
+    role: Optional[str], restrict_tools: bool, allow_write: bool
+) -> bool:
     if restrict_tools:
         return True
     if allow_write:
@@ -105,7 +110,9 @@ def resolve_restrict_tools(role: Optional[str], restrict_tools: bool, allow_writ
     return bool(role) and role not in WRITE_ROLES
 
 
-def extract_output_fields(stdout: str, output_format: str) -> tuple[Optional[str], Optional[str]]:
+def extract_output_fields(
+    stdout: str, output_format: str
+) -> tuple[Optional[str], Optional[str]]:
     """Return (agent_message, session_id) parsed from Claude print-mode stdout."""
     if output_format == "json":
         try:
@@ -244,7 +251,9 @@ def invoke_fallback(
             "stdout": (
                 exc.stdout
                 if isinstance(exc.stdout, str)
-                else (exc.stdout.decode("utf-8", errors="replace") if exc.stdout else "")
+                else (
+                    exc.stdout.decode("utf-8", errors="replace") if exc.stdout else ""
+                )
             ),
             "stderr": f"Fallback runner timed out after {timeout} seconds",
             "return_code": -1,
@@ -354,7 +363,7 @@ def run_claude(
             "restrict_tools": restrict_tools,
         }
 
-    for pf in (prompt_files or []):
+    for pf in prompt_files or []:
         if not Path(pf).is_file():
             return {
                 "success": False,
@@ -387,7 +396,9 @@ def run_claude(
             "restrict_tools": restrict_tools,
         }
 
-    final_prompt = build_prompt(prompt, prompt_files or [], role, session_file, metadata_json)
+    final_prompt = build_prompt(
+        prompt, prompt_files or [], role, session_file, metadata_json
+    )
     if (resume or continue_last) and not final_prompt.strip():
         final_prompt = (
             "Continue from the current conversation state. Pick the next "
@@ -439,7 +450,10 @@ def run_claude(
     if shutil.which("claude") is None:
         if not disable_fallback:
             fallback_script = (
-                Path(__file__).resolve().parents[2] / "codex-runner" / "scripts" / "run_codex.py"
+                Path(__file__).resolve().parents[2]
+                / "codex-runner"
+                / "scripts"
+                / "run_codex.py"
             )
             if fallback_script.is_file():
                 fallback_result = invoke_fallback(
@@ -564,7 +578,7 @@ Examples:
   %(prog)s "What is 2+2?"
   %(prog)s "List Python files" --working-dir /path/to/project
   %(prog)s "Explain this code" --json --timeout 3600
-  %(prog)s "Summarize this repo" --model claude-sonnet-4-6
+  %(prog)s "Summarize this repo" --model claude-sonnet-5-0
   %(prog)s "Review this code"
         """,
     )
@@ -608,7 +622,7 @@ Examples:
         "-m",
         type=str,
         default=None,
-        help="Claude model alias or full model name (for example 'claude-sonnet-4-6' or 'claude-opus-4-7')",
+        help="Claude model alias or full model name (for example 'claude-sonnet-5-0' or 'claude-opus-4-8')",
     )
     parser.add_argument(
         "--output-format",
@@ -704,7 +718,11 @@ Examples:
 
     args = parser.parse_args()
 
-    if not args.prompt and not args.prompt_files and not (args.resume or args.continue_last):
+    if (
+        not args.prompt
+        and not args.prompt_files
+        and not (args.resume or args.continue_last)
+    ):
         parser.error("Provide a prompt argument, --prompt-file, or --resume/--continue")
 
     if args.background:
@@ -714,7 +732,9 @@ Examples:
                 "--background requires the shared jobs module (_shared/scripts/runner_jobs.py), which was not found"
             )
         prompt_source = args.prompt or (
-            f"prompt files: {', '.join(args.prompt_files)}" if args.prompt_files else "(resume)"
+            f"prompt files: {', '.join(args.prompt_files)}"
+            if args.prompt_files
+            else "(resume)"
         )
         try:
             summary = jobs.launch_background(
@@ -723,7 +743,11 @@ Examples:
                 sys.argv[1:],
                 working_dir=args.working_dir,
                 prompt_excerpt=prompt_source,
-                manifest_extra={"role": args.role, "model": args.model, "effort": args.effort},
+                manifest_extra={
+                    "role": args.role,
+                    "model": args.model,
+                    "effort": args.effort,
+                },
             )
         except ValueError as exc:
             parser.error(str(exc))
@@ -751,7 +775,9 @@ Examples:
         disable_fallback=args.disable_fallback,
     )
 
-    result = normalize_envelope(result, requested_runner="claude", requested_model=args.model)
+    result = normalize_envelope(
+        result, requested_runner="claude", requested_model=args.model
+    )
 
     output_file = None
     if args.output_file:

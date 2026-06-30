@@ -107,7 +107,7 @@ python3 .agents/skills/glm-runner/scripts/run_glm.py \
 
 `glm-runner` delegates to `dcode-runner`; the GLM identity is a seat label and the underlying model is whichever one `dcode` is configured with. `--model` is metadata only and is not forwarded — to make the GLM seat actually run GLM, configure `dcode` itself (`~/.deepagents/config.toml` or `dcode --default-model openrouter:z-ai/glm-5.2`). There is no `--output-schema` flag; the brief's trailing `Return ONLY JSON …` line enforces the shape. For the gap-repair round, change `round1` → `round2` and write to `round2-glm.json`.
 
-### Opus 4.8 and Sonnet 4.6 (native subagents)
+### Opus 4.8 and Sonnet 5.0 (native subagents)
 
 On a Claude Code host, launch these as native subagents (read-only by instruction; optionally `mode: "plan"`). Spawn fresh each round — the orchestrator holds state.
 
@@ -121,7 +121,7 @@ Agent(
 )
 ```
 
-Require the round's exact JSON shape in the prompt so output stays bounded. Fallback (no `Agent` tool): `claude-runner --model claude-opus-4-8` (or `--model claude-sonnet-4-6`) `--restrict-tools --disable-fallback --output-format json --json --output-file <dir>/round1-opus.json` (claude-runner has no `--output-schema`; the brief enforces the shape).
+Require the round's exact JSON shape in the prompt so output stays bounded. Fallback (no `Agent` tool): `claude-runner --model claude-opus-4-8` (or `--model claude-sonnet-5-0`) `--restrict-tools --disable-fallback --output-format json --json --output-file <dir>/round1-opus.json` (claude-runner has no `--output-schema`; the brief enforces the shape).
 
 ## Organizer
 
@@ -164,7 +164,7 @@ After judging + the orchestrator's final calls, run **one** synthesizer — read
 
 | Capability | Claude Code | Codex host |
 |------------|-------------|------------|
-| Opus / Sonnet seats & Opus judge | native `Agent`, `model:"opus"`/`"sonnet"` | `claude-runner --model claude-opus-4-8` / `--model claude-sonnet-4-6` |
+| Opus / Sonnet seats & Opus judge | native `Agent`, `model:"opus"`/`"sonnet"` | `claude-runner --model claude-opus-4-8` / `--model claude-sonnet-5-0` |
 | Organizer & synthesizer (default Opus) | native `Agent`, `model:"opus"`, `mode:"plan"` | `claude-runner --model claude-opus-4-8` (schema via `--output-schema`) |
 | Codex seat & Codex judge | `codex-runner --effort high` | native `spawn_agent` (`fork_context=false`) |
 | Gemini seat | `gemini-runner` | `gemini-runner` |

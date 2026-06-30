@@ -24,7 +24,7 @@ Assign work to the model best suited to it. This is the default routing; fall ba
 | Lens: **architecture / module complexity** | Opus 4.8 | native `Agent` running `architecture-lens` / `software-design-philosophy` | strongest structural judgment |
 | Lens: **data-systems** (state, async, migrations, retries) | Codex | `codex-runner --role codereviewer --effort high` | correctness & concurrency rigor |
 | Lens: **security** (auth, input, secrets, untrusted data) | Codex | `codex-runner --role adversarial --effort high` | best adversarial bug-finder |
-| Lens: **clean-code / readability / test coverage** | Sonnet 4.6 | native `Agent` `model:"sonnet"` running `clean-code` / `test-lens` | capable and right-sized (don't burn Opus here) |
+| Lens: **clean-code / readability / test coverage** | Sonnet 5.0 | native `Agent` `model:"sonnet"` running `clean-code` / `test-lens` | capable and right-sized (don't burn Opus here) |
 | **Synthesis & enrichment** | Opus 4.8 | native `Agent` `model:"opus"` `mode:"plan"` (else `claude-runner --model claude-opus-4-8 --role synthesizer --effort xhigh`) | synthesis is the dominant lever |
 | **Completeness critic** | Codex | `codex-runner --role adversarial --effort high` | one focused skeptical pass (`high` is plenty; `xhigh` is too slow for a final gap check) |
 
