@@ -27,8 +27,17 @@ ROLE_INSTRUCTIONS = {
 # Roles that modify the workspace; every other role defaults to a read-only sandbox.
 WRITE_ROLES = {"implementer"}
 
+# Premium default: GPT 5.5 is the best all-around engineering model and the
+# recommended Codex model for most coding, architecture, and synthesis work.
+# The code-specialized GPT 5.3 Codex (agentic coding, regression, security
+# review) is available via `--model codex` / `--model gpt-5.3-codex`.
+DEFAULT_MODEL = "gpt-5.5"
+
 MODEL_ALIASES = {
     "spark": "gpt-5.3-codex-spark",
+    "codex": "gpt-5.3-codex",
+    "gpt-5.5": "gpt-5.5",
+    "gpt-5.3-codex": "gpt-5.3-codex",
 }
 
 EFFORT_LEVELS = ("none", "minimal", "low", "medium", "high", "xhigh")
@@ -116,7 +125,7 @@ def write_json_output_file(path: str, payload: dict[str, Any]) -> str:
 
 def resolve_model(model: Optional[str]) -> Optional[str]:
     if model is None:
-        return None
+        return DEFAULT_MODEL
     return MODEL_ALIASES.get(model, model)
 
 
@@ -533,7 +542,7 @@ def main():
         "-m",
         type=str,
         default=None,
-        help="Codex model alias (e.g. spark maps to gpt-5.3-codex-spark)",
+        help="Codex model (default: gpt-5.5). Aliases: 'codex' -> gpt-5.3-codex (code-specialized: agentic coding, regression, security review), 'spark' -> gpt-5.3-codex-spark.",
     )
     parser.add_argument(
         "--effort",

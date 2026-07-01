@@ -1,6 +1,6 @@
 # Runner Common Reference
 
-Canonical, agent-facing rules shared by every runner skill (claude, codex, gemini, kimi, qwen, and the qwen-backed gemma/glm/minimax shims). Each runner's SKILL.md points here for these four blocks and keeps inline only its genuine deltas.
+Canonical, agent-facing rules shared by every runner skill (claude, codex, gemini, qwen, the cline-backed kimi/glm shims, and the qwen-backed gemma/minimax shims). Each runner's SKILL.md points here for these four blocks and keeps inline only its genuine deltas.
 
 ## Seat fidelity
 

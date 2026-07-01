@@ -41,9 +41,9 @@ Detect the host first, before choosing the seat implementation. The rule is the 
 
 | Host | Opus + Sonnet | Codex | Gemini |
 |------|---------------|-------|--------|
-| Codex host | `claude-runner` | native `spawn_agent` | `gemini-runner --role planner` (when local Gemini CLI present) |
-| Claude host | native Claude subagents | `codex-runner --role planner --restrict-tools --effort xhigh` | `gemini-runner --role planner` (when local Gemini CLI present) |
-| Other hosts (Gemini/Qwen/Kimi CLI, etc.) | `claude-runner` | `codex-runner --role planner --restrict-tools --effort xhigh` | `gemini-runner --role planner` (when local Gemini CLI present) |
+| Codex host | `claude-runner` | native `spawn_agent` | `gemini-runner --model gemini-3.1-pro --role planner` (when local Gemini CLI present) |
+| Claude host | native Claude subagents | `codex-runner --role planner --restrict-tools --effort xhigh` | `gemini-runner --model gemini-3.1-pro --role planner` (when local Gemini CLI present) |
+| Other hosts (Gemini/Qwen/Kimi CLI, etc.) | `claude-runner` | `codex-runner --role planner --restrict-tools --effort xhigh` | `gemini-runner --model gemini-3.1-pro --role planner` (when local Gemini CLI present) |
 
 All seats run as planners producing only an initial thought, with no write access during the council round. Use the strongest reasoning effort available — `xhigh` for Codex (native or runner). For native Codex seats also set `fork_context=false`.
 
@@ -128,9 +128,9 @@ After the first round, write a compact report with these sections:
 
 Keep this report faithful. Do not smuggle in extra context or repo-specific explanations that were not present in the first round.
 
-## Step 4: Send Only The Report To Codex
+## Step 4: Send Only The Report To Codex (GPT 5.5)
 
-Pass the moderator report, with no other context, to Codex for the final planning decision.
+Pass the moderator report, with no other context, to Codex for the final planning decision. The Codex seat runs **GPT 5.5** (`codex-runner`'s default — the best all-around engineering + final-synthesis model), which is why the decisive final plan is routed here.
 
 On Codex host:
 - use a fresh native Codex subagent

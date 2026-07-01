@@ -22,7 +22,7 @@ Exact launch patterns for the seats, the organizer, the two judges, and the synt
 - **No silent swaps:** `--disable-fallback` on every runner.
 - **Keep transcripts out of context:** use `--output-file`; read `agent_message` from the file, not raw stdout.
 - **Timeout:** `--timeout 600` is ample for answering.
-- **Schema enforcement:** `--output-schema` is supported by **Codex and Kimi only**. GLM (via dcode-runner), Gemini, and the Opus/Sonnet (native or claude-runner) seats have no schema flag — for them the JSON shape is enforced by the brief's trailing `Return ONLY JSON …` line.
+- **Schema enforcement:** `--output-schema` is natively validated only by **Codex**; the cline-backed **Kimi and GLM** seats accept `--output-schema` too, but enforce it by prompt rather than natively. Gemini and the Opus/Sonnet (native or claude-runner) seats have no schema flag — for all of these the JSON shape is enforced by the brief's trailing `Return ONLY JSON …` line.
 - **Transient retry:** a runner returning `success=false` with no output file (e.g. `return_code -3` on a busy concurrent launch) may be **retried once sequentially** before the seat is dropped — concurrent back-to-back launches occasionally trip this and a lone retry clears it.
 
 Schemas:
@@ -42,7 +42,7 @@ Apply the **same** profile to every active seat (identical conditions — Hard R
 - `repo_plus_research` — both of the above, read-only.
 
 Never pass write/exec tools. If a seat's host cannot honor the chosen read-only profile, **drop that seat** rather than run it with a different toolset.
-For GLM, use research profiles only after confirming dcode is configured with `TAVILY_API_KEY` (in `~/.deepagents/.env` or the environment) so it exposes the same read-only web behavior as the other active seats; otherwise drop that seat for the run.
+For GLM, use research profiles only after confirming the cline-backed seat can honor the same read-only web behavior as the other active seats; otherwise drop that seat for the run.
 
 ## Self-pairing (duplicate seats)
 
@@ -73,20 +73,21 @@ python3 .agents/skills/codex-runner/scripts/run_codex.py \
 ```bash
 python3 .agents/skills/gemini-runner/scripts/run_gemini.py \
   --prompt-file <dir>/round1-brief.md \
+  --model gemini-3.5-flash \
   --restrict-tools --timeout 600 \
   --json --disable-fallback \
   --output-file <dir>/round1-gemini.json \
   --metadata-json '{"session":"<id>","round":1,"seat":"gemini"}'
 ```
 
-`gemini-runner` has no `--output-schema`; the brief enforces the shape.
+`gemini-runner` has no `--output-schema`; the brief enforces the shape. The Gemini seat's role here is **broad independent perspective**, so it runs Gemini 3.5 Flash (`--model` is a metadata label — set agy's own model picker to match).
 
 ### Kimi
 
 ```bash
 python3 .agents/skills/kimi-runner/scripts/run_kimi.py \
   --prompt-file <dir>/round1-brief.md \
-  --model kimi-code/kimi-for-coding \
+  --model moonshotai/kimi-k2.7-code \
   --restrict-tools --output-format stream-json --timeout 600 \
   --json --disable-fallback \
   --output-schema .agents/skills/models-roundtable/schemas/opening-answer.schema.json \
@@ -105,9 +106,9 @@ python3 .agents/skills/glm-runner/scripts/run_glm.py \
   --metadata-json '{"session":"<id>","round":1,"seat":"glm"}'
 ```
 
-`glm-runner` delegates to `dcode-runner`; the GLM identity is a seat label and the underlying model is whichever one `dcode` is configured with. `--model` is metadata only and is not forwarded — to make the GLM seat actually run GLM, configure `dcode` itself (`~/.deepagents/config.toml` or `dcode --default-model openrouter:z-ai/glm-5.2`). There is no `--output-schema` flag; the brief's trailing `Return ONLY JSON …` line enforces the shape. For the gap-repair round, change `round1` → `round2` and write to `round2-glm.json`.
+`glm-runner` delegates to `cline-runner` and forwards a **real** GLM model — `--model zai/glm-5.2` is passed straight through to `cline` (it is the default, so no `--model` is needed), which resolves it via the authenticated Cline provider (`runner=glm`, `effective_runner=cline`). `--output-schema` is accepted but prompt-enforced, so the brief's trailing `Return ONLY JSON …` line is what holds the shape. For the gap-repair round, change `round1` → `round2` and write to `round2-glm.json`.
 
-### Opus 4.8 and Sonnet 5.0 (native subagents)
+### Opus 4.8 and Sonnet 5 (native subagents)
 
 On a Claude Code host, launch these as native subagents (read-only by instruction; optionally `mode: "plan"`). Spawn fresh each round — the orchestrator holds state.
 
@@ -125,7 +126,7 @@ Require the round's exact JSON shape in the prompt so output stays bounded. Fall
 
 ## Organizer
 
-After Phase 1, run **one** organizer over **all** seat answers — read-only, fresh, no role — to emit the five-dimension structured analysis. Default Opus 4.8 (native subagent, `model:"opus"`, `mode:"plan"`, a *different* subagent than the Opus seat); fall back to the strongest available seat model. The brief = every seat's answer + "produce the organizer analysis". Native seats enforce the shape via the brief; on a Codex host use `--output-schema …/organizer-analysis.schema.json`. The organizer's `material_gaps` flag gates Phase 3 (skip the gap-repair round when `false`).
+After Phase 1, run **one** organizer over **all** seat answers — read-only, fresh, no role — to emit the five-dimension structured analysis. **On a Claude host** default to Opus 4.8 (native subagent, `model:"opus"`, `mode:"plan"`, a *different* subagent than the Opus seat); **when running outside Claude** default to **GPT 5.5** (`codex-runner --model gpt-5.5`), the best all-around synthesis model — else fall back to the strongest available seat model. The brief = every seat's answer + "produce the organizer analysis". Native seats enforce the shape via the brief; on a Codex host use `--output-schema …/organizer-analysis.schema.json`. The organizer's `material_gaps` flag gates Phase 3 (skip the gap-repair round when `false`).
 
 ## Gap-repair round
 
@@ -152,7 +153,7 @@ A point is resolved when both judges' `ruling` agrees; otherwise the orchestrato
 
 ## Synthesizer
 
-After judging + the orchestrator's final calls, run **one** synthesizer — read-only, fresh, no role — to write the consensus answer. Default Opus 4.8 (native subagent, `model:"opus"`, `mode:"plan"`; a *different* context than the Opus seat/organizer/judge). The brief = the full record (organizer analysis + locked consensus + resolved/open points with rulings + every seat answer) and "write the consensus answer with an attribution map." Native seats enforce the shape via the brief; on a Codex host use `--output-schema …/synthesis.schema.json`. The orchestrator then **validates** every claim's attribution against the record before adopting the answer (send back once if it drifts).
+After judging + the orchestrator's final calls, run **one** synthesizer — read-only, fresh, no role — to write the consensus answer. **On a Claude host** default to Opus 4.8 (native subagent, `model:"opus"`, `mode:"plan"`; a *different* context than the Opus seat/organizer/judge); **when running outside Claude** default to **GPT 5.5** (`codex-runner --model gpt-5.5`). The brief = the full record (organizer analysis + locked consensus + resolved/open points with rulings + every seat answer) and "write the consensus answer with an attribution map." Native seats enforce the shape via the brief; on a Codex host use `--output-schema …/synthesis.schema.json`. The orchestrator then **validates** every claim's attribution against the record before adopting the answer (send back once if it drifts).
 
 ## Collecting results
 
@@ -165,8 +166,8 @@ After judging + the orchestrator's final calls, run **one** synthesizer — read
 | Capability | Claude Code | Codex host |
 |------------|-------------|------------|
 | Opus / Sonnet seats & Opus judge | native `Agent`, `model:"opus"`/`"sonnet"` | `claude-runner --model claude-opus-4-8` / `--model claude-sonnet-5-0` |
-| Organizer & synthesizer (default Opus) | native `Agent`, `model:"opus"`, `mode:"plan"` | `claude-runner --model claude-opus-4-8` (schema via `--output-schema`) |
+| Organizer & synthesizer | native `Agent`, `model:"opus"`, `mode:"plan"` (default Opus on a Claude host) | **GPT 5.5** `codex-runner --model gpt-5.5` (schema via `--output-schema`) — GPT 5.5 is the default organizer/synthesizer when running outside Claude |
 | Codex seat & Codex judge | `codex-runner --effort high` | native `spawn_agent` (`fork_context=false`) |
 | Gemini seat | `gemini-runner` | `gemini-runner` |
 | Kimi seat | `kimi-runner` | `kimi-runner` |
-| GLM seat | `glm-runner` (via `dcode-runner`) | `glm-runner` (via `dcode-runner`) |
+| GLM seat | `glm-runner` (via `cline`) | `glm-runner` (via `cline`) |

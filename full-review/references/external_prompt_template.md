@@ -8,19 +8,21 @@ A seat without a lens-matched mission is a wasted seat. If the active triangulat
 
 The orchestrator discovers available runners at preflight (see SKILL.md Phase 3 "Runner Discovery") and assigns each one a default lens from this table. The table is a default, not a hard binding — when `security_focus=true` or a specialist trigger fires, the orchestrator may reassign a seat to the matching lens.
 
+Role diversity follows model strengths: **GPT for logic and security, Sonnet for maintainability, Gemini for cross-file consistency, GLM for edge cases, Kimi for broad pragmatic review.**
+
 | Seat | Default lens | Why |
 |---|---|---|
-| `opus` (native Agent or `claude-runner`) | `structural_maintainability` | Strongest at applying `references/structural_quality_review.md` and naming a safer refactor path |
-| `sonnet` (native Agent or `claude-runner`) | `security_runtime` | Solid security + runtime path coverage at lower latency than opus |
-| `codex` (`codex-runner --effort high`) | `logic_state` | Best at logic, state, and concurrency reasoning on tight code slices |
-| `gemini` (`gemini-runner` / `agy`) | `cross_file_consistency` | Long context — feed whole touched files + dependents, not just the diff slice |
-| `kimi` (`kimi-runner`) | `broad_sweep` | Cheap, fast — input-validation, exposure, resource leaks across the whole diff |
-| `glm` (`glm-runner --model z-ai/glm-5.2`) | `broad_sweep` | Cheap, second sweep — assign a different category emphasis than kimi |
+| `codex` (`codex-runner --effort high`, GPT 5.5) | `logic_state` | Best at logic, state, and concurrency reasoning on tight code slices. GPT also **owns `security_runtime`**: fill it with a second Codex seat `--model gpt-5.3-codex` (the code-specialized security reviewer) |
+| `sonnet` (native Agent or `claude-runner`, Sonnet 5) | `structural_maintainability` | Strongest at clean-code / maintainability — applies `references/structural_quality_review.md` and names a safer refactor path |
+| `gemini` (`gemini-runner --model gemini-3.5-flash`) | `cross_file_consistency` | Gemini 3.5 Flash — broad, long context; feed whole touched files + dependents, not just the diff slice |
+| `glm` (`glm-runner --model zai/glm-5.2`) | `broad_sweep` | GLM 5.2 — edge cases, boundary conditions, resource/failure paths; assign a different category emphasis than kimi |
+| `kimi` (`kimi-runner`, Kimi K2.7 Code) | `broad_sweep` | Fast, pragmatic — input-validation, exposure, resource leaks across the whole diff |
+| `opus` (native Agent or `claude-runner`) | `structural_maintainability` backup | Deep reasoning; primary role is the Phase 5 synthesizer — backs up sonnet on maintainability when needed |
 | `gemma` (`gemma-runner`) | `broad_sweep` | Cheap third sweep — pair with kimi/glm to form a skeptic pool for adversarial verify |
 | `qwen` (`qwen-runner`) | `logic_state` | Codex backup when codex is unavailable; otherwise lend to broad_sweep |
 | `minimax` (`minimax-runner`) | `cross_file_consistency` | Gemini backup with long context; otherwise lend to broad_sweep |
 
-When two seats default to the same lens, give them **non-overlapping category emphasis** within that lens (e.g. kimi → input-validation + auth, glm → resource leaks + data exposure, gemma → regression + perf). The lens prompt's `<focus_emphasis>` block carries this assignment.
+When two seats default to the same lens, give them **non-overlapping category emphasis** within that lens (e.g. kimi → input-validation + auth, glm → edge cases + resource leaks, gemma → regression + perf). The lens prompt's `<focus_emphasis>` block carries this assignment.
 
 ## Base Template
 
@@ -168,7 +170,7 @@ The orchestrator fills `{category_emphasis}` per seat. Typical assignments:
 | Seat | `{category_emphasis}` |
 |---|---|
 | `kimi` | input validation, injection, auth/session handling |
-| `glm` | data exposure, resource leaks, unbounded allocations |
+| `glm` | edge cases, boundary conditions, resource leaks, unbounded allocations |
 | `gemma` | regression risk on changed behavior, perf hot spots |
 
 ### `security_runtime`

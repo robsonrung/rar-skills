@@ -17,18 +17,18 @@ Assign work to the model best suited to it. This is the default routing; fall ba
 
 | Task | Model (seat) | How to launch | Why this model |
 |---|---|---|---|
-| Branch: **smallest viable change** | Kimi | `kimi-runner --role planner` | pragmatic, code-native, minimal-diff thinking |
+| Branch: **smallest viable change** | Kimi K2.7 Code | `kimi-runner --role planner` | pragmatic, code-native, minimal-diff thinking (MVP model) |
 | Branch: **cleanest design** | Opus 4.8 | native `Agent` `model:"opus"` `mode:"plan"` (else `claude-runner --model claude-opus-4-8 --role planner`) | deepest design/boundary reasoning |
-| Branch: **most robust** | Codex | `codex-runner --role planner --effort high` | edge cases, concurrency, failure modes |
-| Branch: **different boundary/placement** (optional 4th) | Gemini | `gemini-runner --role planner` | independent lineage, systemic/big-picture view |
+| Branch: **most robust** | GLM 5.2 | `glm-runner --role planner` | edge cases, long-context / backend reasoning, failure modes |
+| Branch: **different boundary/placement** (optional 4th) | Gemini 3.5 Flash | `gemini-runner --model gemini-3.5-flash --role planner` | independent lineage, broad systemic/big-picture view |
 | Lens: **architecture / module complexity** | Opus 4.8 | native `Agent` running `architecture-lens` / `software-design-philosophy` | strongest structural judgment |
-| Lens: **data-systems** (state, async, migrations, retries) | Codex | `codex-runner --role codereviewer --effort high` | correctness & concurrency rigor |
-| Lens: **security** (auth, input, secrets, untrusted data) | Codex | `codex-runner --role adversarial --effort high` | best adversarial bug-finder |
-| Lens: **clean-code / readability / test coverage** | Sonnet 5.0 | native `Agent` `model:"sonnet"` running `clean-code` / `test-lens` | capable and right-sized (don't burn Opus here) |
-| **Synthesis & enrichment** | Opus 4.8 | native `Agent` `model:"opus"` `mode:"plan"` (else `claude-runner --model claude-opus-4-8 --role synthesizer --effort xhigh`) | synthesis is the dominant lever |
-| **Completeness critic** | Codex | `codex-runner --role adversarial --effort high` | one focused skeptical pass (`high` is plenty; `xhigh` is too slow for a final gap check) |
+| Lens: **data-systems** (state, async, migrations, retries) | GPT 5.3 Codex | `codex-runner --model gpt-5.3-codex --role codereviewer --effort high` | correctness & concurrency rigor, regression analysis |
+| Lens: **security** (auth, input, secrets, untrusted data) | GPT 5.3 Codex | `codex-runner --model gpt-5.3-codex --role adversarial --effort high` | best code-focused adversarial/security reviewer |
+| Lens: **clean-code / readability / test coverage** | Sonnet 5 | native `Agent` `model:"sonnet"` running `clean-code` / `test-lens` | clean code, readability, and test quality are Sonnet's strength |
+| **Synthesis & enrichment** | GPT 5.5 | `codex-runner --model gpt-5.5 --role synthesizer --effort xhigh` | best all-around engineering + synthesis model; synthesis is the dominant lever |
+| **Completeness critic** | GPT 5.3 Codex | `codex-runner --model gpt-5.3-codex --role adversarial --effort high` | one focused skeptical pass — kept on a *different* model than the GPT 5.5 synthesizer so it doesn't rubber-stamp (`high` is plenty; `xhigh` is too slow for a final gap check) |
 
-GLM is the spare diversity seat — use it as a fallback branch model or an extra critique angle when another seat is missing.
+GLM 5.2 anchors the **most robust** branch (edge cases / long context) and is also the spare diversity seat — use it as a fallback branch model or an extra critique angle when another seat is missing.
 
 ## Step 0 — Preflight (probe seats once)
 
@@ -44,7 +44,7 @@ python3 .agents/skills/_shared/scripts/discover_runners.py probe \
 (From this source repo, drop the `.agents/skills/` prefix.) Pass `--native-agent yes` only on a host that exposes the native `Agent` tool (Claude Code); otherwise `no`, and use the `claude-runner` fallbacks in the table.
 
 **Fallback rules:**
-- A seat marked `unavailable` → reassign its task to the next-best **available** model (e.g. no Kimi → smallest-change branch goes to Sonnet or GLM; no Codex → robust branch + data/security lenses go to Opus).
+- A seat marked `unavailable` → reassign its task to the next-best **available** model (e.g. no Kimi → smallest-change branch goes to Sonnet or GLM; no GLM → robust branch goes to Codex; no Codex → data/security lenses + synthesis go to Opus).
 - Never fabricate a seat or silently borrow another provider — every runner call passes `--disable-fallback`.
 - **Branch quorum: proceed only with ≥2 distinct branch models.** Below that, stop and report which prerequisites are missing rather than running a thin panel.
 - If two branches end up on the same model (after fallback), label them and note the reduced model diversity in the output.
@@ -86,27 +86,27 @@ Pressure-test the branches from two kinds of lens. Run only the domain lenses th
 |---|---|---|
 | coupling, layering, where code belongs | `architecture-lens` | Opus |
 | module complexity / information hiding | `software-design-philosophy` / `design-integrity` | Opus |
-| readability, naming, duplication, refactor | `clean-code` | Sonnet |
-| stored state, queries, migrations, async, retries | `data-systems-coding-lens` | Codex |
-| auth, input handling, secrets, untrusted data | `security-gate` | Codex |
-| testability, coverage of the change | `test-lens` | Sonnet |
+| readability, naming, duplication, refactor | `clean-code` | Sonnet 5 |
+| stored state, queries, migrations, async, retries | `data-systems-coding-lens` | GPT 5.3 Codex |
+| auth, input handling, secrets, untrusted data | `security-gate` | GPT 5.3 Codex |
+| testability, coverage of the change | `test-lens` | Sonnet 5 |
 
-For a lens assigned to **Opus or Sonnet** on a Claude host, run the **actual lens skill** inside a native `Agent` of that model (richest result). For a lens assigned to **Codex** (or any runner-only model), launch that runner as a `codereviewer`/`adversarial` seat with the lens's focus inlined in the prompt — name the lens skill as the source of the criteria. If `design-gate` is available you may hand it the leading candidate to route the domain lenses automatically.
+For a lens assigned to **Opus or Sonnet** on a Claude host, run the **actual lens skill** inside a native `Agent` of that model (richest result). For a lens assigned to **GPT 5.3 Codex** (or any runner-only model), launch that runner as a `codereviewer`/`adversarial` seat with the lens's focus inlined in the prompt — name the lens skill as the source of the criteria. If `design-gate` is available you may hand it the leading candidate to route the domain lenses automatically.
 
 Capture, per branch: strongest aspect, biggest weakness, any fatal flaw.
 
-## Step 4 — Synthesize & enrich (Opus)
+## Step 4 — Synthesize & enrich (GPT 5.5)
 
-Hand the **full record** (every branch + every critique) to the synthesis seat — Opus 4.8 — and produce **one** plan:
+Hand the **full record** (every branch + every critique) to the synthesis seat — **GPT 5.5** (`codex-runner --model gpt-5.5 --role synthesizer --effort xhigh`), the best all-around engineering + synthesis model — and produce **one** plan:
 - Pick the strongest branch as the spine.
 - Graft the best ideas from the other branches into it.
 - Resolve every surviving critique, or note why it's accepted.
 
 Output the enriched plan: ordered steps, files to change, sequencing, tests to add/update, risks + mitigations, rollback/notes. Briefly state which approaches were considered, on which models, and why this synthesis won. Validate the synthesis against the record — every plan element should trace to a branch or a resolved critique.
 
-## Step 5 — Completeness check (one bounded round, Codex)
+## Step 5 — Completeness check (one bounded round, GPT 5.3 Codex)
 
-Run one hard skeptical pass (Codex `--role adversarial --effort high`): *what angle, edge case, model, or applicable lens did we still not cover?*
+Run one hard skeptical pass (GPT 5.3 Codex `--model gpt-5.3-codex --role adversarial --effort high` — a *different* model than the GPT 5.5 synthesizer, so it won't rubber-stamp): *what angle, edge case, model, or applicable lens did we still not cover?*
 - Material gap → do **one** targeted patch round (re-critique just that gap on its best model, fold the fix into the plan).
 - Otherwise stop. Do not loop further — keep it simple.
 
@@ -127,7 +127,7 @@ Write a file only if the user asks.
 - **Self-contained.** Never call `models-consensus`, `models-roundtable`, `council`, or `decision-council`. This skill owns its own loop.
 - **Multi-model by construction.** Branches run on distinct models via the runners (≥2 quorum); lenses and synthesis run on the model the routing table assigns. `--disable-fallback` on every runner; never substitute a provider silently.
 - **Blind branches, same brief.** Only the premise line differs across branches.
-- **Best model per task, but don't overspend.** Reserve Opus for design/synthesis, Codex for correctness/security/adversarial, Sonnet/Kimi/GLM for the rest. Run only the lenses the change touches.
+- **Best model per task, but don't overspend.** GPT 5.5 for synthesis/enrichment, Opus for the deep design lenses, GPT 5.3 Codex for correctness/security/adversarial, Sonnet 5 for clean-code/tests, Kimi K2.7 Code / GLM 5.2 / Gemini 3.5 Flash for the branch seats. Run only the lenses the change touches.
 - **One completeness round max.**
 - **Read `agent_message` from `--output-file`,** never raw stdout (Kimi appends a resume hint; Codex emits a transcript).
 - **This produces a plan, not code.** Hand the plan off to your implementation flow.

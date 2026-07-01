@@ -27,11 +27,11 @@ Six default seats. Launch each by its preferred path for the current host; fall 
 | Seat | Claude Code host (primary) | Fallback |
 |------|----------------------------|----------|
 | Opus 4.8 | native `Agent` subagent, `model: "opus"` | `claude-runner --model claude-opus-4-8` |
-| Sonnet 5.0 | native `Agent` subagent, `model: "sonnet"` | `claude-runner --model claude-sonnet-5-0` |
-| Codex | `codex-runner` (`--effort high`) | native `spawn_agent` on a Codex host |
-| Gemini | `gemini-runner` (Antigravity `agy`) | — (skip if `agy` missing) |
-| Kimi | `kimi-runner --model kimi-code/kimi-for-coding` | — (skip if `kimi-cli` missing) |
-| GLM | `glm-runner` (delegates to `dcode-runner`) | — (skip if `dcode` missing or not configured with a GLM provider) |
+| Sonnet 5 | native `Agent` subagent, `model: "sonnet"` | `claude-runner --model claude-sonnet-5-0` |
+| GPT 5.5 (Codex) | `codex-runner --model gpt-5.5` (`--effort high`) | native `spawn_agent` on a Codex host |
+| Gemini 3.5 Flash | `gemini-runner --model gemini-3.5-flash` (Antigravity `agy`) | — (skip if `agy` missing) |
+| Kimi K2.7 Code | `kimi-runner` (default `moonshotai/kimi-k2.7-code`) | — (skip if `cline` missing) |
+| GLM 5.2 | `glm-runner` (via `cline`, `zai/glm-5.2`) | — (skip if `cline` missing or not configured with a GLM provider) |
 
 **Quorum:** proceed only with **≥3 seats**.
 
@@ -41,8 +41,8 @@ Exact commands + the output envelope are in [references/runner-invocations.md](r
 
 ## Organizer & Synthesizer
 
-- **Organizer (Phase 2).** A fresh read-only model (default Opus 4.8, or the strongest available) reads **all** seat answers and emits a five-dimension structured analysis — the substrate everything downstream consumes.
-- **Synthesizer (Phase 5).** A fresh read-only model (default Opus 4.8) writes the final consensus answer grounded in the record (organizer analysis + locked agreements + resolved/open points + every seat answer). The orchestrator validates it against the record and assembles the report — it does **not** write the answer prose itself.
+- **Organizer (Phase 2).** A fresh read-only model reads **all** seat answers and emits a five-dimension structured analysis — the substrate everything downstream consumes. **On a Claude host** default to Opus 4.8 (native subagent — richest result); **when running outside Claude** default to **GPT 5.5** (`codex-runner --model gpt-5.5`), the best all-around synthesis model — or the strongest available.
+- **Synthesizer (Phase 5).** A fresh read-only model writes the final consensus answer grounded in the record (organizer analysis + locked agreements + resolved/open points + every seat answer). Same default as the organizer: **Opus 4.8 on a Claude host, GPT 5.5 when running outside Claude.** The orchestrator validates it against the record and assembles the report — it does **not** write the answer prose itself.
 
 Both are user-selectable and **recorded in the report**. Keep them as separate contexts from the seats and judges.
 
@@ -63,7 +63,7 @@ Opus appears four ways (orchestrator, a seat, the organizer/synthesizer, a judge
      --format json
    ```
 
-   Pass `--native-agent yes` only when the host exposes the native `Agent` tool (Claude Code); otherwise pass `no`. The envelope returns one row per seat with `available`, `cli_path`, `version`, `blocked_reason`, and `depends_on`. Mark seats with `available: false` as `unavailable` in the seat table. The shared probe reports GLM `unavailable` automatically when its `dcode` dependency is missing; if the runner separately reports a blocked seat at launch time, record that as the `blocked_reason` instead. Enforce the ≥3 quorum, auto-engaging self-pairing only if needed to reach it.
+   Pass `--native-agent yes` only when the host exposes the native `Agent` tool (Claude Code); otherwise pass `no`. The envelope returns one row per seat with `available`, `cli_path`, `version`, `blocked_reason`, and `depends_on`. Mark seats with `available: false` as `unavailable` in the seat table. The shared probe reports GLM `unavailable` automatically when its `cline` dependency is missing; if the runner separately reports a blocked seat at launch time, record that as the `blocked_reason` instead. Enforce the ≥3 quorum, auto-engaging self-pairing only if needed to reach it.
 2. **Preset.** Pick a preset (default `quality`); it bundles panel size, whether self-pairing is on, tool profile, per-seat budget, judge count, and synthesizer strength:
    - `quality` — all available distinct seats, strongest organizer/synthesizer, two judges.
    - `budget` — cheaper panel (e.g. GLM + Gemini + Kimi, or one Claude), lighter synthesizer; note the lower confidence band. A cheaper diverse panel can still rival a single frontier model at materially lower cost.
@@ -74,7 +74,7 @@ Opus appears four ways (orchestrator, a seat, the organizer/synthesizer, a judge
    - `research_read_only` — web search/fetch only (no repo); for research/multi-source/current-facts tasks. Require each seat to report sources used and failed lookups.
    - `repo_plus_research` — both, read-only.
    Never grant write/exec (e.g. bash mutation) — that violates Rule 2.
-   For GLM, only include it in a research profile when the dcode-backed runner can honor the same read-only research tool access as every other active seat (dcode's web search requires `TAVILY_API_KEY` in `~/.deepagents/.env` or the environment); otherwise drop the GLM seat for that run and record the reason.
+   For GLM, only include it in a research profile when the cline-backed runner can honor the same read-only research tool access as every other active seat; otherwise drop the GLM seat for that run and record the reason.
 4. **Repo grounding (optional).** Only if the task is about this repo: collect `CONTEXT.md`/ADRs and the relevant files to pass as **read-only context** so seats use the project's vocabulary. For a general (non-repo) task, skip this.
 5. **Artifact mode.** `persisted` when `.ai-workflow/` is writable → `.ai-workflow/roundtable/<session_id>/`; else `inline` (return paths `null`).
 6. **Session id.** Short stable id (e.g. `roundtable-<slug>`); use it for the artifact dir and filenames.

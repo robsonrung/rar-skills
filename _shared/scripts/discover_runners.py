@@ -83,15 +83,17 @@ SEAT_SPECS: tuple[SeatSpec, ...] = (
     ),
     SeatSpec(
         seat="kimi",
-        execution_path="kimi_runner",
-        probe_cli="kimi-cli",
+        execution_path="kimi_runner_via_cline",
+        probe_cli="cline",
+        depends_on=("cline",),
+        notes="cline-backed shim; forwards --model moonshotai/kimi-k2.7-code (Kimi K2.7 Code) to `cline`, requires a Cline provider authenticated via `cline auth`.",
     ),
     SeatSpec(
         seat="glm",
-        execution_path="glm_runner_via_dcode",
-        probe_cli="dcode",
-        depends_on=("dcode",),
-        notes="dcode-backed shim; requires the dcode CLI configured with a GLM provider in ~/.deepagents/.",
+        execution_path="glm_runner_via_cline",
+        probe_cli="cline",
+        depends_on=("cline",),
+        notes="cline-backed shim; forwards --model zai/glm-5.2 to `cline`, requires a Cline provider authenticated via `cline auth`.",
     ),
 )
 

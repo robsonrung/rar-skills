@@ -42,7 +42,7 @@ Selection workflow:
   `Which models to use?`
   `[ ] All available (Recommended)`
   `[ ] Claude Opus 4.8`
-  `[ ] Claude Sonnet 5.0`
+  `[ ] Claude Sonnet 5`
   `[ ] Codex`
   `[ ] Gemini`
   `[ ] Kimi`
@@ -63,7 +63,7 @@ Selection workflow:
 
 ### 1. Detect host-native seats
 
-- If `Agent` exists, Claude Opus 4.8 and Claude Sonnet 5.0 use native seats.
+- If `Agent` exists, Claude Opus 4.8 and Claude Sonnet 5 use native seats.
 - If `spawn_agent` and `wait_agent` exist, Codex uses a native seat.
 - Otherwise, those seats may use runner scripts if the local CLI exists.
 
@@ -74,13 +74,13 @@ Use shell commands to verify binaries, auth, and one cheap headless smoke test f
 Minimum checks:
 - `claude` in `PATH`
 - `gemini` in `PATH`
-- `kimi-cli` in `PATH` when the Kimi seat is under consideration
-- `dcode` in `PATH` when the GLM seat is under consideration
+- `cline` in `PATH` when the Kimi seat is under consideration (Kimi is cline-backed)
+- `cline` in `PATH` when the GLM seat is under consideration (GLM is cline-backed)
 
 Mandatory seat smoke tests:
 - Run a minimal non-interactive invocation for every runner-backed seat with the exact model you plan to use.
 - Run every runner-backed seat with `--disable-fallback`. Councils must fail a seat explicitly instead of silently borrowing another provider.
-- See [references/runner-invocations.md](references/runner-invocations.md) for per-seat auth rules, including the critical Claude `--bare` rule and the GLM/dcode transport rule.
+- See [references/runner-invocations.md](references/runner-invocations.md) for per-seat auth rules, including the critical Claude `--bare` rule and the GLM/cline transport rule.
 
 Treat missing binaries, missing credentials, or failing smoke tests as seat blockers, not soft warnings.
 
@@ -117,8 +117,8 @@ Use these rules:
 4. Use runner scripts only when the native seat path is unavailable.
 5. Treat runner fallback to another provider as loss of seat independence.
 6. If Gemini CLI is missing, skip Gemini entirely.
-7. If Kimi CLI is missing, skip Kimi entirely.
-8. If `dcode` CLI is missing, skip GLM entirely.
+7. If `cline` CLI is missing, skip Kimi entirely (Kimi is cline-backed).
+8. If `cline` CLI is missing, skip GLM entirely (GLM is cline-backed).
 9. Continue with the remaining seats and lower confidence; never fabricate a missing seat.
 
 ## Cost Governance and Crash Recovery

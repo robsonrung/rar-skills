@@ -60,7 +60,7 @@ Paths in the examples use the installed `.agents/skills/` layout. When running f
 | `--timeout`, `-t` | Maximum execution time in seconds | 3600 |
 | `--working-dir`, `-w` | Working directory | Current directory |
 | `--json`, `-j` | Wrap runner output in JSON | False |
-| `--model`, `-m` | Compatibility metadata label. `agy` uses its configured model from `/model` or settings. | `agy-configured-model` |
+| `--model`, `-m` | Compatibility metadata label. `agy` uses its configured model from `/model` or settings — this label is reflected in `effective_model` but not forwarded. Premium seat: `gemini-3.1-pro` (product discovery / product thinking); for broad independent perspective and cross-file consistency, pass `gemini-3.5-flash`. | `gemini-3.1-pro` |
 | `--output-format`, `-o` | Response format hint: `text`, `json`, or `stream-json`. **Advisory only** — `agy` print mode has no output-format launch flag, so the wrapper just asks the model for the format in the prompt. For `json` it does a best-effort fence-strip and reports `output_json_valid`; it does not guarantee or re-shape the output. | `text` |
 | `--prompt-file` | Read the prompt from a file (repeatable; files are concatenated in order) | None |
 | `--role` | Apply a role overlay | None |
@@ -100,7 +100,7 @@ python3 .agents/skills/gemini-runner/scripts/run_gemini.py "Continue the previou
 1. Executes `agy [--continue] --print-timeout <Ns> --print "<prompt>"`. The `--print-timeout` is set slightly below the wrapper's `--timeout` so `agy` self-terminates (and returns its own exit code) before the hard subprocess timeout would kill it; a genuine wrapper timeout still reports `return_code -1` / `status: timeout`.
 2. Does not request a permission bypass.
 3. Keeps `runner=gemini` for workflow compatibility and sets `effective_runner=agy` when Antigravity CLI produced the output.
-4. Does not pass unsupported Gemini CLI flags such as `--model`, `--output-format`, `--thinking-budget`, or a read-only convenience mode to `agy`. `--model` is metadata only; when supplied it is reflected in `effective_model`, otherwise `effective_model` is the `agy-configured-model` placeholder (agy uses its configured model).
+4. Does not pass unsupported Gemini CLI flags such as `--model`, `--output-format`, `--thinking-budget`, or a read-only convenience mode to `agy`. `--model` is metadata only; when supplied it is reflected in `effective_model`, otherwise `effective_model` is the `gemini-3.1-pro` premium-seat label (agy uses its own configured model — set its `/model` picker to Gemini 3.1 Pro, or Gemini 3.5 Flash for broad-perspective seats).
 5. Resolves relative `--prompt-file`/`--session-file` paths against `--working-dir` (not the process cwd).
 
 ### Continuation caveat
@@ -121,4 +121,4 @@ python3 .agents/skills/gemini-runner/scripts/run_gemini.py "Continue the previou
 
 - Antigravity CLI (`agy`) installed and available in PATH
 - Authentication configured for Antigravity CLI
-- Model selection configured in `agy` via `/model` or `~/.gemini/antigravity-cli/settings.json` when a specific model is required
+- Model selection configured in `agy` itself (the wrapper's `--model` is a non-forwarded label). List the models `agy` accepts with `agy models`; the two premium Gemini seats are named **`Gemini 3.1 Pro (High)`** (product discovery / architecture reasoning) and **`Gemini 3.5 Flash (High)`** (broad independent perspective / cross-file). Select one via `/model` in an interactive `agy` session or in `~/.gemini/antigravity-cli/settings.json` — the wrapper's `--model gemini-3.1-pro` / `--model gemini-3.5-flash` only sets the `effective_model` label.

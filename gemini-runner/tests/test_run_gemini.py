@@ -148,10 +148,10 @@ class MissingCliEnvelopeTests(unittest.TestCase):
     def test_disable_fallback_reflects_requested_model(self):
         with mock.patch("run_gemini.shutil.which", return_value=None):
             env = run_gemini.run_gemini(
-                prompt="hi", model="gemini-3-pro", disable_fallback=True
+                prompt="hi", model="gemini-3.1-pro", disable_fallback=True
             )
         self.assertEqual(env["return_code"], -2)
-        self.assertEqual(env["effective_model"], "gemini-3-pro")
+        self.assertEqual(env["effective_model"], "gemini-3.1-pro")
         self.assertIsNone(env["auth_ok"])
         self.assertEqual(env["effective_provider"], "google")
         self.assertEqual(run_gemini.validate_envelope(env), [])

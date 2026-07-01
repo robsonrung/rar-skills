@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://rar-skills/runner-envelope.schema.json",
   "title": "Runner Envelope",
-  "description": "Wrapper envelope emitted by the shared qwen-runner implementation (and its qwen-backed shims: glm, gemma, minimax). All --json responses conform to this contract.",
+  "description": "Wrapper envelope emitted by the shared qwen-runner implementation (and its qwen-backed shims: gemma, minimax) and the cline-runner implementation (and its cline-backed shims: kimi, glm). All --json responses conform to this contract.",
   "type": "object",
   "required": [
     "runner",

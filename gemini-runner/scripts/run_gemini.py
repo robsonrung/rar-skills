@@ -20,7 +20,13 @@ from typing import Any, Optional
 
 # The agy binary can be overridden for non-standard installs / tests.
 AGY_CLI = os.environ.get("AGY_CLI_PATH", "agy")
-DEFAULT_MODEL = "agy-configured-model"
+# Premium Gemini seat: Gemini 3.1 Pro (product discovery / product thinking).
+# For broad independent perspective and cross-file consistency, callers pass
+# `--model gemini-3.5-flash`. NOTE: agy uses whichever model its own
+# settings/model picker is configured with — `--model` here is a metadata label
+# reflected in `effective_model`, not forwarded to the CLI. Configure agy's
+# model picker to match the intended premium seat.
+DEFAULT_MODEL = "gemini-3.1-pro"
 
 # Keys every emitted envelope must carry (the shared runner-envelope contract).
 REQUIRED_ENVELOPE_KEYS = (
@@ -683,7 +689,8 @@ def run_gemini(
         model: Accepted for compatibility; agy uses its configured model from
             settings/model picker. When supplied, the label is reflected in
             ``effective_model``; otherwise ``effective_model`` is the
-            ``agy-configured-model`` placeholder.
+            ``gemini-3.1-pro`` premium-seat label (set agy's own picker to
+            Gemini 3.1 Pro, or Gemini 3.5 Flash for broad-perspective seats).
         output_format: Compatibility hint - 'text', 'json', or 'stream-json'
             (default: 'text'). Advisory only; for 'json' the wrapper does a
             best-effort fence-strip and sets ``output_json_valid``.

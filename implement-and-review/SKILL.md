@@ -1,6 +1,6 @@
 ---
 name: implement-and-review
-description: Implement ONE scoped task end-to-end with cross-model review. Given a task prompt, decide the frontend/backend split and which model does what, build it test-first — a frontend track (a native Opus 4.8 subagent implements, Kimi reviews) and a backend track (Codex implements, an Opus 4.8 subagent reviews) in parallel isolated git worktrees, applying the repo's lens skills — loop implement→cross-review→fix (max 3) per track, integrate the two tracks, run the full-review skill, and leave tests/build green. Opus orchestrates. Use to implement/build/fix a single scoped task with split frontend/backend work, TDD, and cross-model review. For a whole feature (many tasks), use implement-feature, which calls this per task. Distinct from models-roundtable (answer only, no code) and ship (single-model pipeline).
+description: Implement ONE scoped task end-to-end with cross-model review. Given a task prompt, decide the frontend/backend split and which model does what, build it test-first — a frontend track (a native Opus 4.8 subagent implements, Kimi K2.7 Code reviews) and a backend track (GPT 5.5 implements via the Codex CLI, an Opus 4.8 subagent reviews) in parallel isolated git worktrees, applying the repo's lens skills — loop implement→cross-review→fix (max 3) per track, integrate the two tracks, run the full-review skill, and leave tests/build green. Opus orchestrates. Use to implement/build/fix a single scoped task with split frontend/backend work, TDD, and cross-model review. For a whole feature (many tasks), use implement-feature, which calls this per task. Distinct from models-roundtable (answer only, no code) and ship (single-model pipeline).
 ---
 
 # Implement And Review
@@ -15,9 +15,9 @@ Both tracks are **test-first (TDD)** and follow the **boy-scout rule** — leave
 
 | Track | Implementer | Reviewer |
 |-------|-------------|----------|
-| Frontend | native Opus 4.8 subagent (`Agent`, `model:"opus"`, write-enabled) | Kimi (`kimi-runner --role codereviewer`, read-only) |
-| Backend | Codex (`codex-runner --role implementer`, write-enabled) | native Opus 4.8 subagent (read-only) |
-| Final review | the **`full-review`** skill on the task's diff (multi-model: Codex + Claude + bug finders + verification), then apply findings | — |
+| Frontend | native Opus 4.8 subagent (`Agent`, `model:"opus"`, write-enabled) | Kimi K2.7 Code (`kimi-runner --role codereviewer`, read-only) |
+| Backend | GPT 5.5 (`codex-runner --model gpt-5.5 --role implementer`, write-enabled) | native Opus 4.8 subagent (read-only) |
+| Final review | the **`full-review`** skill on the task's diff (multi-model: GPT 5.5 + GPT 5.3 Codex + Claude + bug finders + verification), then apply findings | — |
 
 Several independent Opus contexts exist (orchestrator, FE implementer, BE reviewer). Keep them separate.
 
@@ -28,8 +28,8 @@ Exact launch commands and the worktree/integration git flow are in
 
 ## Hard Rules
 
-1. **Orchestrator coordinates, never implements.** Delegate FE to the Opus subagent and BE to Codex.
-2. **Cross-model review is mandatory.** Kimi reviews FE (Opus's work); Opus reviews BE (Codex's work). An implementer never reviews its own track.
+1. **Orchestrator coordinates, never implements.** Delegate FE to the Opus subagent and BE to GPT 5.5 (via `codex-runner --model gpt-5.5`).
+2. **Cross-model review is mandatory.** Kimi K2.7 Code reviews FE (Opus's work); Opus reviews BE (GPT 5.5's work). An implementer never reviews its own track.
 3. **Test-first (TDD).** Both tracks build via red-green-refactor — a failing test before the code that passes it, one test → one minimal change, refactor only on green.
 4. **Good code, boy-scout rule.** Produce clean code (clear names, small focused units, no duplication/dead code) and leave touched files cleaner than found — but scope improvements to what the task changes; never rewrite unrelated areas or change behavior beyond the task.
 5. **Apply the repo's lens skills.** Each track works through the relevant quality/architecture skills (see [Methodology & Per-Track Skills](#methodology--per-track-skills)); the final review uses **`full-review`**.
@@ -73,7 +73,7 @@ Fast path: the bundled launcher creates the worktrees, fires the runner-backed i
 Create one worktree+branch per non-empty track off `<base>`, then build both tracks **concurrently** (issue the Codex `Bash` call and the Opus `Agent` call in one message). Every brief embeds the track methodology from [references/methodology.md](references/methodology.md): the **TDD loop**, the **good-code / boy-scout** rule, and the track's **lens checklist**.
 
 - **Frontend:** spawn a named Opus subagent (`Agent`, `model:"opus"`, write-enabled, addressable for fix rounds via `SendMessage`). It works only in the FE scope, implements test-first, honors the shared contracts, applies the FE lenses, runs FE-local tests after each step, and returns a compact summary (files, tests added, how to test, risks) — not its full diff.
-- **Backend:** run `codex-runner --role implementer` (write access) in the BE scope; brief = BE work + behaviors-to-test + shared contracts + embedded TDD/boy-scout/BE-lens snippets. Use `--background`/`--output-file`; keep the `session_id` for `--resume` fixes.
+- **Backend:** run `codex-runner --model gpt-5.5 --role implementer` (write access) in the BE scope — GPT 5.5 is the recommended Codex implementer; brief = BE work + behaviors-to-test + shared contracts + embedded TDD/boy-scout/BE-lens snippets. Use `--background`/`--output-file`; keep the `session_id` for `--resume` fixes.
 
 Commit tests and code interleaved (not all tests then all code).
 
@@ -95,7 +95,7 @@ Never apply review findings yourself; the implementer fixes its own track. Never
 
 ## Phase 4 — Final Review (full-review) & Apply
 
-Run the **`full-review`** skill on the task's integrated diff — it is multi-model (Codex + Claude + Gemini external runners, bug finders, personas, specialists, execution-based verification, structural-maintainability), so it fulfills "Opus and Codex review together" and goes further than the per-track review.
+Run the **`full-review`** skill on the task's integrated diff — it is multi-model (GPT 5.5 + GPT 5.3 Codex + Claude + Gemini external runners, bug finders, personas, specialists, execution-based verification, structural-maintainability), so it fulfills "Opus and GPT review together" and goes further than the per-track review.
 
 1. **Invoke** `full-review` (local diff vs `<base>`, or range `<base>..<integration>`). `security_focus=true` when security-sensitive. It is **read-only**.
 2. **Triage:** fix every CRITICAL/HIGH; apply safe, behavior-preserving MEDIUM simplification/maintainability findings; record deferrals with a reason. The machine JSON is the source of truth.
@@ -120,8 +120,8 @@ When called by `implement-feature`, return this report compactly so the orchestr
 
 ## Degrade Gracefully
 
-- **Kimi missing (FE reviewer):** use Codex as the FE reviewer (still cross-model, since FE is Opus's work); note the substitution.
-- **Codex missing (BE implementer):** with approval, have an Opus subagent implement BE and a *different* model review it; flag lost cross-vendor diversity. If no write-capable seat + distinct reviewer remain for a non-empty track, stop and report.
+- **Kimi K2.7 Code missing (FE reviewer):** use GPT 5.5 / GPT 5.3 Codex as the FE reviewer (still cross-model, since FE is Opus's work); note the substitution.
+- **GPT 5.5 / Codex missing (BE implementer):** with approval, have an Opus subagent implement BE and a *different* model review it; flag lost cross-vendor diversity. If no write-capable seat + distinct reviewer remain for a non-empty track, stop and report.
 - **Not a git repo:** run the tracks **sequentially** in the working tree (backend first so the FE builds against settled contracts), no worktrees; full-review against the local diff.
 - **No tests/build found:** TDD still drives design where a harness can be introduced; if truly none exists, build + review + `full-review`, and report that verification could not run — never imply it passed.
 - **full-review external runners unavailable:** it degrades itself (lowers its confidence cap, notes lost triangulation) — apply its findings anyway; don't skip it.

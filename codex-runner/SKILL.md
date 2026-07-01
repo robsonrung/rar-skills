@@ -49,7 +49,7 @@ Before composing non-trivial prompts (reviews, implementations, research seats),
 | `--timeout`, `-t` | Timeout in seconds | 3600 |
 | `--working-dir`, `-w` | Working directory | Current dir |
 | `--json`, `-j` | Wrap runner output in JSON | False |
-| `--model`, `-m` | Codex model alias (`spark` maps to `gpt-5.3-codex-spark`) | CLI default |
+| `--model`, `-m` | Codex model. Default `gpt-5.5` (best all-around: architecture, coding, synthesis, adversarial reasoning). Alias `codex` -> `gpt-5.3-codex` (code-specialized: agentic coding, regression, security review); `spark` -> `gpt-5.3-codex-spark` | `gpt-5.5` |
 | `--effort`, `-e` | Reasoning effort: `none`, `minimal`, `low`, `medium`, `high`, `xhigh` | CLI default |
 | `--sandbox`, `-s` | Codex sandbox mode override | CLI default |
 | `--restrict-tools` | Force `--sandbox read-only` | True for analysis roles |

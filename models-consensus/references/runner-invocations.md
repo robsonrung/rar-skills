@@ -43,7 +43,7 @@ Agent(
 )
 ```
 
-Use `model="claude-sonnet-5-0"` for the Sonnet 5.0 seat.
+Use `model="claude-sonnet-5-0"` for the Sonnet 5 seat.
 
 ### Codex (Codex host)
 
@@ -68,7 +68,7 @@ If full-history context inheritance is needed, either spawn without explicit `mo
 
 Use runner scripts only when the native seat path is unavailable. Pass `--disable-fallback` so councils fail a seat explicitly instead of silently borrowing another provider.
 
-### Claude Opus 4.8 / Sonnet 5.0 (runner fallback)
+### Claude Opus 4.8 / Sonnet 5 (runner fallback)
 
 ```bash
 python3 .agents/skills/claude-runner/scripts/run_claude.py \
@@ -86,7 +86,7 @@ python3 .agents/skills/claude-runner/scripts/run_claude.py \
   --metadata-json '{"session":"{session_id}","round":{n},"seat":"claude-opus","stance":"supportive_with_integrity"}'
 ```
 
-Use `--model claude-sonnet-5-0` for the Sonnet 5.0 seat.
+Use `--model claude-sonnet-5-0` for the Sonnet 5 seat.
 
 In `inline` artifact mode, combine the prompt and pass it as a single positional prompt instead of `--prompt-file` flags.
 
@@ -116,6 +116,7 @@ python3 .agents/skills/gemini-runner/scripts/run_gemini.py \
   --prompt-file .ai-workflow/consensus/{session_id}-round-{n}-gemini.md \
   --timeout 900 \
   --role synthesizer \
+  --model gemini-3.1-pro \
   --json \
   --output-format json \
   --disable-fallback \
@@ -123,7 +124,7 @@ python3 .agents/skills/gemini-runner/scripts/run_gemini.py \
   --metadata-json '{"session":"{session_id}","round":{n},"seat":"gemini","stance":"balanced_synthesis"}'
 ```
 
-Do not depend on speculative Gemini-only flags such as `--thinking-budget` or a read-only convenience mode.
+The consensus Gemini seat does architecture/synthesis reasoning, so it runs the premium **Gemini 3.1 Pro** (`--model` is a metadata label — set agy's own model picker to match). Do not depend on speculative Gemini-only flags such as `--thinking-budget` or a read-only convenience mode.
 
 ### Kimi
 
@@ -132,7 +133,7 @@ python3 .agents/skills/kimi-runner/scripts/run_kimi.py \
   --prompt-file .ai-workflow/consensus/{session_id}-round-{n}-kimi.md \
   --timeout 900 \
   --role implementer \
-  --model kimi-code/kimi-for-coding \
+  --model moonshotai/kimi-k2.7-code \
   --output-format stream-json \
   --json \
   --no-session-persistence \
@@ -156,7 +157,7 @@ python3 .agents/skills/glm-runner/scripts/run_glm.py \
   --metadata-json '{"session":"{session_id}","round":{n},"seat":"glm","stance":"pragmatic_engineering"}'
 ```
 
-`glm-runner` delegates to `dcode-runner`; the GLM identity is a seat label and the underlying model is whichever one `dcode` is configured with. `--model` is metadata only and is not forwarded — to make the GLM seat actually run GLM, configure `dcode` itself to point at a GLM provider (`~/.deepagents/config.toml` or `dcode --default-model openrouter:z-ai/glm-5.2`). The seat has no `--output-schema` flag; rely on the brief's trailing `Return ONLY JSON …` line to enforce shape.
+`glm-runner` delegates to `cline-runner` and forwards a **real** GLM model — `--model zai/glm-5.2` is passed straight through to `cline` (it is the default, so no `--model` is needed), which resolves it via the authenticated Cline provider (`runner=glm`, `effective_runner=cline`, `effective_provider=z-ai`). `--output-schema` is accepted but **prompt-enforced** (not natively validated), so the brief's trailing `Return ONLY JSON …` line is what actually holds the shape.
 
 ---
 
@@ -170,9 +171,9 @@ Always pass `--disable-fallback` to runner-backed seats. Councils must fail a se
 
 Do not use `--bare` for Claude runner seats when relying on Claude OAuth or keychain-backed login. Claude's own help states that `--bare` disables OAuth and keychain auth, so a logged-in terminal can still fail with `Not logged in` in headless mode if `--bare` is passed. Only use `--bare` when `ANTHROPIC_API_KEY` or an explicit `apiKeyHelper`-based configuration is the intended auth path.
 
-### GLM / dcode transport rule
+### GLM / cline transport rule
 
-`glm-runner` delegates to `dcode-runner`; the GLM identity is a seat *label* in the envelope and dcode answers with whichever model it has been configured with. To preserve true GLM semantics, the user must point `dcode` at a GLM provider (`~/.deepagents/config.toml` or `~/.deepagents/.env`) — the runner deliberately never forwards `--model` to dcode. Treat the GLM seat as a single seat; do not pair it with another dcode-backed seat under a different label and call it diversity.
+`glm-runner` delegates to `cline-runner` and forwards a **real** GLM model: `--model zai/glm-5.2` is passed straight through to `cline`, so the seat genuinely runs GLM (not a relabeled other model). It requires the `cline` CLI (`npm install -g cline`) and a Cline provider authenticated via `cline auth` that can resolve `zai/glm-5.2`. Passing `--model` mutates that provider's persisted default in `~/.cline/data/settings/providers.json`; pass `--data-dir` for automated runs to isolate the side effect. Treat the GLM seat as a single seat; do not pair it with another cline-backed seat under a different label and call it diversity.
 
 ---
 

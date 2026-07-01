@@ -1,0 +1,4 @@
+interface:
+  display_name: "Cline Runner"
+  short_description: "Run workspace prompts through Cline CLI"
+  default_prompt: "Use $cline-runner to execute this task with Cline CLI from the current workspace."

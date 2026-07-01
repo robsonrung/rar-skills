@@ -5,7 +5,7 @@ description: Execute prompts using Qwen Code CLI in headless mode with JSON-stre
 
 # Qwen Runner
 
-Execute prompts through the local `qwen` CLI in one-shot headless mode. Prefer this skill for automation, councils, and scripted validation where structured stream output is helpful. This is also the canonical wrapper doc the gemma/glm/minimax shims point at.
+Execute prompts through the local `qwen` CLI in one-shot headless mode. Prefer this skill for automation, councils, and scripted validation where structured stream output is helpful. This is also the canonical wrapper doc the gemma/minimax shims point at. (Kimi and GLM are no longer qwen-backed — they run through `cline-runner`.)
 
 Roles, the output-envelope key contract, presenting-results rules, the background-jobs CLI, and the **seat fidelity** invariant are shared across runners — see `../_shared/references/runner-common.md`. Only this runner's deltas (the qwen-specific approval-mode/wrapper detail and gotchas) are inline below.
 
@@ -94,7 +94,7 @@ On `-2` the envelope also carries `status: seat_unavailable`. There is no separa
 
 ## Background Jobs
 
-`--background` runs as a tracked job; manage it with the shared jobs CLI (`list`/`status`/`result`/`cancel`) — see `../_shared/references/runner-common.md`. This also applies to the gemma/glm/minimax shims, which tag jobs with their own runner name.
+`--background` runs as a tracked job; manage it with the shared jobs CLI (`list`/`status`/`result`/`cancel`) — see `../_shared/references/runner-common.md`. This also applies to the gemma/minimax shims, which tag jobs with their own runner name.
 
 ## Presenting Results
 
