@@ -54,6 +54,30 @@
       "concept": "acceptance contract",
       "must_contain": ["acceptance contract"],
       "must_not_contain": []
+    },
+    {
+      "file": "review-swarm/SKILL.md",
+      "concept": "cheap-first router / blast radius",
+      "must_contain": ["cheap-first", "blast radius"],
+      "must_not_contain": []
+    },
+    {
+      "file": "review-triage/SKILL.md",
+      "concept": "human-participation gate / autonomy ladder",
+      "must_contain": ["human-participation gate", "autonomy ladder"],
+      "must_not_contain": []
+    },
+    {
+      "file": "approval-gate/SKILL.md",
+      "concept": "deny-list / showstopper-only",
+      "must_contain": ["deny-list", "showstopper-only"],
+      "must_not_contain": []
+    },
+    {
+      "file": "pr-shepherd/SKILL.md",
+      "concept": "terminal state",
+      "must_contain": ["terminal state"],
+      "must_not_contain": []
     }
   ],
   "canon": [
@@ -72,7 +96,14 @@
     { "concept": "pinning legacy behavior before change", "leitwort": "characterization test", "drift_terms": [] },
     { "concept": "a seat's output is only ever that seat's", "leitwort": "seat fidelity", "drift_terms": [] },
     { "concept": "a task is done only when its acceptance criteria pass", "leitwort": "acceptance contract", "drift_terms": [] },
-    { "concept": "a comment that carries what the code cannot", "leitwort": "earned comment", "drift_terms": [] }
+    { "concept": "a comment that carries what the code cannot", "leitwort": "earned comment", "drift_terms": [] },
+    { "concept": "escalate review spend only where risk is", "leitwort": "cheap-first", "drift_terms": ["cost-aware review"] },
+    { "concept": "risk-scaled review depth", "leitwort": "blast radius", "drift_terms": ["impact radius"] },
+    { "concept": "humans in a thread outrank automation", "leitwort": "human-participation gate", "drift_terms": [] },
+    { "concept": "graduated autonomy for ambiguous findings", "leitwort": "autonomy ladder", "drift_terms": [] },
+    { "concept": "categories automation must never approve", "leitwort": "deny-list", "drift_terms": [] },
+    { "concept": "hunt only reasons a merge must not happen", "leitwort": "showstopper-only", "drift_terms": [] },
+    { "concept": "a loop is only finished in a named end state", "leitwort": "terminal state", "drift_terms": [] }
   ],
   "filler_verbs": ["carefully", "thoroughly", "make sure", "be sure to", "as appropriate", "as needed", "properly"]
 }

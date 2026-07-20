@@ -1,0 +1,4 @@
+interface:
+  display_name: "Approval Gate"
+  short_description: "Merge-time gate — deterministic deny-list and size checks, then a showstopper-only pass"
+  default_prompt: "Use $approval-gate on this PR. Run the deterministic gates first (prerequisites, deny-list categories, size ceiling), then a showstopper-only agent pass, and return APPROVE, REFUSE, ESCALATE, or WAIT with the evidence bundle."

@@ -73,6 +73,13 @@ agent sees one consistent token across the whole library:
 | A seat's output is only ever that seat's | **seat fidelity** | never substitute, block the seat, treat seat as absent |
 | A task is done only when its criteria pass | **acceptance contract** | definition of done, completion criteria, completeness contract |
 | A comment that carries what the code can't | **earned comment** | good comments, useful comments, helpful comments |
+| Escalate review spend only where risk is | **cheap-first** | cost-aware review |
+| Risk-scaled review depth | **blast radius** | impact radius |
+| Humans in a thread outrank automation | **human-participation gate** | defer to humans, human override |
+| Graduated autonomy for ambiguous findings | **autonomy ladder** | judgment call, discretion |
+| Categories automation must never approve | **deny-list** | blocklist, forbidden paths |
+| Hunt only reasons a merge must not happen | **showstopper-only** | blockers-only, critical-only |
+| A loop is only finished in a named end state | **terminal state** | done condition, exit condition |
 
 A skill may introduce a new leitwort when it genuinely owns a concept no other
 skill covers. Add it to this table when you do.

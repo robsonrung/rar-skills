@@ -1,0 +1,4 @@
+interface:
+  display_name: "Review Triage"
+  short_description: "Triage unresolved PR review threads — fix the clear ones, close the noise, defer humans"
+  default_prompt: "Use $review-triage on this PR. Re-run review-swarm if the head moved, then bucket every unresolved review thread: apply clear localized fixes and resolve them silently, close nits with a logged reason, and defer any thread with human participation or genuine design judgment."

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Review Swarm"
+  short_description: "Cheap-first routed PR review — a cheap router seat delegates only risky regions to strong seats"
+  default_prompt: "Use $review-swarm to review this PR or diff. A cheap router seat reads the whole change, rates each region's blast radius, delegates only the risky regions to stronger specialist seats, and posts inline findings plus one upserted summary comment."
