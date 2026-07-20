@@ -73,6 +73,15 @@ agent sees one consistent token across the whole library:
 | A seat's output is only ever that seat's | **seat fidelity** | never substitute, block the seat, treat seat as absent |
 | A task is done only when its criteria pass | **acceptance contract** | definition of done, completion criteria, completeness contract |
 | A comment that carries what the code can't | **earned comment** | good comments, useful comments, helpful comments |
+| The first fork on any request — change or assessment | **act or assess** | act vs report, fix vs explain, do vs discuss |
+| Recognition is not proof of cause | **pattern-match is not diagnosis** | looks like the usual, classic symptom, I've seen this before |
+| Decide, don't enumerate | **recommendation, not survey** | options memo, pros/cons list, exhaustive comparison |
+| A change indistinguishable from the house style | **native diff** | seamless diff, blends in, matches the style |
+| Open the report with what happened | **lead with the outcome** | bottom line up front, TLDR first |
+| Brevity by omission, not by squeezing | **selection over compression** | be concise, tighten the wording, keep it short |
+| Autonomy the request grants | **the mandate** | permission scope, authorization level |
+| Settled choices are inputs, not open questions | **already decided** | re-litigating, revisiting the decision |
+| A question exploration could answer is not for the user | **the user's time is the bottleneck** | don't bother the user, minimize questions |
 
 A skill may introduce a new leitwort when it genuinely owns a concept no other
 skill covers. Add it to this table when you do.

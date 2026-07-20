@@ -54,6 +54,36 @@
       "concept": "acceptance contract",
       "must_contain": ["acceptance contract"],
       "must_not_contain": []
+    },
+    {
+      "file": "fable-intake/SKILL.md",
+      "concept": "act or assess / the mandate",
+      "must_contain": ["act or assess", "the mandate", "eager fix", "timid report"],
+      "must_not_contain": []
+    },
+    {
+      "file": "fable-diagnosis/SKILL.md",
+      "concept": "pattern-match is not diagnosis / artifact of proof",
+      "must_contain": ["pattern-match is not diagnosis", "artifact of proof"],
+      "must_not_contain": []
+    },
+    {
+      "file": "fable-decision/SKILL.md",
+      "concept": "recommendation, not survey / already decided",
+      "must_contain": ["recommendation, not survey", "already decided", "marginal-information test", "survey ends here"],
+      "must_not_contain": []
+    },
+    {
+      "file": "fable-implementation/SKILL.md",
+      "concept": "native diff / earned comment / defensive theater",
+      "must_contain": ["native diff", "earned comment", "defensive theater", "smallest coherent shape"],
+      "must_not_contain": []
+    },
+    {
+      "file": "fable-reporting/SKILL.md",
+      "concept": "lead with the outcome / selection over compression",
+      "must_contain": ["lead with the outcome", "selection over compression", "honest ledger", "last-paragraph check"],
+      "must_not_contain": []
     }
   ],
   "canon": [
@@ -72,7 +102,16 @@
     { "concept": "pinning legacy behavior before change", "leitwort": "characterization test", "drift_terms": [] },
     { "concept": "a seat's output is only ever that seat's", "leitwort": "seat fidelity", "drift_terms": [] },
     { "concept": "a task is done only when its acceptance criteria pass", "leitwort": "acceptance contract", "drift_terms": [] },
-    { "concept": "a comment that carries what the code cannot", "leitwort": "earned comment", "drift_terms": [] }
+    { "concept": "a comment that carries what the code cannot", "leitwort": "earned comment", "drift_terms": [] },
+    { "concept": "the first fork on any request — change or assessment", "leitwort": "act or assess", "drift_terms": ["act vs report", "fix vs explain"] },
+    { "concept": "recognition is not proof of cause", "leitwort": "pattern-match is not diagnosis", "drift_terms": ["classic symptom", "the usual suspect"] },
+    { "concept": "decide, don't enumerate", "leitwort": "recommendation, not survey", "drift_terms": ["options memo", "exhaustive comparison"] },
+    { "concept": "a change indistinguishable from the house style", "leitwort": "native diff", "drift_terms": ["seamless diff", "blends into the codebase"] },
+    { "concept": "open the report with what happened", "leitwort": "lead with the outcome", "drift_terms": ["bottom line up front"] },
+    { "concept": "brevity by omission, not by squeezing", "leitwort": "selection over compression", "drift_terms": ["tighten the wording"] },
+    { "concept": "autonomy the request grants", "leitwort": "the mandate", "drift_terms": ["permission scope", "authorization level"] },
+    { "concept": "settled choices are inputs, not open questions", "leitwort": "already decided", "drift_terms": ["revisit the decision"] },
+    { "concept": "a question exploration could answer is not for the user", "leitwort": "the user's time is the bottleneck", "drift_terms": [] }
   ],
   "filler_verbs": ["carefully", "thoroughly", "make sure", "be sure to", "as appropriate", "as needed", "properly"]
 }
