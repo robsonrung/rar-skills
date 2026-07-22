@@ -58,14 +58,10 @@ def normalize_envelope(
 
     # Preserve the fallback runner's auth_ok when one was used; the fallback
     # reason already explains why the originally requested runner did not run.
+    # Missing CLI / errors before auth leave auth_ok null (untested), never
+    # false — false is reserved for a detected authentication failure.
     if "auth_ok" not in result or result.get("auth_ok") is None:
-        code = result.get("return_code")
-        if code == 0:
-            result["auth_ok"] = True
-        elif code == -2:
-            result["auth_ok"] = False
-        else:
-            result["auth_ok"] = None
+        result["auth_ok"] = True if result.get("return_code") == 0 else None
 
     result["effective_provider"] = result.get(
         "effective_provider"
@@ -84,19 +80,36 @@ def load_text_file(path: str) -> str:
     return Path(path).expanduser().read_text(encoding="utf-8")
 
 
+def resolve_input_path(path: str, working_dir: Optional[str]) -> str:
+    """Resolve a relative input path against --working-dir, not the process cwd."""
+    candidate = Path(path).expanduser()
+    if not candidate.is_absolute() and working_dir:
+        return str(Path(working_dir).expanduser() / candidate)
+    return str(candidate)
+
+
 def write_json_output_file(path: str, payload: dict[str, Any]) -> str:
     target = Path(path).expanduser()
     target.parent.mkdir(parents=True, exist_ok=True)
-    with tempfile.NamedTemporaryFile(
+    handle = tempfile.NamedTemporaryFile(
         "w",
         encoding="utf-8",
         dir=target.parent,
         delete=False,
-    ) as handle:
-        json.dump(payload, handle, indent=2, ensure_ascii=False)
-        handle.write("\n")
-        temp_name = handle.name
-    os.replace(temp_name, target)
+    )
+    temp_name = handle.name
+    try:
+        with handle:
+            json.dump(payload, handle, indent=2, ensure_ascii=False)
+            handle.write("\n")
+        os.replace(temp_name, target)
+    except BaseException:
+        # Never leave an orphaned temp file behind if the write/replace fails.
+        try:
+            os.unlink(temp_name)
+        except OSError:
+            pass
+        raise
     return str(target)
 
 
@@ -322,7 +335,16 @@ def bare_mode_has_supported_auth(env: dict[str, str]) -> bool:
     return bool(env.get("ANTHROPIC_API_KEY") or env.get("ANTHROPIC_AUTH_TOKEN"))
 
 
-def run_claude(
+def run_claude(*args: Any, **kwargs: Any) -> dict[str, Any]:
+    """Public entry point: every exit path (including early validation errors
+    and fallback results) returns a fully normalized envelope, whether invoked
+    via the CLI or imported and called programmatically."""
+    requested_model = kwargs.get("model") if "model" in kwargs else (args[3] if len(args) > 3 else None)
+    result = _run_claude(*args, **kwargs)
+    return normalize_envelope(result, requested_runner="claude", requested_model=requested_model)
+
+
+def _run_claude(
     prompt: str,
     timeout: int = 3600,
     working_dir: Optional[str] = None,
@@ -362,6 +384,11 @@ def run_claude(
             "no_session_persistence": no_session_persistence,
             "restrict_tools": restrict_tools,
         }
+
+    # Relative input paths resolve against --working-dir (not the process cwd),
+    # with ~ expanded — matching gemini-runner's documented behavior.
+    prompt_files = [resolve_input_path(p, working_dir) for p in prompt_files] if prompt_files else prompt_files
+    session_file = resolve_input_path(session_file, working_dir) if session_file else session_file
 
     for pf in prompt_files or []:
         if not Path(pf).is_file():
@@ -775,10 +802,6 @@ Examples:
         disable_fallback=args.disable_fallback,
     )
 
-    result = normalize_envelope(
-        result, requested_runner="claude", requested_model=args.model
-    )
-
     output_file = None
     if args.output_file:
         output_file = write_json_output_file(args.output_file, result)
@@ -791,6 +814,11 @@ Examples:
                         "success": result["success"],
                         "return_code": result["return_code"],
                         "output_file": output_file,
+                        "runner": result.get("runner"),
+                        "effective_runner": result.get("effective_runner"),
+                        "effective_provider": result.get("effective_provider"),
+                        "fallback_from": result.get("fallback_from"),
+                        "status": result.get("status"),
                     },
                     ensure_ascii=False,
                 )

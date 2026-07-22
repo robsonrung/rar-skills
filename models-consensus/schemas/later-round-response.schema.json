@@ -1,0 +1,45 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Consensus later-round seat response",
+  "description": "One seat's rebuttal/refinement response for Round 2 onward: what changed after seeing the anonymized moderator digest, what it concedes, what it still objects to, and its best next step.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "updated_position",
+    "what_changed",
+    "points_conceded",
+    "remaining_objections",
+    "best_next_step",
+    "confidence"
+  ],
+  "properties": {
+    "updated_position": {
+      "type": "string",
+      "description": "The seat's current position after reading the moderator digest, self-contained."
+    },
+    "what_changed": {
+      "type": "string",
+      "description": "What changed versus the seat's previous round, and why. State 'nothing' explicitly if unchanged."
+    },
+    "points_conceded": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Points from other positions the seat now concedes."
+    },
+    "remaining_objections": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Objections the seat still holds, each concrete enough to act on."
+    },
+    "best_next_step": {
+      "type": "string",
+      "description": "The single most valuable next step the seat recommends for the council or the user."
+    },
+    "confidence": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 100,
+      "description": "The seat's confidence (0-100) in its updated position."
+    }
+  }
+}

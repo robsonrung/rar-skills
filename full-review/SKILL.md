@@ -205,17 +205,17 @@ Role diversity follows the model's strengths: **GPT for logic and security, Sonn
 
 | Seat | Execution path | Default lens |
 |------|----------------|--------------|
-| `codex` | `codex-runner --effort high` (GPT 5.5 logic); security seat adds `--model gpt-5.3-codex` | `logic_state` (GPT owns logic **and** `security_runtime`) |
+| `codex` | `codex-runner --effort high` (GPT 5.6 Sol logic); security seat adds `--model gpt-5.3-codex` | `logic_state` (GPT owns logic **and** `security_runtime`) |
 | `sonnet` | native `Agent` subagent (`model: "sonnet"`) or `claude-runner --model claude-sonnet-5-0` | `structural_maintainability` (Sonnet 5 owns maintainability) |
-| `gemini` | `gemini-runner --model gemini-3.5-flash` (Antigravity `agy`) | `cross_file_consistency` (Gemini 3.5 Flash — broad, long context) |
+| `gemini` | `gemini-runner --model gemini-3.6-flash` (Antigravity `agy`) | `cross_file_consistency` (Gemini 3.6 Flash — broad, long context) |
 | `glm` | `glm-runner --model zai/glm-5.2` | `broad_sweep` (GLM 5.2 — edge cases / resource & failure paths) |
-| `kimi` | `kimi-runner` (Kimi K2.7 Code, `moonshotai/kimi-k2.7-code`) | `broad_sweep` (broad pragmatic — input/auth) |
+| `kimi` | `kimi-runner` (Kimi K3, `moonshotai/kimi-k3`) | `broad_sweep` (broad pragmatic — input/auth) |
 | `opus` | native `Agent` subagent (`model: "opus"`) or `claude-runner --model claude-opus-4-8` | Phase 5 synthesizer; `structural_maintainability` backup behind sonnet |
 | `gemma` | `gemma-runner` | `broad_sweep` (regression/perf) backup |
 | `qwen` | `qwen-runner` | `logic_state` backup |
 | `minimax` | `minimax-runner` | `cross_file_consistency` backup |
 
-`security_runtime` is a **GPT** lens: in `quality`/`security_focus` runs, fill it with a second Codex seat on `codex-runner --model gpt-5.3-codex` (the code-specialized security reviewer), alongside the GPT 5.5 `logic_state` seat — matching the markdown's "Security review → GPT 5.5 + GPT 5.3 Codex".
+`security_runtime` is a **GPT** lens: in `quality`/`security_focus` runs, fill it with a second Codex seat on `codex-runner --model gpt-5.3-codex` (the code-specialized security reviewer), alongside the GPT 5.6 Sol `logic_state` seat — matching the markdown's "Security review → GPT 5.6 Sol + GPT 5.3 Codex".
 
 Mark seats with `available: false` as `unavailable` in your run config and continue. Never fail the review because a runner is missing.
 
@@ -306,7 +306,7 @@ Synthesis is delegated to a **fresh-model synthesizer**, not run inline by the o
 
 ### Synthesizer
 
-A fresh read-only synthesizer context — **on a Claude host** default Opus 4.8 (`Agent` with `subagent_type=general-purpose`, `model: "opus"`); **when running outside Claude** default **GPT 5.5** (`codex-runner --model gpt-5.5`), the best all-around synthesis model — receives:
+A fresh read-only synthesizer context — **on a Claude host** default Opus 4.8 (`Agent` with `subagent_type=general-purpose`, `model: "opus"`); **when running outside Claude** default **GPT 5.6 Sol** (`codex-runner --model gpt-5.6-sol`), the best all-around synthesis model — receives:
 
 1. All candidate comments from gates, bug finders, personas, specialists, external runners, and existing PR comments.
 2. A per-finding **corroboration map** keyed by `(path, line_range, category)` showing every originating source and the `corroborated_models` count.

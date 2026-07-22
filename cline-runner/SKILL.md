@@ -17,11 +17,13 @@ None forced. Cline uses whichever `provider/model` the local `cline auth` last c
 
 This skill invokes the local Cline CLI from the current machine. Prompt text, prompt files, session files, metadata, and any files Cline reads or writes during the run may be sent to the configured provider. Cline's native `--auto-approve false` is a **real enforcement boundary**, not a prompt overlay: with it set, tool calls fail cleanly with an explicit approval error instead of running (verified — the model receives `"Tool approval requires an interactive session, but this session is non-interactive."` and continues without ever touching the filesystem). Analysis roles (every role except `implementer`) default to `--auto-approve false`; pass `--allow-write` to opt out, or `--restrict-tools` to force it without a role.
 
-**`--model` mutates the user's persisted Cline config.** Passing `--model` (even an invalid one) rewrites the selected provider's `model` field in `~/.cline/data/settings/providers.json` as a side effect — the *next interactive* `cline` session on this machine will pick up whatever model this runner last requested. For automated/scripted runs where that persistence is unwanted, pass `--data-dir <path>` to isolate state into a scratch directory instead of touching `~/.cline`.
+**`--model` mutates the user's persisted Cline config.** Passing `--model` (even an invalid one) rewrites the selected provider's `model` field in `~/.cline/data/settings/providers.json` as a side effect — the *next interactive* `cline` session on this machine will pick up whatever model this runner last requested. For automated/scripted runs where that persistence is unwanted, pass `--data-dir <path>` to isolate state into a scratch directory instead of touching `~/.cline` (note: a fresh data dir has no authenticated providers, so auth must be provisioned there). The wrapper cannot auto-isolate without breaking auth, so when a run forwards `--model` without `--data-dir` it sets `provider_config_mutated: true` on the envelope to make the side effect visible.
 
 ## Output Envelope
 
-The required key contract is shared — see `../_shared/references/runner-common.md`. Cline-specific extensions: `agent_message` (the final answer text, extracted from the terminal `run_result` event, or trimmed stdout in `text` mode), `finish_reason` (Cline's native `completed`/`error`/etc.), `native_model_id`/`native_provider` (the model that actually answered, read back from the stream — useful when `--model` was omitted), `native_return_code` (the raw process exit code before return-code normalization), and `session_id` (recovered from `cline history`, not from the stream itself — see Gotchas).
+The required key contract is shared — see `../_shared/references/runner-common.md`. Cline-specific extensions: `agent_message` (the final answer text, extracted from the terminal `run_result` event, or trimmed stdout in `text` mode), `finish_reason` (Cline's native `completed`/`error`/etc.), `native_model_id`/`native_provider` (the model that actually answered, read back from the stream — useful when `--model` was omitted), `native_return_code` (the raw process exit code before return-code normalization), `thinking` (the reasoning-effort level forwarded, when set), `provider_config_mutated` (true when `--model` was forwarded without `--data-dir` — see Security Model), and `session_id` (recovered best-effort from `cline history`, not from the stream itself; can be null under concurrent use — see Gotchas).
+
+With `--output-file` set, the `--json` stdout pointer is `{success, return_code, output_file, runner, effective_runner, effective_provider, fallback_from, status}` so an orchestrator can see which seat answered without opening the file.
 
 ## Usage
 
@@ -83,7 +85,7 @@ python3 .agents/skills/cline-runner/scripts/run_cline.py "Run this in CI" --mode
 
 ## Behavior
 
-1. Runs `cline <prompt> --cwd <dir> --auto-approve <bool>` directly for non-interactive execution.
+1. Runs `cline <prompt> --cwd <dir> --auto-approve <bool>` directly for non-interactive execution. Relative `--prompt-file`/`--session-file`/`--output-schema` paths resolve against `--working-dir` (not the process cwd), with `~` expanded.
 2. Defaults to native `--json` (NDJSON event stream) so callers can consume streaming output; the wrapper parses the terminal `run_result` line for the final text, `finishReason`, and resolved model.
 3. Returns a wrapper envelope with `success`, `stdout`, `stderr`, `return_code`, `runner`, `effective_runner`.
 4. Keeps native Cline output in `stdout`; the wrapper `--json` flag only controls the outer envelope.

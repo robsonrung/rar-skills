@@ -28,21 +28,23 @@ Six default seats. Launch each by its preferred path for the current host; fall 
 |------|----------------------------|----------|
 | Opus 4.8 | native `Agent` subagent, `model: "opus"` | `claude-runner --model claude-opus-4-8` |
 | Sonnet 5 | native `Agent` subagent, `model: "sonnet"` | `claude-runner --model claude-sonnet-5-0` |
-| GPT 5.5 (Codex) | `codex-runner --model gpt-5.5` (`--effort high`) | native `spawn_agent` on a Codex host |
-| Gemini 3.5 Flash | `gemini-runner --model gemini-3.5-flash` (Antigravity `agy`) | — (skip if `agy` missing) |
-| Kimi K2.7 Code | `kimi-runner` (default `moonshotai/kimi-k2.7-code`) | — (skip if `cline` missing) |
+| GPT 5.6 Sol (Codex) | `codex-runner --model gpt-5.6-sol` (`--effort high`) | native `spawn_agent` on a Codex host |
+| Gemini 3.6 Flash | `gemini-runner --model gemini-3.6-flash` (Antigravity `agy`) | — (skip if `agy` missing) |
+| Kimi K3 | `kimi-runner` (default `moonshotai/kimi-k3`) | — (skip if `cline` missing) |
 | GLM 5.2 | `glm-runner` (via `cline`, `zai/glm-5.2`) | — (skip if `cline` missing or not configured with a GLM provider) |
 
 **Quorum:** proceed only with **≥3 seats**.
 
 **Heterogeneity is the default.** Distinct models are the panel's primary differentiator. **Self-pairing** (running the same model more than once as independent labeled samples — e.g. `opus#1`, `opus#2`) is allowed two ways: as an **auto-fallback** when fewer than the quorum of distinct CLIs is available, and as a user-selectable **preset** even when distinct models exist (multiple independent samples + synthesis help even without diversity). In both cases label the duplicates and lower **diversity confidence** (tracked separately from answer confidence); never present duplicates as diverse models.
 
+**Shared-provider caveat.** Opus and Sonnet are distinct models from the same provider — when both are active, count them as two seats but note the shared-provider caveat in the report's diversity confidence (a milder drag than self-pairing, not a duplicate). The same applies to any other pair of seats that resolves to one provider.
+
 Exact commands + the output envelope are in [references/runner-invocations.md](references/runner-invocations.md).
 
 ## Organizer & Synthesizer
 
-- **Organizer (Phase 2).** A fresh read-only model reads **all** seat answers and emits a five-dimension structured analysis — the substrate everything downstream consumes. **On a Claude host** default to Opus 4.8 (native subagent — richest result); **when running outside Claude** default to **GPT 5.5** (`codex-runner --model gpt-5.5`), the best all-around synthesis model — or the strongest available.
-- **Synthesizer (Phase 5).** A fresh read-only model writes the final consensus answer grounded in the record (organizer analysis + locked agreements + resolved/open points + every seat answer). Same default as the organizer: **Opus 4.8 on a Claude host, GPT 5.5 when running outside Claude.** The orchestrator validates it against the record and assembles the report — it does **not** write the answer prose itself.
+- **Organizer (Phase 2).** A fresh read-only model reads **all** seat answers and emits a five-dimension structured analysis — the substrate everything downstream consumes. **On a Claude host** default to Opus 4.8 (native subagent — richest result); **when running outside Claude** default to **GPT 5.6 Sol** (`codex-runner --model gpt-5.6-sol`), the best all-around synthesis model — or the strongest available.
+- **Synthesizer (Phase 5).** A fresh read-only model writes the final consensus answer grounded in the record (organizer analysis + locked agreements + resolved/open points + every seat answer). Same default as the organizer: **Opus 4.8 on a Claude host, GPT 5.6 Sol when running outside Claude.** The orchestrator validates it against the record and assembles the report — it does **not** write the answer prose itself.
 
 Both are user-selectable and **recorded in the report**. Keep them as separate contexts from the seats and judges.
 
@@ -115,7 +117,7 @@ Conform to [schemas/organizer-analysis.schema.json](schemas/organizer-analysis.s
 - **unique_insights** — valuable points raised by a single seat that no one contradicted (id `U1`, …) — additive material the binary agree/disagree split used to discard.
 - **blind_spots** — necessary aspects of the task **no** seat addressed (id `B1`, …).
 
-`agreements` and `disagreements` are **derived** views of this analysis, not the whole output. Keep a compact digest; never paste full answers forward. **Gate the next round here:** if the analysis surfaces no material contradictions, blind spots, or contested unique insights (only trivial/wording differences), **skip Phase 3** and go straight to judging/synthesis.
+`agreements` and `disagreements` are **derived** views of this analysis, not the whole output. Keep a compact digest; never paste full answers forward. **Gate the next round here:** the schema's required `material_gaps` boolean is the gate — when the organizer sets it `false` (no material contradictions, blind spots, or contested unique insights; only trivial/wording differences), **skip Phase 3** and go straight to judging/synthesis.
 
 ## Phase 3 — Gap-Repair Round (one round, skippable)
 

@@ -15,7 +15,7 @@ With `--disable-fallback`, fail fast with a prerequisite message instead of rout
 
 1. Check whether `claude` CLI is available.
 2. If available, execute this skill normally.
-3. If unavailable and `codex` is available, route to `$codex-runner` as fallback and report the provider switch (`fallback_from`).
+3. If unavailable and `codex` is available, route to `$codex-runner` as fallback and report the provider switch (`fallback_from`). The fallback invocation always passes `--disable-fallback`, so the claude ⇄ codex pair can never loop.
 4. If neither is available, stop with a clear prerequisite message.
 
 This upholds **seat fidelity**: the Claude seat's output is only ever Claude's, or the seat is reported absent — a codex fallback is always labeled via `fallback_from`, never passed off as Claude.
@@ -37,7 +37,7 @@ The required key contract is shared — see `../_shared/references/runner-common
 python3 .agents/skills/claude-runner/scripts/run_claude.py "your prompt here"
 ```
 
-Use `--working-dir` when the prompt depends on package-local files or generated artifacts. Use repeated `--prompt-file` flags for longer prompts or council overlays. Combine `--output-file` with `--json` to write the full envelope to disk and print only a compact `{success, return_code, output_file}` stub, keeping large outputs out of the orchestrator's context.
+Use `--working-dir` when the prompt depends on package-local files or generated artifacts; relative `--prompt-file`/`--session-file` paths resolve against it (not the process cwd), with `~` expanded. Use repeated `--prompt-file` flags for longer prompts or council overlays. Combine `--output-file` with `--json` to write the full envelope to disk and print only a compact pointer `{success, return_code, output_file, runner, effective_runner, effective_provider, fallback_from, status}`, keeping large outputs out of the orchestrator's context while still showing which seat (or labeled fallback) answered.
 
 ## Options
 
@@ -62,7 +62,7 @@ Use `--working-dir` when the prompt depends on package-local files or generated 
 | `--session-file` | Append prior debate or workflow context for cross-runner continuation | None |
 | `--metadata-json` | Attach structured execution metadata to the prompt | None |
 | `--disable-fallback` | Fail instead of routing to another runner | False |
-| `--output-file` | Write the full JSON envelope to this file atomically; with `--json`, stdout becomes a compact `{success, return_code, output_file}` stub | None |
+| `--output-file` | Write the full JSON envelope to this file atomically; with `--json`, stdout becomes a compact pointer `{success, return_code, output_file, runner, effective_runner, effective_provider, fallback_from, status}` | None |
 
 ## Roles
 
@@ -99,6 +99,7 @@ python3 .agents/skills/claude-runner/scripts/run_claude.py "Investigate the flak
 1. Maps `--restrict-tools` to Claude `--permission-mode plan`; analysis roles get this by default.
 2. When `--output-format json` or `stream-json` is used, the native Claude payload stays in `stdout`; the wrapper does not re-shape it, but it extracts `agent_message` and `session_id` into the envelope.
 3. `--resume`/`--continue` map to the native Claude CLI flags; `--effort` maps to Claude `--effort`.
+4. Resolves relative `--prompt-file`/`--session-file` paths against `--working-dir` (not the process cwd), with `~` expanded.
 
 ## Return Codes
 

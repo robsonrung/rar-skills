@@ -3,11 +3,11 @@
 
 Previously this wrapper called a dedicated `kimi-cli` binary directly. It now
 delegates to the shared `cline-runner` implementation with a real forwarded
-model: `--model moonshotai/kimi-k2.7-code` — the premium Kimi K2.7 Code seat
-(best for MVP implementation, minimal diffs, fast coding, small focused
-patches) — is passed straight through to `cline`, which resolves it via
-whichever Cline provider the user has authenticated. The envelope reports
-`runner=kimi`, `effective_runner=cline`.
+model: `--model moonshotai/kimi-k3` — Moonshot's flagship Kimi K3 seat
+(long-horizon coding, large-codebase understanding, 1M-token context,
+always-on thinking) — is passed straight through to `cline`, which resolves
+it via whichever Cline provider the user has authenticated. The envelope
+reports `runner=kimi`, `effective_runner=cline`.
 """
 
 import sys
@@ -20,7 +20,7 @@ sys.path.insert(0, str(CLINE_RUNNER_DIR))
 import run_cline  # noqa: E402
 
 
-DEFAULT_MODEL = "moonshotai/kimi-k2.7-code"
+DEFAULT_MODEL = "moonshotai/kimi-k3"
 
 
 if __name__ == "__main__":

@@ -1,6 +1,53 @@
 # Operations Reference
 
-Operational detail for models-consensus: cost governance, crash recovery, response schema validation, artifact policy, runner launch policy, input format, and mode behavior. Read the relevant section when its trigger in SKILL.md fires.
+Operational detail for models-consensus: startup selection templates, interactive question mechanics, cost governance, crash recovery, response schema validation, artifact policy, runner launch policy, input format, and mode behavior. Read the relevant section when its trigger in SKILL.md fires.
+
+## Startup Selection Templates
+
+Question templates for preflight step 0 (seat selection). Ask via the Interactive Questions protocol; prefer one multi-select question over a series of yes/no prompts.
+
+**Multi-select template** (preferred; include `All available (Recommended)` plus the detected candidate seats, omitting seats not present in `candidate_seats`):
+
+```text
+Which models to use?
+[ ] All available (Recommended)
+[ ] Claude Opus 4.8
+[ ] Claude Sonnet 5
+[ ] Codex
+[ ] Gemini
+[ ] Kimi
+[ ] GLM
+```
+
+**Small single-choice menu** (when the host tool cannot multi-select):
+1. `All available (Recommended)`
+2. `Core seats only`
+3. `Specify seats manually`
+
+If the user chooses manual selection, ask one concise follow-up listing the detected seat IDs and accept a comma-separated subset. Use an interactive follow-up question when the host supports one; use a plain-text seat-picking follow-up only when needed.
+
+**Plain-text template** (last resort, when no interactive selection tool is available):
+
+```text
+Which models to use?
+Detected seats: <comma-separated seat IDs>
+Reply with a comma-separated subset or 'all'.
+```
+
+Set `selection_source=plain_text_manual` when this fallback branch is used, and wait for user input.
+
+## Interactive Question Mechanics
+
+Preferred host mappings:
+- Claude Code: `AskUserQuestion`
+- Codex: `request_user_input` when the current mode exposes it
+- any other host: the equivalent native interactive question/input tool, if available
+- only if none of the above are available: a concise plain-text question with 2-3 options
+
+Rules:
+- Never choose plain text just because an interactive tool is less convenient.
+- If only one question fits per interactive call, use repeated interactive calls rather than switching to plain text.
+- When the host supports multiple questions in one call, batch related questions together to reduce back-and-forth.
 
 ## Cost Governance
 
@@ -42,6 +89,12 @@ Council state is resumable. Treat `.ai-workflow/consensus/{session_id}.json` as 
 ## Response Schema Validation
 
 Validate seat outputs before accepting them into the moderator digest. Seat outputs ARE schema-validated against the field lists below.
+
+Bundled JSON Schemas (the machine-checkable form of these field lists):
+- Round 1: `schemas/round1-response.schema.json`
+- Later rounds: `schemas/later-round-response.schema.json`
+
+Pass the matching schema via `--output-schema` to seats that accept it — Codex validates it natively; the cline-backed Kimi and GLM seats accept the flag but enforce it by prompt. Gemini and Claude seats have no schema flag; for them (and as a backstop for everyone) the brief's trailing `Return ONLY JSON …` line holds the shape, and the moderator validates against the field lists below.
 
 **Round 1 required fields:**
 - `stance`

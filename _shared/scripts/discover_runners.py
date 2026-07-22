@@ -55,8 +55,9 @@ class SeatSpec:
     notes: str = ""
 
 
-# Seat → probe table. Keep in sync with full-review SKILL.md Phase 3 and
-# models-roundtable SKILL.md Preflight step 1.
+# Seat → probe table. Keep in sync with full-review SKILL.md Phase 3,
+# models-roundtable SKILL.md Preflight step 1, and models-consensus SKILL.md
+# preflight step 2.
 SEAT_SPECS: tuple[SeatSpec, ...] = (
     SeatSpec(
         seat="opus",
@@ -86,7 +87,7 @@ SEAT_SPECS: tuple[SeatSpec, ...] = (
         execution_path="kimi_runner_via_cline",
         probe_cli="cline",
         depends_on=("cline",),
-        notes="cline-backed shim; forwards --model moonshotai/kimi-k2.7-code (Kimi K2.7 Code) to `cline`, requires a Cline provider authenticated via `cline auth`.",
+        notes="cline-backed shim; forwards --model moonshotai/kimi-k3 (Kimi K3) to `cline`, requires a Cline provider authenticated via `cline auth`.",
     ),
     SeatSpec(
         seat="glm",

@@ -29,7 +29,7 @@ PROVIDER_BY_RUNNER = {
 
 
 def infer_provider_from_model(model_id: str | None) -> str | None:
-    # Cline model ids are `vendor/model` (e.g. zai/glm-5.2, moonshotai/kimi-k2.7-code,
+    # Cline model ids are `vendor/model` (e.g. zai/glm-5.2, moonshotai/kimi-k3,
     # anthropic/claude-sonnet-4-5) — the prefix is the real vendor. The stream's own
     # `model.provider` field is the *account* (cline, cline-pass), not the vendor, so
     # it is intentionally not used for effective_provider.
@@ -72,14 +72,10 @@ def normalize_envelope(
 
     result.setdefault("fallback_reason", None)
 
+    # Missing CLI / errors before auth leave auth_ok null (untested), never
+    # false — false is reserved for a detected authentication failure.
     if "auth_ok" not in result or result.get("auth_ok") is None:
-        code = result.get("return_code")
-        if code == 0:
-            result["auth_ok"] = True
-        elif code == -2:
-            result["auth_ok"] = False
-        else:
-            result["auth_ok"] = None
+        result["auth_ok"] = True if result.get("return_code") == 0 else None
 
     result["effective_provider"] = (
         result.get("effective_provider")
@@ -102,21 +98,38 @@ def load_text_file(path: str) -> str:
 def write_json_output_file(path: str, payload: dict[str, Any]) -> str:
     target = Path(path).expanduser()
     target.parent.mkdir(parents=True, exist_ok=True)
-    with tempfile.NamedTemporaryFile(
+    handle = tempfile.NamedTemporaryFile(
         "w",
         encoding="utf-8",
         dir=target.parent,
         delete=False,
-    ) as handle:
-        json.dump(payload, handle, indent=2, ensure_ascii=False)
-        handle.write("\n")
-        temp_name = handle.name
-    os.replace(temp_name, target)
+    )
+    temp_name = handle.name
+    try:
+        with handle:
+            json.dump(payload, handle, indent=2, ensure_ascii=False)
+            handle.write("\n")
+        os.replace(temp_name, target)
+    except BaseException:
+        # Never leave an orphaned temp file behind if the write/replace fails.
+        try:
+            os.unlink(temp_name)
+        except OSError:
+            pass
+        raise
     return str(target)
 
 
-def normalize_prompt_files(prompt_files: list[str] | None) -> list[str]:
-    return [str(Path(path).expanduser()) for path in (prompt_files or [])]
+def resolve_input_path(path: str, working_dir: str | None) -> str:
+    """Resolve a relative input path against --working-dir, not the process cwd."""
+    candidate = Path(path).expanduser()
+    if not candidate.is_absolute() and working_dir:
+        return str(Path(working_dir).expanduser() / candidate)
+    return str(candidate)
+
+
+def normalize_prompt_files(prompt_files: list[str] | None, working_dir: str | None = None) -> list[str]:
+    return [resolve_input_path(path, working_dir) for path in (prompt_files or [])]
 
 
 def resolve_restrict_tools(role: str | None, restrict_tools: bool, allow_write: bool) -> bool:
@@ -250,7 +263,17 @@ def build_prompt(
     return "\n\n".join(section for section in sections if section.strip())
 
 
-def run_cline(
+def run_cline(*args: Any, **kwargs: Any) -> dict[str, Any]:
+    """Public entry point: every exit path (including early validation errors)
+    returns a fully normalized envelope, whether invoked via the CLI or
+    imported and called programmatically."""
+    requested_model = kwargs.get("model") if "model" in kwargs else (args[3] if len(args) > 3 else None)
+    runner_name = kwargs.get("runner_name", DEFAULT_RUNNER)
+    result = _run_cline(*args, **kwargs)
+    return normalize_envelope(result, requested_runner=runner_name, requested_model=requested_model)
+
+
+def _run_cline(
     prompt: str,
     timeout: int = 3600,
     working_dir: str | None = None,
@@ -283,7 +306,11 @@ def run_cline(
     del safe
     del bare
 
-    prompt_files = normalize_prompt_files(prompt_files)
+    # Relative input paths resolve against --working-dir (not the process cwd),
+    # with ~ expanded — matching gemini-runner's documented behavior.
+    prompt_files = normalize_prompt_files(prompt_files, working_dir)
+    session_file = resolve_input_path(session_file, working_dir) if session_file else session_file
+    output_schema = resolve_input_path(output_schema, working_dir) if output_schema else output_schema
     cwd = working_dir or os.getcwd()
     restrict_tools = resolve_restrict_tools(role, restrict_tools, allow_write)
 
@@ -399,6 +426,12 @@ def run_cline(
     if thinking:
         result["thinking"] = thinking
 
+    # Forwarding --model without an isolating --data-dir rewrites the user's
+    # persisted provider default in ~/.cline/data/settings/providers.json as a
+    # side effect; surface that on the envelope so orchestrators can see it.
+    if model and not data_dir:
+        result["provider_config_mutated"] = True
+
     if len(prompt_files) == 1:
         result["prompt_file"] = prompt_files[0]
     elif prompt_files:
@@ -416,7 +449,9 @@ def run_cline(
         )
         result["stdout"] = process.stdout
         result["stderr"] = process.stderr
-        result["return_code"] = process.returncode if process.returncode in (0, -1, -2, -3) else -3
+        # Any nonzero native exit normalizes to -3; the raw code stays in
+        # native_return_code so the wrapper's -1/-2/-3 codes are unambiguous.
+        result["return_code"] = 0 if process.returncode == 0 else -3
         result["native_return_code"] = process.returncode
 
         run_result, agent_message, native_model_id, native_provider = inspect_native_stream(process.stdout)
@@ -467,6 +502,8 @@ def run_cline(
     except FileNotFoundError:
         result["stderr"] = "Cline CLI not found. Check if `cline` is installed and in PATH."
         result["return_code"] = -2
+        # cline never ran, so the user's provider config was not touched.
+        result.pop("provider_config_mutated", None)
 
     except Exception as exc:
         result["stderr"] = f"Unexpected error: {exc}"
@@ -717,8 +754,6 @@ def main(
         runner_name=runner_name,
     )
 
-    result = normalize_envelope(result, requested_runner=runner_name, requested_model=args.model or default_model)
-
     output_file = None
     if args.output_file:
         output_file = write_json_output_file(args.output_file, result)
@@ -731,6 +766,11 @@ def main(
                         "success": result["success"],
                         "return_code": result["return_code"],
                         "output_file": output_file,
+                        "runner": result.get("runner"),
+                        "effective_runner": result.get("effective_runner"),
+                        "effective_provider": result.get("effective_provider"),
+                        "fallback_from": result.get("fallback_from"),
+                        "status": result.get("status"),
                     },
                     ensure_ascii=False,
                 )

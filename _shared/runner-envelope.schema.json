@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://rar-skills/runner-envelope.schema.json",
   "title": "Runner Envelope",
-  "description": "Wrapper envelope emitted by the shared qwen-runner implementation (and its qwen-backed shims: gemma, minimax) and the cline-runner implementation (and its cline-backed shims: kimi, glm). All --json responses conform to this contract.",
+  "description": "Wrapper envelope emitted by every runner skill in this repo (claude, codex, gemini, qwen, cline, and the cline-backed kimi/glm and qwen-backed gemma/minimax shims). All --json responses carry the required keys below on every exit path; individual runners add the documented extension keys and may add further diagnostic keys (additionalProperties is intentionally open).",
   "type": "object",
   "required": [
     "runner",
@@ -17,7 +17,7 @@
   "properties": {
     "runner": {
       "type": "string",
-      "description": "Requested runner identity (qwen, glm, gemma, minimax, ...)."
+      "description": "Requested runner identity (claude, codex, gemini, qwen, cline, kimi, glm, gemma, minimax, ...)."
     },
     "effective_runner": {
       "type": "string",
@@ -33,11 +33,11 @@
     },
     "auth_ok": {
       "type": ["boolean", "null"],
-      "description": "True on success, false when the CLI binary is missing or a fallback occurred, null when the run errored before auth could be established."
+      "description": "Auth preflight result: true on a successful run; null when auth was never exercised (missing CLI, invalid input, or a failure before auth could be established); false only when an authentication failure was actually detected. A missing CLI is untested auth, not failed auth — it maps to null, never false."
     },
     "fallback_reason": {
       "type": ["string", "null"],
-      "description": "Why a fallback was used, or null when no fallback occurred. Qwen-backed runners never fall back, so this stays null."
+      "description": "Why a fallback was used, or null when no fallback occurred. No-fallback runners (qwen, cline, kimi, glm, gemma, minimax) always keep this null."
     },
     "success": {
       "type": "boolean",
@@ -45,8 +45,7 @@
     },
     "return_code": {
       "type": "integer",
-      "description": "0 success, -1 timeout, -2 CLI not found (seat_unavailable), -3 invalid input / native API or auth error / unexpected error.",
-      "enum": [0, -1, -2, -3]
+      "description": "0 success; -1 timeout; -2 CLI not found (seat_unavailable); -3 invalid input / native agent or API error / unexpected error. Runner-specific additions: claude-runner emits -4 for bare mode without ANTHROPIC_API_KEY/ANTHROPIC_AUTH_TOKEN; gemini-runner passes positive agy exit codes through unchanged."
     },
     "stdout": {
       "type": "string",
@@ -54,7 +53,7 @@
     },
     "stderr": {
       "type": "string",
-      "description": "CLI stderr plus any native [API Error: ...] text appended by the wrapper."
+      "description": "CLI stderr plus any native error text appended by the wrapper."
     },
     "command": {
       "type": "string",
@@ -89,14 +88,14 @@
     },
     "restrict_tools": {
       "type": "boolean",
-      "description": "Whether a read-only analysis overlay was applied."
+      "description": "Whether a read-only analysis overlay/sandbox was applied."
     },
     "ephemeral": {
       "type": "boolean"
     },
     "chat_recording": {
       "type": "boolean",
-      "description": "Always false; the wrapper forces --chat-recording=false."
+      "description": "qwen-backed runners: always false; the wrapper forces --chat-recording=false."
     },
     "agent_message": {
       "type": ["string", "null"],
@@ -104,15 +103,52 @@
     },
     "session_id": {
       "type": ["string", "null"],
-      "description": "Session id reported by the native stream, when available."
+      "description": "Session id reported by the native CLI (or recovered from history for cline-backed runners), when available."
     },
     "native_result": {
       "description": "Raw result payload from the native result event. May be a string, object, or array; presence indicates the CLI emitted a result event. For --output-schema runs this is the structured object (agent_message is its JSON serialization)."
     },
     "status": {
       "type": "string",
-      "description": "Present only when return_code is -2, set to 'seat_unavailable'.",
-      "enum": ["seat_unavailable"]
+      "description": "Failure classification when relevant: seat_unavailable (return_code -2), timeout (return_code -1), or auth_failed (detected authentication failure; forces success=false).",
+      "enum": ["seat_unavailable", "timeout", "auth_failed"]
+    },
+    "fallback_from": {
+      "type": "string",
+      "description": "The originally requested seat when a fallback runner produced this output (e.g. fallback_from: gemini). Present only on fallback runs; the core of seat-fidelity labeling."
+    },
+    "fallback_attempts": {
+      "type": "array",
+      "items": {"type": "object"},
+      "description": "gemini-runner: the sibling runners tried and skipped before the returned result (including not_installed siblings), so the attempt log is complete even when every fallback was unavailable."
+    },
+    "output_json_valid": {
+      "type": "boolean",
+      "description": "gemini-runner with --output-format json: whether the fence-stripped agent_message parsed as JSON."
+    },
+    "finish_reason": {
+      "type": ["string", "null"],
+      "description": "cline-backed runners: Cline's native finishReason (completed, error, ...) from the terminal run_result event."
+    },
+    "native_model_id": {
+      "type": "string",
+      "description": "cline-backed runners: the model that actually answered, read back from the native stream."
+    },
+    "native_provider": {
+      "type": "string",
+      "description": "cline-backed runners: the provider that actually answered, read back from the native stream."
+    },
+    "native_return_code": {
+      "type": "integer",
+      "description": "cline-backed runners: the raw process exit code before return-code normalization."
+    },
+    "thinking": {
+      "type": ["string", "null"],
+      "description": "cline-backed runners: the reasoning-effort level forwarded to cline --thinking, when set."
+    },
+    "provider_config_mutated": {
+      "type": "boolean",
+      "description": "cline-backed runners: true when --model was forwarded without an isolating --data-dir, meaning the user's persisted provider default in ~/.cline/data/settings/providers.json was rewritten as a side effect."
     },
     "prompt_file": {
       "type": "string",
@@ -124,5 +160,5 @@
       "description": "Present when more than one --prompt-file was supplied."
     }
   },
-  "additionalProperties": false
+  "additionalProperties": true
 }

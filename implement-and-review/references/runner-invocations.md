@@ -7,8 +7,8 @@ Exact launch patterns for the implement-and-review seats. Paths assume the insta
 1. [Launcher script (one-call setup)](#launcher-script-one-call-setup)
 2. [Shared rules](#shared-rules)
 3. [Frontend implementer — Opus subagent](#frontend-implementer--opus-subagent)
-4. [Backend implementer — GPT 5.5 (Codex)](#backend-implementer--gpt-55-codex)
-5. [Frontend reviewer — Kimi K2.7 Code](#frontend-reviewer--kimi-k27-code)
+4. [Backend implementer — GPT 5.6 Sol (Codex)](#backend-implementer--gpt-56-sol-codex)
+5. [Frontend reviewer — Kimi K3](#frontend-reviewer--kimi-k3)
 6. [Backend reviewer — Opus subagent](#backend-reviewer--opus-subagent)
 7. [Joint review & simplify — Opus + Codex](#joint-review--simplify--opus--codex)
 8. [Collecting results](#collecting-results)
@@ -92,15 +92,15 @@ Do NOT paste full file contents or the full diff.
 
 **Fix round:** `SendMessage({to:"fe-impl", ...})` with the reviewer's findings; tell it to address them in the same worktree and re-commit. Re-spawning would lose its context.
 
-## Backend implementer — GPT 5.5 (Codex)
+## Backend implementer — GPT 5.6 Sol (Codex)
 
-Run in the backend worktree with write access; keep the `session_id` for fixes. GPT 5.5 is the recommended Codex implementer (best all-around engineering model), so pass `--model gpt-5.5` explicitly.
+Run in the backend worktree with write access; keep the `session_id` for fixes. GPT 5.6 Sol is the recommended Codex implementer (best all-around engineering model), so pass `--model gpt-5.6-sol` explicitly.
 
 ```bash
 python3 .agents/skills/codex-runner/scripts/run_codex.py \
   --prompt-file .ai-workflow/impl-review/<id>/backend-brief.md \
   --working-dir <wt-be> \
-  --model gpt-5.5 \
+  --model gpt-5.6-sol \
   --role implementer \
   --full-auto \
   --effort high \
@@ -119,20 +119,20 @@ python3 .agents/skills/codex-runner/scripts/run_codex.py \
 python3 .agents/skills/codex-runner/scripts/run_codex.py \
   --resume <session_id> \
   --working-dir <wt-be> \
-  --model gpt-5.5 --role implementer --full-auto --effort high --timeout 1800 \
+  --model gpt-5.6-sol --role implementer --full-auto --effort high --timeout 1800 \
   --json --disable-fallback --output-file .ai-workflow/impl-review/<id>/be-fix-<cycle>.json \
   "Address these review findings and re-commit:\n<findings>"
 ```
 
-## Frontend reviewer — Kimi K2.7 Code
+## Frontend reviewer — Kimi K3
 
-Read-only review of the FE worktree diff (cross-model: Opus wrote it, Kimi K2.7 Code reviews).
+Read-only review of the FE worktree diff (cross-model: Opus wrote it, Kimi K3 reviews).
 
 ```bash
 python3 .agents/skills/kimi-runner/scripts/run_kimi.py \
   --prompt-file .ai-workflow/impl-review/<id>/fe-review-brief.md \
   --working-dir <wt-fe> \
-  --model moonshotai/kimi-k2.7-code \
+  --model moonshotai/kimi-k3 \
   --role codereviewer \
   --restrict-tools \
   --output-format stream-json \
@@ -207,7 +207,7 @@ Opus: a `mode:"plan"` subagent with the joint brief and the same JSON shape. The
 | Capability | Claude Code | Codex host |
 |------------|-------------|------------|
 | FE implementer (Opus) | native `Agent`, `model:"opus"`, write mode | `claude-runner --model claude-opus-4-8 --allow-write` |
-| BE implementer (GPT 5.5 via Codex) | `codex-runner --model gpt-5.5 --role implementer --full-auto` | native `spawn_agent` (`fork_context=false`), write-enabled |
+| BE implementer (GPT 5.6 Sol via Codex) | `codex-runner --model gpt-5.6-sol --role implementer --full-auto` | native `spawn_agent` (`fork_context=false`), write-enabled |
 | FE reviewer (Kimi) | `kimi-runner --role codereviewer` | `kimi-runner --role codereviewer` |
 | BE reviewer (Opus) | native `Agent`, `mode:"plan"` | `claude-runner --model claude-opus-4-8 --restrict-tools` |
 | Joint pass | Opus subagent + `codex-runner` | native Codex subagent + `claude-runner` |

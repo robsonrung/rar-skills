@@ -27,20 +27,26 @@ ROLE_INSTRUCTIONS = {
 # Roles that modify the workspace; every other role defaults to a read-only sandbox.
 WRITE_ROLES = {"implementer"}
 
-# Premium default: GPT 5.5 is the best all-around engineering model and the
-# recommended Codex model for most coding, architecture, and synthesis work.
-# The code-specialized GPT 5.3 Codex (agentic coding, regression, security
-# review) is available via `--model codex` / `--model gpt-5.3-codex`.
-DEFAULT_MODEL = "gpt-5.5"
+# Premium default: GPT 5.6 Sol is the flagship of OpenAI's GPT-5.6 family and
+# the best all-around engineering model for most coding, architecture, and
+# synthesis work. The code-specialized GPT 5.3 Codex (agentic coding,
+# regression, security review) is available via `--model codex` /
+# `--model gpt-5.3-codex`.
+DEFAULT_MODEL = "gpt-5.6-sol"
 
 MODEL_ALIASES = {
     "spark": "gpt-5.3-codex-spark",
     "codex": "gpt-5.3-codex",
-    "gpt-5.5": "gpt-5.5",
+    "gpt-5.6-sol": "gpt-5.6-sol",
     "gpt-5.3-codex": "gpt-5.3-codex",
 }
 
 EFFORT_LEVELS = ("none", "minimal", "low", "medium", "high", "xhigh")
+
+# Some models reject the `minimal` reasoning effort (they support only
+# none/low/medium/high/xhigh). For those, transparently map `minimal` -> `low`
+# so callers can keep passing `minimal` without a 400 from the API.
+MODELS_WITHOUT_MINIMAL_EFFORT = {"gpt-5.6-sol"}
 
 DEFAULT_CONTINUE_PROMPT = (
     "Continue from the current thread state. Pick the next highest-value step "
@@ -83,14 +89,10 @@ def normalize_envelope(
 
     # Preserve the fallback runner's auth_ok when one was used; the fallback
     # reason already explains why the originally requested runner did not run.
+    # Missing CLI / errors before auth leave auth_ok null (untested), never
+    # false — false is reserved for a detected authentication failure.
     if "auth_ok" not in result or result.get("auth_ok") is None:
-        code = result.get("return_code")
-        if code == 0:
-            result["auth_ok"] = True
-        elif code == -2:
-            result["auth_ok"] = False
-        else:
-            result["auth_ok"] = None
+        result["auth_ok"] = True if result.get("return_code") == 0 else None
 
     result["effective_provider"] = result.get("effective_provider") or PROVIDER_BY_RUNNER.get(
         effective_runner,
@@ -107,19 +109,36 @@ def load_text_file(path: str) -> str:
     return Path(path).expanduser().read_text(encoding="utf-8")
 
 
+def resolve_input_path(path: str, working_dir: Optional[str]) -> str:
+    """Resolve a relative input path against --working-dir, not the process cwd."""
+    candidate = Path(path).expanduser()
+    if not candidate.is_absolute() and working_dir:
+        return str(Path(working_dir).expanduser() / candidate)
+    return str(candidate)
+
+
 def write_json_output_file(path: str, payload: dict[str, Any]) -> str:
     target = Path(path).expanduser()
     target.parent.mkdir(parents=True, exist_ok=True)
-    with tempfile.NamedTemporaryFile(
+    handle = tempfile.NamedTemporaryFile(
         "w",
         encoding="utf-8",
         dir=target.parent,
         delete=False,
-    ) as handle:
-        json.dump(payload, handle, indent=2, ensure_ascii=False)
-        handle.write("\n")
-        temp_name = handle.name
-    os.replace(temp_name, target)
+    )
+    temp_name = handle.name
+    try:
+        with handle:
+            json.dump(payload, handle, indent=2, ensure_ascii=False)
+            handle.write("\n")
+        os.replace(temp_name, target)
+    except BaseException:
+        # Never leave an orphaned temp file behind if the write/replace fails.
+        try:
+            os.unlink(temp_name)
+        except OSError:
+            pass
+        raise
     return str(target)
 
 
@@ -127,6 +146,16 @@ def resolve_model(model: Optional[str]) -> Optional[str]:
     if model is None:
         return DEFAULT_MODEL
     return MODEL_ALIASES.get(model, model)
+
+
+def resolve_effort(model: Optional[str], effort: Optional[str]) -> Optional[str]:
+    """Adjust the reasoning effort for models that reject some levels.
+
+    `model` is the already-resolved model id (see `resolve_model`).
+    """
+    if effort == "minimal" and model in MODELS_WITHOUT_MINIMAL_EFFORT:
+        return "low"
+    return effort
 
 
 def resolve_restrict_tools(
@@ -261,7 +290,16 @@ def invoke_fallback(
     return fallback_result
 
 
-def run_codex(
+def run_codex(*args: Any, **kwargs: Any) -> dict[str, Any]:
+    """Public entry point: every exit path (including early validation errors
+    and fallback results) returns a fully normalized envelope, whether invoked
+    via the CLI or imported and called programmatically."""
+    requested_model = kwargs.get("model") if "model" in kwargs else (args[3] if len(args) > 3 else None)
+    result = _run_codex(*args, **kwargs)
+    return normalize_envelope(result, requested_runner="codex", requested_model=requested_model)
+
+
+def _run_codex(
     prompt: str,
     timeout: int = 3600,
     working_dir: Optional[str] = None,
@@ -287,6 +325,7 @@ def run_codex(
 ) -> dict[str, Any]:
     resuming = bool(resume or resume_last)
     resolved_model = resolve_model(model)
+    resolved_effort = resolve_effort(resolved_model, effort)
     restrict_effective = resolve_restrict_tools(role, restrict_tools, allow_write, sandbox, full_auto)
     resolved_sandbox = sandbox or ("read-only" if restrict_effective else None)
     command_display = "codex exec resume" if resuming else "codex exec"
@@ -301,8 +340,15 @@ def run_codex(
             "working_dir": working_dir or os.getcwd(),
         }
 
-    if working_dir and not Path(working_dir).is_dir():
+    if working_dir and not Path(working_dir).expanduser().is_dir():
         return error_result(f"Working directory does not exist: {working_dir}")
+
+    # Relative input paths resolve against --working-dir (not the process cwd),
+    # with ~ expanded — matching gemini-runner's documented behavior.
+    prompt_files = [resolve_input_path(p, working_dir) for p in prompt_files] if prompt_files else prompt_files
+    session_file = resolve_input_path(session_file, working_dir) if session_file else session_file
+    output_schema = resolve_input_path(output_schema, working_dir) if output_schema else output_schema
+    images = [resolve_input_path(i, working_dir) for i in images] if images else images
 
     for prompt_file in prompt_files or []:
         if not Path(prompt_file).is_file():
@@ -336,8 +382,8 @@ def run_codex(
     if resolved_model:
         command.extend(["--model", resolved_model])
 
-    if effort:
-        command.extend(["--config", f"model_reasoning_effort={json.dumps(effort)}"])
+    if resolved_effort:
+        command.extend(["--config", f"model_reasoning_effort={json.dumps(resolved_effort)}"])
 
     if resuming:
         # `codex exec resume` lacks --sandbox/--full-auto/--ask-for-approval; use config overrides.
@@ -397,7 +443,7 @@ def run_codex(
         "runner": "codex",
         "effective_runner": "codex",
         "model": resolved_model,
-        "effort": effort,
+        "effort": resolved_effort,
         "role": role,
         "session_file": session_file,
         "prompt_file": prompt_files[0] if prompt_files and len(prompt_files) == 1 else None,
@@ -542,7 +588,7 @@ def main():
         "-m",
         type=str,
         default=None,
-        help="Codex model (default: gpt-5.5). Aliases: 'codex' -> gpt-5.3-codex (code-specialized: agentic coding, regression, security review), 'spark' -> gpt-5.3-codex-spark.",
+        help="Codex model (default: gpt-5.6-sol). Aliases: 'codex' -> gpt-5.3-codex (code-specialized: agentic coding, regression, security review), 'spark' -> gpt-5.3-codex-spark.",
     )
     parser.add_argument(
         "--effort",
@@ -692,7 +738,7 @@ def main():
                 manifest_extra={
                     "role": args.role,
                     "model": resolve_model(args.model),
-                    "effort": args.effort,
+                    "effort": resolve_effort(resolve_model(args.model), args.effort),
                     "resume": "--last" if args.resume_last else args.resume,
                 },
             )
@@ -726,8 +772,6 @@ def main():
         disable_fallback=args.disable_fallback,
     )
 
-    result = normalize_envelope(result, requested_runner="codex", requested_model=args.model)
-
     output_file = None
     if args.output_file:
         output_file = write_json_output_file(args.output_file, result)
@@ -740,6 +784,11 @@ def main():
                         "success": result["success"],
                         "return_code": result["return_code"],
                         "output_file": output_file,
+                        "runner": result.get("runner"),
+                        "effective_runner": result.get("effective_runner"),
+                        "effective_provider": result.get("effective_provider"),
+                        "fallback_from": result.get("fallback_from"),
+                        "status": result.get("status"),
                     },
                     ensure_ascii=False,
                 )

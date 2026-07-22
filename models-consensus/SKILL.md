@@ -34,30 +34,9 @@ Before the full preflight, determine whether seat selection is automatic or user
 - In non-`--auto` runs, if startup selection is still unresolved after the available question channels, stop with `awaiting_user_decision`.
 
 Selection workflow:
-- Do a lightweight capability discovery first: detect host-native seat support and runner binary presence only.
+- Do a lightweight capability discovery first (the shared probe from [step 2](#2-check-local-runner-prerequisites) serves this): detect host-native seat support and runner binary presence only.
 - Build a `candidate_seats` list from that lightweight discovery.
-- Ask one startup selection question following the [Interactive Questions](#interactive-questions) protocol.
-- Prefer one multi-select question when the host supports it, rather than a series of yes/no prompts. Include `All available (Recommended)` plus the detected candidate seats.
-- Multi-select startup prompt template:
-  `Which models to use?`
-  `[ ] All available (Recommended)`
-  `[ ] Claude Opus 4.8`
-  `[ ] Claude Sonnet 5`
-  `[ ] Codex`
-  `[ ] Gemini`
-  `[ ] Kimi`
-  `[ ] GLM`
-  Omit seats that are not present in `candidate_seats`.
-- If the host tool only supports a small single-choice menu, ask a preset question with:
-  1. `All available (Recommended)`
-  2. `Core seats only`
-  3. `Specify seats manually`
-- If the user chooses manual selection, ask one concise follow-up question listing the detected seat IDs and accept a comma-separated subset. Use an interactive follow-up question when the host supports one; use a plain-text seat-picking follow-up only when needed.
-- Plain-text startup prompt template when no interactive selection tool is available:
-  `Which models to use?`
-  `Detected seats: <comma-separated seat IDs>`
-  `Reply with a comma-separated subset or 'all'.`
-  Set `selection_source=plain_text_manual` when this fallback branch is used, and wait for user input.
+- Ask one startup selection question following the [Interactive Questions](#interactive-questions) protocol, using the question templates in [references/operations.md#startup-selection-templates](references/operations.md#startup-selection-templates) (multi-select preferred, then small-menu preset, then plain text as last resort).
 - Treat `Core seats only` as the highest-diversity non-duplicate set available. See [references/repo-configuration.md](references/repo-configuration.md) for the core-seats definition.
 - Persist `selected_seats` and `selection_source` in state, and emit the selected and omitted seats, before continuing to smoke tests.
 
@@ -69,13 +48,18 @@ Selection workflow:
 
 ### 2. Check local runner prerequisites
 
-Use shell commands to verify binaries, auth, and one cheap headless smoke test for every runner-backed seat you intend to launch. Only run smoke tests for seats included by `selected_seats` or by `--auto`.
+Binary availability comes from the shared probe — do not re-probe `PATH` with ad-hoc shell checks (they drift; an earlier version of this skill checked a `gemini` binary that the Antigravity-backed gemini-runner no longer uses):
 
-Minimum checks:
-- `claude` in `PATH`
-- `gemini` in `PATH`
-- `cline` in `PATH` when the Kimi seat is under consideration (Kimi is cline-backed)
-- `cline` in `PATH` when the GLM seat is under consideration (GLM is cline-backed)
+```bash
+python3 .agents/skills/_shared/scripts/discover_runners.py probe \
+  --native-agent yes \
+  --seat opus --seat sonnet --seat codex --seat gemini --seat kimi --seat glm \
+  --format json
+```
+
+Pass `--native-agent yes` only when the host exposes the native `Agent` tool (Claude Code); otherwise `no`. From this source repo, invoke `_shared/scripts/discover_runners.py` instead of the installed `.agents/skills/` path. The probe knows each seat's real dependency (`claude`, `codex`, `agy` for Gemini, `cline` for the Kimi and GLM shims) and returns `available`, `cli_path`, `version`, and `blocked_reason` per seat. Mark seats with `available: false` as blocked.
+
+On top of the probe, run auth checks and one cheap headless smoke test for every runner-backed seat you intend to launch. Only run smoke tests for seats included by `selected_seats` or by `--auto`.
 
 Mandatory seat smoke tests:
 - Run a minimal non-interactive invocation for every runner-backed seat with the exact model you plan to use.
@@ -116,7 +100,7 @@ Use these rules:
 3. On a Codex host, the Codex seat must run as a native subagent.
 4. Use runner scripts only when the native seat path is unavailable.
 5. Treat runner fallback to another provider as loss of seat independence.
-6. If Gemini CLI is missing, skip Gemini entirely.
+6. If Antigravity CLI (`agy`) is missing, skip Gemini entirely (the Gemini seat is agy-backed).
 7. If `cline` CLI is missing, skip Kimi entirely (Kimi is cline-backed).
 8. If `cline` CLI is missing, skip GLM entirely (GLM is cline-backed).
 9. Continue with the remaining seats and lower confidence; never fabricate a missing seat.
@@ -142,18 +126,7 @@ Questioning workflow:
 3. If the first tool is unavailable, unsupported in the current mode, or errors immediately, try the next interactive tool.
 4. Use concise plain-text questions only after exhausting interactive tool options.
 
-Preferred host mappings:
-- Claude Code: `AskUserQuestion`
-- Codex: `request_user_input` when the current mode exposes it
-- any other host: the equivalent native interactive question/input tool, if available
-- only if none of the above are available: a concise plain-text question with 2-3 options
-
-Additional rules:
-- Never choose plain text just because an interactive tool is less convenient.
-- If only one question fits per interactive call, use repeated interactive calls rather than switching to plain text.
-- When the host supports multiple questions in one call, batch related questions together to reduce back-and-forth.
-
-Never tell the user to reply with numbered choices when an interactive question tool exists.
+The per-host tool mapping (Claude Code `AskUserQuestion`, Codex `request_user_input`, etc.) and the batching/fallback rules live in [references/operations.md#interactive-question-mechanics](references/operations.md#interactive-question-mechanics). Never tell the user to reply with numbered choices when an interactive question tool exists.
 
 Startup seat-selection question: governed by [preflight step 0](#0-resolve-seat-selection-mode) — that is the single normative rule for when and how to ask.
 

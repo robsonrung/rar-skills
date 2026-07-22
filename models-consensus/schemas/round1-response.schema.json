@@ -1,0 +1,51 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Consensus Round 1 seat response",
+  "description": "One seat's blinded opening statement: its stance, position, arguments, risks, recommended direction, confidence, and questions for the council. No peer outputs are visible in Round 1.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "stance",
+    "position_summary",
+    "key_arguments",
+    "risks_or_limits",
+    "recommended_direction",
+    "confidence",
+    "questions_for_the_council"
+  ],
+  "properties": {
+    "stance": {
+      "type": "string",
+      "description": "The stance overlay this seat argued from (e.g. devils_advocate, balanced_synthesis)."
+    },
+    "position_summary": {
+      "type": "string",
+      "description": "The seat's position in a few sentences, self-contained."
+    },
+    "key_arguments": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "The main arguments supporting the position, each a concise standalone statement."
+    },
+    "risks_or_limits": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Risks, limits, or failure modes the seat sees in its own position or the question."
+    },
+    "recommended_direction": {
+      "type": "string",
+      "description": "The single direction the seat recommends the council take."
+    },
+    "confidence": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 100,
+      "description": "The seat's confidence (0-100) in its recommended direction."
+    },
+    "questions_for_the_council": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Open questions this seat wants other seats or the user to answer."
+    }
+  }
+}

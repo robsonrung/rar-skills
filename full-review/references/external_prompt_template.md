@@ -12,11 +12,11 @@ Role diversity follows model strengths: **GPT for logic and security, Sonnet for
 
 | Seat | Default lens | Why |
 |---|---|---|
-| `codex` (`codex-runner --effort high`, GPT 5.5) | `logic_state` | Best at logic, state, and concurrency reasoning on tight code slices. GPT also **owns `security_runtime`**: fill it with a second Codex seat `--model gpt-5.3-codex` (the code-specialized security reviewer) |
+| `codex` (`codex-runner --effort high`, GPT 5.6 Sol) | `logic_state` | Best at logic, state, and concurrency reasoning on tight code slices. GPT also **owns `security_runtime`**: fill it with a second Codex seat `--model gpt-5.3-codex` (the code-specialized security reviewer) |
 | `sonnet` (native Agent or `claude-runner`, Sonnet 5) | `structural_maintainability` | Strongest at clean-code / maintainability — applies `references/structural_quality_review.md` and names a safer refactor path |
-| `gemini` (`gemini-runner --model gemini-3.5-flash`) | `cross_file_consistency` | Gemini 3.5 Flash — broad, long context; feed whole touched files + dependents, not just the diff slice |
+| `gemini` (`gemini-runner --model gemini-3.6-flash`) | `cross_file_consistency` | Gemini 3.6 Flash — broad, long context; feed whole touched files + dependents, not just the diff slice |
 | `glm` (`glm-runner --model zai/glm-5.2`) | `broad_sweep` | GLM 5.2 — edge cases, boundary conditions, resource/failure paths; assign a different category emphasis than kimi |
-| `kimi` (`kimi-runner`, Kimi K2.7 Code) | `broad_sweep` | Fast, pragmatic — input-validation, exposure, resource leaks across the whole diff |
+| `kimi` (`kimi-runner`, Kimi K3) | `broad_sweep` | Fast, pragmatic — input-validation, exposure, resource leaks across the whole diff |
 | `opus` (native Agent or `claude-runner`) | `structural_maintainability` backup | Deep reasoning; primary role is the Phase 5 synthesizer — backs up sonnet on maintainability when needed |
 | `gemma` (`gemma-runner`) | `broad_sweep` | Cheap third sweep — pair with kimi/glm to form a skeptic pool for adversarial verify |
 | `qwen` (`qwen-runner`) | `logic_state` | Codex backup when codex is unavailable; otherwise lend to broad_sweep |

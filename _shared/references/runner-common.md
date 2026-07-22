@@ -23,7 +23,7 @@ Required top-level keys, always emitted on every exit path:
 - `effective_runner`
 - `effective_model`
 - `effective_provider`
-- `auth_ok` (auth preflight result)
+- `auth_ok` (auth preflight result: `true` on a successful run; `null` when auth was never exercised — missing CLI, invalid input, or a failure before auth; `false` only when an authentication failure was actually detected)
 - `fallback_reason`
 - `success`
 - `return_code`

@@ -148,10 +148,10 @@ class MissingCliEnvelopeTests(unittest.TestCase):
     def test_disable_fallback_reflects_requested_model(self):
         with mock.patch("run_gemini.shutil.which", return_value=None):
             env = run_gemini.run_gemini(
-                prompt="hi", model="gemini-3.1-pro", disable_fallback=True
+                prompt="hi", model="gemini-3.6-flash", disable_fallback=True
             )
         self.assertEqual(env["return_code"], -2)
-        self.assertEqual(env["effective_model"], "gemini-3.1-pro")
+        self.assertEqual(env["effective_model"], "gemini-3.6-flash")
         self.assertIsNone(env["auth_ok"])
         self.assertEqual(env["effective_provider"], "google")
         self.assertEqual(run_gemini.validate_envelope(env), [])
@@ -185,6 +185,43 @@ class FallbackSelectionTests(unittest.TestCase):
         self.assertIn("run_qwen.py", calls)
         self.assertTrue(any(a.get("status") == "seat_unavailable"
                             for a in env.get("fallback_attempts", [])))
+
+    def test_full_fallback_order_is_qwen_kimi_codex_claude(self):
+        calls = []
+
+        def fake_invoke(script, *args, **kwargs):
+            calls.append(Path(script).name)
+            return {"success": False, "return_code": -2, "status": "seat_unavailable"}
+
+        with mock.patch("run_gemini.shutil.which", return_value=None), \
+             mock.patch("run_gemini.Path.is_file", return_value=True), \
+             mock.patch("run_gemini.invoke_fallback", side_effect=fake_invoke):
+            env = run_gemini.run_gemini(prompt="hi", disable_fallback=False)
+
+        self.assertEqual(
+            calls,
+            ["run_qwen.py", "run_kimi.py", "run_codex.py", "run_claude.py"],
+            "documented fallback order is qwen -> kimi -> codex -> claude",
+        )
+        self.assertFalse(env["success"])
+
+    def test_first_success_short_circuits_remaining_fallbacks(self):
+        calls = []
+
+        def fake_invoke(script, *args, **kwargs):
+            name = Path(script).name
+            calls.append(name)
+            return {"success": True, "return_code": 0, "runner": "qwen",
+                    "effective_runner": "qwen", "agent_message": "answer"}
+
+        with mock.patch("run_gemini.shutil.which", return_value=None), \
+             mock.patch("run_gemini.Path.is_file", return_value=True), \
+             mock.patch("run_gemini.invoke_fallback", side_effect=fake_invoke):
+            env = run_gemini.run_gemini(prompt="hi", disable_fallback=False)
+
+        self.assertEqual(calls, ["run_qwen.py"], "later fallbacks must not run after a success")
+        self.assertTrue(env["success"])
+        self.assertEqual(env["effective_runner"], "qwen")
 
     def test_does_not_select_failed_fallback_as_success(self):
         def fake_invoke(script, *args, **kwargs):
@@ -239,6 +276,16 @@ class AuthDetectionTests(unittest.TestCase):
             env = run_gemini.run_gemini(prompt="hi", output_format="json")
         self.assertEqual(env["agent_message"], '{"ok": true}')
         self.assertTrue(env["output_json_valid"])
+
+    def test_json_output_invalid_is_reported_not_fatal(self):
+        # A successful run whose answer fails the fence-strip JSON parse keeps
+        # success=true but reports output_json_valid=false for the caller.
+        completed = mock.Mock(stdout="sorry, plain prose answer", stderr="", returncode=0)
+        with mock.patch("run_gemini.shutil.which", return_value="/usr/bin/agy"), \
+             mock.patch("run_gemini.subprocess.run", return_value=completed):
+            env = run_gemini.run_gemini(prompt="hi", output_format="json")
+        self.assertTrue(env["success"])
+        self.assertFalse(env["output_json_valid"])
 
 
 class CliArgumentTests(unittest.TestCase):

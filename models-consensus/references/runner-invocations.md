@@ -50,7 +50,7 @@ Use `model="claude-sonnet-5-0"` for the Sonnet 5 seat.
 ```text
 spawn_agent(
   fork_context=false,
-  model="gpt-5.5",
+  model="gpt-5.6-sol",
   reasoning_effort="medium",
   message="<stance overlay>\n\n---\n\n<shared brief>"
 )
@@ -97,17 +97,20 @@ python3 .agents/skills/codex-runner/scripts/run_codex.py \
   --prompt-file .ai-workflow/consensus/{session_id}-round-{n}-codex.md \
   --timeout 900 \
   --role challenger \
-  --model gpt-5.5 \
+  --model gpt-5.6-sol \
   --effort high \
   --json \
   --ephemeral \
   --restrict-tools \
   --disable-fallback \
+  --output-schema .agents/skills/models-consensus/schemas/round1-response.schema.json \
   --output-file .ai-workflow/consensus/{session_id}-round-{n}-codex-output.json \
   --metadata-json '{"session":"{session_id}","round":{n},"seat":"codex","stance":"devils_advocate"}'
 ```
 
 `codex-runner` supports `--effort none|minimal|low|medium|high|xhigh`. Use `high` for adversarial or research-heavy rounds, mirroring the native Codex seat guidance.
+
+`--output-schema` is natively validated by Codex; for rounds after the first, swap in `schemas/later-round-response.schema.json`. The cline-backed Kimi and GLM seats accept the same flag (prompt-enforced, not natively validated). Gemini and Claude seats have no schema flag — for them the brief's trailing `Return ONLY JSON …` line holds the shape (see [operations.md#response-schema-validation](operations.md#response-schema-validation)).
 
 ### Gemini
 
@@ -116,7 +119,7 @@ python3 .agents/skills/gemini-runner/scripts/run_gemini.py \
   --prompt-file .ai-workflow/consensus/{session_id}-round-{n}-gemini.md \
   --timeout 900 \
   --role synthesizer \
-  --model gemini-3.1-pro \
+  --model gemini-3.6-flash \
   --json \
   --output-format json \
   --disable-fallback \
@@ -124,7 +127,7 @@ python3 .agents/skills/gemini-runner/scripts/run_gemini.py \
   --metadata-json '{"session":"{session_id}","round":{n},"seat":"gemini","stance":"balanced_synthesis"}'
 ```
 
-The consensus Gemini seat does architecture/synthesis reasoning, so it runs the premium **Gemini 3.1 Pro** (`--model` is a metadata label — set agy's own model picker to match). Do not depend on speculative Gemini-only flags such as `--thinking-budget` or a read-only convenience mode.
+The consensus Gemini seat does architecture/synthesis reasoning, so it runs **Gemini 3.6 Flash (High)** (`--model` is a metadata label — set agy's own model picker to match). Do not depend on speculative Gemini-only flags such as `--thinking-budget` or a read-only convenience mode.
 
 ### Kimi
 
@@ -133,7 +136,7 @@ python3 .agents/skills/kimi-runner/scripts/run_kimi.py \
   --prompt-file .ai-workflow/consensus/{session_id}-round-{n}-kimi.md \
   --timeout 900 \
   --role implementer \
-  --model moonshotai/kimi-k2.7-code \
+  --model moonshotai/kimi-k3 \
   --output-format stream-json \
   --json \
   --no-session-persistence \

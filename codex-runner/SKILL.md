@@ -13,7 +13,7 @@ Roles, the output-envelope key contract, presenting-results rules, the backgroun
 
 1. Check whether `codex` CLI is available.
 2. If available, execute this skill normally.
-3. If unavailable, the script automatically falls back to the claude-runner skill (`run_claude.py`) and reports the provider switch (`fallback_from`, `fallback_reason`); runner provenance fields stay mandatory in the envelope.
+3. If unavailable, the script automatically falls back to the claude-runner skill (`run_claude.py`) and reports the provider switch (`fallback_from`, `fallback_reason`); runner provenance fields stay mandatory in the envelope. The fallback invocation always passes `--disable-fallback`, so the codex ⇄ claude pair can never loop.
 4. If `--disable-fallback` is set, `--resume`/`--resume-last` is requested (Codex sessions cannot be resumed by another runner), or no fallback runner is found, the script exits non-zero with `return_code` -2 and a clear prerequisite message.
 
 This upholds **seat fidelity**: the Codex seat's output is only ever Codex's, or the seat is reported absent — a claude fallback is always labeled via `fallback_from`/`fallback_reason`, never passed off as Codex.
@@ -22,7 +22,7 @@ The broader cross-runner probe chain (codex -> qwen -> kimi -> gemini -> claude)
 
 ## Security Model
 
-This skill invokes the local Codex CLI from the current machine. Prompt text, prompt files, session files, metadata, and any files Codex reads during the run may be sent to OpenAI according to the local Codex CLI configuration. The wrapper no longer passes `--full-auto` by default. Analysis roles (every role except `implementer`) default to the Codex read-only sandbox; pass `--allow-write`, an explicit `--sandbox`, or `--full-auto` to opt out. Use `--full-auto` only for a user approved unattended run.
+This skill invokes the local Codex CLI from the current machine. Prompt text, prompt files, session files, metadata, and any files Codex reads during the run may be sent to OpenAI according to the local Codex CLI configuration. The wrapper never passes `--full-auto` unless the flag is explicitly given. Analysis roles (every role except `implementer`) default to the Codex read-only sandbox; pass `--allow-write`, an explicit `--sandbox`, or `--full-auto` to opt out. Use `--full-auto` only for a user approved unattended run.
 
 ## Output Envelope
 
@@ -49,8 +49,8 @@ Before composing non-trivial prompts (reviews, implementations, research seats),
 | `--timeout`, `-t` | Timeout in seconds | 3600 |
 | `--working-dir`, `-w` | Working directory | Current dir |
 | `--json`, `-j` | Wrap runner output in JSON | False |
-| `--model`, `-m` | Codex model. Default `gpt-5.5` (best all-around: architecture, coding, synthesis, adversarial reasoning). Alias `codex` -> `gpt-5.3-codex` (code-specialized: agentic coding, regression, security review); `spark` -> `gpt-5.3-codex-spark` | `gpt-5.5` |
-| `--effort`, `-e` | Reasoning effort: `none`, `minimal`, `low`, `medium`, `high`, `xhigh` | CLI default |
+| `--model`, `-m` | Codex model. Default `gpt-5.6-sol` (flagship of the GPT-5.6 family; best all-around: architecture, coding, synthesis, adversarial reasoning). Alias `codex` -> `gpt-5.3-codex` (code-specialized: agentic coding, regression, security review); `spark` -> `gpt-5.3-codex-spark` | `gpt-5.6-sol` |
+| `--effort`, `-e` | Reasoning effort: `none`, `minimal`, `low`, `medium`, `high`, `xhigh`. `gpt-5.6-sol` doesn't accept `minimal`, so the runner maps `minimal` -> `low` for it (the envelope reports the effective `low`). | CLI default |
 | `--sandbox`, `-s` | Codex sandbox mode override | CLI default |
 | `--restrict-tools` | Force `--sandbox read-only` | True for analysis roles |
 | `--allow-write` | Opt an analysis role out of the read-only default | False |
@@ -71,7 +71,7 @@ Before composing non-trivial prompts (reviews, implementations, research seats),
 | `--output-file` | Write the full wrapper JSON result atomically to this file | None |
 | `--disable-fallback` | Fail instead of routing to another runner | False |
 
-When `--json` and `--output-file` are combined, stdout becomes a compact `{success, return_code, output_file}` summary, keeping large Codex outputs out of an orchestrating agent's context window.
+When `--json` and `--output-file` are combined, stdout becomes a compact pointer `{success, return_code, output_file, runner, effective_runner, effective_provider, fallback_from, status}`, keeping large Codex outputs out of an orchestrating agent's context window while still showing which seat (or labeled fallback) answered.
 
 ## Roles
 
@@ -123,7 +123,7 @@ python3 .agents/skills/codex-runner/scripts/run_codex.py "Implement the accepted
 ## Behavior
 
 1. Executes `codex exec` (or `codex exec resume` when `--resume`/`--resume-last` is given).
-2. Supports role overlays, `--prompt-file`, native resume, and `--session-file` continuation.
+2. Supports role overlays, `--prompt-file`, native resume, and `--session-file` continuation. Relative `--prompt-file`/`--session-file`/`--output-schema`/`--image` paths resolve against `--working-dir` (not the process cwd), with `~` expanded.
 3. Always captures the final agent message via `--output-last-message` into the `agent_message` envelope field, and surfaces the Codex `session_id` when detectable.
 4. When Codex CLI is invoked with `--json`, the native Codex JSONL event stream remains in `stdout`; the wrapper does not re-shape it.
 

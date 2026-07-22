@@ -73,21 +73,21 @@ python3 .agents/skills/codex-runner/scripts/run_codex.py \
 ```bash
 python3 .agents/skills/gemini-runner/scripts/run_gemini.py \
   --prompt-file <dir>/round1-brief.md \
-  --model gemini-3.5-flash \
+  --model gemini-3.6-flash \
   --restrict-tools --timeout 600 \
   --json --disable-fallback \
   --output-file <dir>/round1-gemini.json \
   --metadata-json '{"session":"<id>","round":1,"seat":"gemini"}'
 ```
 
-`gemini-runner` has no `--output-schema`; the brief enforces the shape. The Gemini seat's role here is **broad independent perspective**, so it runs Gemini 3.5 Flash (`--model` is a metadata label — set agy's own model picker to match).
+`gemini-runner` has no `--output-schema`; the brief enforces the shape. The Gemini seat's role here is **broad independent perspective**, so it runs Gemini 3.6 Flash (`--model` is a metadata label — set agy's own model picker to match).
 
 ### Kimi
 
 ```bash
 python3 .agents/skills/kimi-runner/scripts/run_kimi.py \
   --prompt-file <dir>/round1-brief.md \
-  --model moonshotai/kimi-k2.7-code \
+  --model moonshotai/kimi-k3 \
   --restrict-tools --output-format stream-json --timeout 600 \
   --json --disable-fallback \
   --output-schema .agents/skills/models-roundtable/schemas/opening-answer.schema.json \
@@ -102,6 +102,7 @@ python3 .agents/skills/glm-runner/scripts/run_glm.py \
   --prompt-file <dir>/round1-brief.md \
   --restrict-tools --timeout 600 \
   --json --disable-fallback \
+  --output-schema .agents/skills/models-roundtable/schemas/opening-answer.schema.json \
   --output-file <dir>/round1-glm.json \
   --metadata-json '{"session":"<id>","round":1,"seat":"glm"}'
 ```
@@ -126,11 +127,11 @@ Require the round's exact JSON shape in the prompt so output stays bounded. Fall
 
 ## Organizer
 
-After Phase 1, run **one** organizer over **all** seat answers — read-only, fresh, no role — to emit the five-dimension structured analysis. **On a Claude host** default to Opus 4.8 (native subagent, `model:"opus"`, `mode:"plan"`, a *different* subagent than the Opus seat); **when running outside Claude** default to **GPT 5.5** (`codex-runner --model gpt-5.5`), the best all-around synthesis model — else fall back to the strongest available seat model. The brief = every seat's answer + "produce the organizer analysis". Native seats enforce the shape via the brief; on a Codex host use `--output-schema …/organizer-analysis.schema.json`. The organizer's `material_gaps` flag gates Phase 3 (skip the gap-repair round when `false`).
+After Phase 1, run **one** organizer over **all** seat answers — read-only, fresh, no role — to emit the five-dimension structured analysis. **On a Claude host** default to Opus 4.8 (native subagent, `model:"opus"`, `mode:"plan"`, a *different* subagent than the Opus seat); **when running outside Claude** default to **GPT 5.6 Sol** (`codex-runner --model gpt-5.6-sol`), the best all-around synthesis model — else fall back to the strongest available seat model. The brief = every seat's answer + "produce the organizer analysis". Native seats enforce the shape via the brief; on a Codex host use `--output-schema …/organizer-analysis.schema.json`. The organizer's `material_gaps` flag gates Phase 3 (skip the gap-repair round when `false`).
 
 ## Gap-repair round
 
-Run only when the organizer set `material_gaps:true`. Same seats, `round2` brief = the open `C#`/`B#`/`U#` points (+ each seat's position + the organizer analysis) and "resolve the contradiction / fill the blind spot / defend or refute the unique insight, **with evidence** — this is targeted repair, not re-voting." Use `--output-schema …/disagreement-round.schema.json` for runner seats that support schema output (Codex and Kimi); GLM, Gemini, and Claude seats rely on the brief's `Return ONLY JSON …` line. One round only.
+Run only when the organizer set `material_gaps:true`. Same seats, `round2` brief = the open `C#`/`B#`/`U#` points (+ each seat's position + the organizer analysis) and "resolve the contradiction / fill the blind spot / defend or refute the unique insight, **with evidence** — this is targeted repair, not re-voting." Pass `--output-schema …/disagreement-round.schema.json` to every runner seat that accepts it — Codex validates it natively; the cline-backed Kimi and GLM seats enforce it by prompt (see Shared rules). Gemini and Claude seats have no schema flag and rely on the brief's `Return ONLY JSON …` line. One round only.
 
 ## Judges
 
@@ -153,7 +154,7 @@ A point is resolved when both judges' `ruling` agrees; otherwise the orchestrato
 
 ## Synthesizer
 
-After judging + the orchestrator's final calls, run **one** synthesizer — read-only, fresh, no role — to write the consensus answer. **On a Claude host** default to Opus 4.8 (native subagent, `model:"opus"`, `mode:"plan"`; a *different* context than the Opus seat/organizer/judge); **when running outside Claude** default to **GPT 5.5** (`codex-runner --model gpt-5.5`). The brief = the full record (organizer analysis + locked consensus + resolved/open points with rulings + every seat answer) and "write the consensus answer with an attribution map." Native seats enforce the shape via the brief; on a Codex host use `--output-schema …/synthesis.schema.json`. The orchestrator then **validates** every claim's attribution against the record before adopting the answer (send back once if it drifts).
+After judging + the orchestrator's final calls, run **one** synthesizer — read-only, fresh, no role — to write the consensus answer. **On a Claude host** default to Opus 4.8 (native subagent, `model:"opus"`, `mode:"plan"`; a *different* context than the Opus seat/organizer/judge); **when running outside Claude** default to **GPT 5.6 Sol** (`codex-runner --model gpt-5.6-sol`). The brief = the full record (organizer analysis + locked consensus + resolved/open points with rulings + every seat answer) and "write the consensus answer with an attribution map." Native seats enforce the shape via the brief; on a Codex host use `--output-schema …/synthesis.schema.json`. The orchestrator then **validates** every claim's attribution against the record before adopting the answer (send back once if it drifts).
 
 ## Collecting results
 
@@ -166,7 +167,7 @@ After judging + the orchestrator's final calls, run **one** synthesizer — read
 | Capability | Claude Code | Codex host |
 |------------|-------------|------------|
 | Opus / Sonnet seats & Opus judge | native `Agent`, `model:"opus"`/`"sonnet"` | `claude-runner --model claude-opus-4-8` / `--model claude-sonnet-5-0` |
-| Organizer & synthesizer | native `Agent`, `model:"opus"`, `mode:"plan"` (default Opus on a Claude host) | **GPT 5.5** `codex-runner --model gpt-5.5` (schema via `--output-schema`) — GPT 5.5 is the default organizer/synthesizer when running outside Claude |
+| Organizer & synthesizer | native `Agent`, `model:"opus"`, `mode:"plan"` (default Opus on a Claude host) | **GPT 5.6 Sol** `codex-runner --model gpt-5.6-sol` (schema via `--output-schema`) — GPT 5.6 Sol is the default organizer/synthesizer when running outside Claude |
 | Codex seat & Codex judge | `codex-runner --effort high` | native `spawn_agent` (`fork_context=false`) |
 | Gemini seat | `gemini-runner` | `gemini-runner` |
 | Kimi seat | `kimi-runner` | `kimi-runner` |
