@@ -73,6 +73,7 @@ agent sees one consistent token across the whole library:
 | A seat's output is only ever that seat's | **seat fidelity** | never substitute, block the seat, treat seat as absent |
 | A task is done only when its criteria pass | **acceptance contract** | definition of done, completion criteria, completeness contract |
 | A comment that carries what the code can't | **earned comment** | good comments, useful comments, helpful comments |
+| An expectation encoded as a failing check, not prose | **executable documentation** | living documentation, self-checking comment, checked comment |
 | The first fork on any request — change or assessment | **act or assess** | act vs report, fix vs explain, do vs discuss |
 | Recognition is not proof of cause | **pattern-match is not diagnosis** | looks like the usual, classic symptom, I've seen this before |
 | Decide, don't enumerate | **recommendation, not survey** | options memo, pros/cons list, exhaustive comparison |

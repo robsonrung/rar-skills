@@ -61,7 +61,7 @@ For each finding, include:
 
 ## Simplification Pass
 
-**Never simplify away a safety check.** Validation at trust boundaries, authorization checks, escaping and encoding, and accessibility affordances are not removable boilerplate — they stay even when they look redundant from the local diff, and even when a lower layer appears to cover them. Defense in depth is intentional; if a check is truly dead, prove it with a citation, don't assume it.
+**Never simplify away a safety check.** Validation at trust boundaries, authorization checks, invariant assertions, escaping and encoding, and accessibility affordances are not removable boilerplate — they stay even when they look redundant from the local diff, and even when a lower layer appears to cover them. Defense in depth is intentional; if a check is truly dead, prove it with a citation, don't assume it.
 
 Before final delivery, ask — every answer must stay **behavior-preserving**, since this is simplification, not a behavior change:
 
