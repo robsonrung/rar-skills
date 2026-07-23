@@ -1,0 +1,29 @@
+name: skill guards
+
+# Mechanical guards for the skill repo (see the "right-size guards" rule:
+# if it needs an LLM to judge, it's not a CI test).
+#
+#   1. Cross-runner parity — the wrapper-script envelope contract cannot
+#      drift between claude/codex/gemini/cline runners.
+#   2. Skill frontmatter — every SKILL.md has routable name + description,
+#      name matches its directory, no upstream prefixes.
+#   3. Runner-dir parity — a runner skill cannot land without registering
+#      its seat in discover_runners.py (or being deliberately allowlisted).
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  guards:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+      - name: Cross-runner envelope parity
+        run: python3 _shared/tests/test_runner_parity.py
+      - name: Skill frontmatter + runner-dir parity
+        run: python3 _shared/scripts/validate_skill_frontmatter.py

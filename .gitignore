@@ -3,3 +3,4 @@ __pycache__/
 .DS_Store
 /.ai-workflow
 /.qwen
+/.rar-skills/config.local.yaml

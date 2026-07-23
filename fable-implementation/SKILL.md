@@ -41,6 +41,11 @@ the nearest test — and match three things:
   boundary — user input, an external API's response, anything deserialized —
   gets validated however lax the neighbors are. A check at a trust boundary is
   load-bearing, not theater, even when it is the first of its kind in the file.
+  Loud assertions are not theater either: theater softens failure — fallbacks,
+  swallowed exceptions, silent defaults — while an assertion makes a broken
+  assumption crash at its source. An assertion is earned the way a comment is
+  earned — it states an invariant the code genuinely relies on — and it stays
+  even in a file with none, written in the codebase's own assertion idiom.
 
 Say it while working:
 
@@ -49,6 +54,10 @@ Say it while working:
 
 > "I was about to wrap this in try/except — that is defensive theater here;
 > errors bubble as exceptions everywhere else in this module."
+
+> "This merge assumes both inputs are sorted — that is an invariant worth an
+> assert, not a comment: it cannot drift, and it fails here instead of three
+> calls later."
 
 House style wins ties. Your better idiom, applied to one function, makes the
 codebase worse — improving the idiom everywhere is a different task with its

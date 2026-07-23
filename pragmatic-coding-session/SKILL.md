@@ -62,7 +62,8 @@ Use this pass while editing.
 5. Use plain data and plain text formats where they improve inspectability, diffs, testing, or automation.
 6. Version every meaningful source of behavior: code, tests, config, scripts, schemas, and migrations.
 7. Strengthen names before adding comments. Add comments only for constraints, intent, history, or tradeoffs.
-8. When discomfort appears, pause and identify the smell: unclear name, mixed responsibility, hidden state, weak test seam, distant coupling, timing dependence, or unknown behavior.
+8. Assert the invariants and preconditions the code relies on, at the point where they must hold, so a false assumption fails at its source instead of downstream. Prefer an assertion over a comment when the expectation is checkable: an assertion is executable documentation that cannot drift, and its failure is a bug — crash at the assumption, never catch and continue.
+9. When discomfort appears, pause and identify the smell: unclear name, mixed responsibility, hidden state, weak test seam, distant coupling, timing dependence, or unknown behavior.
 
 Hand off to `safe-incremental-coding`, `coding-implementation-guard`, or `clean-code` for deeper mechanics, or to `tdd` when that skill is installed.
 

@@ -77,6 +77,8 @@ Create one worktree+branch per non-empty track off `<base>`, then build both tra
 
 Commit tests and code interleaved (not all tests then all code).
 
+**Evidence contract (mandatory in every implementer brief):** each track chooses its evidence route and captures the red failure/characterization baseline **before** changing production code, then reports it as `verification_evidence` (fields per `_shared/runner-envelope.schema.json`) — the worker is the only party that witnesses red-before-implementation, so a report without it cannot be reconstructed later. Routes, the System-Wide Test Check, and the Parallel Safety Check (semantic contention beyond file overlap; decline parallelism on uncertainty) live in [references/evidence-strategy.md](references/evidence-strategy.md) — read it before writing briefs and apply the safety check before dispatching tracks concurrently. A track reporting `behavior_changed: true` without coherent evidence gets one recovery re-invocation to reconcile evidence (not reimplement); a second failure blocks integration.
+
 ## Phase 2 — Cross-review + Fix (≤3 cycles per track)
 
 For each track, each cycle:

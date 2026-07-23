@@ -61,6 +61,16 @@ Don't spend more than 30 seconds. You're looking for context, not doing research
 
 If the question is too vague ("council this: my business"), ask exactly one clarifying question, then proceed. Save the framed question for the transcript.
 
+**C. Classify the reversal cost.** State how expensive this decision is to undo, and size the run accordingly:
+
+- **Cheap** — a two-way door; walking it back costs little. Lighter workspace scan, advisors at the short end of their word budget; the peer-review round may be skipped when the five responses substantially agree. No reversal trigger needed.
+- **Medium** — reversible, but with real switching cost. Full council; the verdict must document a reversal trigger (what observation would flip it).
+- **Expensive** — hard or impossible to undo: public commitments, money spent, people affected. Full council, deeper workspace scan before framing, and the verdict documents both a reversal trigger and the earliest checkpoint at which it will be evaluated.
+
+Name the tier in the verdict; the user can override it. Do not give a cheap decision the expensive workup, or vice versa.
+
+**D. Freeze your own position.** If you — the orchestrator — already hold a view on the question, write it down **now**, before a single advisor spawns or any advisor/peer output is read. The frozen position may be handed to the chairman labeled "host position (frozen pre-council)" as one more input, but it must never shape the framed question, and it is never revised after exposure to council output. A position written after reading the council is anchored, not independent. If you hold no position, skip this — do not manufacture one.
+
 ### Step 2: Convene the council (5 sub-agents in parallel)
 
 Spawn all 5 advisors **simultaneously** as sub-agents (one message, five `Agent` calls). Sequential spawning wastes time and lets earlier responses bleed into later ones. Each gets its lens, the framed question, and an instruction to lean fully in.
@@ -148,6 +158,21 @@ ADVISOR RESPONSES:
 PEER REVIEWS:
 [all 5 peer reviews]
 
+HOST POSITION (frozen before the council ran; omit this block if none):
+[frozen host position]
+
+REVERSAL COST: [cheap / medium / expensive]
+
+Two validity rules:
+1. The verdict is INVALID unless it is grounded in the actual context (facts
+   read from the workspace or supplied by the user, constraints named) AND it
+   answers the question in its own shape. If grounding is missing, return
+   "Hold — insufficient grounding" plus a numbered list of exactly what to
+   inspect — not a confident recommendation.
+2. If the question is an adoption question (adopt / switch to / start / buy X),
+   the Recommendation must carry exactly one grade — Adopt / Trial / Hold /
+   Reject / Not-our-problem — stated in plain language first, label attached.
+
 Produce the council verdict using this exact structure:
 
 ## Where the Council Agrees
@@ -164,6 +189,11 @@ Produce the council verdict using this exact structure:
 
 ## The One Thing to Do First
 [A single concrete next step. Not a list. One thing.]
+
+## Reversal Trigger
+[Medium/expensive reversal cost only — what observation would flip this
+verdict, and (expensive only) the earliest checkpoint to evaluate it. Omit
+this section entirely for cheap decisions.]
 
 Be direct. Don't hedge. The whole point is to give clarity a single perspective couldn't.
 ```
@@ -189,11 +219,33 @@ Present the full verdict directly in chat as markdown. Do **not** generate an HT
 
 ### The One Thing to Do First
 {content}
+
+### Reversal Trigger  *(medium/expensive reversal cost only)*
+{content}
 ```
 
 ### Step 6: Save the transcript (optional)
 
 Only if the user asks, or the decision is significant enough to reference later. If saving, write `council-transcript-[timestamp].md` to the project's `active/` directory (or the scratchpad if none exists).
+
+## The grounding gate
+
+A verdict is **invalid** unless it clears two independent floors. They are pass/fail, not a balance: strength on one never compensates for the other.
+
+1. **Grounded in the actual context.** The verdict rests on something actually inspected: workspace files read in Step 1A, numbers or constraints the user supplied, named specifics from the conversation — not on generic knowledge about the topic. If the council ran on a vague question with nothing read and no constraint named, the chairman returns **"Hold — insufficient grounding"** with a numbered list of exactly what to inspect, never a confident recommendation.
+2. **Grounded in the actual question shape.** The verdict answers the question in its own shape: an adopt-or-not question gets a graded verdict (below); a choose-between-options question gets a position on the supplied options, or an honest "either is viable" with the tradeoffs; an open judgment call gets a direct recommendation. A generic essay about the topic fails this floor no matter how insightful.
+
+### Verdict vocabulary for adoption questions
+
+When the question is whether to adopt, switch to, buy, or start something, the Recommendation carries exactly one grade — and is always rendered in plain language first, with the label attached, never as a bare token:
+
+- **Adopt** — "do it": proven fit, go ahead.
+- **Trial** — "pilot it first": promising; prove it on a low-risk slice before committing.
+- **Hold** — "wait, deliberately": a complete decision not to move now, with the condition that would reopen it. "Hold — insufficient grounding" is the gate-failure subtype.
+- **Reject** — "don't": judged not worth it for this user.
+- **Not-our-problem** — "this doesn't reach you": the pressure prompting the question doesn't actually apply.
+
+Write "Hold — wait, don't switch now; revisit when X", not "Grade: Hold". The fixed vocabulary makes verdicts comparable across transcripts; it tags a plain-language call, it does not replace one.
 
 ## Important rules
 
@@ -201,4 +253,9 @@ Only if the user asks, or the decision is significant enough to reference later.
 - **Always anonymize and randomize for peer review.** Named responses make reviewers defer to favored thinking styles.
 - **The chairman can overrule the majority** when the dissenter's reasoning is stronger.
 - **Don't council trivial questions.** One right answer → just answer it. The council is for genuine uncertainty where multiple angles add value.
+- **Freeze any host position before exposure.** If the orchestrator holds its own view, it is written before any advisor or peer output is read (Step 1D) and never revised afterward — otherwise it is anchoring dressed up as agreement.
+- **Cross-model agreement needs receipts.** If a session extends the council with real model seats through the repo's runner skills, agreement across seats counts as *independent* corroboration only when each seat's serving model is verified by the backend's own report — the runner envelope's `effective_model` — never by the model requested or by the model's self-claim. An unverified seat's agreement is weighed as if it came from the same model as the host.
 - **This is one model across five lenses, not five models.** For genuine model diversity on a repo/code/architecture decision, use `models-consensus` (multi-round, real seats) or `models-roundtable` (blind poll + synthesis).
+
+---
+*Grounding gate, verdict vocabulary, reversibility tiers, position-freezing, and receipt-verified independence adapted from [compound-engineering-plugin](https://github.com/EveryInc/compound-engineering-plugin) (MIT). See NOTICE.*

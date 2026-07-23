@@ -38,6 +38,8 @@ Once you understand the why, open up the solution space before narrowing it down
 
 Reference design principles, UX research, or patterns from the codebase. This is where you add the most value — not by asking "which of these 4 options do you want?" but by expanding what the user thought was possible.
 
+**Generated-options mode (optional).** When the user wants a field of generated ideas rather than refinement of their own, read `references/idea-basis-contract.md` first: every generated idea must carry a verifiable basis tag, and the field is critiqued and ranked — with explicit rejection reasons — before it reaches the user.
+
 ## Phase 3: Narrow Down Together
 
 Only after exploring broadly should you start converging:
@@ -89,6 +91,14 @@ If the user agrees and the verdict is BUILD or REDUCE SCOPE, suggest running the
 
 If a question can be answered by exploring the codebase, explore instead of asking. The user's time is the bottleneck — don't ask questions you can answer yourself by reading code, configs, schemas, or existing patterns. Research first, then bring findings to the conversation.
 
+### Verify Before Claiming
+
+Any claim that something does or doesn't exist in the repo ("there's no caching layer", "nothing tests this path") must be backed by a read or search you actually performed this session — otherwise state it explicitly as an unverified assumption, never as fact.
+
+### When the User Can't Evaluate the Territory
+
+If the user signals they *cannot evaluate* a territory the idea touches ("I know nothing about X", repeated "whatever you think" on questions needing domain judgment), stop extracting guesses: read `references/blindspot-pass.md` and offer a decision-surface map for that territory instead. Guard: a user who understands the options but hasn't decided gets the normal dialogue, not the map.
+
 ### What to Challenge
 
 - The stated request itself — is it the right thing to do?
@@ -108,3 +118,6 @@ The interview is complete when:
 - Every open branch has been resolved to a concrete decision or explicit deferral
 
 Once these hold, move to Phase 4 for the decision-tree summary and verdict.
+
+---
+*Blindspot pass, idea-basis contract, and verify-before-claiming adapted from [compound-engineering-plugin](https://github.com/EveryInc/compound-engineering-plugin) (MIT). See NOTICE.*

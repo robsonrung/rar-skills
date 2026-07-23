@@ -158,6 +158,46 @@
       "type": "array",
       "items": {"type": "string"},
       "description": "Present when more than one --prompt-file was supplied."
+    },
+    "verification_evidence": {
+      "type": ["object", "null"],
+      "description": "Implementation-run evidence contract, reported by roles that change behavior (implementer tracks in implement-and-review/implement-feature). Red-before-implementation evidence exists only in this report — it cannot be reconstructed from the tree afterward, so orchestrators must persist it. Absent/null for analysis roles.",
+      "properties": {
+        "behavior_changed": {
+          "type": "boolean",
+          "description": "Whether the run changed observable behavior (vs pure refactor/analysis)."
+        },
+        "existing_tests_inspected": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "Existing tests read to locate coverage for the touched behavior (paths or test names)."
+        },
+        "tests_added_or_changed": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "Tests created or modified by this run (paths or test names)."
+        },
+        "red_baseline": {
+          "type": ["string", "null"],
+          "description": "The observed failing output or characterization baseline captured BEFORE implementing — verbatim excerpt or file:line pointer. Null only with evidence_strategy no-test-exception."
+        },
+        "evidence_strategy": {
+          "type": "string",
+          "enum": [
+            "existing-failing-test",
+            "updated-wrong-expectation",
+            "strengthened-over-mocked",
+            "new-smallest-failing-test",
+            "no-test-exception"
+          ],
+          "description": "Which evidence route was taken (see implement-and-review references/evidence-strategy.md)."
+        },
+        "no_test_reason": {
+          "type": ["string", "null"],
+          "description": "Required when evidence_strategy is no-test-exception: why no automated test was meaningful, plus the replacement verification performed."
+        }
+      },
+      "required": ["behavior_changed"]
     }
   },
   "additionalProperties": true

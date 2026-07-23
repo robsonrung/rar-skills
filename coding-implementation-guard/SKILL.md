@@ -24,7 +24,7 @@ Use this skill while editing code. The goal is to make the intended change with 
 Apply this pass when the edit touches databases, files, queues, caches, search indexes, event streams, jobs, external APIs, or production records:
 
 1. Source of truth: what data is created, read, updated, deleted, cached, derived, or emitted?
-2. Invariant: what must remain true for the feature to be correct?
+2. Invariant: what must remain true for the feature to be correct, and where does the code assert it?
 3. Compatibility: can old readers, old writers, new readers, and new writers coexist during deploy and rollback?
 4. Idempotency: can retry, replay, or duplicate delivery create duplicate records, emails, money movement, jobs, or notifications?
 5. Concurrency: can two actors update the same entity or run the same operation at once?
@@ -40,8 +40,9 @@ Use these as editing pressure, not as a rewrite license:
 3. Control flow is simple enough to review.
 4. Duplication is removed only when it represents the same concept and same reason to change.
 5. Comments explain business rules, external constraints, security, performance, or history.
-6. Positional arguments, magic values, hidden ordering, shared mutable state, and duplicated algorithms are weakened when they are distant or high risk.
-7. New helpers reduce real complexity instead of hiding it.
+6. Invariants the code relies on are asserted where they must hold, and an assertion failure is treated as a bug — never caught and continued.
+7. Positional arguments, magic values, hidden ordering, shared mutable state, and duplicated algorithms are weakened when they are distant or high risk.
+8. New helpers reduce real complexity instead of hiding it.
 
 ## Output Contract
 

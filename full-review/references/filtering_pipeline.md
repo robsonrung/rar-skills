@@ -45,6 +45,8 @@ For structural maintainability findings, the concrete indicator can be a file cr
 
 ## 3. Dedupe and merge
 
+**Mechanical pre-pass.** Exact duplicates — same `path`, identical normalized line range, same `category` — are merged before this pipeline runs by `scripts/findings_mechanics.py`, which also owns schema validation, snapping confidence to the discrete anchors (0, 0.25, 0.5, 0.75, 1.0), the quote-the-line evidence gate, conservative `autofix_class` merging, exact-duplicate cross-model promotion, triage grouping, and stable numbering. This section's rules apply only to the remaining **overlapping-but-not-identical** ranges, which need judgment the script does not attempt.
+
 ### Near-duplicate definition
 
 Two comments are near-duplicates when **all three** conditions hold:
@@ -136,3 +138,7 @@ Structural maintainability comments must include the current complexity, the fut
 - No accusatory language ("you forgot", "you should have"). Use neutral phrasing ("this path does not handle X", "consider adding Y").
 - No hedging filler ("I think maybe", "it seems like perhaps"). State the finding directly.
 - If confidence is below `0.75`, frame as a question: _"Is the intent here to skip validation when X is nil?"_
+
+---
+
+*Mechanical pre-pass adapted from EveryInc/compound-engineering-plugin (MIT). See NOTICE at repo root.*
