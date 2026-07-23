@@ -1,6 +1,6 @@
 ---
 name: full-review
-description: "Full-spectrum code review combining parallel specialist review, multi-model triangulation, execution-based bug verification, and ambitious structural maintainability review. Use when the user asks to review a PR, commit, branch, or diff; to find bugs (bughunt); for a security review (find vulnerabilities); for a maintainability or code-quality audit; or for a deep/thorough review (ultrareview, thermonuclear review)."
+description: "Full-spectrum code review combining parallel specialist review, multi-model triangulation, execution-based bug verification, and ambitious structural maintainability review. Use when the user asks to review a PR, commit, branch, or diff; to find bugs (bughunt); for a security review (find vulnerabilities); for a maintainability or code-quality audit; for a deep/thorough review (ultrareview, thermonuclear review); or to review a planning or requirements document (plan review, spec review, PRD review) via the document-review dimension."
 allowed-tools:
   - Bash
   - Read
@@ -38,6 +38,8 @@ Use these knobs when requested or when context makes them obvious:
 | `confidence_threshold` | per mode | Override the active threshold from `references/filtering_pipeline.md` section 4 |
 | `security_focus` | false | Prioritize the security dimension; optionally takes recorded security decisions to verify against |
 | `triangulation` | per mode | External-runner posture: `off`, `light`, or `quality`. Defaults: `quick_mode` → `light`; ultra/thorough → `quality`; otherwise `quality` when ≥3 runner CLIs are present, else `light` |
+| `depth` | `auto` | `auto` self-right-sizes via the Phase 1 lite gate; `full` disables the lite roster (set it when a deep/thorough review is explicitly requested) |
+| `apply_fixes` | false | Explicit authority to apply apply-queue fixes after Phase 6. Authority, not an output mode — see Apply Authority |
 
 When `security_focus=true` (set by the caller — e.g. a pipeline's `security-gate` for a `security: deep` change): treat any provided security decisions (recorded auth, validation, logging, and tenancy choices) as hard constraints and explicitly check the implementation against each; activate the `specialist_authorization`, `specialist_database`, and `specialist_data_integrity` specialists in Phase 3 regardless of trigger patterns; and never drop security-category findings to satisfy `max_comments`.
 
@@ -105,6 +107,36 @@ Determine the diff with the matching `scripts/collect_context.sh` mode (`pr`, `c
 If the diff is empty, say so and stop.
 
 Treat existing PR comments as candidates, not truth. Avoid duplicating issues already raised unless adding verification or a materially better fix.
+
+### Scope Signals
+
+After collecting the diff, run the deterministic scope helper and load its JSON:
+
+```bash
+python3 scripts/review_scope.py --base <BASE> [--head <HEAD>]
+```
+
+It owns executable-line counting, uncounted-file detection, path signals (`migrations`, `frontend`, `api`, `swift-ios`, `verification_guard`), and the fail-closed `lite_eligible` calculation. Do not re-estimate these from diff hunks.
+
+### Lite Roster (Fail Closed)
+
+Small mechanical diffs get a reduced Phase 3 roster: bug finders 3 (logic and state) and 5 (regression and integration) plus `triangulation: light`; personas and specialists are skipped. Phases 4–6 run unchanged.
+
+Collapse to the lite roster only when **all** of these hold:
+
+1. The helper returned `lite_eligible: true` (1–39 executable changed lines, zero uncounted files, no path signals).
+2. No content-based risk read from the diff: auth, payments, data mutation, secrets or permissions, deserialization, crypto, concurrency or background jobs, external APIs, filesystem or process execution.
+3. `security_focus=false` and `depth` is not `full`.
+
+**This gate fails closed.** `exec_lines: null`, `uncounted_files > 0`, any signal, or helper failure disqualifies the lite path — the gate keys on risk, not size alone. A 12-line auth change still gets the full roster; a pure code diff that also touches one `.md` runs the full roster. When in doubt, run the full roster.
+
+### Silent-Pass Trigger
+
+When the `verification_guard` signal fires — CI/CD gating logic, merge-blocking checks, coverage or lint gates, test infrastructure and mocks — the change's failure mode is passing silently: it can go green while the thing it guards is red. Regardless of diff size or mode:
+
+1. Never take the lite path.
+2. Run the full roster with the Reliability Skeptic given an explicit brief on the guard files: "if this mechanism is wrong, does it fail loudly or silently pass?"
+3. In `quick_mode`, still add that false-pass brief to one engaged external seat's `{category_emphasis}`.
 
 ## Phase 2: Gate Review
 
@@ -378,4 +410,30 @@ Verification and corroboration boosts are applied per `references/filtering_pipe
 |---|---|
 | `scripts/collect_context.sh` | Gather PR, commit, range, or local diff context |
 | `scripts/diff_line_map.py` | Parse diffs into structured file and line ranges |
+| `scripts/review_scope.py` | Deterministic scope signals (executable-line count, uncounted files, path/verification signals, fail-closed `lite_eligible`) — Phase 1 |
+| `scripts/findings_mechanics.py` | Mechanical pre-pass: schema validation, exact-duplicate merge, confidence-anchor snapping, quote-the-line gate, triage grouping, stable numbering — before Phase 5 |
 | `_shared/scripts/discover_runners.py` | Standardized preflight probe used by Phase 3 to enumerate available runner seats |
+
+## Triage Groups and Apply Authority
+
+`findings_mechanics.py` tags each retained finding with a **triage group** so a downstream fixer knows where it may act:
+
+- **apply-queue** — mechanical, low-ambiguity fixes with a concrete `suggested_fix` and `autofix_class: safe_auto`. An automated fixer may apply these.
+- **decision-gate** — anything requiring a human call: design/architecture trade-offs, product/UX decisions, `autofix_class` of `gated_auto` or `manual`, or any CRITICAL/HIGH finding. A fixer stops here and surfaces the finding.
+
+**Apply Authority** — applying fixes is explicit authority (`apply_fixes: true`), separate from output mode. Default is report-only. When granted:
+- **Clean tree** → apply apply-queue fixes and commit them (`fix(review): <summary>`), leaving decision-gate findings for the human.
+- **Dirty tree** → apply apply-queue fixes but leave them uncommitted, so the user reconciles with their in-progress work.
+Never apply decision-gate findings automatically regardless of authority.
+
+## Document-Review Dimension
+
+When the review target is a planning/requirements document rather than code (a plan, spec, PRD — classify by content shape, not path), run this dimension instead of the code roster:
+
+1. **Classify document type** by content shape — requirements signals (user-facing outcomes, acceptance criteria) vs plan signals (units, sequencing, file targets).
+2. **Select personas conditionally** from `references/doc-personas/` (whole-doc, coherence, feasibility, scope-guardian, design-lens, product-lens, security-lens, adversarial). The **product-lens** persona activates on the two-leg test (the doc makes a user-facing product claim AND that claim is contestable). The **adversarial** persona activates on *challenge surface* — genuine unresolved risk — **not** on document structure: do NOT activate it for a routine, already-validated plan (the anti-noise rule).
+3. **Run the persona panel** and merge findings through `references/doc-findings-schema.json` (P0–P3 severity, error/omission `finding_type`, `safe_auto`/`gated_auto`/`manual` autofix classes, discrete confidence anchors with behavioral criteria).
+4. **Decision-primer:** carry accumulated applied/rejected decisions with their evidence into any later round so rejected findings stay suppressed and applied fixes get verified rather than re-raised.
+5. For a cross-model leg, dispatch through the local runner seats (Phase 3's runner discovery + `_shared/references/runner-common.md`), not a shell-out — keeping the `verified` independence semantics.
+
+*Document-review dimension and mechanical pre-pass adapted from [compound-engineering-plugin](https://github.com/EveryInc/compound-engineering-plugin) (MIT). See NOTICE.*

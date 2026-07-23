@@ -137,6 +137,13 @@ When creating or updating a skill, finish with:
 - `assumptions`: decisions made without asking the user.
 - `optional_refinements`: concise ideas that would improve the skill later without blocking current use.
 
+## Portability References — load before authoring
+
+Two references govern cross-model authoring. Load them at the named moments; do not rely on this summary in their place.
+
+- Read `references/portable-skill-authoring.md` before creating or materially revising any skill that runs on more than one model or harness, or that names a model anywhere. It holds the outcome-spine authoring order, protocol-vs-judgment split, and the **model-tier abstraction** (extraction / generation / ceiling-by-omission, with the read-budget fallback). Skipping it yields skills tuned to the authoring model and hardcoded model ids that force repo-wide churn every model generation.
+- Read `references/authoring-contract.md` before writing skill prose, referencing bundled files or scripts, or applying review feedback. It holds the prose admission rules, the three-tier path-resolution rules with the model-filled `SKILL_DIR` anchor, the no-load-time-pre-resolution rule, the context-not-filenames read rule, self-containment (and this repo's `_shared/` exception), and the Change/Verify/Consider feedback protocol. Skipping it yields paths that break off-host, load-aborting context probes, and feedback applied by stacking prose.
+
 ## References
 
 - Read `references/script-standards.md` when a skill bundles `scripts/`, or when deciding how tightly to constrain the host agent (text vs. pseudocode vs. script — the degrees of freedom).
