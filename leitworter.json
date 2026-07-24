@@ -84,6 +84,12 @@
       "concept": "lead with the outcome / selection over compression",
       "must_contain": ["lead with the outcome", "selection over compression", "honest ledger", "last-paragraph check"],
       "must_not_contain": []
+    },
+    {
+      "file": "knowledge-graph/SKILL.md",
+      "concept": "the schema is the only training data / the graph accumulates",
+      "must_contain": ["the schema is the only training data", "the graph accumulates; it never rebuilds"],
+      "must_not_contain": []
     }
   ],
   "canon": [
