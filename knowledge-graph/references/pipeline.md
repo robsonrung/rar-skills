@@ -35,6 +35,7 @@ class Relation(BaseModel):
     source: str
     predicate: str      # short verb phrase
     target: str
+    evidence: str       # verbatim span from the document
 
 class ExtractedGraph(BaseModel):
     entities: list[Entity]
@@ -55,6 +56,8 @@ Guidelines:
    from", "developed by").             # constrained predicate vocabulary
 4. Every relation must connect two entities from your extracted entity
    list.                               # no orphaned edges
+5. For each relation, quote the span of the document that states it,
+   verbatim.                           # checkable provenance
 
 Document:
 {text}"""
@@ -69,6 +72,16 @@ def extract(text: str) -> ExtractedGraph:
     )
     return response.parsed_output
 ```
+
+The evidence span is what a later reader checks the edge against: it lets a
+grounded answer cite source text rather than only an edge, and it is the
+only thing that makes a contradiction adjudicable — two edges disagree
+about something concrete, or one of them was never in the document.
+
+Do not add a `confidence` float alongside it, tempting as the field is. A
+self-reported score is uncalibrated, and once it exists downstream code
+filters on it, which converts a number the model made up into a quality
+gate. The span is verifiable; the score is not.
 
 Why the cheap tier: extraction is high-volume and schema-constrained — the
 schema defines the entity types, enforces the structure, and eliminates
@@ -164,8 +177,35 @@ context for downstream agents.
 
 ## Prompt 4 — Graph-grounded querying
 
-Serialize the k-hop neighborhood of a seed entity as triples and let the
-model reason over them.
+This prompt runs **local search**: seed entity, k hops, reason over the
+triples. A question that names no entity has no seed and needs
+**global search** instead — see [global-search.md](global-search.md).
+
+### Getting the seed
+
+The question arrives as text, not as a node id. Link it through the same
+alias map that scoring uses, so any surface form the asker types reaches the
+canonical node:
+
+```python
+def seed_entities(question, alias_map):
+    mentions = extract_mentions(question)   # cheap-tier call, schema: list[str]
+    return [alias_map[m] for m in mentions if m in alias_map]
+```
+
+Two outcomes need an explicit policy, because both default to the wrong
+behavior:
+
+- **No match** — the graph contains nothing the question is about. Answer
+  that, verbatim: *"the graph contains no entity matching X."* The failure
+  mode is falling back to a pretraining answer, which is exactly the
+  ungrounded output the graph exists to prevent.
+- **Several matches** — union the neighborhoods when the question spans them
+  ("how are X and Y connected"), and disambiguate with the node descriptions
+  when it does not. Silently picking the highest-degree match answers a
+  question nobody asked.
+
+### Serializing and answering
 
 ```python
 def serialize_subgraph(G, center, hops=2):

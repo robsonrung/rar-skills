@@ -87,8 +87,8 @@
     },
     {
       "file": "knowledge-graph/SKILL.md",
-      "concept": "the schema is the only training data / the graph accumulates",
-      "must_contain": ["the schema is the only training data", "the graph accumulates; it never rebuilds"],
+      "concept": "the schema is the only training data / the graph accumulates / local vs global search / flag, never overwrite",
+      "must_contain": ["the schema is the only training data", "the graph accumulates; it never rebuilds", "local search", "global search", "flag, never overwrite"],
       "must_not_contain": []
     }
   ],
@@ -118,7 +118,10 @@
     { "concept": "brevity by omission, not by squeezing", "leitwort": "selection over compression", "drift_terms": ["tighten the wording"] },
     { "concept": "autonomy the request grants", "leitwort": "the mandate", "drift_terms": ["permission scope", "authorization level"] },
     { "concept": "settled choices are inputs, not open questions", "leitwort": "already decided", "drift_terms": ["revisit the decision"] },
-    { "concept": "a question exploration could answer is not for the user", "leitwort": "the user's time is the bottleneck", "drift_terms": [] }
+    { "concept": "a question exploration could answer is not for the user", "leitwort": "the user's time is the bottleneck", "drift_terms": [] },
+    { "concept": "entity-anchored retrieval from a seed node", "leitwort": "local search", "drift_terms": ["k-hop query"] },
+    { "concept": "corpus-anchored retrieval over the whole graph", "leitwort": "global search", "drift_terms": ["thematic query", "whole-graph search"] },
+    { "concept": "a conflicting fact is recorded, not resolved away", "leitwort": "flag, never overwrite", "drift_terms": ["latest wins", "reconcile conflicts", "dedupe contradictions"] }
   ],
   "filler_verbs": ["carefully", "thoroughly", "make sure", "be sure to", "as appropriate", "as needed", "properly"]
 }

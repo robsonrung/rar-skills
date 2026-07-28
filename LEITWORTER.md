@@ -83,6 +83,8 @@ agent sees one consistent token across the whole library:
 | Autonomy the request grants | **the mandate** | permission scope, authorization level |
 | Settled choices are inputs, not open questions | **already decided** | re-litigating, revisiting the decision |
 | A question exploration could answer is not for the user | **the user's time is the bottleneck** | don't bother the user, minimize questions |
+| Entity-anchored vs corpus-anchored retrieval | **local search** / **global search** | k-hop query, thematic query, whole-graph search |
+| A conflicting fact is recorded, not resolved away | **flag, never overwrite** | latest wins, reconcile conflicts, dedupe contradictions |
 
 A skill may introduce a new leitwort when it genuinely owns a concept no other
 skill covers. Add it to this table when you do.
