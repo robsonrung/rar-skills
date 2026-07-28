@@ -11,7 +11,7 @@ Roles, the output-envelope key contract, presenting-results rules, the backgroun
 
 ## Default Model
 
-None forced. Cline uses whichever `provider/model` the local `cline auth` last configured (inspect with `cline config` interactively, or `cat ~/.cline/data/settings/providers.json`). Pass `--model provider/model-id` to pick a specific model for a run — e.g. `--model anthropic/claude-sonnet-4-5`, `--model openai/gpt-5.1`, `--model zai/glm-5.2`. Pass `--provider` to select an authenticated provider id (`cline`, `cline-pass`, or whatever `cline auth` set up) independently of the model string.
+None forced. Cline uses whichever `provider/model` the local `cline auth` last configured (inspect with `cline config` interactively, or `cat ~/.cline/data/settings/providers.json`). Pass `--model provider/model-id` to pick a specific model for a run — e.g. `--model anthropic/claude-sonnet-5`, `--model openai/gpt-5.1`, `--model zai/glm-5.2`. Pass `--provider` to select an authenticated provider id (`cline`, `cline-pass`, or whatever `cline auth` set up) independently of the model string.
 
 ## Security Model
 
@@ -76,7 +76,7 @@ Shared rules (prefer `agent_message`, severity-ordered findings, evidence bounda
 
 ```bash
 python3 .agents/skills/cline-runner/scripts/run_cline.py "Summarize the core module architecture"
-python3 .agents/skills/cline-runner/scripts/run_cline.py "Explain this module" --model anthropic/claude-sonnet-4-5
+python3 .agents/skills/cline-runner/scripts/run_cline.py "Explain this module" --model anthropic/claude-sonnet-5
 python3 .agents/skills/cline-runner/scripts/run_cline.py --prompt-file /tmp/review.md --role codereviewer
 python3 .agents/skills/cline-runner/scripts/run_cline.py "Implement the accepted fix" --role implementer --model openai/gpt-5.1
 python3 .agents/skills/cline-runner/scripts/run_cline.py "Resume and continue" --session 1782865158637_s2n62

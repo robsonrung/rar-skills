@@ -605,7 +605,7 @@ Examples:
   %(prog)s "What is 2+2?"
   %(prog)s "List Python files" --working-dir /path/to/project
   %(prog)s "Explain this code" --json --timeout 3600
-  %(prog)s "Summarize this repo" --model claude-sonnet-5-0
+  %(prog)s "Summarize this repo" --model claude-sonnet-5
   %(prog)s "Review this code"
         """,
     )
@@ -649,7 +649,7 @@ Examples:
         "-m",
         type=str,
         default=None,
-        help="Claude model alias or full model name (for example 'claude-sonnet-5-0' or 'claude-opus-4-8')",
+        help="Claude model alias or full model name (for example 'claude-sonnet-5' or 'claude-opus-4-8')",
     )
     parser.add_argument(
         "--output-format",

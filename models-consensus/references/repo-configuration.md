@@ -17,7 +17,7 @@ When running from the skills source repo itself, skills live at the repo root �
 | Seat | Native Tool | Runner Fallback | Default Model |
 |------|-------------|-----------------|---------------|
 | Claude Opus 4.8 | `Agent` (Claude Code) | `claude-runner --model claude-opus-4-8` | `claude-opus-4-8` |
-| Claude Sonnet 5 | `Agent` (Claude Code) | `claude-runner --model claude-sonnet-5-0` | `claude-sonnet-5-0` |
+| Claude Sonnet 5 | `Agent` (Claude Code) | `claude-runner --model claude-sonnet-5` | `claude-sonnet-5` |
 | Codex (GPT 5.6 Sol) | `spawn_agent` + `wait_agent` (Codex host) | `codex-runner --model gpt-5.6-sol` | `gpt-5.6-sol` |
 | Gemini (3.6 Flash) | — | `gemini-runner --model gemini-3.6-flash` | `gemini-3.6-flash` (premium; agy's own picker sets the real model) |
 | Kimi (K3) | — | `kimi-runner --model moonshotai/kimi-k3` | `moonshotai/kimi-k3` |

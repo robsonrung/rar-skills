@@ -238,7 +238,7 @@ Role diversity follows the model's strengths: **GPT for logic and security, Sonn
 | Seat | Execution path | Default lens |
 |------|----------------|--------------|
 | `codex` | `codex-runner --effort high` (GPT 5.6 Sol logic); security seat adds `--model gpt-5.3-codex` | `logic_state` (GPT owns logic **and** `security_runtime`) |
-| `sonnet` | native `Agent` subagent (`model: "sonnet"`) or `claude-runner --model claude-sonnet-5-0` | `structural_maintainability` (Sonnet 5 owns maintainability) |
+| `sonnet` | native `Agent` subagent (`model: "sonnet"`) or `claude-runner --model claude-sonnet-5` | `structural_maintainability` (Sonnet 5 owns maintainability) |
 | `gemini` | `gemini-runner --model gemini-3.6-flash` (Antigravity `agy`) | `cross_file_consistency` (Gemini 3.6 Flash — broad, long context) |
 | `glm` | `glm-runner --model zai/glm-5.2` | `broad_sweep` (GLM 5.2 — edge cases / resource & failure paths) |
 | `kimi` | `kimi-runner` (Kimi K3, `moonshotai/kimi-k3`) | `broad_sweep` (broad pragmatic — input/auth) |

@@ -30,7 +30,7 @@ PROVIDER_BY_RUNNER = {
 
 def infer_provider_from_model(model_id: str | None) -> str | None:
     # Cline model ids are `vendor/model` (e.g. zai/glm-5.2, moonshotai/kimi-k3,
-    # anthropic/claude-sonnet-4-5) — the prefix is the real vendor. The stream's own
+    # anthropic/claude-sonnet-5) — the prefix is the real vendor. The stream's own
     # `model.provider` field is the *account* (cline, cline-pass), not the vendor, so
     # it is intentionally not used for effective_provider.
     if isinstance(model_id, str) and "/" in model_id:
@@ -519,7 +519,7 @@ def build_parser(default_model: str | None, description: str) -> argparse.Argume
         epilog="""
 Examples:
   %(prog)s "What is 2+2?"
-  %(prog)s "Explain this module" --model anthropic/claude-sonnet-4-5
+  %(prog)s "Explain this module" --model anthropic/claude-sonnet-5
   %(prog)s --prompt-file /tmp/review.md --role codereviewer
   %(prog)s "Implement the fix" --role implementer --model openai/gpt-5.1
   %(prog)s "Resume and continue" --session 1782865158637_s2n62
@@ -558,7 +558,7 @@ Examples:
         "-m",
         type=str,
         default=None,
-        help="Cline model id in `provider/model` form (e.g. anthropic/claude-sonnet-4-5, "
+        help="Cline model id in `provider/model` form (e.g. anthropic/claude-sonnet-5, "
         "openai/gpt-5.1, zai/glm-5.2). Omit to use whatever `cline auth` already configured locally.",
     )
     parser.add_argument(
