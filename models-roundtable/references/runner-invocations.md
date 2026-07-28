@@ -22,7 +22,7 @@ Exact launch patterns for the seats, the organizer, the two judges, and the synt
 - **No silent swaps:** `--disable-fallback` on every runner.
 - **Keep transcripts out of context:** use `--output-file`; read `agent_message` from the file, not raw stdout.
 - **Timeout:** `--timeout 600` is ample for answering.
-- **Schema enforcement:** `--output-schema` is natively validated only by **Codex**; the cline-backed **Kimi and GLM** seats accept `--output-schema` too, but enforce it by prompt rather than natively. Gemini and the Opus/Sonnet (native or claude-runner) seats have no schema flag — for all of these the JSON shape is enforced by the brief's trailing `Return ONLY JSON …` line.
+- **Schema enforcement:** `--output-schema` is natively validated by **Codex and Grok** (grok-runner forwards it to grok's native `--json-schema`); the cline-backed **Kimi and GLM** seats accept `--output-schema` too, but enforce it by prompt rather than natively. Gemini and the Opus/Sonnet (native or claude-runner) seats have no schema flag — for all of these the JSON shape is enforced by the brief's trailing `Return ONLY JSON …` line.
 - **Transient retry:** a runner returning `success=false` with no output file (e.g. `return_code -3` on a busy concurrent launch) may be **retried once sequentially** before the seat is dropped — concurrent back-to-back launches occasionally trip this and a lone retry clears it.
 
 Schemas:
@@ -50,7 +50,7 @@ When self-pairing (auto-fallback to reach quorum, or a deliberate preset), launc
 
 ## Launching concurrently
 
-Issue all available runner `Bash` calls (normally four) **and** the two `Agent` calls (Opus, Sonnet) in a **single message** so all seats run in parallel. Write the round's brief once (e.g. `.ai-workflow/roundtable/<id>/round1-brief.md`) and point every `--prompt-file` at it.
+Issue all available runner `Bash` calls (normally five) **and** the two `Agent` calls (Opus, Sonnet) in a **single message** so all seats run in parallel. Write the round's brief once (e.g. `.ai-workflow/roundtable/<id>/round1-brief.md`) and point every `--prompt-file` at it.
 
 ## Seats
 
@@ -81,6 +81,20 @@ python3 .agents/skills/gemini-runner/scripts/run_gemini.py \
 ```
 
 `gemini-runner` has no `--output-schema`; the brief enforces the shape. The Gemini seat's role here is **broad independent perspective**, so it runs Gemini 3.6 Flash (`--model` is a metadata label — set agy's own model picker to match).
+
+### Grok
+
+```bash
+python3 .agents/skills/grok-runner/scripts/run_grok.py \
+  --prompt-file <dir>/round1-brief.md \
+  --restrict-tools --effort high --timeout 600 \
+  --json --disable-fallback \
+  --output-schema .agents/skills/models-roundtable/schemas/opening-answer.schema.json \
+  --output-file <dir>/round1-grok.json \
+  --metadata-json '{"session":"<id>","round":1,"seat":"grok"}'
+```
+
+The Grok seat runs Grok 4.5 (the `grok` CLI default) at reasoning-effort high — an independent xAI lineage strongest on execution-grounded, agentic reasoning. `--output-schema` is forwarded to grok's native `--json-schema`, so the answer shape is enforced by the model itself (the wrapper forces json output for the run).
 
 ### Kimi
 
@@ -170,5 +184,6 @@ After judging + the orchestrator's final calls, run **one** synthesizer — read
 | Organizer & synthesizer | native `Agent`, `model:"opus"`, `mode:"plan"` (default Opus on a Claude host) | **GPT 5.6 Sol** `codex-runner --model gpt-5.6-sol` (schema via `--output-schema`) — GPT 5.6 Sol is the default organizer/synthesizer when running outside Claude |
 | Codex seat & Codex judge | `codex-runner --effort high` | native `spawn_agent` (`fork_context=false`) |
 | Gemini seat | `gemini-runner` | `gemini-runner` |
+| Grok seat | `grok-runner` | `grok-runner` |
 | Kimi seat | `kimi-runner` | `kimi-runner` |
 | GLM seat | `glm-runner` (via `cline`) | `glm-runner` (via `cline`) |

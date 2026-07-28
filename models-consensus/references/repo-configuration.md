@@ -20,6 +20,7 @@ When running from the skills source repo itself, skills live at the repo root â€
 | Claude Sonnet 5 | `Agent` (Claude Code) | `claude-runner --model claude-sonnet-5` | `claude-sonnet-5` |
 | Codex (GPT 5.6 Sol) | `spawn_agent` + `wait_agent` (Codex host) | `codex-runner --model gpt-5.6-sol` | `gpt-5.6-sol` |
 | Gemini (3.6 Flash) | â€” | `gemini-runner --model gemini-3.6-flash` | `gemini-3.6-flash` (premium; agy's own picker sets the real model) |
+| Grok (4.5) | â€” | `grok-runner --effort high` | `grok-4.5` (the `grok` CLI default) |
 | Kimi (K3) | â€” | `kimi-runner --model moonshotai/kimi-k3` | `moonshotai/kimi-k3` |
 | GLM (5.2) | â€” | `glm-runner` (via `cline`) | `zai/glm-5.2` |
 
@@ -30,6 +31,7 @@ When running from the skills source repo itself, skills live at the repo root â€
 | Claude (runner fallback) | `claude` | Must pass auth smoke test |
 | Codex (runner fallback, non-Codex hosts) | `codex` | Must pass auth smoke test |
 | Gemini | `agy` | Antigravity CLI; must pass auth smoke test and have its `/model` picker configured (see gemini-runner SKILL.md) |
+| Grok | `grok` | xAI Grok CLI; logged in (`grok login`, grok.com account); must pass auth smoke test |
 | Kimi | `cline` | Cline CLI (`npm install -g cline`); a provider authenticated via `cline auth` that resolves `moonshotai/kimi-k3` |
 | GLM | `cline` | Cline CLI (`npm install -g cline`); a provider authenticated via `cline auth` that resolves `zai/glm-5.2` |
 
@@ -39,8 +41,9 @@ When running from the skills source repo itself, skills live at the repo root â€
 1. Native Codex (when on Codex host)
 2. Native Claude seats (when on Claude Code host)
 3. Gemini
-4. Kimi
-5. GLM
+4. Grok
+5. Kimi
+6. GLM
 
 ## Artifact Directory
 

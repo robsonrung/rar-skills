@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-"""Cross-runner parity tests for the four wrapper scripts (claude, codex,
-gemini, cline).
+"""Cross-runner parity tests for the five wrapper scripts (claude, codex,
+gemini, grok, cline).
 
 Locks in the family-wide contract so the per-script copies cannot drift:
 
@@ -34,6 +34,7 @@ RUNNER_SCRIPTS = {
     "claude": REPO_ROOT / "claude-runner" / "scripts" / "run_claude.py",
     "codex": REPO_ROOT / "codex-runner" / "scripts" / "run_codex.py",
     "gemini": REPO_ROOT / "gemini-runner" / "scripts" / "run_gemini.py",
+    "grok": REPO_ROOT / "grok-runner" / "scripts" / "run_grok.py",
     "cline": REPO_ROOT / "cline-runner" / "scripts" / "run_cline.py",
 }
 

@@ -233,13 +233,14 @@ Pass `--native-agent yes` only when the host exposes the native `Agent` tool (Cl
 
 The probe covers this default candidate set, in priority order:
 
-Role diversity follows the model's strengths: **GPT for logic and security, Sonnet for maintainability, Gemini for cross-file consistency, GLM for edge cases, Kimi for broad pragmatic review.**
+Role diversity follows the model's strengths: **GPT for logic and security, Sonnet for maintainability, Gemini for cross-file consistency, GLM for edge cases, Kimi for broad pragmatic review, Grok for execution-path and agentic-flow verification.**
 
 | Seat | Execution path | Default lens |
 |------|----------------|--------------|
 | `codex` | `codex-runner --effort high` (GPT 5.6 Sol logic); security seat adds `--model gpt-5.3-codex` | `logic_state` (GPT owns logic **and** `security_runtime`) |
 | `sonnet` | native `Agent` subagent (`model: "sonnet"`) or `claude-runner --model claude-sonnet-5` | `structural_maintainability` (Sonnet 5 owns maintainability) |
 | `gemini` | `gemini-runner --model gemini-3.6-flash` (Antigravity `agy`) | `cross_file_consistency` (Gemini 3.6 Flash — broad, long context) |
+| `grok` | `grok-runner --effort high` (Grok 4.5) | `logic_state` second seat — execution paths / CLI & tool invocation flows / integration behavior (Terminal-Bench-class agentic strength) |
 | `glm` | `glm-runner --model zai/glm-5.2` | `broad_sweep` (GLM 5.2 — edge cases / resource & failure paths) |
 | `kimi` | `kimi-runner` (Kimi K3, `moonshotai/kimi-k3`) | `broad_sweep` (broad pragmatic — input/auth) |
 | `opus` | native `Agent` subagent (`model: "opus"`) or `claude-runner --model claude-opus-4-8` | Phase 5 synthesizer; `structural_maintainability` backup behind sonnet |
@@ -248,6 +249,8 @@ Role diversity follows the model's strengths: **GPT for logic and security, Sonn
 | `minimax` | `minimax-runner` | `cross_file_consistency` backup |
 
 `security_runtime` is a **GPT** lens: in `quality`/`security_focus` runs, fill it with a second Codex seat on `codex-runner --model gpt-5.3-codex` (the code-specialized security reviewer), alongside the GPT 5.6 Sol `logic_state` seat — matching the markdown's "Security review → GPT 5.6 Sol + GPT 5.3 Codex".
+
+`logic_state` may likewise be double-seated (the shared-lens rule below already permits it): codex takes logic/state/concurrency on tight code slices, grok takes execution paths, CLI/tool invocation flows, and integration behavior — non-overlapping `{category_emphasis}` values.
 
 Mark seats with `available: false` as `unavailable` in your run config and continue. Never fail the review because a runner is missing.
 
@@ -259,7 +262,7 @@ The `triangulation` knob selects how many seats run and which lenses are mandato
 |---|---|---|
 | `off` | none | Skip external runners entirely. Use only when the host has zero runners or the caller explicitly disables. |
 | `light` | 2 cheap seats (kimi + glm, falling back to gemma/qwen) | `broad_sweep` only, with two non-overlapping `category_emphasis` assignments. Default for `quick_mode`. |
-| `quality` | All available distinct seats, up to 6 | One seat per lens (`logic_state`, `cross_file_consistency`, `broad_sweep` ×1–3, `security_runtime`, `structural_maintainability`). Default otherwise. |
+| `quality` | All available distinct seats, up to 7 | One seat per lens (`logic_state` ×1–2, `cross_file_consistency`, `broad_sweep` ×1–3, `security_runtime`, `structural_maintainability`). Default otherwise. |
 
 When `security_focus=true`, force the `security_runtime` lens to be filled even if it costs the `structural_maintainability` seat.
 
@@ -297,7 +300,7 @@ Use `references/external_prompt_template.md`, write composed prompts to files un
 For each successful runner:
 
 1. Parse JSON against `references/review_output_schema.json`.
-2. Tag comments with `external_<seat>` — the seat id from runner discovery (e.g. `external_opus`, `external_codex`, `external_gemini`, `external_kimi`, `external_glm`, `external_gemma`, `external_qwen`, `external_minimax`, `external_sonnet`).
+2. Tag comments with `external_<seat>` — the seat id from runner discovery (e.g. `external_opus`, `external_codex`, `external_gemini`, `external_grok`, `external_kimi`, `external_glm`, `external_gemma`, `external_qwen`, `external_minimax`, `external_sonnet`).
 3. Discard invalid JSON or nonzero exits and note the failure in the report.
 
 ## Phase 4: Verify

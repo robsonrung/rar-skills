@@ -36,6 +36,7 @@ Each model seat is backed by a local CLI. Install only the ones whose seats you 
 | `claude` | Claude (runner fallback for the native `Agent` seats) | `claude-runner` | Logged-in CLI (OAuth/keychain), **or** `ANTHROPIC_API_KEY` / `ANTHROPIC_AUTH_TOKEN` for bare/headless mode |
 | `codex` | Codex (`gpt-5.6-sol`) | `codex-runner` | `codex` CLI authenticated |
 | `agy` (Antigravity CLI) | Gemini / Google | `gemini-runner` | `agy` authenticated; model selected via `/model` or `~/.gemini/antigravity-cli/settings.json` |
+| `grok` | Grok (`grok-4.5` — Grok 4.5) | `grok-runner` | `grok` CLI logged in (`grok login`, grok.com account) |
 | `cline` | Kimi (`moonshotai/kimi-k3` — Kimi K3) and GLM (`zai/glm-5.2` — GLM 5.2) | `kimi-runner`, `glm-runner` | Cline provider authenticated via `cline auth` |
 | `qwen` (Qwen Code CLI) | Qwen, **Gemma, Minimax** (shared transport) | `qwen-runner`, `gemma-runner`, `minimax-runner` | Provider configured in `~/.qwen/settings.json` (see below) |
 | `opencode` (optional) | OpenCode | `opencode-runner` | Its own auth; no bundled wrapper — runs through the host approval flow |
@@ -49,6 +50,7 @@ Every CLI seat is an external model call — it sends prompt text, prompt files,
 - **Anthropic** — for `claude` (and the native Opus/Sonnet seats running inside Claude Code).
 - **OpenAI / Codex** — for `codex`.
 - **Google** — for `agy` (Gemini).
+- **xAI** — for `grok` (Grok 4.5 seat).
 - **Cline-backed seats** — Kimi (`moonshotai/kimi-k3`) and GLM (`zai/glm-5.2`). Authenticate a Cline provider via `cline auth` that can resolve those model ids (the `cline-pass` gateway covers both; bring-your-own Moonshot / Z.AI entitlements also work).
 - **Qwen-backed providers** — Gemma (`google/gemma-4-31b-it`), Minimax (`minimax/minimax-m2.7`), and Qwen itself. Configure each as a `modelProviders` entry in `~/.qwen/settings.json` (with its API-key env var set), or pass credentials at call time via `--openai-api-key` / `--auth-type`. *(The legacy `qwen auth` subcommand has been removed.)*
 

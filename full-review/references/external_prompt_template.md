@@ -8,13 +8,14 @@ A seat without a lens-matched mission is a wasted seat. If the active triangulat
 
 The orchestrator discovers available runners at preflight (see SKILL.md Phase 3 "Runner Discovery") and assigns each one a default lens from this table. The table is a default, not a hard binding — when `security_focus=true` or a specialist trigger fires, the orchestrator may reassign a seat to the matching lens.
 
-Role diversity follows model strengths: **GPT for logic and security, Sonnet for maintainability, Gemini for cross-file consistency, GLM for edge cases, Kimi for broad pragmatic review.**
+Role diversity follows model strengths: **GPT for logic and security, Sonnet for maintainability, Gemini for cross-file consistency, GLM for edge cases, Kimi for broad pragmatic review, Grok for execution-path and agentic-flow verification.**
 
 | Seat | Default lens | Why |
 |---|---|---|
 | `codex` (`codex-runner --effort high`, GPT 5.6 Sol) | `logic_state` | Best at logic, state, and concurrency reasoning on tight code slices. GPT also **owns `security_runtime`**: fill it with a second Codex seat `--model gpt-5.3-codex` (the code-specialized security reviewer) |
 | `sonnet` (native Agent or `claude-runner`, Sonnet 5) | `structural_maintainability` | Strongest at clean-code / maintainability — applies `references/structural_quality_review.md` and names a safer refactor path |
 | `gemini` (`gemini-runner --model gemini-3.6-flash`) | `cross_file_consistency` | Gemini 3.6 Flash — broad, long context; feed whole touched files + dependents, not just the diff slice |
+| `grok` (`grok-runner --effort high`, Grok 4.5) | `logic_state` second seat | Terminal-Bench-class agentic strength — execution paths, CLI/tool invocation flows, integration behavior; non-overlapping emphasis with codex's logic/state/concurrency |
 | `glm` (`glm-runner --model zai/glm-5.2`) | `broad_sweep` | GLM 5.2 — edge cases, boundary conditions, resource/failure paths; assign a different category emphasis than kimi |
 | `kimi` (`kimi-runner`, Kimi K3) | `broad_sweep` | Fast, pragmatic — input-validation, exposure, resource leaks across the whole diff |
 | `opus` (native Agent or `claude-runner`) | `structural_maintainability` backup | Deep reasoning; primary role is the Phase 5 synthesizer — backs up sonnet on maintainability when needed |
@@ -172,6 +173,7 @@ The orchestrator fills `{category_emphasis}` per seat. Typical assignments:
 | `kimi` | input validation, injection, auth/session handling |
 | `glm` | edge cases, boundary conditions, resource leaks, unbounded allocations |
 | `gemma` | regression risk on changed behavior, perf hot spots |
+| `grok` (within `logic_state`) | execution paths, CLI/tool invocation flows, integration behavior |
 
 ### `security_runtime`
 

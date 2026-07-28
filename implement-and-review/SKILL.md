@@ -55,7 +55,7 @@ Apply only the lenses that fit the task; don't force every skill onto every chan
 ## Preflight
 
 1. **Host & git.** Confirm the `Agent` tool exists (native Opus subagents). Confirm `git rev-parse --is-inside-work-tree`. No git → sequential fallback (worktree reference).
-2. **Seats.** Use the shared probe: `python3 .agents/skills/_shared/scripts/discover_runners.py probe --native-agent yes --seat codex --seat kimi --format json`. Require `codex.available` (BE implementer + a full-review external runner) and `kimi.available` (FE reviewer). Mark missing seats and degrade.
+2. **Seats.** Use the shared probe: `python3 .agents/skills/_shared/scripts/discover_runners.py probe --native-agent yes --seat codex --seat kimi --seat grok --format json`. Require `codex.available` (BE implementer + a full-review external runner) and `kimi.available` (FE reviewer); `grok.available` matters only as the fallback BE implementer when codex is missing. Mark missing seats and degrade.
 3. **Verification commands.** Detect how this project tests/builds and runs a *single* test (TDD needs a fast inner loop). These back the done gate — unless the task carries a Slice Contract, whose `acceptance` commands are the authoritative done gate (confirm they exist and run; reconcile with the user if they don't, never silently swap).
 4. **Base & artifacts.** Record the current head as `<base>` (when called by `implement-feature`, this is the task's assigned base). When `.ai-workflow/` is writable, use `.ai-workflow/impl-review/<session_id>/`; else keep state inline.
 
@@ -123,7 +123,7 @@ When called by `implement-feature`, return this report compactly so the orchestr
 ## Degrade Gracefully
 
 - **Kimi K3 missing (FE reviewer):** use GPT 5.6 Sol / GPT 5.3 Codex as the FE reviewer (still cross-model, since FE is Opus's work); note the substitution.
-- **GPT 5.6 Sol / Codex missing (BE implementer):** with approval, have an Opus subagent implement BE and a *different* model review it; flag lost cross-vendor diversity. If no write-capable seat + distinct reviewer remain for a non-empty track, stop and report.
+- **GPT 5.6 Sol / Codex missing (BE implementer):** first try **Grok 4.5** as the fallback BE implementer (`grok-runner --role implementer --effort high`, write-enabled; Opus still reviews — cross-vendor diversity is preserved) and note the substitution. If `grok` is also missing, with approval have an Opus subagent implement BE and a *different* model review it; flag lost cross-vendor diversity. If no write-capable seat + distinct reviewer remain for a non-empty track, stop and report.
 - **Not a git repo:** run the tracks **sequentially** in the working tree (backend first so the FE builds against settled contracts), no worktrees; full-review against the local diff.
 - **No tests/build found:** TDD still drives design where a harness can be introduced; if truly none exists, build + review + `full-review`, and report that verification could not run — never imply it passed.
 - **full-review external runners unavailable:** it degrades itself (lowers its confidence cap, notes lost triangulation) — apply its findings anyway; don't skip it.

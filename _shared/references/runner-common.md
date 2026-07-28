@@ -1,6 +1,6 @@
 # Runner Common Reference
 
-Canonical, agent-facing rules shared by every runner skill (claude, codex, gemini, qwen, the cline-backed kimi/glm shims, and the qwen-backed gemma/minimax shims). Each runner's SKILL.md points here for these four blocks and keeps inline only its genuine deltas.
+Canonical, agent-facing rules shared by every runner skill (claude, codex, gemini, grok, qwen, the cline-backed kimi/glm shims, and the qwen-backed gemma/minimax shims). Each runner's SKILL.md points here for these four blocks and keeps inline only its genuine deltas.
 
 ## Seat fidelity
 
@@ -11,7 +11,7 @@ This is the core invariant every runner upholds. A runner never silently substit
 - routes to an explicit fallback runner and labels the substitution on the envelope (`fallback_from`, `fallback_reason`), so the caller always knows which seat actually answered; or
 - reports the seat as unavailable (`success: false`, typically `status: seat_unavailable` with `return_code -2`) so councils and orchestrators account for the missing seat.
 
-Runners that never fall back (kimi, qwen, and the qwen-backed shims) only ever block-and-report; runners with a fallback chain (claude, codex, gemini) may substitute, but only when labeled. Either way the seat's identity is never faked.
+Runners that never fall back (grok, kimi, qwen, and the qwen-backed shims) only ever block-and-report; runners with a fallback chain (claude, codex, gemini) may substitute, but only when labeled. Either way the seat's identity is never faked.
 
 ## Output envelope (required keys)
 

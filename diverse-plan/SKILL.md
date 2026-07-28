@@ -9,7 +9,7 @@ Plan a code change by exploring several **genuinely different approaches** in pa
 
 Diversity here comes from three orthogonal places: **multiple independent branches** (alternative designs that can't see each other), **multiple models** (each branch and each lens runs on the model best suited to it), and **multiple critique lenses**. None of it matters without the fourth step — a strong **merge** that grafts the best of every branch and resolves every surviving critique. More angles with no merge is just noise.
 
-Self-contained: this skill runs its own loop and never calls a council skill. It *does* drive the **runner skills** (`claude-runner`, `codex-runner`, `gemini-runner`, `kimi-runner`, `glm-runner`) and the repo's **lens skills** — those are its building blocks.
+Self-contained: this skill runs its own loop and never calls a council skill. It *does* drive the **runner skills** (`claude-runner`, `codex-runner`, `gemini-runner`, `grok-runner`, `kimi-runner`, `glm-runner`) and the repo's **lens skills** — those are its building blocks.
 
 ## Best model for each task
 
@@ -20,7 +20,7 @@ Assign work to the model best suited to it. This is the default routing; fall ba
 | Branch: **smallest viable change** | Kimi K3 | `kimi-runner --role planner` | pragmatic, code-native, strong long-horizon coding judgment |
 | Branch: **cleanest design** | Opus 4.8 | native `Agent` `model:"opus"` `mode:"plan"` (else `claude-runner --model claude-opus-4-8 --role planner`) | deepest design/boundary reasoning |
 | Branch: **most robust** | GLM 5.2 | `glm-runner --role planner` | edge cases, long-context / backend reasoning, failure modes |
-| Branch: **different boundary/placement** (optional 4th) | Gemini 3.6 Flash | `gemini-runner --model gemini-3.6-flash --role planner` | independent lineage, broad systemic/big-picture view |
+| Branch: **different boundary/placement** (optional 4th) | Grok 4.5 | `grok-runner --role planner --effort high` | independent lineage (xAI), deep execution-grounded agentic reasoning, token-efficient |
 | Lens: **architecture / module complexity** | Opus 4.8 | native `Agent` running `architecture-lens` / `software-design-philosophy` | strongest structural judgment |
 | Lens: **data-systems** (state, async, migrations, retries) | GPT 5.3 Codex | `codex-runner --model gpt-5.3-codex --role codereviewer --effort high` | correctness & concurrency rigor, regression analysis |
 | Lens: **security** (auth, input, secrets, untrusted data) | GPT 5.3 Codex | `codex-runner --model gpt-5.3-codex --role adversarial --effort high` | best code-focused adversarial/security reviewer |
@@ -37,14 +37,14 @@ Run the shared probe and use its envelope as the seat table — do not re-probe 
 ```bash
 python3 .agents/skills/_shared/scripts/discover_runners.py probe \
   --native-agent yes \
-  --seat opus --seat sonnet --seat codex --seat gemini --seat kimi --seat glm \
+  --seat opus --seat sonnet --seat codex --seat gemini --seat grok --seat kimi --seat glm \
   --format md
 ```
 
 (From this source repo, drop the `.agents/skills/` prefix.) Pass `--native-agent yes` only on a host that exposes the native `Agent` tool (Claude Code); otherwise `no`, and use the `claude-runner` fallbacks in the table.
 
 **Fallback rules:**
-- A seat marked `unavailable` → reassign its task to the next-best **available** model (e.g. no Kimi → smallest-change branch goes to Sonnet or GLM; no GLM → robust branch goes to Codex; no Codex → data/security lenses + synthesis go to Opus).
+- A seat marked `unavailable` → reassign its task to the next-best **available** model (e.g. no Kimi → smallest-change branch goes to Sonnet or GLM; no GLM → robust branch goes to Codex; no Grok → the 4th branch falls back to Gemini 3.6 Flash (`gemini-runner --model gemini-3.6-flash --role planner`); no Codex → data/security lenses + synthesis go to Opus).
 - Never fabricate a seat or silently borrow another provider — every runner call passes `--disable-fallback`.
 - **Branch quorum: proceed only with ≥2 distinct branch models.** Below that, stop and report which prerequisites are missing rather than running a thin panel.
 - If two branches end up on the same model (after fallback), label them and note the reduced model diversity in the output.
@@ -127,7 +127,7 @@ Write a file only if the user asks.
 - **Self-contained.** Never call `models-consensus`, `models-roundtable`, `council`, or `decision-council`. This skill owns its own loop.
 - **Multi-model by construction.** Branches run on distinct models via the runners (≥2 quorum); lenses and synthesis run on the model the routing table assigns. `--disable-fallback` on every runner; never substitute a provider silently.
 - **Blind branches, same brief.** Only the premise line differs across branches.
-- **Best model per task, but don't overspend.** GPT 5.6 Sol for synthesis/enrichment, Opus for the deep design lenses, GPT 5.3 Codex for correctness/security/adversarial, Sonnet 5 for clean-code/tests, Kimi K3 / GLM 5.2 / Gemini 3.6 Flash for the branch seats. Run only the lenses the change touches.
+- **Best model per task, but don't overspend.** GPT 5.6 Sol for synthesis/enrichment, Opus for the deep design lenses, GPT 5.3 Codex for correctness/security/adversarial, Sonnet 5 for clean-code/tests, Kimi K3 / GLM 5.2 / Grok 4.5 (Gemini 3.6 Flash as its fallback) for the branch seats. Run only the lenses the change touches.
 - **One completeness round max.**
 - **Read `agent_message` from `--output-file`,** never raw stdout (Kimi appends a resume hint; Codex emits a transcript).
 - **This produces a plan, not code.** Hand the plan off to your implementation flow.

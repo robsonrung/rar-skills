@@ -9,7 +9,7 @@
 # Adapted from compound-engineering-plugin's config.local pattern (MIT). See NOTICE.
 
 # Seats multi-model skills should prefer or skip entirely.
-# Seat ids match discover_runners.py: opus, sonnet, codex, gemini, kimi, glm.
+# Seat ids match discover_runners.py: opus, sonnet, codex, gemini, grok, kimi, glm.
 seats:
   preferred: []        # e.g. [opus, codex, gemini]
   excluded: []         # e.g. [glm]

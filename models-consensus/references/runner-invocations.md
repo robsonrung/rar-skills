@@ -129,6 +129,23 @@ python3 .agents/skills/gemini-runner/scripts/run_gemini.py \
 
 The consensus Gemini seat does architecture/synthesis reasoning, so it runs **Gemini 3.6 Flash (High)** (`--model` is a metadata label — set agy's own model picker to match). Do not depend on speculative Gemini-only flags such as `--thinking-budget` or a read-only convenience mode.
 
+### Grok
+
+```bash
+python3 .agents/skills/grok-runner/scripts/run_grok.py \
+  --prompt-file .ai-workflow/consensus/{session_id}-round-{n}-grok.md \
+  --timeout 900 \
+  --role implementer --restrict-tools \
+  --effort high \
+  --json \
+  --output-format json \
+  --disable-fallback \
+  --output-file .ai-workflow/consensus/{session_id}-round-{n}-grok-output.json \
+  --metadata-json '{"session":"{session_id}","round":{n},"seat":"grok","stance":"pragmatic_engineering"}'
+```
+
+The Grok seat runs **Grok 4.5** (the `grok` CLI default) at reasoning-effort high — an independent xAI lineage whose strength is execution-grounded, agentic reasoning, which is why its scheduled stances are `pragmatic_engineering`/`devils_advocate` rather than synthesis. Auth smoke test: `grok -p "Reply with the single word: ready" --output-format json` — a nonzero exit or `{"type":"error",...}` payload blocks the seat. Pass `--restrict-tools` explicitly when overriding the role to `implementer` for a stance: consensus seats never write, and only the `implementer` role escapes the read-only default.
+
 ### Kimi
 
 ```bash

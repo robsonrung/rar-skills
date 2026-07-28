@@ -1,0 +1,4 @@
+interface:
+  display_name: 'Grok Runner'
+  short_description: 'Run workspace prompts through Grok CLI'
+  default_prompt: 'Use $grok-runner to execute this task with Grok CLI from the current workspace.'

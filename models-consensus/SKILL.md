@@ -1,6 +1,6 @@
 ---
 name: models-consensus
-description: Run a multi-round, stance-driven multi-model council — blinded opening analyses, moderated rebuttals, and a final decision report — over native and runner-backed seats (Claude Opus 4.8, Sonnet, Codex, Gemini, Kimi, GLM). Use when a repository decision benefits from structured disagreement, tradeoff surfacing, or deliberate synthesis instead of a single-model answer; also when the user asks for multi-model validation, consensus review, or multiple AI perspectives on a design or architecture decision. Distinct from models-roundtable (blind poll + synthesizer, one gap round) and council (single round, Codex decides) — pick this for multi-round stance-driven debate.
+description: Run a multi-round, stance-driven multi-model council — blinded opening analyses, moderated rebuttals, and a final decision report — over native and runner-backed seats (Claude Opus 4.8, Sonnet, Codex, Gemini, Grok, Kimi, GLM). Use when a repository decision benefits from structured disagreement, tradeoff surfacing, or deliberate synthesis instead of a single-model answer; also when the user asks for multi-model validation, consensus review, or multiple AI perspectives on a design or architecture decision. Distinct from models-roundtable (blind poll + synthesizer, one gap round) and council (single round, Codex decides) — pick this for multi-round stance-driven debate.
 ---
 
 # Models Consensus
@@ -53,11 +53,11 @@ Binary availability comes from the shared probe — do not re-probe `PATH` with 
 ```bash
 python3 .agents/skills/_shared/scripts/discover_runners.py probe \
   --native-agent yes \
-  --seat opus --seat sonnet --seat codex --seat gemini --seat kimi --seat glm \
+  --seat opus --seat sonnet --seat codex --seat gemini --seat grok --seat kimi --seat glm \
   --format json
 ```
 
-Pass `--native-agent yes` only when the host exposes the native `Agent` tool (Claude Code); otherwise `no`. From this source repo, invoke `_shared/scripts/discover_runners.py` instead of the installed `.agents/skills/` path. The probe knows each seat's real dependency (`claude`, `codex`, `agy` for Gemini, `cline` for the Kimi and GLM shims) and returns `available`, `cli_path`, `version`, and `blocked_reason` per seat. Mark seats with `available: false` as blocked.
+Pass `--native-agent yes` only when the host exposes the native `Agent` tool (Claude Code); otherwise `no`. From this source repo, invoke `_shared/scripts/discover_runners.py` instead of the installed `.agents/skills/` path. The probe knows each seat's real dependency (`claude`, `codex`, `agy` for Gemini, `grok` for Grok, `cline` for the Kimi and GLM shims) and returns `available`, `cli_path`, `version`, and `blocked_reason` per seat. Mark seats with `available: false` as blocked.
 
 On top of the probe, run auth checks and one cheap headless smoke test for every runner-backed seat you intend to launch. Only run smoke tests for seats included by `selected_seats` or by `--auto`.
 

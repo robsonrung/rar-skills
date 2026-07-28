@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://rar-skills/runner-envelope.schema.json",
   "title": "Runner Envelope",
-  "description": "Wrapper envelope emitted by every runner skill in this repo (claude, codex, gemini, qwen, cline, and the cline-backed kimi/glm and qwen-backed gemma/minimax shims). All --json responses carry the required keys below on every exit path; individual runners add the documented extension keys and may add further diagnostic keys (additionalProperties is intentionally open).",
+  "description": "Wrapper envelope emitted by every runner skill in this repo (claude, codex, gemini, grok, qwen, cline, and the cline-backed kimi/glm and qwen-backed gemma/minimax shims). All --json responses carry the required keys below on every exit path; individual runners add the documented extension keys and may add further diagnostic keys (additionalProperties is intentionally open).",
   "type": "object",
   "required": [
     "runner",
@@ -17,7 +17,7 @@
   "properties": {
     "runner": {
       "type": "string",
-      "description": "Requested runner identity (claude, codex, gemini, qwen, cline, kimi, glm, gemma, minimax, ...)."
+      "description": "Requested runner identity (claude, codex, gemini, grok, qwen, cline, kimi, glm, gemma, minimax, ...)."
     },
     "effective_runner": {
       "type": "string",
@@ -29,7 +29,7 @@
     },
     "effective_provider": {
       "type": "string",
-      "description": "Provider backing the effective runner (anthropic, openai, google, qwen, z-ai, moonshot, minimax, ...)."
+      "description": "Provider backing the effective runner (anthropic, openai, google, xai, qwen, z-ai, moonshot, minimax, ...)."
     },
     "auth_ok": {
       "type": ["boolean", "null"],
@@ -37,7 +37,7 @@
     },
     "fallback_reason": {
       "type": ["string", "null"],
-      "description": "Why a fallback was used, or null when no fallback occurred. No-fallback runners (qwen, cline, kimi, glm, gemma, minimax) always keep this null."
+      "description": "Why a fallback was used, or null when no fallback occurred. No-fallback runners (grok, qwen, cline, kimi, glm, gemma, minimax) always keep this null."
     },
     "success": {
       "type": "boolean",

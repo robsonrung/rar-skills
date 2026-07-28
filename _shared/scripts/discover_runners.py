@@ -83,6 +83,12 @@ SEAT_SPECS: tuple[SeatSpec, ...] = (
         notes="Antigravity CLI (`agy`).",
     ),
     SeatSpec(
+        seat="grok",
+        execution_path="grok_runner",
+        probe_cli="grok",
+        notes="xAI Grok CLI (Grok 4.5); no fallback chain — the seat blocks-and-reports when `grok` is missing.",
+    ),
+    SeatSpec(
         seat="kimi",
         execution_path="kimi_runner_via_cline",
         probe_cli="cline",

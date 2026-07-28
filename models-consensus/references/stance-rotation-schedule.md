@@ -12,12 +12,13 @@ Each model starts in its natural role:
 | Claude Sonnet 5 | `supportive_with_integrity` | `planner` or `implementer` |
 | Codex | `devils_advocate` | `challenger` |
 | Gemini | `balanced_synthesis` | `synthesizer` |
+| Grok | `pragmatic_engineering` | `implementer` |
 | Kimi | `pragmatic_engineering` | `implementer` |
 | GLM | `pragmatic_engineering` | `implementer` |
 
 The Runner Role column above is the canonical stance-to-runner-role mapping (`supportive_with_integrity` -> `planner` or `implementer`, `critical_with_responsibility` -> `codereviewer` or `adversarial`, `balanced_synthesis` -> `synthesizer`, `devils_advocate` -> `challenger`, `pragmatic_engineering` -> `implementer`, `outsider_fresh_eyes` -> `reviewer` with no repo context). For `blocked_on_context` investigation rounds, use the `researcher` runner role.
 
-When 5 or more seats are available, reassign **GLM** to the `outsider_fresh_eyes` stance for Round 1 (give it the brief with repo glossary/ADR context stripped) so the panel always carries one curse-of-knowledge check — GLM is the deterministic pick because it otherwise duplicates Kimi's `pragmatic_engineering` coverage. If GLM is absent from the panel, reassign Kimi instead; if both are absent, reassign the lowest seat in the table that still leaves every other stance covered. With 4 or fewer seats, keep the natural-stance table above and reserve `outsider_fresh_eyes` for a later round only if no seat has surfaced a clarity/assumption objection.
+When 5 or more seats are available, reassign **GLM** to the `outsider_fresh_eyes` stance for Round 1 (give it the brief with repo glossary/ADR context stripped) so the panel always carries one curse-of-knowledge check — GLM is the deterministic pick because it otherwise duplicates Kimi's and Grok's `pragmatic_engineering` coverage. If GLM is absent from the panel, reassign Kimi instead; if both are absent, reassign the lowest seat in the table that still leaves every other stance covered. With 4 or fewer seats, keep the natural-stance table above and reserve `outsider_fresh_eyes` for a later round only if no seat has surfaced a clarity/assumption objection.
 
 ## Round 2: Cross-Stance Pressure
 
@@ -29,6 +30,7 @@ Each seat adopts a stance that challenges its Round 1 position:
 | Claude Sonnet 5 | `critical_with_responsibility` | Stress-test the supportive position |
 | Codex | `critical_with_responsibility` | Ground devil's advocacy in constructive critique |
 | Gemini | `pragmatic_engineering` | Move from synthesis to actionable evaluation |
+| Grok | `devils_advocate` | Pressure the leading option with execution-grounded objections |
 | Kimi | `balanced_synthesis` | Evaluate tradeoffs beyond implementation details |
 | GLM | `balanced_synthesis` | Evaluate own pragmatism against alternatives |
 
@@ -42,6 +44,7 @@ Final round focuses on integration or decisive critique:
 | Claude Sonnet 5 | `balanced_synthesis` | Reconcile findings and recommend direction |
 | Codex | `balanced_synthesis` | Synthesize objections into final assessment |
 | Gemini | `critical_with_responsibility` | Final sanity check on consensus direction |
+| Grok | `pragmatic_engineering` | Reality-check the converged path's concrete execution steps |
 | Kimi | `critical_with_responsibility` | Identify last-mile risks in the leading option |
 | GLM | `critical_with_responsibility` | Flag overlooked practical blockers |
 

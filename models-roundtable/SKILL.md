@@ -1,6 +1,6 @@
 ---
 name: models-roundtable
-description: Answer a task by polling several models blind, then reconciling them into one consensus answer. Fan the RAW prompt out to six default seats (Claude Opus 4.8, Sonnet, Codex, Gemini, Kimi, GLM) with no orchestrator analysis so the seats stay unbiased; a dedicated organizer maps the answers into a five-dimension structured analysis (consensus, contradictions, partial coverage, unique insights, blind spots), one bounded gap-repair round closes the open points, two fresh judges validate the still-open ones, and a dedicated synthesizer writes the final consensus answer. Read-only — produces a consensus answer + report, not code. Use when you want a higher-confidence answer/decision/analysis than one model gives, a multi-model second opinion, or to reconcile differing model answers. Distinct from models-consensus (stance/role-driven rounds) and council (single blind round with a final decision model).
+description: Answer a task by polling several models blind, then reconciling them into one consensus answer. Fan the RAW prompt out to seven default seats (Claude Opus 4.8, Sonnet, Codex, Gemini, Grok, Kimi, GLM) with no orchestrator analysis so the seats stay unbiased; a dedicated organizer maps the answers into a five-dimension structured analysis (consensus, contradictions, partial coverage, unique insights, blind spots), one bounded gap-repair round closes the open points, two fresh judges validate the still-open ones, and a dedicated synthesizer writes the final consensus answer. Read-only — produces a consensus answer + report, not code. Use when you want a higher-confidence answer/decision/analysis than one model gives, a multi-model second opinion, or to reconcile differing model answers. Distinct from models-consensus (stance/role-driven rounds) and council (single blind round with a final decision model).
 ---
 
 # Models Round Table
@@ -22,7 +22,7 @@ Read-only: seats, organizer, judges, and synthesizer answer and analyze; they do
 
 ## Seats
 
-Six default seats. Launch each by its preferred path for the current host; fall back only when the native path is unavailable.
+Seven default seats. Launch each by its preferred path for the current host; fall back only when the native path is unavailable.
 
 | Seat | Claude Code host (primary) | Fallback |
 |------|----------------------------|----------|
@@ -30,6 +30,7 @@ Six default seats. Launch each by its preferred path for the current host; fall 
 | Sonnet 5 | native `Agent` subagent, `model: "sonnet"` | `claude-runner --model claude-sonnet-5` |
 | GPT 5.6 Sol (Codex) | `codex-runner --model gpt-5.6-sol` (`--effort high`) | native `spawn_agent` on a Codex host |
 | Gemini 3.6 Flash | `gemini-runner --model gemini-3.6-flash` (Antigravity `agy`) | — (skip if `agy` missing) |
+| Grok 4.5 | `grok-runner --effort high` (xAI `grok` CLI, default `grok-4.5`) | — (skip if `grok` missing) |
 | Kimi K3 | `kimi-runner` (default `moonshotai/kimi-k3`) | — (skip if `cline` missing) |
 | GLM 5.2 | `glm-runner` (via `cline`, `zai/glm-5.2`) | — (skip if `cline` missing or not configured with a GLM provider) |
 
@@ -61,7 +62,7 @@ Opus appears four ways (orchestrator, a seat, the organizer/synthesizer, a judge
    ```bash
    python3 .agents/skills/_shared/scripts/discover_runners.py probe \
      --native-agent yes \
-     --seat opus --seat sonnet --seat codex --seat gemini --seat kimi --seat glm \
+     --seat opus --seat sonnet --seat codex --seat gemini --seat grok --seat kimi --seat glm \
      --format json
    ```
 
