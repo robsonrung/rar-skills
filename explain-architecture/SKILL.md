@@ -1,6 +1,7 @@
 ---
 name: explain-architecture
 description: Explain the architecture of a codebase (or a subsystem/service/module within it) — its layers, components, key flows, boundaries, and the "why". Use when the user asks "how does this codebase/service work", "explain the architecture", "give me the lay of the land", "walk me through how X flows", "onboard me to this repo", "what talks to what", "where does Y live". Produces an audience-tuned explanation (newcomer / implementer / reviewer) with an optional diagram. For REVIEWING architecture quality use architecture-lens; this skill EXPLAINS, it does not judge.
+disable-model-invocation: true
 ---
 
 # Explain Architecture

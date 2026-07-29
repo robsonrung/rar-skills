@@ -1,6 +1,7 @@
 ---
 name: worktree
 description: "Set up an isolated git worktree — create a fresh branch for new work, or attach a worktree to an existing branch, PR, or commit to work on it in isolation. Use when the user asks to set up a git worktree, isolate work on a branch/PR/commit, or attach a worktree to an existing PR. Detects existing isolation first and prefers the harness-native worktree tool. Not for implement-and-review, which owns its own two-track worktree flow internally."
+disable-model-invocation: true
 ---
 
 # Worktree Isolation

@@ -1,6 +1,7 @@
 ---
 name: opencode-runner
 description: Guide OpenCode CLI runs through the host agent approval flow. Use when users explicitly request OpenCode, want to compare OpenCode output with another model, or need an OpenCode perspective without a bundled runner script.
+disable-model-invocation: true
 ---
 
 # OpenCode Runner

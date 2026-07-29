@@ -1,6 +1,7 @@
 ---
 name: decision-council
 description: "Pressure-test a high-stakes decision through a persona council — one model wearing five fundamentally different thinking lenses (Contrarian, First Principles, Expansionist, Outsider, Executor) that answer independently, peer-review each other anonymously, then get synthesized into a single decisive verdict. Adapted from Karpathy's LLM Council. MANDATORY TRIGGERS: 'council this', 'run the council', 'war room this', 'pressure-test this', 'stress-test this', 'debate this'. STRONG TRIGGERS (when paired with a real decision or tradeoff): 'should I X or Y', 'which option', 'what would you do', 'is this the right move', 'validate this', 'get multiple perspectives', 'I can't decide', 'I'm torn between'. For business/product/strategy/life decisions where being wrong is expensive. Do NOT trigger on factual lookups, creation tasks, or casual 'should I' with no real tradeoff. Distinct from models-consensus / models-roundtable / council, which run multiple REAL models on repo/code decisions — this runs ONE model across five thinking lenses on a judgment call."
+disable-model-invocation: true
 ---
 
 # Decision Council

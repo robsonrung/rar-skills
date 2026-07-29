@@ -1,6 +1,7 @@
 ---
 name: dynamic-harness
 description: "Dynamic multi agent harness orchestration for complex, high value tasks. Use when the user invokes $dynamic-harness or asks for a workflow, dynamic workflow, dynamic harness, ultracode style harness, many subagents, competing agents, tournament, fan out and synthesis, generate and filter, adversarial verification, classify and act routing, loop until done investigation, large migration, multi agent deep research, deep verification, qualitative sorting, triage at scale, or root cause analysis at scale with competing hypotheses."
+disable-model-invocation: true
 ---
 
 # Dynamic Harness

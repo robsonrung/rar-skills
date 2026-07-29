@@ -1,7 +1,6 @@
 ---
 name: to-spec
 description: Turn the current conversation into a PRD and publish it to the project issue tracker — no interview, just synthesis of what you've already discussed, with the security-gate threat-model-lite folded in so the spec answers everything the autonomous phases would otherwise ask. Use when the user wants a spec/PRD from the current discussion, or when a pipeline specify phase needs the PRD before task breakdown. The PRD it produces is the input to to-tasks.
-disable-model-invocation: true
 ---
 
 # To Spec

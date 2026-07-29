@@ -1,6 +1,7 @@
 ---
 name: agents-md-craft
 description: Hand-craft, audit, and optimize AGENTS.md / CLAUDE.md agent-memory files using the HumanLayer "good CLAUDE.md" principles — WHAT/WHY/HOW framing, instruction/length budgets, progressive disclosure into agent_docs/, file:line pointers, and offloading style rules to linters/hooks. Use when the user wants to create, write, audit, review, optimize, de-bloat, shrink, or fix drift in a CLAUDE.md or AGENTS.md (or "agent memory / onboarding / context doc") for a project. Both modes (create-from-scratch and optimize-existing) and both filenames are supported. This is an advisor/auditor that proposes a draft/diff and never writes without approval — the deliberate counterweight to /init; do NOT trigger it on /init, and it does not author SKILL.md skills (that is write-a-skill / skill-expert).
+disable-model-invocation: true
 ---
 
 # agents-md-craft — Craft & optimize AGENTS.md / CLAUDE.md

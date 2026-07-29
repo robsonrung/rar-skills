@@ -1,6 +1,7 @@
 ---
 name: knowledge-graph
 description: Build and operate a knowledge graph from documents using four Claude prompts sharing one Pydantic schema — extraction, entity resolution, entity summarization, and graph-grounded querying — in place of four trained NLP systems. Use when the user wants to build a knowledge graph or GraphRAG pipeline, extract entities and relations from documents, resolve or deduplicate entity mentions, answer multi-hop questions across many documents, summarize the themes or patterns running across an entire corpus, or give agents shared graph memory / a persistent world model. Includes the decision framework for when a graph is the wrong tool — not for single-document QA or single-hop retrieval (use direct prompting or RAG), and not for capturing session learnings into docs (that is capture-learning).
+disable-model-invocation: true
 ---
 
 # Knowledge Graph: Four Models to Four Prompts

@@ -1,6 +1,7 @@
 ---
 name: fable-diagnosis
 description: "Think like Claude Fable while investigating a bug, test failure, or unexpected behavior — the epistemic posture, not a debugging procedure. Core discipline: pattern-match is not diagnosis (recognition proposes, evidence disposes) and no state-changing action without evidence for that specific action. Use when investigating any failure on Opus or another model, when an agent keeps 'fixing' the wrong cause, restarts/reinstalls/deletes things on a hunch, or declares root cause after one familiar-looking symptom. Complements procedural debugging skills (systematic-debugging, diagnosing-bugs) — this governs how you weigh evidence inside them. Second of five fable-* moment skills."
+disable-model-invocation: true
 ---
 
 # Fable Diagnosis: Evidence Over Recognition

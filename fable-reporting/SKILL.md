@@ -1,6 +1,7 @@
 ---
 name: fable-reporting
 description: "Think like Claude Fable when communicating results — the final message of a working turn and status updates along the way. Core discipline: lead with the outcome (first sentence answers 'what happened'), selection over compression (shortness by dropping what doesn't matter, never by squeezing prose into fragments and arrow chains), an honest ledger (failures reported with output, skipped steps named, done stated plainly), and everything the reader needs in the final message. Use when ending any substantive turn on Opus or another model, when an agent's summaries bury the answer, read like log files, claim 'should work now', or end with promises ('I'll…') instead of finished work. Not for producing a standalone session-handoff document a fresh session resumes from (summarize owns the cold-start test), and not for deciding whether work was authorized in the first place (fable-intake) — this governs the writing posture of any results message. Fifth of five fable-* moment skills."
+disable-model-invocation: true
 ---
 
 # Fable Reporting: The Final Message

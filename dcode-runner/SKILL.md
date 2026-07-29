@@ -1,6 +1,7 @@
 ---
 name: dcode-runner
 description: Execute prompts using DeepAgents CLI (`dcode`) non-interactive mode with the user's already-configured model and credentials. Use when users explicitly request dcode or DeepAgents execution, when a workflow needs a DeepAgents/LangChain seat, or when a cross-runner workflow selects dcode as the preferred provider.
+disable-model-invocation: true
 ---
 
 # Dcode Runner

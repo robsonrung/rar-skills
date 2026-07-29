@@ -1,6 +1,7 @@
 ---
 name: fable-intake
 description: "Think like Claude Fable at the moment a request arrives — before the first tool call. Decides whether the deliverable is a change or an assessment (act or assess), how much autonomy the request grants, and whether to explore or ask. Use at the start of any engineering task on Opus or another model when you want Fable-grade request reading: the user says 'intake this like Fable', 'what is this request actually asking', complains the agent fixes things it was only asked to explain (or explains things it was asked to fix), or asks permission-seeking questions instead of working. Not for sharpening half-baked ideas (brainstorm), shaping the implementation approach (coding-design-plan, fable-decision), or investigating a failure (fable-diagnosis) — intake ends at the first tool call. First of five fable-* moment skills (intake, diagnosis, decision, implementation, reporting)."
+disable-model-invocation: true
 ---
 
 # Fable Intake: Reading the Request

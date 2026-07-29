@@ -1,6 +1,7 @@
 ---
 name: session-handoff
 description: "Creates immutable, per-repo session handoffs in a managed store and resumes work from them. Use when the user wants to create a session handoff, hand off this session to another agent, resume from a handoff, or write continuity notes for another session. Each handoff is its own file keyed by repository and topic, so parallel sessions never clobber each other — this supersedes any older single-slot handoff approach that kept one global 'latest' file. Distinct from summarize (ad-hoc summary text in the reply, no store) and from context-compress (compresses and clears THIS session; its save step can delegate storage here)."
+disable-model-invocation: true
 ---
 
 # Session Handoff

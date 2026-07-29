@@ -1,6 +1,7 @@
 ---
 name: pragmatic-coding-session
 description: Apply a Pragmatic Programmer inspired coding session lens across planning, design, implementation, debugging, review, and handoff. Use when the user wants a pragmatic, phase-by-phase operating lens for a coding session, when work feels vague, risky, overdesigned, brittle, accidental, hard to test, hard to change, or when the user asks for pragmatic programming guidance.
+disable-model-invocation: true
 ---
 
 # Pragmatic Coding Session

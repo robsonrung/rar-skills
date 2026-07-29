@@ -8,6 +8,7 @@ allowed-tools:
   - Grep
   - Glob
   - Agent
+disable-model-invocation: true
 ---
 
 # Resolve PR Review Feedback

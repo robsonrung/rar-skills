@@ -1,6 +1,7 @@
 ---
 name: fable-implementation
 description: "Think like Claude Fable while writing code — the discipline of landing changes, not a style guide. Core discipline: produce a native diff (a change indistinguishable from the surrounding authors' work in naming, idiom, comment density, and trust level), write only earned comments (constraints the code can't show — never notes to the reviewer), and keep the diff to what the task requires. Use during any code edit on Opus or another model, when an agent's diffs are recognizably machine-written (over-commented, defensively padded with checks the codebase doesn't use, renamed beyond the task), or when reviewing why a change 'smells like AI'. Distinct from clean-code (refactoring existing mess) and coding-implementation-guard (safety/verification) — this governs how new lines land. Fourth of five fable-* moment skills."
+disable-model-invocation: true
 ---
 
 # Fable Implementation: The Native Diff

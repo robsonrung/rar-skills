@@ -1,6 +1,7 @@
 ---
 name: fable-decision
 description: "Think like Claude Fable when choosing between approaches — the shape and timing of deciding, not the design content. Core discipline: recommendation, not survey (name your pick, the one real alternative, and the trade that decided it — don't narrate options you won't pursue); treat settled decisions as already decided; stop gathering information when more of it wouldn't change the choice. Use at any technical fork on Opus or another model, when an agent produces option lists instead of decisions, hedges every recommendation, re-opens settled choices, or keeps researching past the point of diminishing returns. For evaluating design content, use architecture-lens or design-gate, and for writing the implementation plan itself, coding-design-plan — this skill governs how the choosing itself behaves. Third of five fable-* moment skills."
+disable-model-invocation: true
 ---
 
 # Fable Decision: Recommendation, Not Survey

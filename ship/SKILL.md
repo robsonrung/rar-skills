@@ -1,6 +1,7 @@
 ---
 name: ship
 description: Conduct a complete feature pipeline from idea to PR — interactive framing, specification, and task planning up front, then autonomous design-gated, test-driven, reviewed delivery per task. Use when the user says ship this, ship it, run the full pipeline, build this feature end to end, take this from idea to PR, or wants autonomous execution after an approved plan. Do not use for single small edits, pure reviews, or pure diagnosis — invoke the specific skill instead.
+disable-model-invocation: true
 ---
 
 # Ship
