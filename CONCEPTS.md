@@ -51,6 +51,12 @@ A documented solution to a past problem, stored under `docs/solutions/` with str
 ### Script ownership
 Every ported or shared script has a named owner skill; a script reused by more than one skill lives in `_shared/`, never as per-skill byte-identical copies.
 
+### Run state
+The durable JSON file a long-running orchestration skill keeps at `.ai-workflow/<skill>/<run-id>/run-state.json`, holding status, phase, attempt counters, ceilings, gate decisions, side-effect keys, and the step trace. Contract in `_shared/references/run-state-contract.md`. It is the source of truth for progress — **the ledger, not the transcript** — so a run survives a crash, a compaction, or a restart.
+
+### Ceiling
+A bound on a run counted outside the model's judgment — cycles, dispatched agents, spend, or a deadline — recorded in the run state's `ceilings`. Distinct from a stop condition, which depends on the work converging. Every run ends through one of **three exits**: success, retries exhausted, or ceiling hit.
+
 ### Local config
 Per-checkout, user-local preferences for multi-model skills live in `.rar-skills/config.local.yaml` (gitignored; committed example alongside). All keys optional; invalid values fall through to defaults; never credentials; config always loses to direct instructions in chat.
 

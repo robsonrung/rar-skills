@@ -68,7 +68,7 @@ agent sees one consistent token across the whole library:
 | Failures must be loud | **observable failure** | fail loudly, make failure visible |
 | End-to-end thin path | **vertical slice** / **tracer bullet** | thin slice, e2e path |
 | Domain words in code | **ubiquitous language** | domain language, business terms |
-| Resumable handoff | **cold-start test** | fresh-agent, continuity |
+| Resumable handoff — can a fresh agent pick the work up | **cold-start test** | fresh-agent, continuity |
 | Pinning legacy behavior before change | **characterization test** (the **net**) | approval test (acceptable synonym), golden test |
 | A seat's output is only ever that seat's | **seat fidelity** | never substitute, block the seat, treat seat as absent |
 | A task is done only when its criteria pass | **acceptance contract** | definition of done, completion criteria, completeness contract |
@@ -83,8 +83,24 @@ agent sees one consistent token across the whole library:
 | Autonomy the request grants | **the mandate** | permission scope, authorization level |
 | Settled choices are inputs, not open questions | **already decided** | re-litigating, revisiting the decision |
 | A question exploration could answer is not for the user | **the user's time is the bottleneck** | don't bother the user, minimize questions |
+| Whether a loop must become a graph | **the six signals** | complexity threshold, when to use a graph |
+| Structure answers a requirement; it is not an improvement | **a graph is not an upgrade** | graphs are better, more robust architecture |
+| Success, retries exhausted, and a hard ceiling | **three exits** | exit criteria, stopping conditions |
+| The retry bound lives outside the model's judgment | **the model never decides the retry** | retry policy, bounded retries |
+| Run progress lives in a durable artifact, not the message history | **the ledger, not the transcript** | persisted state, durable state |
+| Prove resumption by killing the run mid-flight | **crash-resume test** | recovery test, resilience test |
 | Entity-anchored vs corpus-anchored retrieval | **local search** / **global search** | k-hop query, thematic query, whole-graph search |
 | A conflicting fact is recorded, not resolved away | **flag, never overwrite** | latest wins, reconcile conflicts, dedupe contradictions |
+
+Two pairs in this table are deliberately close; keep them apart rather than
+collapsing them into one word:
+
+- **cold-start test** asks whether a *fresh agent* can resume the work from a
+  written handoff. **crash-resume test** asks whether a *run* can resume from its
+  own checkpoint with its counters intact. Different axis, different artifact.
+- **idempotent** stays the canon word for both stored-state writes
+  (`data-systems-coding-lens`) and agent steps (`agent-architecture-lens`). Scope
+  it in the sentence; do not coin a second word for it.
 
 A skill may introduce a new leitwort when it genuinely owns a concept no other
 skill covers. Add it to this table when you do.

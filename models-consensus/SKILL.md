@@ -110,7 +110,7 @@ Use these rules:
 Both procedures live in [references/operations.md](references/operations.md); read them on demand:
 
 - When more than 4 seats are selected, read [references/operations.md#cost-governance](references/operations.md#cost-governance) before launching seats and apply its cost-transparency rules.
-- At preflight, if `state_path` exists with `status != complete`, read [references/operations.md#crash-recovery-and-state-resumption](references/operations.md#crash-recovery-and-state-resumption) and resume from state instead of restarting.
+- At preflight, if `state_path` exists with `status != complete`, read [references/operations.md#crash-recovery-and-state-resumption](references/operations.md#crash-recovery-and-state-resumption) and resume from state instead of restarting. `status` values, the round counter, and the `max_iterations` ceiling follow `_shared/references/run-state-contract.md`.
 
 ## Response Schema Validation
 

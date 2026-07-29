@@ -88,6 +88,7 @@ Pressure-test the branches from two kinds of lens. Run only the domain lenses th
 | module complexity / information hiding | `software-design-philosophy` / `design-integrity` | Opus |
 | readability, naming, duplication, refactor | `clean-code` | Sonnet 5 |
 | stored state, queries, migrations, async, retries | `data-systems-coding-lens` | GPT 5.3 Codex |
+| agent control flow — loop vs graph, agent state, durable runs | `agent-architecture-lens` | Opus |
 | auth, input handling, secrets, untrusted data | `security-gate` | GPT 5.3 Codex |
 | testability, coverage of the change | `test-lens` | Sonnet 5 |
 

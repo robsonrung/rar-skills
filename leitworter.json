@@ -90,6 +90,18 @@
       "concept": "the schema is the only training data / the graph accumulates / local vs global search / flag, never overwrite",
       "must_contain": ["the schema is the only training data", "the graph accumulates; it never rebuilds", "local search", "global search", "flag, never overwrite"],
       "must_not_contain": []
+    },
+    {
+      "file": "agent-architecture-lens/SKILL.md",
+      "concept": "the six signals / a graph is not an upgrade / three exits / the model never decides the retry / the ledger, not the transcript / crash-resume test",
+      "must_contain": ["the six signals", "a graph is not an upgrade", "three exits", "the model never decides the retry", "the ledger, not the transcript", "crash-resume test"],
+      "must_not_contain": []
+    },
+    {
+      "file": "_shared/references/run-state-contract.md",
+      "concept": "the ledger, not the transcript / the model never decides the retry / three exits / crash-resume test",
+      "must_contain": ["the ledger, not the transcript", "the model never decides the retry", "three exits", "crash-resume test", "already decided"],
+      "must_not_contain": []
     }
   ],
   "canon": [
@@ -121,7 +133,13 @@
     { "concept": "a question exploration could answer is not for the user", "leitwort": "the user's time is the bottleneck", "drift_terms": [] },
     { "concept": "entity-anchored retrieval from a seed node", "leitwort": "local search", "drift_terms": ["k-hop query"] },
     { "concept": "corpus-anchored retrieval over the whole graph", "leitwort": "global search", "drift_terms": ["thematic query", "whole-graph search"] },
-    { "concept": "a conflicting fact is recorded, not resolved away", "leitwort": "flag, never overwrite", "drift_terms": ["latest wins", "reconcile conflicts", "dedupe contradictions"] }
+    { "concept": "a conflicting fact is recorded, not resolved away", "leitwort": "flag, never overwrite", "drift_terms": ["latest wins", "reconcile conflicts", "dedupe contradictions"] },
+    { "concept": "the routing test for whether a loop needs to become a graph", "leitwort": "the six signals", "drift_terms": ["complexity threshold"] },
+    { "concept": "structure is a response to a requirement, not an improvement", "leitwort": "a graph is not an upgrade", "drift_terms": ["graphs are better"] },
+    { "concept": "success, retries exhausted, and a hard ceiling", "leitwort": "three exits", "drift_terms": ["exit criteria"] },
+    { "concept": "the retry bound lives outside the model's judgment", "leitwort": "the model never decides the retry", "drift_terms": ["retry policy"] },
+    { "concept": "run progress lives in a durable artifact, not the message history", "leitwort": "the ledger, not the transcript", "drift_terms": ["persisted state"] },
+    { "concept": "prove resumption by killing the run mid-flight", "leitwort": "crash-resume test", "drift_terms": ["recovery test", "resilience test"] }
   ],
   "filler_verbs": ["carefully", "thoroughly", "make sure", "be sure to", "as appropriate", "as needed", "properly"]
 }

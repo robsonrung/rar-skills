@@ -128,17 +128,19 @@ For loop until done workflows, define all of these before the first batch:
 3. Escalation condition, such as conflicting evidence, production risk, missing access, or a decision only the user can make.
 4. Batch size and maximum total agents. Treat 16 concurrent agents and 1000 total agents as hard upper bounds when using a native dynamic workflow runtime, not as goals. Use smaller limits when the current tools, task value, or machine call for it.
 
+A loop-until-done workflow needs **three exits**, not one: the stop condition when the work converges, an escalation exit when it cannot, and a hard ceiling on batches and total agents that fires regardless of progress. A stop condition that depends on the loop noticing its own lack of progress is not a ceiling. Record the batch count and dispatched-agent count as they are spent and compare them against the declared bounds before each batch — **the model never decides the retry**, and it does not decide to grant itself another batch either.
+
 ## Budget Defaults
 
 1. Quick workflow: use 1 to 3 agents, usually a classifier, a worker, or a verifier.
 2. Standard workflow: use 4 to 12 agents across workers, verifiers, and synthesis support.
 3. Large workflow: start with a small representative slice before scaling beyond 12 agents.
 4. Deep loop: cap each batch, report progress between batches when interactive, and stop when evidence no longer improves.
-5. Expensive workflow: ask the user for a budget if the task could consume many agents, long running commands, paid APIs, production data, or broad web research.
+5. Expensive workflow: ask the user for a budget if the task could consume many agents, long running commands, paid APIs, production data, or broad web research. Record the answer as the run's ceiling rather than holding it in the conversation — a budget the user granted once is the bound for the whole run, and a resumed run that cannot find it asks again rather than assuming it.
 
 ## Synthesis Rules
 
-1. Keep a compact ledger of agents, assignments, status, evidence, changed paths, and verdicts. Use a temporary artifact only when the run is too large to track in context.
+1. Keep a compact ledger of agents, assignments, status, evidence, changed paths, and verdicts. In context is enough for a quick or standard workflow that fits in one window and costs little to repeat. Write it to a durable run state (`_shared/references/run-state-contract.md`) whenever the run must survive a crash or compaction, exceeds one context window, dispatches beyond a single batch, or will be audited afterwards — there, progress lives in **the ledger, not the transcript**, because a harness that loses its ledger re-dispatches work it already paid for.
 2. Never accept a worker output only because it is confident. Require evidence.
 3. Mark every important claim as verified, refuted, or unresolved.
 4. Prefer pairwise comparison for ranking large qualitative sets.

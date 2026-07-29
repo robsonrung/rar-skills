@@ -26,6 +26,7 @@ How the implement-and-review tracks use the repository's skills, and the exact t
 
 ### Backend track
 - **`data-systems-coding-lens`** — stored state and integration points: transactions/atomicity, idempotency & safe retries, concurrency, migration safety & backfill, pagination, timeouts/circuit-breaking, observability, production-data risk.
+- **`agent-architecture-lens`** — **when the thing being built is an agent**: whether the task needs a plain loop or an explicit state graph, typed state vs message history, a retry bound counted outside the model, three exits (success / retries-exhausted / hard ceiling), idempotent steps, and human gates that survive a restart.
 - **`domain-driven-design`** — pick the business-logic pattern (transaction script / active record / domain model / event-sourced) and keep aggregate invariants, value-object immutability, and reliable event publishing (tactical); and when the change crosses a service/bounded-context boundary or integrates a third party, the bounded-context & integration patterns (anticorruption layer, open-host service, outbox/saga) (strategic).
 
 ### Final review (Phase 4)

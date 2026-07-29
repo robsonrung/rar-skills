@@ -66,17 +66,22 @@ Multi-model councils can be expensive. Enforce cost transparency before launchin
 **Cost-conscious defaults:**
 - In non-`--auto` runs, make "Core seats only" the recommended startup choice rather than "all available."
 - When `--auto` selects 5+ seats, emit a cost warning before the first round.
-- Track cumulative token usage across rounds in state for post-council reporting.
+- Track cumulative token usage across rounds in state for post-council reporting, but only from runners that actually emitted `usage` (see [runner-invocations.md](runner-invocations.md) — do not assume the field exists). The ceiling that always holds is the round count in `attempts.round` against `ceilings.max_iterations`, because it is counted here rather than reported by the provider.
 
 ## Crash Recovery and State Resumption
 
-Council state is resumable. Treat `.ai-workflow/consensus/{session_id}.json` as the source of truth for progress.
+Council state is resumable — **the ledger, not the transcript**. Treat `.ai-workflow/consensus/{session_id}.json` as the source of truth for progress.
+
+State follows `_shared/references/run-state-contract.md`; council-specific keys (stances, seat outputs, digests, convergence, independence accounting) sit alongside the contract's own. `status` takes exactly the contract's values: `running`, `awaiting_human`, `complete`, `failed`, `ceiling_hit`, `cancelled` — the resume test below is a lookup against that set, not an inference.
 
 **Resume handshake:**
 - At preflight, check if `state_path` exists and `status != complete`.
 - If resuming, load prior round outputs, seat assignments, and moderator digests from state.
 - Set `resumed_from` to the previous state's `last_completed_round`.
 - Skip to the next uncompleted round; do not re-run completed rounds.
+- A question already answered in `gates` is **already decided** — resume without re-asking the user.
+
+**Bounded rounds:** `max_iterations` lives in `ceilings`, and the round number lives in `attempts.round`. Increment it in state *before* launching the round, not after — a council that crashes mid-round has still spent that round. At the bound, stop and report the open divergence: **the model never decides the retry**, and it does not decide to award itself another round either.
 
 **Orphaned process cleanup:**
 - When resuming, identify any runner PIDs or background tasks from the prior session and terminate them before launching new seats.

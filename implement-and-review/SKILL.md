@@ -47,7 +47,7 @@ These are Claude Code skills. The **orchestrator** invokes them directly — in 
 |-------|-----------------|
 | Both tracks | `tdd` (+ `safe-incremental-coding`), `clean-code`, `safe-incremental-coding` (untested/legacy code → characterization-test net first), `architecture-lens` (coupling, layer placement, cohesion, trade-offs when restructuring), `coding-design-plan`, `coding-implementation-guard`, `test-lens` |
 | Frontend | `frontend-design`, `react-performance` (when React — 17 + MUI + Redux Toolkit: re-renders, memo, context, stale closures, fetch races), `ui-ux-pro-max` |
-| Backend | `data-systems-coding-lens` (stored state, transactions, idempotency/retries, concurrency, migrations, observability), `domain-driven-design` (business-logic pattern + aggregate invariants; bounded-context boundaries & integration when crossing a service/context boundary) |
+| Backend | `data-systems-coding-lens` (stored state, transactions, idempotency/retries, concurrency, migrations, observability), `domain-driven-design` (business-logic pattern + aggregate invariants; bounded-context boundaries & integration when crossing a service/context boundary), `agent-architecture-lens` (when the thing being built is an agent — loop vs graph, agent state, bounded retries, termination ceilings) |
 | Final review | `full-review`; `security-gate` / full-review `security_focus=true` when the change is security-sensitive |
 
 Apply only the lenses that fit the task; don't force every skill onto every change. Checklists + paste-in snippets: [references/methodology.md](references/methodology.md).
@@ -65,6 +65,11 @@ Apply only the lenses that fit the task; don't force every skill onto every chan
 2. **Design pass** (lightweight) running the lenses the `gates` flags select when a contract is present, otherwise the planning/architecture lenses as warranted — `coding-design-plan`, `design-gate`, `domain-driven-design` (BE business-logic pattern). Informs the briefs, not a deliverable.
 3. **Split the task** into a **frontend** part and a **backend** part with **disjoint file scopes** (e.g. `client/**` vs `server/**`), the **behaviors to test first**, and the **shared contracts** (API shapes, types) both tracks must honor. A task may be single-track (pure-FE or pure-BE).
 4. **Present** the split, which model does what, the behaviors-to-test, the shared contracts, and the verification commands. **Get approval before any code is written**, unless `--auto`.
+5. **Record the approval.** Append `{"gate": "phase0_plan_approval", "decision": "approved"}` (or `"auto"` under `--auto`) to `gates` in the run state before Phase 1. On resume, a gate already in `gates` is **already decided** — do not re-ask. A gate *absent* from `gates` was never granted, whatever the transcript appears to say, so a resumed run that cannot find it stops and asks.
+
+### Run state
+
+This skill follows `_shared/references/run-state-contract.md`. Extend the launcher's `launch-manifest.json` with the contract's keys rather than adding a second file — it already persists session, tracks, worktrees, and job ids, but nothing about *where the run is*. Carry at minimum: `status`, `phase`, `attempts` (the per-track fix-cycle counters), `ceilings` (`max_cycles: 3`), `gates`, and `steps`. Progress lives in **the ledger, not the transcript**: after a compaction, `poll` can tell you the Codex job finished, but only the manifest can tell you it was fix-cycle 2 of 3.
 
 ## Phase 1 — Implement (FE + BE, test-first, parallel)
 
@@ -81,18 +86,19 @@ Commit tests and code interleaved (not all tests then all code).
 
 ## Phase 2 — Cross-review + Fix (≤3 cycles per track)
 
-For each track, each cycle:
+For each track, each cycle: read `attempts.<track>_fix_cycle` from the run state (absent = `0`), increment and write it back **before** starting the cycle — a cycle that crashes mid-review has still been spent — then compare against `ceilings.max_cycles`. At or over the bound, go straight to step 4 without starting another review. **The model never decides the retry**: the cap is the counter on disk, not a recollection of how many rounds have happened.
+
 1. **Review the diff** (`git -C <worktree> diff <base>..HEAD`) with the cross-model reviewer, read-only, against the task + shared contracts, **through the track's lens checklist**. The reviewer also checks that changed behavior is covered by test-first tests and that touched code was left clean. Require the review-output contract (verdict `approve`/`needs-attention`, severity-ordered findings with file/line/recommendation): reuse `.agents/skills/codex-runner/schemas/review-output.schema.json` for Kimi (`--output-schema`); embed the same shape in the Opus reviewer's prompt.
 2. **Stop** when the reviewer returns `approve` with no high-severity findings.
 3. **Else fix** via the **same implementer** (FE → `SendMessage`; BE → `codex-runner --resume <session_id>`); re-review.
-4. After **3** cycles without approval, stop and escalate the open findings.
+4. After **3** cycles without approval, stop and escalate the open findings, and set `status` to `ceiling_hit` naming the track that exhausted its cycles.
 
 Never apply review findings yourself; the implementer fixes its own track. Never auto-accept — the reviewer re-checks after each fix.
 
 ## Phase 3 — Integrate the Two Tracks
 
-1. Merge both track branches into an integration branch off `<base>` (commands in the worktree reference). Disjoint scopes should make this clean; resolve any conflict using both diffs, preserving each track's intent and the shared contracts.
-2. Run the full verification commands. Red → bounded integration-fix loop (≤3): route the failure to the responsible track, re-merge, re-test.
+1. Merge both track branches into an integration branch off `<base>` (commands in the worktree reference). Disjoint scopes should make this clean; resolve any conflict using both diffs, preserving each track's intent and the shared contracts. The merge is a side effect: append `merge:<track>-><integration>` to `side_effects` before running it, and skip a merge whose key is already recorded — a resumed run must not re-merge a branch it already merged.
+2. Run the full verification commands. Red → bounded integration-fix loop (≤3), counted in `attempts.integration_fix` on the same read-increment-write rule as Phase 2: route the failure to the responsible track, re-merge, re-test.
 3. Proceed only when **green** (or escalate).
 
 ## Phase 4 — Final Review (full-review) & Apply

@@ -26,6 +26,7 @@ Turn "which of the design lenses applies here?" from a judgment call into a look
 | Layer placement, cohesion, dependency direction, scope creep | `architecture-lens` |
 | Module/class/API interface design — depth, information hiding, interface complexity | `software-design-philosophy` |
 | Stored state, databases, queues, caches, migrations, retries, concurrency, external APIs | `data-systems-coding-lens` |
+| The thing being built **is** an agent — an LLM tool-calling loop, a multi-agent pipeline, or a long-running autonomous run needing durable state, mid-run approval, or replay | `agent-architecture-lens` |
 | React components, hooks, contexts, rendering performance | `react-performance` |
 | Two or more competing approaches with real trade-offs | `architecture-lens` |
 

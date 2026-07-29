@@ -45,6 +45,15 @@ Build the dependency graph from `blocked_by`. Then:
 - Continue until every task is done or escalated. An escalated task blocks only its dependents.
 - Report progress (done / in flight / blocked); never silently drop a task.
 
+### Run state
+
+A feature spans hours and many subprocesses, so the DAG's progress lives in **the ledger, not the transcript** — one feature-level run state under `_shared/references/run-state-contract.md`, beside the per-task states each `implement-and-review` keeps.
+
+- Append each task to `steps` as it integrates, keyed by its stable T-ID. On resume, a task already in `steps` is done: recompute readiness from the ledger and schedule only what is left. A resumed feature must never rebuild an integrated task.
+- `ceilings.max_in_flight` holds the concurrency cap (default 3); count what is actually in flight against it rather than estimating.
+- Each task integration is a side effect — record `merge:<task-id>` in `side_effects` before merging into the feature integration branch, and skip a merge whose key is present.
+- An escalated task is an exit, not a gap: record it in `steps` with its result and the reason so the final report reconstructs from the ledger rather than from memory.
+
 ## Phase 2 — Feature-wide Final Review
 
 After all tasks are integrated, run **`full-review`** across the whole feature (diff vs the feature `<base>`), focused on **cross-task integration and seams** and anything the per-task reviews could not see. `security_focus=true` if any task was security-sensitive. Apply findings (route each to the owning task's implementer via `implement-and-review`, or a scoped fix), then re-verify the full suite **green**.

@@ -50,9 +50,18 @@ For each ready slice, in dependency order:
 
 For long-running slices, preserve context with `codex-mission-control` or `handoff` rather than degrading in a bloated context window.
 
+### Run state
+
+The loop crosses compactions, restarts, and parallel worktrees, so its progress lives in **the ledger, not the transcript**. Keep one run state per slice under `_shared/references/run-state-contract.md`:
+
+- `phase` is the pipeline phase number, appended to `steps` as each completes. A resumed slice restarts at `phase`, not at phase 0 — phases 3–6 are expensive and their outputs are already on disk.
+- The **phase 2 approval** is recorded in `gates` when the user approves the breakdown. It is the last human gate, so a restart that cannot find it in `gates` stops and asks rather than assuming approval; a restart that finds it treats it as **already decided** and does not re-ask.
+- Commits, the PR, filed tickets, and the residual record each get a `side_effects` key (`commit:<slice-id>`, `pr:<branch>`, `ticket:<finding-id>`) written *before* the effect. A resumed slice that finds the key skips the effect instead of duplicating it — this is what stops a re-run from filing every residual ticket twice.
+- Declare the slice's ceilings up front, and end every slice through one of **three exits**: `complete`, `failed` (a hard-block or exhausted ladder), or `ceiling_hit`. A blocked slice is a recorded exit, not a silent skip.
+
 ## Evidence gate
 
-When phase 4 reports a behavior change without coherent verification evidence — which existing tests were inspected, which tests were added or run, and what they proved — re-invoke the implementation stage exactly once in recovery mode: same slice, same scope, reconcile the evidence from the already-implemented work **without reimplementing**. If the second return still lacks coherent evidence, hard-block the slice: never proceed to verify or deliver on unverified behavior; record it with the blocked slices in the final report.
+When phase 4 reports a behavior change without coherent verification evidence — which existing tests were inspected, which tests were added or run, and what they proved — re-invoke the implementation stage exactly once in recovery mode: same slice, same scope, reconcile the evidence from the already-implemented work **without reimplementing**. "Exactly once" is `attempts.evidence_recovery` against a ceiling of 1, incremented in the run state before the re-invocation — **the model never decides the retry**, so a run that crashes during recovery does not award itself a fresh attempt. If the second return still lacks coherent evidence, hard-block the slice: never proceed to verify or deliver on unverified behavior; record it with the blocked slices in the final report.
 
 ## Residual findings
 

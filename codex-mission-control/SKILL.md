@@ -157,6 +157,21 @@ Update the mission ledger after each meaningful event:
 
 Keep evidence compact. Link to files, thread ids, commands, and reports. Do not paste long terminal logs unless the exact error text is required.
 
+### Machine-readable run state
+
+The Markdown ledger is for humans and is write-only from the machine's side — nothing reads it back, so it cannot drive a resume. Keep it, and write a `run-state.json` beside it in the same mission directory following `_shared/references/run-state-contract.md`. Progress lives in **the ledger, not the transcript**, and a mission that outlives its context window needs a ledger a machine can read.
+
+- `status`, `phase`, and `steps` mirror the workstream table, so a resumed mission reconstructs what completed from the file rather than from the manager's memory.
+- `ceilings.max_workers` bounds concurrent workers and `ceilings.max_dispatched` bounds the total spawned across the mission. Both are counted here; a manager with no worker ceiling is the shape that spawns until something else stops it.
+- Every spawned agent id, role, scope, and final status goes in `steps` as well as the ledger table — that is the replay trace.
+- Worker side effects (commits, merges, PRs) carry a `side_effects` key written before the effect, so re-dispatching a crashed worker does not duplicate what it already landed.
+
+Mission ids are already collision-proof by construction: `start_mission.py` builds a timestamped, suffixed run directory and creates it with `exist_ok=False`, failing loudly rather than joining an existing mission. Use that same run directory as the run-state location.
+
+### Resume
+
+On restart with a mission id: load `run-state.json`, resume at `phase` with `attempts` intact, treat every gate in `gates` as **already decided**, and skip every step in `steps` and every key in `side_effects`. Terminate orphaned worker processes from the prior session before dispatching new ones.
+
 ## Gotchas
 
 1. Asking for depth is not the same as asking for subagents. Use this skill when the user asked for mission control, subagents, parallel execution, separate threads, or context preservation.
