@@ -1,54 +1,37 @@
 ---
 name: models-consensus
-description: Run a multi-round, stance-driven multi-model council — blinded opening analyses, moderated rebuttals, and a final decision report — over native and runner-backed seats (Claude Opus 4.8, Sonnet, Codex, Gemini, Grok, Kimi, GLM). Use when a repository decision benefits from structured disagreement, tradeoff surfacing, or deliberate synthesis instead of a single-model answer; also when the user asks for multi-model validation, consensus review, or multiple AI perspectives on a design or architecture decision. Distinct from models-roundtable (blind poll + synthesizer, one gap round) and council (single round, Codex decides) — pick this for multi-round stance-driven debate.
+description: Run a multi-model council in one of three modes — poll (default; blind fan-out of the raw prompt to every available seat, organizer five-dimension analysis, one gated gap-repair round, two judges, a dedicated synthesizer), debate (multi-round stance-driven rebuttals with anonymized moderator digests and a convergence verdict), or personas (one model wearing five thinking lenses — Contrarian, First Principles, Expansionist, Outsider, Executor — with anonymized peer review and a chairman). Seats span the runner roster (Claude, Codex, Gemini, Grok, Kimi, GLM — see _shared/references/model-roster.md). Use when the user wants consensus, a second opinion, to poll the models, a roundtable, multi-model validation, multiple AI perspectives, or says "council this", "run the council", "pressure-test this", "war room this", "stress-test this", "debate this", or asks "should I X or Y" with real stakes. Deliberation only — it answers, validates, and decides; it never implements and produces no code. Do NOT use for factual lookups or creation tasks; multi-model implementation PLANNING belongs to diverse-plan (this skill answers and decides, it does not produce implementation plans or code).
 ---
 
 # Models Consensus
 
-Moderate a council of native seats and local runner skills. Do not act as one of the voting seats. The moderator's job is to run a deterministic preflight, launch only real seats, preserve independence accounting, surface disagreements that actually change scope or behavior, and enforce cost and recovery guardrails.
+One council, three modes. You are the orchestrator/moderator — never a voting seat, and in `poll` mode never the author of the final answer. Run the deterministic preflight, launch only real seats, preserve independence accounting, and enforce the cost, recovery, and termination guardrails.
 
-## Seat Discovery
+**Deliberation only.** This skill answers, validates, and decides. It NEVER starts implementation or execution on its own — no mode or flag combination (including `--auto`) authorizes execution. Handoff to an implementer happens only per [Handoff After Approval](#handoff-after-approval).
 
-Detect available seats from host-native tools and installed CLI runners. See [references/repo-configuration.md](references/repo-configuration.md) for the repository-specific seat catalog, default models, and CLI prerequisites. Adapt `RUNNER_BASE_PATH` when using this skill in another repository.
+## Mode Selection
 
-Do not claim a seat participated unless the preflight confirms a real execution path for it.
+| Mode | Protocol | Pick when | Detail |
+|------|----------|-----------|--------|
+| `poll` (default) | Blind fan-out of the RAW prompt → organizer five-dimension analysis → one gated gap-repair round → two judges → dedicated synthesizer | Higher-confidence answer / second opinion than one model gives; reconciling differing model answers; pipeline calls (read-only, zero user interaction, deterministic termination) | [references/poll-protocol.md](references/poll-protocol.md) |
+| `debate` | Multi-round stance-driven rebuttals: 6 stances, 3-round rotation, anonymized moderator digests, convergence taxonomy | Structured disagreement on a design or architecture direction; tradeoff surfacing where positions should be pressured across rounds | This file + [references/stance-rotation-schedule.md](references/stance-rotation-schedule.md) |
+| `personas` | ONE model wearing five lenses → anonymized + randomized peer review → chairman verdict | Business/product/strategy/life judgment calls where being wrong is expensive ("pressure-test this", "war room this", "should I X or Y"); also the automatic degradation path when < 3 distinct seats exist | [references/personas.md](references/personas.md) |
 
-## Host Tool Compatibility
+Routing hints: repo/code/design question needing a reconciled answer → `poll`. "Debate this" on a direction with real tradeoffs → `debate`. Judgment call about strategy, money, or commitments — especially without a repo to inspect → `personas`.
 
-Council logic is host-agnostic, but concrete tools differ by platform. See [references/runner-invocations.md](references/runner-invocations.md) for the full host capability mapping and native vs. runner launch patterns. Branch all seat launch instructions by host capability.
+Flags, combinable with any mode: [`clarify`](#clarify), [`decider_context: report_only`](#decider_context-report_only), [`--auto`](#--auto). Input payload: [references/operations.md#input-format](references/operations.md#input-format).
 
-For any user-facing question, use the [Interactive Questions](#interactive-questions) protocol.
+## Shared Preflight
 
-## Mandatory Preflight
+`personas` runs on one model (the strongest available) and skips seat probing; everything else below applies to `poll` and `debate`.
 
-Run preflight before building any round prompt.
+### 0. Resolve seat selection
 
-### 0. Resolve seat selection mode
+- `--auto` (or `auto: true`): SKIP the startup seat-selection question entirely and target every available seat. Never stop with `awaiting_human` over seat selection in `--auto` — pipeline callers must never block on a question.
+- Otherwise ask ONE startup selection question via [Interactive Questions](#interactive-questions), using the templates in [references/operations.md#startup-selection-templates](references/operations.md#startup-selection-templates). The seat-picker template must list ALL roster seats (`_shared/references/model-roster.md`) — a seat missing from the picker can never be chosen.
+- Persist `selected_seats` and `selection_source` in state before smoke tests. If selection is still unresolved after all question channels (non-`--auto` only), stop with `awaiting_human`.
 
-Before the full preflight, determine whether seat selection is automatic or user-directed. Always resolve startup seat selection before running smoke tests or launching any round.
-
-- Accept `auto: true` in a structured payload.
-- Accept `--auto` in a free-form user request as shorthand for `auto: true`.
-- If `auto` or `--auto` is present, skip the startup seat-selection question and target every available seat. Only target all seats when `--auto` or `auto: true` is explicitly set; do not auto-select seats just because interactive startup questioning is unavailable.
-- Otherwise, ask the user which models or CLIs to use before running smoke tests or launching any round. Never skip the startup seat-selection question in non-`--auto` runs.
-- In non-`--auto` runs, if startup selection is still unresolved after the available question channels, stop with `awaiting_user_decision`.
-
-Selection workflow:
-- Do a lightweight capability discovery first (the shared probe from [step 2](#2-check-local-runner-prerequisites) serves this): detect host-native seat support and runner binary presence only.
-- Build a `candidate_seats` list from that lightweight discovery.
-- Ask one startup selection question following the [Interactive Questions](#interactive-questions) protocol, using the question templates in [references/operations.md#startup-selection-templates](references/operations.md#startup-selection-templates) (multi-select preferred, then small-menu preset, then plain text as last resort).
-- Treat `Core seats only` as the highest-diversity non-duplicate set available. See [references/repo-configuration.md](references/repo-configuration.md) for the core-seats definition.
-- Persist `selected_seats` and `selection_source` in state, and emit the selected and omitted seats, before continuing to smoke tests.
-
-### 1. Detect host-native seats
-
-- If `Agent` exists, Claude Opus 4.8 and Claude Sonnet 5 use native seats.
-- If `spawn_agent` and `wait_agent` exist, Codex uses a native seat.
-- Otherwise, those seats may use runner scripts if the local CLI exists.
-
-### 2. Check local runner prerequisites
-
-Binary availability comes from the shared probe — do not re-probe `PATH` with ad-hoc shell checks (they drift; an earlier version of this skill checked a `gemini` binary that the Antigravity-backed gemini-runner no longer uses):
+### 1. Probe and smoke-test seats
 
 ```bash
 python3 .agents/skills/_shared/scripts/discover_runners.py probe \
@@ -57,279 +40,121 @@ python3 .agents/skills/_shared/scripts/discover_runners.py probe \
   --format json
 ```
 
-Pass `--native-agent yes` only when the host exposes the native `Agent` tool (Claude Code); otherwise `no`. From this source repo, invoke `_shared/scripts/discover_runners.py` instead of the installed `.agents/skills/` path. The probe knows each seat's real dependency (`claude`, `codex`, `agy` for Gemini, `grok` for Grok, `cline` for the Kimi and GLM shims) and returns `available`, `cli_path`, `version`, and `blocked_reason` per seat. Mark seats with `available: false` as blocked.
+Pass `--native-agent yes` only when the host exposes the native `Agent` tool; from this source repo drop the `.agents/skills/` prefix. The probe knows each seat's real CLI dependency and returns `available`, `cli_path`, `version`, `blocked_reason` per seat. Seat → model ids live in `_shared/references/model-roster.md`; never inline pinned ids. Then run one cheap headless smoke test per selected runner-backed seat, always with `--disable-fallback` (mandatory on EVERY runner call — a council fails a seat explicitly rather than silently borrowing a provider). Missing binary, missing credentials, or a failed smoke test is a seat blocker, not a soft warning. Per-seat auth rules: [references/runner-invocations.md](references/runner-invocations.md).
 
-On top of the probe, run auth checks and one cheap headless smoke test for every runner-backed seat you intend to launch. Only run smoke tests for seats included by `selected_seats` or by `--auto`.
+### 2. Artifact mode and run state
 
-Mandatory seat smoke tests:
-- Run a minimal non-interactive invocation for every runner-backed seat with the exact model you plan to use.
-- Run every runner-backed seat with `--disable-fallback`. Councils must fail a seat explicitly instead of silently borrowing another provider.
-- See [references/runner-invocations.md](references/runner-invocations.md) for per-seat auth rules, including the critical Claude `--bare` rule and the GLM/cline transport rule.
+Artifact mode is `persisted` when `.ai-workflow/consensus/` is writable, else `inline` ([references/operations.md#artifact-policy](references/operations.md#artifact-policy)). Every mode adopts `_shared/references/run-state-contract.md`: state at `.ai-workflow/consensus/{session_id}.json`, loop counters in `attempts`, bounds in `ceilings`, decisions in `gates`. A full `poll` run is up to 18 model calls and MUST be resumable: increment the round/phase counter in state BEFORE launching it, never after. On startup with existing state and `status != complete`, resume per [references/operations.md#crash-recovery-and-state-resumption](references/operations.md#crash-recovery-and-state-resumption).
 
-Treat missing binaries, missing credentials, or failing smoke tests as seat blockers, not soft warnings.
+### 3. Seat table
 
-### 3. Determine artifact mode
+For each seat record `seat`, `selection_status`, `execution_path` (`native`/`runner`/`unavailable`), `effective_provider`, `effective_model` (the envelope receipt, once known), `blocked_reason`, `is_duplicate`. Launch nothing until the table is complete.
 
-Prefer persisted artifacts in `.ai-workflow/consensus/` only when writes are safe.
+### 4. Deterministic seat rules
 
-Set artifact mode to:
-- `persisted` when `.ai-workflow/consensus/` exists or its parent is writable
-- `inline` when writes are blocked, risky, or unavailable in the current mode
+1. Prefer native seats (Claude via `Agent`; Codex via `spawn_agent` on a Codex host) over runner scripts.
+2. Runner fallback to another provider = loss of seat independence; mark the original seat unavailable.
+3. Missing CLI = skip that seat entirely (prerequisites: [references/repo-configuration.md](references/repo-configuration.md)); never fabricate a seat or its output.
+4. Same effective provider and same model twice = one independent source; label the duplicate.
 
-Apply the per-mode behaviors from [references/operations.md#artifact-policy](references/operations.md#artifact-policy).
+### 5. Identical conditions and tool profiles
 
-### 4. Build a seat table
+Every active seat in a run gets the SAME tool profile, the same read-only sources, and the same budget. Profiles: `no_tools` (default), `repo_read_only`, `research_read_only`, `repo_plus_research` — all read-only, never write/exec. If a seat cannot honor the run's profile, DROP that seat rather than run it with a different toolset.
 
-For each potential seat, record:
-- `seat`
-- `selection_status`: `selected`, `omitted_by_user`, or `unavailable`
-- `requested_runner`
-- `execution_path`: `native`, `runner`, or `unavailable`
-- `effective_provider`
-- `effective_model` when known
-- `blocked_reason` when unavailable
+### 6. Separate contexts
 
-Do not launch any seat until this table is complete.
+The host model may appear as orchestrator, a seat, the organizer/synthesizer, and a judge — each MUST be a distinct context (fresh subagent). The orchestrator is never a seat, organizer, synthesizer, or judge.
 
-## Deterministic Seat Selection
+### 7. Cost governance
 
-Use these rules:
+Estimate total tokens after selection, cap per-seat output (~4k tokens), and warn before launching when more than 4 seats are selected. Details: [references/operations.md#cost-governance](references/operations.md#cost-governance).
 
-1. Prefer native Claude seats over `claude-runner`.
-2. Prefer native Codex seats over any CLI path.
-3. On a Codex host, the Codex seat must run as a native subagent.
-4. Use runner scripts only when the native seat path is unavailable.
-5. Treat runner fallback to another provider as loss of seat independence.
-6. If Antigravity CLI (`agy`) is missing, skip Gemini entirely (the Gemini seat is agy-backed).
-7. If `cline` CLI is missing, skip Kimi entirely (Kimi is cline-backed).
-8. If `cline` CLI is missing, skip GLM entirely (GLM is cline-backed).
-9. Continue with the remaining seats and lower confidence; never fabricate a missing seat.
+## Mode: `poll` (default)
 
-## Cost Governance and Crash Recovery
+Blind poll + model-written reconciliation — the mode pipelines call: read-only, zero user interaction, deterministic termination. Full protocol, presets, and organizer/judge/synthesizer invocations: [references/poll-protocol.md](references/poll-protocol.md).
 
-Both procedures live in [references/operations.md](references/operations.md); read them on demand:
+1. **Blind fan-out.** Every seat answers the RAW prompt — no orchestrator framing, analysis, or leaning — with only the answer schema and the shared tool profile added. (`schemas/opening-answer.schema.json`)
+2. **Organize.** A dedicated organizer model maps all answers into the five-dimension analysis: consensus / contradictions `C#` / partial_coverage `P#` / unique_insights `U#` / blind_spots `B#`. Its required `material_gaps` boolean is the machine gate for the next phase. (`schemas/organizer-analysis.schema.json`)
+3. **Gap repair (one bounded round, gated).** Runs only when `material_gaps: true`. Repair, not re-voting: for each open point send the neutral statement + all seat positions back and demand resolution with evidence. Exactly one round. (`schemas/disagreement-round.schema.json`)
+4. **Judge.** Two fresh judges rule on the survivors. Both agree → resolved. Split → the orchestrator decides, recorded as a `sensitivity_note` confidence drag. (`schemas/judge.schema.json`)
+5. **Synthesize.** A dedicated synthesizer model writes the final answer with an attribution map — every claim traces to consensus, a resolved point, a defended `U#`, or an orchestrator call. Validate it against the record; send back once if it drifts. (`schemas/synthesis.schema.json`)
 
-- When more than 4 seats are selected, read [references/operations.md#cost-governance](references/operations.md#cost-governance) before launching seats and apply its cost-transparency rules.
-- At preflight, if `state_path` exists with `status != complete`, read [references/operations.md#crash-recovery-and-state-resumption](references/operations.md#crash-recovery-and-state-resumption) and resume from state instead of restarting. `status` values, the round counter, and the `max_iterations` ceiling follow `_shared/references/run-state-contract.md`.
+Report **answer confidence** and **diversity confidence** separately; label self-paired and shared-provider seats. Budget preset: ~3 cheap seats + organizer + synthesizer.
 
-## Response Schema Validation
+## Mode: `debate`
 
-Seat outputs ARE schema-validated before they enter the moderator digest: each is checked against the per-round required-field list, retried once on failure, then marked `malformed_output` and excluded if still invalid. The field lists, validation behavior, and the retry schema-reminder template live in [references/operations.md#response-schema-validation](references/operations.md#response-schema-validation).
+Multi-round stance-driven council. Default `max_iterations` is **3** — the rotation schedule defines exactly rounds 1–3; a bound explicitly raised past 3 repeats the Round 3 assignments (see [references/stance-rotation-schedule.md](references/stance-rotation-schedule.md)).
+
+**Stances (6):** `supportive_with_integrity`, `critical_with_responsibility`, `balanced_synthesis`, `devils_advocate`, `pragmatic_engineering`, `outsider_fresh_eyes` (zero assumed prior context; reacts only to the brief and flags jargon and insider-obvious gaps). Per-seat, per-round assignment — including the deterministic `outsider_fresh_eyes` → GLM rule at ≥ 5 seats — lives in the rotation schedule. If fewer seats than unique stances are available, drop duplicate coverage before dropping unique stances.
+
+1. **Blinded openings.** Shared brief (question, context file paths only, objective, response schema) + stance overlay; no peer outputs, no moderator conclusion. (`schemas/round1-response.schema.json`)
+2. **Moderate.** Normalize into `agreement_points` / `disagreement_points` / `decision_options` / `evidence_gaps` / `follow_up_questions`. Pass forward only a compact ANONYMIZED digest — positions labeled by stance, never by model — and never verbatim seat output.
+3. **Rebuttal rounds.** Digest + the round's stance overlay + explicit instructions to rebut, concede, refine, or integrate, plus three forcing questions: which position is strongest, and why; which has the biggest blind spot, and what is it missing; what did every position miss. (`schemas/later-round-response.schema.json`)
+4. **Classify convergence:** `full_agreement` (same `recommended_direction`, no blocking objection) / `converging` (same direction, detail differences) / `material_disagreement` (≥ 2 seats hold opposing `recommended_direction` AND at least one objection affects scope, behavior, or architecture — not style or preference) / `blocked_on_context` (unanswerable without more information).
+5. **Handle disagreement.** Interactive runs: ask focused questions per [Interactive Questions](#interactive-questions) — recommended option first, minority alternatives, then "run another round" when it could help; stop with `awaiting_human` if a required answer never arrives. `--auto`: record each disagreement with `recommended_resolution` and `resolution_reasoning` and continue.
+6. **Stop** at full agreement, a user-selected direction, or the `max_iterations` ceiling — at the bound, report the open divergence; the model never awards itself another round.
+
+Update state after every round (stances, outputs, digest, convergence, decisions, independence accounting).
+
+## Mode: `personas`
+
+ONE model wearing five lenses — **Contrarian, First Principles, Expansionist, Outsider, Executor** — five independent answers in parallel, anonymized + randomized peer review (three-question rubric), then a chairman who sees everything de-anonymized and may overrule the majority. Reversal-cost tiers (cheap / medium / expensive) size the run and decide whether peer review runs; the orchestrator freezes its own position BEFORE reading any advisor output; workspace enrichment is capped at ~30 seconds. Full protocol and prompt templates: [references/personas.md](references/personas.md).
+
+**Degradation path:** when fewer than 3 distinct seats are available, `poll` and `debate` degrade to `personas` on the strongest available model instead of stopping — report the mode switch and the missing prerequisites.
+
+## Flags
+
+### `clarify`
+
+Pre-stage interview before any round: keep asking short blocking questions until confidence is ≥ 95%. Misread test: if a reasonable expert could misread the task in more than one materially different way, confidence is below 95%. You must be confident about six things: the objective, the target artifact or output, the constraints, the success criteria, the expected autonomy level, and required inputs/files/environment. Ladder: ≥ 95 proceed; 90–94 ask only if the answer could change the outcome meaningfully; < 90 ask targeted questions. Under `--auto`, record assumptions instead of asking. Details: [references/operations.md#clarify-flag](references/operations.md#clarify-flag).
+
+### `decider_context: report_only`
+
+The final decider (poll synthesizer / debate report writer / personas chairman) sees ONLY the moderator/organizer report — no repo access, no transcript, no orchestrator notes. The report must not smuggle in context that was absent from round 1. This information starvation is deliberate protocol: it forces the decision to rest on what the council actually surfaced. Details: [references/operations.md#decider-context-report_only](references/operations.md#decider-context-report_only).
+
+### `--auto`
+
+Never ask the user anything: the startup seat-selection question is SKIPPED (target all available seats), `clarify` becomes recorded assumptions, and disagreement pauses become recorded resolutions. `--auto` never authorizes execution — deliberation-only still holds.
 
 ## Interactive Questions
 
-Every user-facing question must use the best available interactive host tool first, on both CLI and app surfaces. Treat plain-text questioning as a last resort only when no interactive tool is available in the current host or mode.
+Use the best interactive host question tool first (Claude Code `AskUserQuestion`, Codex `request_user_input`, then any host-native equivalent); plain text only after exhausting interactive options. Batch related questions when the tool allows. Escalation order and templates: [references/operations.md#interactive-question-mechanics](references/operations.md#interactive-question-mechanics). In `--auto`, no question is ever asked.
 
-Questioning workflow:
-1. Detect which interactive question/input tools are exposed by the current host and current mode.
-2. Prefer a tool that can present structured choices or multiple short questions in one call.
-3. If the first tool is unavailable, unsupported in the current mode, or errors immediately, try the next interactive tool.
-4. Use concise plain-text questions only after exhausting interactive tool options.
+## Shared Output Contract (all modes)
 
-The per-host tool mapping (Claude Code `AskUserQuestion`, Codex `request_user_input`, etc.) and the batching/fallback rules live in [references/operations.md#interactive-question-mechanics](references/operations.md#interactive-question-mechanics). Never tell the user to reply with numbered choices when an interactive question tool exists.
+- **Adoption verdicts.** When the question is whether to adopt/switch to/buy/start X, the recommendation carries exactly one grade — **Adopt / Trial / Hold / Reject / Not-our-problem** — stated in plain language first with the label attached, never a bare token ("Hold — wait, don't switch now; revisit when X", not "Grade: Hold").
+- **Two-floor grounding gate (non-compensatory).** A verdict is invalid unless it is (1) grounded in actually inspected context (files read, numbers or constraints supplied) AND (2) grounded in the question's shape (an adopt-or-not question gets a graded verdict; a choose-between gets a position on the supplied options; an open call gets a direct recommendation). Strength on one floor never compensates for the other. On failure return **"Hold — insufficient grounding"** plus a numbered inspect-list — never a confident guess.
+- **Receipt-verified independence.** Cross-seat agreement counts as independent corroboration only when the envelope's `effective_model` confirms the serving model — never the requested model or a self-claim. An unverified seat's agreement weighs as if it came from the host model.
+- **The single most important next step** — one concrete action, not a list.
+- **Confidence.** Report answer confidence and diversity confidence separately. Bands: `high` (4+ independent seats, no critical blockers), `medium` (2–3 independent seats or meaningful duplication), `low` (1 independent seat, heavy self-pairing, or unresolved key blockers).
 
-Startup seat-selection question: governed by [preflight step 0](#0-resolve-seat-selection-mode) — that is the single normative rule for when and how to ask.
+Return: `report_path` (or `null`), `state_path` (or `null`), the final answer/verdict, the preflight seat table with selection source, and a concise disagreement-resolution summary. In `persisted` mode write `.ai-workflow/consensus/{session_id}.md` (report sections per mode: [references/operations.md#artifact-policy](references/operations.md#artifact-policy)); in `inline` mode return the same sections inline.
 
 ## Degrade Gracefully
 
-Apply these rules when the council cannot run at full strength:
+- Missing seat: continue, lower confidence one band, and say so.
+- Fallback or unverified seat: mark the original seat unavailable for independence accounting.
+- Shared provider, different models: keep both seats, note the caveat (a milder diversity drag than self-pairing).
+- Same effective model twice: collapse to one independent source; label it.
+- **`malformed_output` path:** validate every seat output against its schema's required fields; on failure retry ONCE with a compact schema reminder, then mark the seat `malformed_output` and exclude it. Never fabricate missing fields. ([references/operations.md#response-schema-validation](references/operations.md#response-schema-validation))
+- **< 3 distinct seats:** degrade to `personas` on the strongest available model (see [Mode: personas](#mode-personas)).
+- Inline artifact mode: `report_path=null`, `state_path=null`, plus a note that persistence was skipped.
+- **Moderator time budget:** ~2–3 minutes for native seats, 10–15 minutes for runner seats. Once at least 3 independent providers have completed and the major disagreements are clear, stop waiting unless a straggler could change the decision materially. After cutoff, close native seats you no longer need and kill unfinished runner processes — never leave orphaned background work. ([references/operations.md#moderator-time-budget-and-process-cleanup](references/operations.md#moderator-time-budget-and-process-cleanup))
 
-- Missing seat: continue and lower overall confidence one level.
-- Fallback seat: mark the original seat as unavailable for independence accounting.
-- Shared provider, different models: keep both seats but note the shared-provider caveat.
-- Same effective provider and same model: collapse to one independent source and call out the lost diversity.
-- Malformed output: retry once, then mark seat unavailable and continue.
-- Inline artifact mode: return `report_path=null` and `state_path=null`, plus a note that persistence was skipped because writes were unavailable.
+## Handoff After Approval
 
-Use confidence bands:
-- `high`: 4+ independent seats with no critical blockers
-- `medium`: 2-3 independent seats, or meaningful fallback duplication
-- `low`: 1 independent seat, or unresolved blockers on key disagreement points
+Only after the user explicitly approves a direction — and never when the user asked only for analysis:
 
-Moderator time budget:
-- Prefer a finite moderation window for opening statements. Recommended defaults: 2-3 minutes for native seats, 10-15 minutes for runner seats.
-- Once at least 3 independent providers have completed and the major disagreements are already clear, stop waiting unless another seat is likely to change the decision materially.
-- After moderation cutoff, close native seats you no longer need and kill unfinished runner processes so councils do not leave background work behind.
+- build a compact handoff brief: final recommendation, minority concerns, acceptance criteria
+- use a native seat when available; otherwise invoke the selected runner with `--role implementer` or `--role codereviewer`
 
-## Input Format and Mode Behavior
+This is the ONLY path from deliberation to execution. The council never runs implementation itself and never passes full-auto or permission-bypass flags on its own. Full conditions and the `gates` record: [references/operations.md#handoff-after-approval-rules](references/operations.md#handoff-after-approval-rules).
 
-The input payload schema (`question`, `context_files`, `max_iterations`, `session_id`, `auto`, `mode`, plus the `--auto` shortcut) and the per-mode pausing behavior are in [references/operations.md#input-format](references/operations.md#input-format) and [references/operations.md#mode-behavior](references/operations.md#mode-behavior). Startup seat selection is governed by [preflight step 0](#0-resolve-seat-selection-mode) in all modes.
+## Gotchas
 
-## Council Model
-
-Assign one stance per active seat per round. See [references/stance-rotation-schedule.md](references/stance-rotation-schedule.md) for the explicit per-seat, per-round stance mapping and fallback rules.
-
-Available stances:
-- `supportive_with_integrity`
-- `critical_with_responsibility`
-- `balanced_synthesis`
-- `devils_advocate`
-- `pragmatic_engineering`
-- `outsider_fresh_eyes` — answer with zero assumed prior context: react only to what is in the brief, and flag anything that is unclear, jargon-laden, or obvious-only-to-an-insider. Catches the curse of knowledge the other stances share.
-
-The stance-to-runner-role mapping lives in the same reference.
-
-If fewer seats are available than unique stances, drop duplicate coverage before dropping unique stances.
-
-## Discussion Protocol
-
-### 1. Build the shared brief
-
-Always include:
-- the question
-- context file paths only
-- the current objective
-- previous round digest and user decisions when `iteration > 1`
-- the required response schema
-
-In `persisted` mode, write prompt files only for runners that need them.
-In `inline` mode, keep the brief in memory and pass it directly.
-
-### 2. Run blinded opening statements
-
-Round 1 inputs:
-- shared brief
-- stance overlay
-- no peer outputs
-- no moderator conclusion
-
-Required response schema: the Round 1 fields from [Response Schema Validation](#response-schema-validation).
-
-### 3. Moderate the round
-
-Normalize outputs into:
-- `agreement_points`
-- `disagreement_points`
-- `decision_options`
-- `evidence_gaps`
-- `follow_up_questions`
-
-Do not paste long verbatim runner output into later rounds. Pass only a compact moderator digest.
-
-### 4. Run rebuttal and refinement rounds
-
-Later rounds get:
-- shared brief
-- current stance overlay
-- prior moderator digest
-- explicit instructions to rebut, concede, refine, or integrate
-
-To sharpen the rebuttal beyond open-ended "rebut or concede", include these three forcing questions in the round prompt (the digest is anonymized — positions are labeled by stance, not by model identity, so seats evaluate on merit):
-1. Which position in the digest is strongest, and why?
-2. Which position has the biggest blind spot, and what is it missing?
-3. What did every position miss that the council should still consider?
-
-Required response schema: the later-rounds fields from [Response Schema Validation](#response-schema-validation).
-
-### 5. Classify convergence
-
-Use one of:
-- `full_agreement`
-- `converging`
-- `material_disagreement`
-- `blocked_on_context`
-
-**Heuristic definitions:**
-- `full_agreement`: all selected seats share the same `recommended_direction` and no seat raises a blocking objection.
-- `converging`: all seats agree on `recommended_direction` but differ on implementation details, risk weighting, or acceptance criteria.
-- `material_disagreement`: ≥2 seats hold opposing `recommended_direction` values, and at least one objection affects scope, behavior, or architecture (not style or preference).
-- `blocked_on_context`: seats agree that the question cannot be answered without additional information, file contents, or external validation.
-
-Capture:
-- `agreement_points`
-- `disagreement_points`
-- `leading_option`
-- `minority_concerns`
-- `open_questions`
-
-### 6. Handle disagreement
-
-Trigger when:
-- disagreement remains material after a round
-- the decision depends on priorities or preferences
-- more context is required
-- any recommendation would lead to code or document changes
-
-In `interactive` mode, ask focused questions with:
-1. recommended option first
-2. minority alternative(s)
-3. `Run another round to refine positions` when another round could help
-
-Ask these questions using the [Interactive Questions](#interactive-questions) protocol.
-
-If a required answer is still missing after available question channels, stop with `awaiting_user_decision`.
-
-In `autonomous` mode:
-- record each disagreement
-- include `recommended_resolution`
-- include `resolution_reasoning`
-- continue to stop conditions
-
-### 7. Update state
-
-When artifact mode is `persisted`, update state after every iteration with:
-- assigned stances
-- seat outputs
-- moderator digest
-- convergence classification
-- user decisions
-- recommendation log
-- runner execution metadata
-- independence accounting
-
-When artifact mode is `inline`, keep the same structure in memory and return it inline instead of writing it.
-
-### 8. Stop condition
-
-Stop when:
-- full agreement is reached
-- the user selects a direction in `interactive` mode
-- all rounds complete in `autonomous` mode
-- `max_iterations` is reached
-
-### 9. Handoff after approval
-
-Only after the user approves a direction:
-- build a compact handoff brief
-- include the final recommendation, minority concerns, and acceptance criteria
-- use a native seat when available
-- otherwise invoke the selected runner with `--role implementer` or `--role codereviewer`
-
-Do not hand off automatically when the user asked only for analysis.
-
-## Final Report
-
-When artifact mode is `persisted`, write `.ai-workflow/consensus/{session_id}.md` with:
-1. question and status
-2. preflight summary, including seat selection source and selected seats
-3. iteration summary
-4. agreement points
-5. divergence points
-6. user decision summary for any non-unanimous result
-7. final recommendation
-8. the single most important next step — one concrete action, not a list
-9. recommended next runner and handoff goal
-10. confidence assessment
-
-When artifact mode is `inline`, return the same sections inline.
-
-## Output Contract
-
-Return:
-1. `report_path` or `null`
-2. `state_path` or `null`
-3. concise inline summary
-4. preflight seat table
-5. selected seats and selection source
-
-## Important Rules
-
-1. Preflight first. Never launch seats from assumptions.
-2. Resolve seat selection per [preflight step 0](#0-resolve-seat-selection-mode) before running smoke tests or rounds.
-3. Use the same shared brief for every participant in a round; only the stance overlay changes.
-4. Keep opening statements blinded from peer outputs.
-5. Treat the moderator as separate from all council seats.
-6. Rotate stances across iterations using [references/stance-rotation-schedule.md](references/stance-rotation-schedule.md) to reduce model-position bias.
-7. Continue gracefully when one runner fails; never fabricate missing outputs.
-8. In `interactive` mode, never apply recommendation-derived edits without explicit user approval.
-9. Prefer continuation over repetition when moving from consensus to implementation.
+- Poll's opening fan-out is BLIND — no orchestrator framing at all. Debate's openings are blinded from peers but carry stance overlays. Don't mix the two.
+- Don't collapse the organizer, synthesizer, or judges back into the orchestrator to save a call — the model-written synthesis is the dominant lever of poll mode, and separate contexts are the point.
+- Read every runner result from `agent_message` / `--output-file`, never raw stdout (Kimi appends a resume hint; Codex emits a transcript).
+- Poll's gap repair is exactly one round; debate stops at its ceiling. Neither loops open-endedly, and the round counter is incremented in state before the launch.
+- Never inline pinned model ids in prose or commands — the seat → model mapping lives in `_shared/references/model-roster.md`; runner defaults follow it.
+- Schema-to-mode mapping and the retry reminder template: [references/operations.md#response-schema-validation](references/operations.md#response-schema-validation).

@@ -161,15 +161,15 @@
     <div class="pipe">
       <div class="phase human"><div class="ph">phase 0</div><h3>Frame</h3><div class="role">Optional. Sharpen a fuzzy idea or settle an unknown only running code can answer.</div><div class="chips"><span class="chip opt">brainstorm</span><span class="chip opt">prototype</span></div></div>
 
-      <div class="phase human"><div class="ph">phase 1</div><h3>Specify</h3><div class="role">Stress-test against the codebase, fold in the security threat-model, write the PRD.</div><div class="chips"><span class="chip">grill-with-docs</span><span class="chip">security-gate</span><span class="chip">to-spec</span></div></div>
+      <div class="phase human"><div class="ph">phase 1</div><h3>Specify</h3><div class="role">Stress-test against the codebase, fold in the security threat-model, write the PRD.</div><div class="chips"><span class="chip">interview</span><span class="chip">security-gate</span><span class="chip">to-spec</span></div></div>
 
-      <div class="phase gate"><div class="gatebadge">LAST HUMAN GATE</div><div class="ph">phase 2</div><h3>Plan</h3><div class="role">Break the PRD into tracer-bullet slices, each with its contract. You approve the breakdown.</div><div class="chips"><span class="chip">to-tasks</span><span class="chip opt">collaborative_task_design</span></div></div>
+      <div class="phase gate"><div class="gatebadge">LAST HUMAN GATE</div><div class="ph">phase 2</div><h3>Plan</h3><div class="role">Break the PRD into tracer-bullet slices, each with its contract. You approve the breakdown.</div><div class="chips"><span class="chip">to-tasks</span><span class="chip opt">panel mode</span></div></div>
 
       <div class="phase auto"><div class="ph">phase 3</div><h3>Design gate</h3><div class="role">Shape the plan, then run only the design lenses the slice's flags select.</div><div class="chips"><span class="chip">coding-design-plan</span><span class="chip">design-gate</span></div></div>
 
-      <div class="phase auto"><div class="ph">phase 4</div><h3>Implement</h3><div class="role">Test-first. Characterization net first on legacy. Diagnose bugs as they surface.</div><div class="chips"><span class="chip">tdd</span><span class="chip">safe-incremental-coding</span><span class="chip">coding-implementation-guard</span></div></div>
+      <div class="phase auto"><div class="ph">phase 4</div><h3>Implement</h3><div class="role">Test-first. Characterization net first on legacy. Diagnose bugs as they surface.</div><div class="chips"><span class="chip">implement-and-review</span><span class="chip">tdd</span><span class="chip">safe-incremental-coding</span><span class="chip">diagnose</span></div></div>
 
-      <div class="phase auto"><div class="ph">phase 5</div><h3>Verify</h3><div class="role">Fail-fast: acceptance → review → simplify → run the real app.</div><div class="chips"><span class="chip">full-review</span><span class="chip">coding-review-simplify</span><span class="chip">verify</span></div></div>
+      <div class="phase auto"><div class="ph">phase 5</div><h3>Verify</h3><div class="role">Fail-fast: acceptance → simplify → multi-model review gate → run the real app.</div><div class="chips"><span class="chip">coding-review-simplify</span><span class="chip">full-review</span><span class="chip">browser-smoke</span></div></div>
 
       <div class="phase auto"><div class="ph">phase 6</div><h3>Deliver</h3><div class="role">Open the PR with acceptance evidence and the decision log. The human merges.</div><div class="chips"><span class="chip">PR + triage</span><span class="chip">summarize</span></div></div>
     </div>
@@ -220,7 +220,7 @@
     <table>
       <thead><tr><th class="touch">When the change touches…</th><th>Lens skill(s)</th></tr></thead>
       <tbody>
-        <tr><td class="touch">Overall shape of a new system, service, or subsystem</td><td><span class="lens">macro-architecture · design-integrity</span></td></tr>
+        <tr><td class="touch">Overall shape of a new system, service, or subsystem</td><td><span class="lens">macro-architecture · software-design-philosophy</span></td></tr>
         <tr><td class="touch">Module / service boundaries, cross-context integration, naming vs. business language</td><td><span class="lens">domain-driven-design · macro-architecture</span></td></tr>
         <tr><td class="touch">Business-logic structure inside one context (aggregates, invariants, events)</td><td><span class="lens">domain-driven-design</span></td></tr>
         <tr><td class="touch">Code-structure choices, extensibility, sprawling conditionals</td><td><span class="lens">design-patterns</span></td></tr>
@@ -228,7 +228,7 @@
         <tr><td class="touch">Module / class / API interface — depth, information hiding, complexity</td><td><span class="lens">software-design-philosophy</span></td></tr>
         <tr><td class="touch">Stored state, queues, caches, migrations, retries, concurrency, external APIs</td><td><span class="lens">data-systems-coding-lens</span></td></tr>
         <tr><td class="touch">React components, hooks, contexts, rendering performance</td><td><span class="lens">react-performance</span></td></tr>
-        <tr><td class="touch">Architecturally significant but no single lens fits → session review + ADR</td><td><span class="lens">architecture_session_review</span></td></tr>
+        <tr><td class="touch">Architecturally significant but no single lens fits → trade-off pass + ADR</td><td><span class="lens">architecture-lens</span></td></tr>
       </tbody>
     </table>
   </div>
@@ -253,10 +253,10 @@
         <div class="calls">calls <code>to-tasks → implement-and-review (per task) → full-review</code></div>
       </div>
       <div class="engine">
-        <div class="nm">feature-models-roundtable</div>
-        <div class="scope">scope · consensus first</div>
-        <p>When the approach is contested: poll several models for a consensus plan, resolve open caveats with you, then hand the settled plan to <code style="font-family:var(--mono)">implement-feature</code> to build.</p>
-        <div class="calls">calls <code>models-roundtable → implement-feature</code></div>
+        <div class="nm">models-consensus</div>
+        <div class="scope">scope · what the autonomous phases ask instead of you</div>
+        <p>A contested or irreversible decision escalates here rather than interrupting you: a blind poll of every available seat, five-dimension reconciliation, one gated gap-repair round, two judges, then a dedicated synthesizer. Read-only, and it never starts implementing.</p>
+        <div class="calls">modes <code>poll · debate · personas</code></div>
       </div>
     </div>
   </div>
@@ -272,37 +272,37 @@
       <div class="cluster">
         <h4><span class="dot" style="background:var(--human)"></span>Frame &amp; specify</h4>
         <p class="desc">Turn a fuzzy idea into an approved, contract-bearing plan — the interactive half.</p>
-        <div class="tags"><span class="t">brainstorm</span><span class="t">to-spec</span><span class="t">to-tasks</span><span class="t">security-gate</span><span class="t">collaborative_discovery</span><span class="t">collaborative_specification</span><span class="t">collaborative_task_design</span><span class="t ext">grill-with-docs</span><span class="t ext">prototype</span></div>
+        <div class="tags"><span class="t">brainstorm</span><span class="t">interview</span><span class="t">to-spec</span><span class="t">to-tasks</span><span class="t">security-gate</span><span class="t">prototype</span></div>
       </div>
 
       <div class="cluster">
         <h4><span class="dot" style="background:var(--violet)"></span>Design &amp; architecture lenses</h4>
         <p class="desc">Read-only reviewers routed by design-gate; each names one risk and returns proceed / revise.</p>
-        <div class="tags"><span class="t">design-gate</span><span class="t">architecture-lens</span><span class="t">macro-architecture</span><span class="t">domain-driven-design</span><span class="t">design-integrity</span><span class="t">design-patterns</span><span class="t">software-design-philosophy</span><span class="t">architecture_session_review</span><span class="t">data-systems-coding-lens</span><span class="t">react-performance</span><span class="t">explain-architecture</span></div>
+        <div class="tags"><span class="t">design-gate</span><span class="t">coding-design-plan</span><span class="t">architecture-lens</span><span class="t">macro-architecture</span><span class="t">domain-driven-design</span><span class="t">design-patterns</span><span class="t">software-design-philosophy</span><span class="t">data-systems-coding-lens</span><span class="t">agent-architecture-lens</span><span class="t">react-performance</span><span class="t">explain-architecture</span></div>
       </div>
 
       <div class="cluster">
         <h4><span class="dot" style="background:var(--auto)"></span>Build &amp; coding practice</h4>
         <p class="desc">The autonomous craft: test-first, safe on legacy, clean as you go, debug methodically.</p>
-        <div class="tags"><span class="t">implement-and-review</span><span class="t">implement-feature</span><span class="t">clean-code</span><span class="t">test-lens</span><span class="t">safe-incremental-coding</span><span class="t">coding-design-plan</span><span class="t">coding-implementation-guard</span><span class="t">pragmatic-coding-session</span><span class="t ext">tdd</span><span class="t ext">diagnose</span></div>
+        <div class="tags"><span class="t">implement-and-review</span><span class="t">implement-feature</span><span class="t">tdd</span><span class="t">safe-incremental-coding</span><span class="t">diagnose</span><span class="t">clean-code</span><span class="t">test-lens</span><span class="t">fable-mindset</span></div>
       </div>
 
       <div class="cluster">
         <h4><span class="dot" style="background:var(--gate)"></span>Review &amp; verify</h4>
         <p class="desc">The quality net at the end of every slice — multi-model, execution-based, then simplify.</p>
-        <div class="tags"><span class="t">full-review</span><span class="t">coding-review-simplify</span><span class="t">verify</span><span class="t ext">review</span><span class="t ext">code-review</span><span class="t ext">adversarial-review</span></div>
+        <div class="tags"><span class="t">coding-review-simplify</span><span class="t">full-review</span><span class="t">browser-smoke</span><span class="t">open-pr</span><span class="t">resolve-pr-feedback</span></div>
       </div>
 
       <div class="cluster">
         <h4><span class="dot" style="background:var(--accent)"></span>Multi-model orchestration</h4>
         <p class="desc">When one model isn't enough — blind polls, stance-driven debate, panel-gated delivery. Replaces asking the user during autonomous phases.</p>
-        <div class="tags"><span class="t">models-roundtable</span><span class="t">models-consensus</span><span class="t">council</span><span class="t">feature-models-roundtable</span><span class="t">collaborative_delivery</span><span class="t">dynamic-harness</span></div>
+        <div class="tags"><span class="t">models-consensus</span><span class="t">diverse-plan</span><span class="t">collaborative_delivery</span><span class="t">dynamic-harness</span></div>
       </div>
 
       <div class="cluster">
         <h4><span class="dot" style="background:#c0cad8"></span>Runner seats &amp; meta</h4>
         <p class="desc">Thin CLI shims that give the multi-model skills their seats — plus skills for context economy and authoring skills themselves.</p>
-        <div class="tags"><span class="t">claude-runner</span><span class="t">codex-runner</span><span class="t">gemini-runner</span><span class="t">kimi-runner</span><span class="t">qwen-runner</span><span class="t">glm-runner</span><span class="t">gemma-runner</span><span class="t">minimax-runner</span><span class="t">opencode-runner</span><span class="t">codex-mission-control</span><span class="t">skill-expert</span><span class="t">summarize</span></div>
+        <div class="tags"><span class="t">claude-runner</span><span class="t">codex-runner</span><span class="t">gemini-runner</span><span class="t">kimi-runner</span><span class="t">qwen-runner</span><span class="t">glm-runner</span><span class="t">gemma-runner</span><span class="t">minimax-runner</span><span class="t">opencode-runner</span><span class="t">dynamic-harness</span><span class="t">worktree</span><span class="t">skill-expert</span><span class="t">summarize</span><span class="t">session-handoff</span><span class="t">capture-learning</span></div>
       </div>
     </div>
   </div>

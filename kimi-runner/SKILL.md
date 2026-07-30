@@ -22,7 +22,7 @@ This skill delegates to `cline-runner`, so it has the same execution and data sh
 
 ## Shared Wrapper Reference
 
-Supported options, roles, the `--json` output envelope key contract, return codes, and gotchas are identical to the shared wrapper — read the cline-runner skill's SKILL.md (`../cline-runner/SKILL.md`) when you need flag or envelope details. The envelope is produced by `cline-runner/scripts/run_cline.py` with `runner=kimi`, `effective_runner=cline`, `effective_provider=moonshot` (inferred from the `moonshotai/...` model id).
+Supported options, roles, the `--json` output envelope key contract, return codes, and gotchas are identical to the shared wrapper — read [`_shared/references/runner-common.md`](../_shared/references/runner-common.md) for the shared flags, envelope keys, return codes, and the seat-fidelity rule. The envelope is produced by `cline-runner/scripts/run_cline.py` with `runner=kimi`, `effective_runner=cline`, `effective_provider=moonshotai` (inferred from the `moonshotai/...` model id).
 
 ## Usage
 

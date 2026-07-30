@@ -384,7 +384,7 @@ def build_parser() -> argparse.ArgumentParser:
     L.add_argument("--no-backend", dest="backend", action="store_false", help="skip the backend track")
     L.add_argument("--fe-mode", choices=("subagent", "runner"), default="subagent",
                    help="frontend implementer path: 'subagent' (default; orchestrator spawns native Opus) or 'runner' (fire claude-runner as a job)")
-    L.add_argument("--fe-model", default="claude-opus-4-8", help="model for the runner-mode frontend seat")
+    L.add_argument("--fe-model", default="opus", help="model for the runner-mode frontend seat (alias-first; see _shared/references/model-roster.md)")
     L.add_argument("--be-model", default="gpt-5.6-sol", help="Codex model for the backend implementer seat (default: gpt-5.6-sol — the recommended GPT 5.6 Sol Codex implementer)")
     L.add_argument("--codex-effort", default="high", help="Codex reasoning effort for the backend implement run")
     L.add_argument("--timeout", type=int, default=1800, help="per-implementer timeout in seconds")

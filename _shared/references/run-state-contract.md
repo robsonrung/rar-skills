@@ -1,6 +1,6 @@
 # Run State Contract
 
-Canonical, agent-facing rules for the durable run state shared by every long-running orchestration skill (`ship`, `implement-and-review`, `implement-feature`, `codex-mission-control`, `dynamic-harness`, `models-consensus`). Each skill's SKILL.md points here and keeps inline only its own field names and ceilings.
+Canonical, agent-facing rules for the durable run state shared by every long-running orchestration skill (`ship`, `implement-and-review`, `implement-feature`, `dynamic-harness`, `models-consensus`). Each skill's SKILL.md points here and keeps inline only its own field names and ceilings.
 
 A long run's progress lives in **the ledger, not the transcript**. Anything the run must know after a crash, a compaction, or a restart is written to this file; anything held only in the message history is lost with it.
 

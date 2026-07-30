@@ -90,7 +90,7 @@ python3 .agents/skills/qwen-runner/scripts/run_qwen.py "Return JSON matching the
 | -2 | Qwen CLI not found |
 | -3 | Invalid input, native API/auth error, or unexpected error |
 
-On `-2` the envelope also carries `status: seat_unavailable`. There is no separate return code for auth failures: native API/auth errors are folded into `-3`, the `[API Error: ...]` text is appended to `stderr`, and `auth_ok` stays `null` in that case (only `-2` sets it to `false`).
+On `-2` the envelope also carries `status: seat_unavailable`. There is no separate return code for auth failures: native API/auth errors are folded into `-3`, the `[API Error: ...]` text is appended to `stderr`, and `auth_ok` stays `null` in that case. A missing CLI (`-2`) is *untested* auth, not failed auth, so `auth_ok` is `null` there too — it is only ever `true` on a clean run.
 
 ## Background Jobs
 

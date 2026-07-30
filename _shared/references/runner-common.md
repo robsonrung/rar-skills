@@ -1,6 +1,6 @@
 # Runner Common Reference
 
-Canonical, agent-facing rules shared by every runner skill (claude, codex, gemini, grok, qwen, the cline-backed kimi/glm shims, and the qwen-backed gemma/minimax shims). Each runner's SKILL.md points here for these four blocks and keeps inline only its genuine deltas.
+Canonical, agent-facing rules shared by every runner skill: `claude-runner`, `codex-runner`, `gemini-runner`, `grok-runner`, `qwen-runner`, `cline-runner`, `dcode-runner`, plus the cline-backed `kimi`/`glm` shims and the qwen-backed `gemma`/`minimax` shims. Each runner's SKILL.md points here for these shared blocks and keeps inline only its genuine deltas. Seat → model ids live in [model-roster.md](model-roster.md); seat availability comes from `_shared/scripts/discover_runners.py`.
 
 ## Seat fidelity
 
@@ -11,7 +11,17 @@ This is the core invariant every runner upholds. A runner never silently substit
 - routes to an explicit fallback runner and labels the substitution on the envelope (`fallback_from`, `fallback_reason`), so the caller always knows which seat actually answered; or
 - reports the seat as unavailable (`success: false`, typically `status: seat_unavailable` with `return_code -2`) so councils and orchestrators account for the missing seat.
 
-Runners that never fall back (grok, kimi, qwen, and the qwen-backed shims) only ever block-and-report; runners with a fallback chain (claude, codex, gemini) may substitute, but only when labeled. Either way the seat's identity is never faked.
+This is the one place the fallback split is defined; nothing else restates it.
+
+| Runner | On a missing / failing CLI |
+|---|---|
+| `claude` | falls back → `codex` |
+| `codex` | falls back → `claude` |
+| `gemini` | falls back → `qwen`, `kimi`, `codex`, `claude` (in that order) |
+| `dcode` | falls back → `claude`, `codex`, `qwen`, `kimi` (in that order) |
+| `grok`, `qwen`, `cline`, `kimi`, `glm`, `gemma`, `minimax` | **block-and-report** — never substitutes |
+
+A fallback is always labeled (`fallback_from`, `fallback_reason`), and every fallback chain passes `--disable-fallback` to the runner it delegates to so chains cannot loop. Either way the seat's identity is never faked.
 
 ## Output envelope (required keys)
 

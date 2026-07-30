@@ -103,3 +103,16 @@ State it as: "X is in scope; Y, Z look like scope creep / speculative — split 
 - For a review pass, group findings by lens with `file:line`, the rule, and the fix; lead with the highest-leverage finding; if a lens is clean, write "clean" — don't invent findings to fill it.
 - Reference files load on demand — read them when you need the taxonomy, the characteristics checklist, the review rubric, or a template, not preemptively.
 - This lens reports; it does **not** auto-edit unless the user asks for fixes.
+- **When run under `design-gate`**, every lens returns the reviewer output contract instead of prose: `verdict` (`proceed` | `revise`), `blocking_findings`, `advisory_findings`, `required_changes`. One lens's `revise` with a load-bearing finding is enough to make the gate verdict `revise`.
+
+## References
+
+Load on demand, not preemptively:
+
+- `references/architecture-characteristics.md` — the "-ilities" checklist. Read in Lens 1 when naming which 2–4 characteristics a decision trades on.
+- `references/connascence.md` — the full connascence taxonomy and each type's remedy. Read in Lens 2 before naming a coupling type.
+- `references/review-rubric.md` — expanded per-lens checklists for Lenses 3–6 plus provenance. Read before a full review pass.
+- `references/fitness-functions.md` — automated guards for a rule future code could violate. Read when a decision needs to enforce itself.
+- `references/adr-template.md` — the **repo-canonical** ADR template. Read when a decision is architecturally significant enough to record.
+- `references/verification-menu.md` — concrete checks per quality attribute. Read when a finding must become an executable check rather than an opinion.
+- `references/risk-and-diagrams.md` — the risk pass (low/medium/high, the seven per-risk fields, single-reviewer risk storming) and C4 diagram guidance. Read when the change carries real risk — unproven technology, a data or availability boundary, a migration — or when the review needs a diagram to land.

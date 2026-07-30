@@ -1,0 +1,113 @@
+# Panel-mode routing for `to-tasks` (opt-in; see SKILL.md "Panel mode").
+#
+# Model ids come from `_shared/references/model-roster.md` — update the roster
+# first, then this file. Role names are what SKILL.md refers to; the seat behind
+# each role is editable here without touching the workflow.
+
+[skill]
+name = "to-tasks"
+artifact_dir = ".codex_workflow/tasks"
+mandatory_presence = ["synthesis_anchor", "adversarial_anchor"]
+# Phase order is authoritative in SKILL.md; this list must match it. The validator checks set membership only.
+required_phases = ["architecture_mapping", "test_strategy", "task_slicing", "dependency_review", "convergence"]
+required_outputs = ["tasks.md", "architecture_plan.md", "test_plan.md", "parallelization_plan.md", "risk_register.md", "decision_log.md", "panel_summary.json"]
+workflow = "Follow the skill SKILL.md instructions, keep role outputs independent before reconciliation, preserve disagreements in the decision log, and do not mark the phase complete until every listed role has a real response and mandatory anchor roles are recorded."
+
+[providers.synthesis_anchor]
+kind = "native_codex"
+provider = "codex"
+model = "gpt-5.6-sol"
+model_label = "GPT 5.6 Sol"
+enabled = true
+native_response_required = true
+duty = "Synthesize, reconcile, coordinate native Codex subagents when allowed, and own final decisions inside the host Codex session."
+
+[providers.adversarial_anchor]
+kind = "runner"
+runner = "claude"
+provider = "anthropic"
+model = "opus"
+model_label = "Opus"
+enabled = true
+script = ".agents/skills/claude-runner/scripts/run_claude.py"
+timeout_seconds = 1200
+duty = "Challenge assumptions, find risks, inspect security and architecture, and block unsafe convergence."
+runner_args = ["--output-format", "json", "--no-session-persistence", "--restrict-tools"]
+
+[providers.broad_context]
+kind = "runner"
+runner = "gemini"
+provider = "google"
+model = "gemini-3.6-flash"
+model_label = "Gemini 3.6 Flash"
+enabled = true
+script = ".agents/skills/gemini-runner/scripts/run_gemini.py"
+timeout_seconds = 1200
+duty = "Explore broad context, user journeys, interface options, large code context, and alternative scenarios."
+runner_args = ["--output-format", "json"]
+
+[providers.feasibility]
+kind = "runner"
+runner = "kimi"
+provider = "moonshot"
+model = "moonshotai/kimi-k3"
+model_label = "Kimi K3"
+enabled = true
+script = ".agents/skills/kimi-runner/scripts/run_kimi.py"
+timeout_seconds = 1200
+duty = "Pressure test execution feasibility, sequencing, long horizon integration, and implementation risks."
+# `--data-dir` isolates cline state so a panel run never rewrites the interactive
+# user's ~/.cline provider default. Provision auth in that directory once.
+# `--no-session-persistence` is a documented no-op on cline, and `--restrict-tools`
+# is already the default for every non-implementer role, so neither is passed.
+runner_args = ["--output-format", "stream-json", "--data-dir", "/tmp/cline-panel-state"]
+
+[roles.synthesis_anchor]
+provider = "synthesis_anchor"
+runner_role = "synthesizer"
+duty = "Native synthesis, final reconciliation, implementation aware decision making, and audit trail ownership."
+
+[roles.adversarial_anchor]
+provider = "adversarial_anchor"
+runner_role = "adversarial"
+duty = "Adversarial critique, architecture risk, security risk, data safety, edge cases, and blocking objections."
+
+[roles.architecture]
+provider = "synthesis_anchor"
+runner_role = "planner"
+duty = "Map bounded contexts, use cases, ports, adapters, dependency direction, transaction boundaries, and integration seams."
+
+[roles.testing]
+provider = "synthesis_anchor"
+runner_role = "planner"
+duty = "Design tests before implementation, including unit, integration, contract, component, end to end, regression, and security tests as relevant."
+
+[roles.interface]
+provider = "broad_context"
+runner_role = "planner"
+duty = "Slice interface work by user value, component boundaries, state management, accessibility, responsiveness, and visual regression risk."
+
+[roles.backend]
+provider = "synthesis_anchor"
+runner_role = "planner"
+duty = "Slice backend work by use cases, domain rules, storage, API contracts, permissions, jobs, events, and observability."
+
+[roles.delivery]
+provider = "feasibility"
+runner_role = "planner"
+duty = "Sequence work in safe increments, minimize merge risk, identify parallelizable tracks, and define verification commands that exist in this repository."
+
+[phases.architecture_mapping]
+roles = ["synthesis_anchor", "adversarial_anchor", "architecture", "backend", "interface", "delivery"]
+
+[phases.test_strategy]
+roles = ["synthesis_anchor", "adversarial_anchor", "testing", "backend", "interface", "delivery"]
+
+[phases.task_slicing]
+roles = ["synthesis_anchor", "adversarial_anchor", "delivery", "architecture", "testing", "backend", "interface"]
+
+[phases.dependency_review]
+roles = ["synthesis_anchor", "adversarial_anchor", "delivery", "backend", "interface"]
+
+[phases.convergence]
+roles = ["synthesis_anchor", "adversarial_anchor", "architecture", "testing", "delivery", "backend", "interface"]

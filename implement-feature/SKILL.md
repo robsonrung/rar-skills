@@ -1,11 +1,11 @@
 ---
 name: implement-feature
-description: Build a whole feature by breaking a plan into tasks and running implement-and-review on each. Given a plan or feature, decompose it into tracer-bullet vertical-slice tasks (via the to-tasks skill — acceptance contracts + gate flags + dependencies), then execute the task DAG (independent tasks in parallel) by running implement-and-review for each per-task FE/BE cross-reviewed TDD build, integrate tasks in dependency order with per-task acceptance, and finish with a feature-wide full-review, leaving tests/build green. Opus orchestrates the breakdown, scheduling, integration, and final review; per-task building is implement-and-review's job. Use to ship/build a multi-task feature end-to-end. For a single scoped task call implement-and-review directly. Distinct from models-roundtable (answer only), feature-models-roundtable (multi-model consensus, then this), and ship (single-model pipeline).
+description: Build a whole feature by breaking a plan into tasks and running implement-and-review on each. Given a plan or feature, decompose it into tracer-bullet vertical-slice tasks (via the to-tasks skill — acceptance contracts + gate flags + dependencies), then execute the task DAG (independent tasks in parallel) by running implement-and-review for each per-task FE/BE cross-reviewed TDD build, integrate tasks in dependency order with per-task acceptance, and finish with a feature-wide full-review, leaving tests/build green. Opus orchestrates the breakdown, scheduling, integration, and final review; per-task building is implement-and-review's job. Use to ship/build a multi-task feature end-to-end. For a single scoped task call implement-and-review directly. Distinct from models-consensus (deliberation only, produces no code) and from ship — ship is the idea→PR conductor, including the interactive spec/plan phases and PR delivery, while implement-feature is the plan→built-feature DAG executor with no spec phase and no PR.
 ---
 
 # Implement Feature
 
-High-level build orchestrator: turn a plan into a working, reviewed feature by **decomposing it into tasks and delegating each to `implement-and-review`**. You (the main agent, Opus 4.8) own the breakdown, the dependency DAG and scheduling, cross-task integration, and the feature-wide final review. Per-task building — the FE/BE split, cross-model review, and TDD — is `implement-and-review`'s job. **Call it; don't reimplement it.**
+High-level build orchestrator: turn a plan into a working, reviewed feature by **decomposing it into tasks and delegating each to `implement-and-review`**. You (the main agent, the Opus seat — model ids live only in `_shared/references/model-roster.md`) own the breakdown, the dependency DAG and scheduling, cross-task integration, and the feature-wide final review. Per-task building — the FE/BE split, cross-model review, and TDD — is `implement-and-review`'s job. **Call it; don't reimplement it.**
 
 Pipeline: **plan → `to-tasks` (vertical slices) → `implement-and-review` per task (parallel where independent) → integrate in dependency order → feature-wide `full-review` → green.**
 
@@ -13,7 +13,7 @@ The detailed scheduling/integration commands are in [references/feature-orchestr
 
 ## Hard Rules
 
-1. **Decompose with `to-tasks`.** Break the plan into tracer-bullet vertical-slice tasks, each with a machine-checkable acceptance contract, gate flags (lenses + `security`), and `blocked_by` deps. (`to-tasks` is preferred over `to-issues` for autonomous execution.)
+1. **Decompose with `to-tasks`.** Break the plan into tracer-bullet vertical-slice tasks, each with a machine-checkable acceptance contract, gate flags (lenses + `security`), and `blocked_by` deps.
 2. **Tasks are the unit of value and parallelism.** Independent tasks run in parallel; dependent ones wait on their blockers.
 3. **Delegate each task to `implement-and-review`.** Don't duplicate its FE/BE/TDD/cross-review logic — hand it the task, a per-task `--slice` namespace, and the base to build on.
 4. **Writes are gated.** No code until the user approves the breakdown (skip only with `--auto`).
@@ -32,7 +32,12 @@ The detailed scheduling/integration commands are in [references/feature-orchestr
 
 ## Phase 0 — Plan & Decompose (gate)
 
-1. **Intake the plan.** Sources: a plan/spec the user gives; an existing `TASKS.md` or tracker issues; or a `models-roundtable` consensus report (passed as `--from-roundtable <path>`, e.g. by `feature-models-roundtable` — take its *Consensus answer* as the plan and resolve its *Open caveats* with the user first).
+1. **Intake the plan.** Sources: a plan/spec the user gives; an existing `TASKS.md` or tracker issues; or a **`models-consensus` poll-mode report** (passed as `--from-consensus <path>`, e.g. `.ai-workflow/consensus/<session_id>.md`) — take its *Consensus answer* as the plan and resolve its *Open caveats* with the user first.
+
+   When a consensus run precedes the build, three rules govern the handoff:
+   - **Frame the request for the council blind.** Hand the council the raw request as the task to answer (*"determine what this feature requires and the best approach: `<request>`"*). The orchestrator never pre-analyzes the request or pastes its own interpretation in — the unbiased fan-out is the entire value of the poll.
+   - **One session id threads both runs.** The consensus run and this build share a single session id (`.ai-workflow/consensus/<id>.md` → `--from-consensus`), so the build consumes exactly the consensus that was produced — never a re-run, a paraphrase, or a second poll.
+   - **No code needed → stop.** If the consensus shows the request is a question or a decision rather than work to build, stop here and return the consensus answer instead of decomposing anything.
 2. **Decompose** with `to-tasks` → vertical-slice tasks with acceptance, gates, and deps. If the work is genuinely a single task, **skip `to-tasks` and just call `implement-and-review`** (then stop).
 3. **Present** the task list (titles, deps, acceptance, gates, HITL/AFK) + the verification commands. **Get approval before any code is written**, unless `--auto`.
 
@@ -47,12 +52,11 @@ Build the dependency graph from `blocked_by`. Then:
 
 ### Run state
 
-A feature spans hours and many subprocesses, so the DAG's progress lives in **the ledger, not the transcript** — one feature-level run state under `_shared/references/run-state-contract.md`, beside the per-task states each `implement-and-review` keeps.
+A feature spans hours and many subprocesses, so the DAG's progress lives in **the ledger, not the transcript**. This skill follows `_shared/references/run-state-contract.md` — read it for the shape, the attempts/gates/side-effect rules, and the resume protocol. One feature-level run state, beside the per-task states each `implement-and-review` keeps. Only the feature-specific keys are stated here:
 
-- Append each task to `steps` as it integrates, keyed by its stable T-ID. On resume, a task already in `steps` is done: recompute readiness from the ledger and schedule only what is left. A resumed feature must never rebuild an integrated task.
-- `ceilings.max_in_flight` holds the concurrency cap (default 3); count what is actually in flight against it rather than estimating.
-- Each task integration is a side effect — record `merge:<task-id>` in `side_effects` before merging into the feature integration branch, and skip a merge whose key is present.
-- An escalated task is an exit, not a gap: record it in `steps` with its result and the reason so the final report reconstructs from the ledger rather than from memory.
+- **`ceilings.max_in_flight`** — the concurrency cap (default 3). Count what is actually in flight against it rather than estimating.
+- **`side_effects` keys are `merge:<task-id>`** — written before merging a task into the feature integration branch; skip a merge whose key is already present.
+- **The integration head is the resume anchor.** `steps` entries are keyed by stable T-ID, so a task already in `steps` is done: on resume, re-read the current integration head, recompute readiness from the ledger, and schedule only what is left. A resumed feature never rebuilds an integrated task. An escalated task is an exit, not a gap — record it in `steps` with its result and reason so the final report reconstructs from the ledger rather than from memory.
 
 ## Phase 2 — Feature-wide Final Review
 

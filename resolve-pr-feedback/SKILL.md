@@ -1,6 +1,6 @@
 ---
 name: resolve-pr-feedback
-description: Resolves PR review feedback end to end — evaluates every review comment against the actual code, fixes the valid findings, commits and pushes, replies to each thread with quoted context, and resolves the threads via GitHub's API. Use when resolving PR review feedback, addressing review comments, replying to and resolving review threads, or fixing code-review feedback on a GitHub PR. Distinct from full-review and the /review builtin, which review a diff to FIND issues and never resolve threads, and from resolving-merge-conflicts, which handles git merge conflicts, not review threads.
+description: Resolves PR review feedback end to end — evaluates every review comment against the actual code, fixes the valid findings, commits and pushes, replies to each thread with quoted context, and resolves the threads via GitHub's API. Use when resolving PR review feedback, addressing review comments, replying to and resolving review threads, or fixing code-review feedback on a GitHub PR. Distinct from full-review and the /review builtin, which review a diff to FIND issues and never resolve threads, and from a git merge-conflict resolution workflow, which handles conflicting commits, not review threads.
 argument-hint: "[PR number, comment URL, or blank for current branch's PR]"
 allowed-tools:
   - Bash
@@ -63,7 +63,7 @@ After determining mode, read the matching reference and follow it. Each referenc
 ## Related skills
 
 - To *find* issues in a diff before or after resolving feedback, use `full-review` — it reviews, it never resolves threads.
-- If a fix turns into real debugging, use `systematic-debugging`.
+- If a fix turns into real debugging, use `diagnose`.
 - To open the PR in the first place, use `open-pr`.
 
 ## Success Criteria

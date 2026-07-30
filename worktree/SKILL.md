@@ -1,12 +1,13 @@
 ---
 name: worktree
-description: "Set up an isolated git worktree — create a fresh branch for new work, or attach a worktree to an existing branch, PR, or commit to work on it in isolation. Use when the user asks to set up a git worktree, isolate work on a branch/PR/commit, or attach a worktree to an existing PR. Detects existing isolation first and prefers the harness-native worktree tool. Not for implement-and-review, which owns its own two-track worktree flow internally."
-disable-model-invocation: true
+description: "Set up an isolated git worktree — create a fresh branch for new work, or attach a worktree to an existing branch, PR, or commit to work on it in isolation. Both user-invocable and pipeline-invoked: use when the user asks to set up a git worktree, isolate work on a branch/PR/commit, or attach a worktree to an existing PR, and when an automated pipeline needs single-slice isolation (ship's autonomous loop invokes it before building a slice). Detects existing isolation first and prefers the harness-native worktree tool. implement-and-review manages its own multi-worktree flow and carries this skill's safety rules."
 ---
 
 # Worktree Isolation
 
 Ensure the current work happens in an isolated workspace, without disturbing the user's main checkout. Most coding harnesses now create a worktree by default at session start, so the common case is that **isolation already exists** — detect that first and do not create a redundant one.
+
+Two kinds of caller: a **user** asking for isolation, and a **pipeline** needing it for one slice (`ship`'s autonomous loop invokes this skill before building a slice). The steps are identical; a pipeline caller just gets the resulting path and branch reported back instead of a conversation. (`implement-and-review` is the one exception: it manages its own multi-worktree flow — a frontend and a backend tree per task — and carries this skill's safety rules internally rather than calling it.)
 
 Order of operations: **detect existing isolation -> prefer the harness-native worktree tool -> fall back to plain git.** Never create a worktree the harness cannot see.
 

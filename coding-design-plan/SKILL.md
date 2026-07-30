@@ -17,7 +17,15 @@ Use this skill before coding when the implementation shape matters. The goal is 
 6. Pick at most three quality concerns that are in tension for this task, such as correctness, maintainability, reliability, performance, security, deployability, or observability.
 7. Compare alternatives only when the choice is meaningful. Include keeping the current shape as an option when it is realistic. For small tasks, state why the obvious local shape is enough.
 8. Choose the smallest coherent shape that fits the current codebase and avoids unrelated redesign.
-9. Convert the main concern into verification before editing: a cheap objective test, static check, contract check, migration check, or smoke check that proves the design holds.
+9. Convert the main concern into verification before editing: a cheap objective test, static check, contract check, migration check, or smoke check that proves the design holds. Define done as behavior plus verification, not as files touched.
+
+## Uncertainty Moves
+
+When the plan still carries a real unknown, pick the move by the risk it retires:
+
+1. When integration risk outweighs design risk, plan a **tracer bullet** — a thin end-to-end slice through the real layers that ships and grows.
+2. When the production shape itself is unclear, route the learning through the `prototype` skill — a throwaway that answers one question and is discarded, never hardened into production by accident.
+3. Estimate by decomposing into observable deliverables and naming the uncertainty explicitly, not by padding.
 
 ## Test Scenarios
 

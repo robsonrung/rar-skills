@@ -1,11 +1,24 @@
 ---
 name: coding-review-simplify
 description: Final review-and-simplify pass on a just-completed implementation before handoff. Use after an agent finishes coding work, or when the user asks to tighten, audit maintainability, remove unnecessary abstraction, verify architecture fit, or check data risk in a concrete diff.
+allowed-tools:
+  - Bash
+  - Read
+  - Grep
+  - Glob
+  - Edit
+  - Agent
 ---
 
 # Coding Review Simplify
 
 Use this skill after code has been changed or when reviewing a concrete diff. The goal is to catch correctness risks and simplify the result before handoff.
+
+## Pipeline position
+
+This pass runs **before** `full-review`, not after it. The author (or the agent that just wrote the code) self-simplifies while the implementation context is still fresh and cheap to change; `full-review`'s multi-model gate then reviews the *final* code. Reversing the order wastes the gate on code that is about to be rewritten.
+
+Vocabulary is borrowed, not re-derived: name smells and naming problems with `clean-code`'s catalog (primitive obsession, data clump, feature envy, earned comment, and the rest) instead of inventing local labels for them.
 
 ## Workflow
 
@@ -15,8 +28,8 @@ Use this skill after code has been changed or when reviewing a concrete diff. Th
 4. For a standard or deep review, dispatch the Persona Pass below.
 5. Run the Simplification Pass below.
 6. Check names, responsibilities, interfaces, and edge cases for one coherent model.
-7. If stored state or async behavior changed, review source of truth, invariants, retries, migrations, compatibility, observability, and repair path.
-8. If the diff feels tangled or crosses a boundary, run the Connascence Pass below.
+7. If stored state or async behavior changed, hand the data risk to `data-systems-coding-lens` — it owns the concrete checks (source of truth, invariants, retries, migrations, compatibility, observability, repair path) and this skill does not restate them.
+8. If the diff feels tangled or crosses a boundary, run the Connascence Pass below on the diff.
 9. Turn important concerns into a focused fix, test, static check, contract check, migration check, or explicit follow up.
 10. Finish with the shortest honest outcome.
 
@@ -40,13 +53,17 @@ Every persona is behavior-preserving by contract. Merge their findings through t
 
 ## Connascence Pass
 
-Use this only when the diff feels tangled or crosses a boundary. Measure coupling as **connascence** — two pieces of code are connascent when changing one forces a change in the other — and name it along its three axes:
+Use this only when the diff feels tangled or crosses a boundary, and keep it **scoped to the current diff**: the pass looks at coupling the change introduced or tightened, in the files the change touched. Do not audit the surrounding codebase from here.
+
+Measure coupling as **connascence** — two pieces of code are connascent when changing one forces a change in the other — and name it along its three axes:
 
 1. Strength: is the connascence static and visible, or dynamic and runtime dependent?
 2. Locality: is it inside one cohesive unit, or across modules, services, contracts, or teams?
 3. Degree: how many callers, files, records, or systems must change together?
 4. Remedy: weaken the strongest distant connascence first, such as replacing magic values with names, positional arguments with named data, hidden order with explicit state, or duplicated algorithms with one owned implementation. The rule of thumb: the more distant the coupling, the weaker its strength should be.
 5. Restraint: leave local static connascence alone when extraction would add indirection without safety.
+
+**Handoff.** A structural coupling finding whose fix reaches beyond this diff — a layer in the wrong place, a dependency pointing the wrong way, a module that has outgrown its cohesion — is recorded and handed to `architecture-lens`, which owns the connascence taxonomy and the codebase-wide judgment. Name the finding, name where it points, and stop; do not start that refactor from inside a simplification pass.
 
 ## Findings Bar
 
@@ -85,6 +102,13 @@ For completed implementation work, include:
 4. `remaining_risk`: what still needs attention, if anything.
 
 **Net lines removed is not the success metric.** Never report the pass as "-N lines" — that metric rewards deleting safety checks and inlining named concepts. Summarize per dimension with quantities instead: duplications replaced with existing utilities, abstractions deleted or made local, dead code paths removed, inefficiencies fixed, findings deferred. A simplification that adds lines to remove distant coupling is still a win.
+
+## References
+
+Read on demand, not up front:
+
+- `references/personas/code-reuse-reviewer.md`, `references/personas/code-quality-reviewer.md`, `references/personas/efficiency-reviewer.md` — the three Persona Pass briefs.
+- `references/team-checklists.md` — completion, test-case, and release checklists. Read at the end of a review when the change is about to be handed off or deployed.
 
 ## Gotchas
 

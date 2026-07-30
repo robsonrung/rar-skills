@@ -88,3 +88,7 @@ When returning results, include:
 - `risks`: missing tests, unclear requirements, framework constraints, or areas needing extra review.
 
 For review-only tasks, lead with findings ordered by severity and include file and line references where possible.
+
+## Gotcha
+
+Do not quote or reconstruct source text from the book this skill distills.

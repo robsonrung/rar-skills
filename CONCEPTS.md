@@ -33,8 +33,14 @@ The transport that actually executed (envelope key `effective_runner`) — e.g. 
 
 ## Skills and conventions
 
-### Moment skill
-One of the `fable-*` skills that captures a workflow moment (intake, diagnosis, decision, implementation, reporting) rather than a domain.
+### Moment
+One of the five points in a working turn that `fable-mindset` governs — intake, diagnosis, decision, implementation, reporting. A moment is about *posture* (how a request is read, how evidence is weighed, how a result is reported) rather than a domain or a procedure; the procedural counterpart of each moment lives in its own skill (`diagnose`, `coding-design-plan`, `tdd`, `summarize`).
+
+### Panel mode
+The opt-in multi-model path inside a pipeline skill (`brainstorm`, `to-spec`, `to-tasks`) and the whole of `collaborative_delivery`. Panel mode fans a phase out to real model seats through `_shared/scripts/panel_round.py` and writes an auditable artifact set; it replaces drafting, never the human approval gate. A generated prompt is not participation — see the status taxonomy in `_shared/collaborative-panel-runner.md`.
+
+### Seat tier
+Whether a seat joins a default fan-out (`default`) or is probed only when named explicitly (`backup`, currently qwen / gemma / minimax). Declared in `discover_runners.py`; adding a backup seat never silently enlarges or re-prices an existing council.
 
 ### Leitwort (pl. leitwörter)
 A deliberately distinctive word planted in a skill's prose to make routing and provenance greppable. Registered in `leitworter.json`; guarded by `scripts/check_leitworter.py` in CI. Deleting one from its owning skill fails the build.

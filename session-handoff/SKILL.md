@@ -1,7 +1,6 @@
 ---
 name: session-handoff
-description: "Creates immutable, per-repo session handoffs in a managed store and resumes work from them. Use when the user wants to create a session handoff, hand off this session to another agent, resume from a handoff, or write continuity notes for another session. Each handoff is its own file keyed by repository and topic, so parallel sessions never clobber each other — this supersedes any older single-slot handoff approach that kept one global 'latest' file. Distinct from summarize (ad-hoc summary text in the reply, no store) and from context-compress (compresses and clears THIS session; its save step can delegate storage here)."
-disable-model-invocation: true
+description: "Creates immutable, per-repo session handoffs in a managed store and resumes work from them. Use when the user wants to create a session handoff, hand off this session to another agent, resume from a handoff, or write continuity notes for another session — or when a pipeline's wrap-up phase needs the session's continuity notes persisted. Each handoff is its own file keyed by repository and topic, so parallel sessions never clobber each other — this supersedes any older single-slot handoff approach that kept one global 'latest' file. This skill owns durable storage: it delegates the handoff body to summarize's contract and adds the store, the frontmatter contract, and the bounded resume flow. Distinct from summarize (produces the body, returns it in the reply, no store) and from any session-compression flow (compresses and clears THIS session; its save step can delegate storage here)."
 ---
 
 # Session Handoff
@@ -29,7 +28,7 @@ Create one immutable handoff at the destination the user requested, or use the m
 2. Inspect only the workspace state needed to explain what exists now. Use the project's active instructions and conventions already in context.
 3. Point to plans, issues, commits, diffs, documentation, and relevant files instead of reproducing their contents.
 4. Redact secrets, credentials, and unrelated personal information. Preserve operational paths only when the next agent needs them.
-5. Write the document. If the user requested another path, folder, or format, honor it; do not also create a managed-store copy unless the user asks.
+5. Write the document — body per the Body contract below (`summarize`'s contract, checked against its cold-start test). If the user requested another path, folder, or format, honor it; do not also create a managed-store copy unless the user asks.
 
 ### Default managed store
 
@@ -86,19 +85,9 @@ Required managed-store fields are `artifact_contract`, `created_at`, `title`, `s
 
 ### Body contract
 
-Choose whatever sections and document organization best communicate this particular session to the next agent. The headings below are examples of useful coverage, not a required or closed template: add new sections or combine, rename, reorder, and omit the examples when that makes the handoff clearer.
+**The body is `summarize`'s job — compose it under that skill's contract.** Do not maintain a competing section list here: `summarize` owns what a continuity summary covers, and its **cold-start test** is the acceptance bar for the body this skill stores — a fresh agent holding only this handoff must be able to take the next action without asking what the goal was or what had already been verified. A body that fails that test is not ready to persist, regardless of which headings it used. Section choice stays free-form: organize the document however best communicates this particular session.
 
-Include only what a fresh agent cannot safely infer, drawing from:
-
-- Objective and current user intent
-- Work completed
-- Decisions, constraints, and rejected alternatives
-- Current state
-- Authoritative references
-- Unfinished work, blockers, and fragile local state
-- Verification performed and failures observed
-- Plausible next steps
-- Relevant installed skills that may help, if any
+This skill adds only what storage requires on top of that body: the frontmatter contract above, the path and redaction rules below, and the fragile-state warnings.
 
 Keep the handoff pointer-first. Prefer repository-relative paths for repository files, anchored once by the repository, branch, and HEAD metadata. Use absolute paths only for machine-local capture context or uncommitted, untracked, ignored, or temporary state, and label them as machine-local.
 

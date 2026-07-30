@@ -8,15 +8,15 @@
       "must_not_contain": []
     },
     {
-      "file": "design-integrity/SKILL.md",
-      "concept": "conceptual integrity / change ownership / smallest coherent shape",
+      "file": "software-design-philosophy/SKILL.md",
+      "concept": "conceptual integrity / change ownership / smallest coherent shape (the Brooks lens, merged in from design-integrity)",
       "must_contain": ["conceptual integrity", "change ownership", "smallest coherent shape"],
       "must_not_contain": []
     },
     {
-      "file": "pragmatic-coding-session/SKILL.md",
-      "concept": "smallest reversible move",
-      "must_contain": ["smallest reversible move"],
+      "file": "tdd/SKILL.md",
+      "concept": "smallest reversible move / the Iron Law",
+      "must_contain": ["smallest reversible move", "Iron Law"],
       "must_not_contain": []
     },
     {
@@ -56,33 +56,9 @@
       "must_not_contain": []
     },
     {
-      "file": "fable-intake/SKILL.md",
-      "concept": "act or assess / the mandate",
-      "must_contain": ["act or assess", "the mandate", "eager fix", "timid report"],
-      "must_not_contain": []
-    },
-    {
-      "file": "fable-diagnosis/SKILL.md",
-      "concept": "pattern-match is not diagnosis / artifact of proof",
-      "must_contain": ["pattern-match is not diagnosis", "artifact of proof"],
-      "must_not_contain": []
-    },
-    {
-      "file": "fable-decision/SKILL.md",
-      "concept": "recommendation, not survey / already decided",
-      "must_contain": ["recommendation, not survey", "already decided", "marginal-information test", "survey ends here"],
-      "must_not_contain": []
-    },
-    {
-      "file": "fable-implementation/SKILL.md",
-      "concept": "native diff / earned comment / defensive theater",
-      "must_contain": ["native diff", "earned comment", "defensive theater", "smallest coherent shape"],
-      "must_not_contain": []
-    },
-    {
-      "file": "fable-reporting/SKILL.md",
-      "concept": "lead with the outcome / selection over compression",
-      "must_contain": ["lead with the outcome", "selection over compression", "honest ledger", "last-paragraph check"],
+      "file": "fable-mindset/SKILL.md",
+      "concept": "the five moments — intake (act or assess / the mandate), diagnosis (pattern-match is not diagnosis / artifact of proof), decision (recommendation, not survey / already decided), implementation (native diff / defensive theater), reporting (lead with the outcome / selection over compression)",
+      "must_contain": ["act or assess", "the mandate", "eager fix", "timid report", "pattern-match is not diagnosis", "artifact of proof", "recommendation, not survey", "already decided", "marginal-information test", "survey ends here", "native diff", "earned comment", "defensive theater", "smallest coherent shape", "lead with the outcome", "selection over compression", "honest ledger", "last-paragraph check"],
       "must_not_contain": []
     },
     {

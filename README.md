@@ -1,6 +1,24 @@
 # rar-skills
 
-A collection of Claude Code skills for design review, multi-model orchestration, and coding workflows.
+Claude Code skills that compose into **one development workflow** — idea → interview → spec → tasks → design gate → test-driven build → review → PR. Every human decision is collected in the first three phases; everything after the approval gate runs autonomously while still optimizing architecture, tests, simplicity, and security.
+
+## The workflow
+
+One user-called skill per step. `ship` runs the whole pipeline; each step is also usable on its own.
+
+| Step | Skill | What it does |
+|---|---|---|
+| 0. Frame | `brainstorm` · `prototype` | Sharpen a fuzzy idea to a BUILD/DEFER/REDUCE-SCOPE/REJECT verdict; spike a design unknown only running code can settle. |
+| 1. Specify | `interview` → `to-spec` | Grill the idea against the code, the glossary, and past decisions until spec-ready; then synthesize the PRD (security decisions and test seams included). |
+| 2. Plan | `to-tasks` | Cut tracer-bullet vertical slices, each with a machine-checkable acceptance contract and design/security gate flags. **The last human gate.** |
+| 3. Design gate | `coding-design-plan` → `design-gate` | Shape the plan, then run only the design lenses the slice's flags select, as parallel read-only reviewers. |
+| 4. Build | `implement-and-review` (or `tdd` directly) | Test-first implementation with cross-model review; `safe-incremental-coding` first on untested legacy code; `diagnose` for bugs. |
+| 5. Verify | `coding-review-simplify` → `full-review` → `browser-smoke` | Self-simplify, then the multi-model review gate on final code, then drive the real app. |
+| 6. Deliver | `open-pr` · `resolve-pr-feedback` | PR with acceptance evidence and the decision log; resolve review threads. |
+
+Full narrative, design principles, and conventions: [docs/workflow.md](docs/workflow.md). Visual map: `workflow.html`.
+
+Supporting casts: **design lenses** (`architecture-lens`, `macro-architecture`, `domain-driven-design`, `software-design-philosophy`, `design-patterns`, `data-systems-coding-lens`, `agent-architecture-lens`, `react-performance`) are routed by `design-gate` rather than chosen by hand; **`models-consensus`** answers contested questions with a multi-model council (modes `poll` / `debate` / `personas`) and is what the autonomous phases escalate to instead of asking the user; **`fable-mindset`** governs turn-level posture; the **`*-runner`** family provides the model seats.
 
 ## Quickstart
 
@@ -16,9 +34,9 @@ Skills install under `.agents/skills/` in the target repo. The runner scripts an
 
 ## Prerequisites
 
-Most skills here are **pure-prompt** (the design lenses, reviews, and planning skills — e.g. `design-gate`, `architecture-lens`, `clean-code`, `tdd`, `coding-design-plan`). They need nothing beyond Claude Code itself.
+Most skills here are **pure-prompt** (the design lenses, reviews, and planning skills — e.g. `design-gate`, `architecture-lens`, `clean-code`, `tdd`, `coding-design-plan`). They need nothing beyond Claude Code itself, and the pipeline is self-contained: every skill `ship` invokes lives in this collection.
 
-The prerequisites below apply to the **multi-model and runner skills** — `models-roundtable`, `models-consensus`, `council`, `diverse-plan`, `implement-and-review`, `implement-feature`, `feature-models-roundtable`, `full-review`, the `collaborative_*` skills, and the `*-runner` skills they drive. You only need the pieces for the seats you actually want; these skills run on a **quorum** (typically ≥3 seats) and degrade gracefully when a CLI is missing — they report the absent seat rather than faking it (*seat fidelity*).
+The prerequisites below apply to the **multi-model and runner skills** — `models-consensus`, `diverse-plan`, `implement-and-review`, `implement-feature`, `full-review`, `collaborative_delivery`, the panel modes of `brainstorm` / `to-spec` / `to-tasks`, and the `*-runner` skills they drive. You only need the pieces for the seats you actually want; these skills run on a **quorum** (typically ≥3 seats) and degrade gracefully when a CLI is missing — they report the absent seat rather than faking it (*seat fidelity*). Seat → model ids live in one place: [`_shared/references/model-roster.md`](_shared/references/model-roster.md).
 
 ### 1. Runtime
 
@@ -62,20 +80,11 @@ Every CLI seat is an external model call — it sends prompt text, prompt files,
 | Provider API keys referenced by `~/.qwen/settings.json` | Whatever env vars your `modelProviders` entries reference, for the Gemma / Minimax / Qwen seats. |
 | `RUNNER_BASE_PATH` | Override the runner-script base path when skills are **not** installed at the default `.agents/skills/` location (e.g. running from a source checkout). |
 
-### 5. External skills not bundled here
+### 5. External skills
 
-A few skills reference sibling skills that are **not** part of this collection. Install them separately if you use the skills that call them:
+None are required. The pipeline is self-contained — the five steps that used to depend on external installs are now in-repo: `tdd`, `interview` (the requirements interview), `prototype`, `diagnose`, and `session-handoff`.
 
-| Referenced skill | Called by | Install |
-|------------------|-----------|---------|
-| `tdd` | `implement-and-review`, `ship`, coding workflows | from your TDD skill source, e.g. `npx skills@latest add <owner>/<repo> --skill tdd` |
-| `adversarial-review` | cross-model review workflows | from its source collection, same `npx skills@latest add` form |
-| `grill-with-docs` | `ship` phase 1 (specify interview) | from your skill source, same `npx skills@latest add` form |
-| `prototype` | `ship` phase 0 (frame — design unknowns) | same |
-| `diagnose` | `ship`, `pragmatic-coding-session` (bugs found mid-work) | same |
-| `handoff` | `ship` (context preservation on long slices) | same |
-
-`verify` (called by `ship` phase 5) is a **Claude Code built-in** skill — no install needed when running under Claude Code; under another host, substitute an equivalent run-the-app check.
+Two optional integrations are used when present and skipped when not: a code-review plugin (the `/review` builtin or an equivalent) and, in `ship` phase 5, driving the real app — handled here by `browser-smoke` for web-facing changes, or the host's run-the-app check otherwise.
 
 If a referenced skill is absent, the calling skill notes it and continues with the lenses it can apply — the pipeline degrades, it does not break.
 

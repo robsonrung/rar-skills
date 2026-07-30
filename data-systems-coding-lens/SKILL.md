@@ -16,7 +16,7 @@ Start by identifying the state boundary:
 1. What data is created, read, updated, deleted, cached, derived, or emitted?
 2. What is the source of truth?
 3. Which paths are synchronous, asynchronous, retried, replayed, or user visible?
-4. Which invariant would make the feature incorrect if it broke?
+4. Which invariant would make the feature incorrect if it broke, and where does the code assert it?
 5. Which failure would be silent, expensive, or hard to repair?
 
 If the task is small, keep this pass brief and fold it into the implementation. If the task touches shared data contracts or production records, write the answer down before editing.
@@ -55,6 +55,8 @@ Ask:
 
 Check retries, duplicate messages, partial writes, timeout behavior, poison messages, dead letter handling, and user visible recovery.
 
+Check process resources: every file, handle, lock, transaction, subscription, timer, and socket needs one clear owner and a cleanup path on success, failure, and cancellation.
+
 Ask:
 
 1. What happens after a crash between two writes?
@@ -62,6 +64,7 @@ Ask:
 3. What happens if the local write succeeds but the external service times out?
 4. Can a retry create duplicate money, emails, notifications, jobs, or records?
 5. How does an operator detect and repair the failure?
+6. Does correctness depend on hidden time ordering? Break it — make sequencing explicit through state, queues, locks, transactions, idempotency keys, or version checks.
 
 ### Distributed Behavior
 

@@ -16,6 +16,8 @@ Before phase 0, interpret whether the invocation semantically assigns a pipeline
 - **Unscoped** ("use X", "with Y") binds to the **implementation stage only** — never broaden it to planning or every stage — and the binding is disclosed in the opening line ("Routing implementation to X; planning stays on the session model.").
 - **Strength** is inferred from the instruction's meaning, not a keyword: "use X for implementation" is prefer-strength (fall back with prominent disclosure when unavailable); "only use X" is require-strength (an unavailable route blocks that stage — no prompt, no silent fallback).
 
+With no directive in the invocation, check `work_engine_preferences` in the local config (`_shared/references/local-config.md`) for standing per-stage defaults; an explicit directive always outranks it, and its `mode: off|prefer|require` maps onto the same strength rule above. Absent both, every stage runs on the session model.
+
 Sanitize every routing directive out of the feature request before it enters phases 0–2 or any review input — carriers are stage-scoped routing authority, never product content.
 
 ## Local-only mode
@@ -26,13 +28,13 @@ Run `git remote` once at the start of the run. No remote flips the whole run loc
 
 | Phase | Mode | Invoke |
 |---|---|---|
-| 0. Frame | interactive, optional | `brainstorm` (fuzzy idea); `prototype` (design unknown only running code can settle) |
-| 1. Specify | interactive | `grill-with-docs` then `to-spec`; high-stakes or contested: `collaborative_discovery` then `collaborative_specification`. Run the `security-gate` spec-time checklist during the interview; `to-spec` records the answers as the PRD's Security Decisions and names the test seams, so Phase 2 can lift both. |
-| 2. Plan | interactive — last human gate | `to-tasks` (default) or `collaborative_task_design` (needs per-task test plans), then apply the `to-tasks` Slice Contract to its output. User approves the breakdown. |
+| 0. Frame | interactive, optional | `brainstorm` (fuzzy idea — panel mode for high-stakes multi-model discovery); `prototype` (design unknown only running code can settle) |
+| 1. Specify | interactive | `interview` then `to-spec`; high-stakes or contested: run both in panel mode. The `interview` runs the `security-gate` spec-time checklist and names the test seams; `to-spec` records them as the PRD's Security Decisions and Testing Decisions, so phase 2 can lift both. |
+| 2. Plan | interactive — last human gate | `to-tasks` (panel mode when the delivery needs per-task test plans and architecture mapping). Its Slice Contract carries `acceptance` + `gates` natively. User approves the breakdown. |
 | 3. Design gate | autonomous, per task | `coding-design-plan`, then `design-gate` with the slice's lens flags |
-| 4. Implement | autonomous, per task | `tdd` + `safe-incremental-coding` with `coding-implementation-guard` active; `safe-incremental-coding` builds a characterization-test net first when touching untested legacy code; `diagnose` for bugs found mid-work. Panel-gated alternative when an audit trail of multi-model participation is required: `collaborative_delivery`. |
-| 5. Verify | autonomous | ordered, fail-fast: run the acceptance contract → `full-review` (deep security pass when flagged by `security-gate`) → `coding-review-simplify` → `verify`. Failures loop to phase 4 via `diagnose`. |
-| 6. Deliver | autonomous | commit, make unapplied review findings durable per `references/residual-findings.md`, open PR (skipped in local-only mode), move the issue's triage label, write a `summarize` handoff note. The human merges. |
+| 4. Implement | autonomous, per task | `implement-and-review` per slice — it lifts the Slice Contract natively (`acceptance` becomes the done-gate, `gates` select the lenses) and never pushes. Alternatives: `collaborative_delivery` when a recorded multi-model audit trail is required; direct `tdd` (+ `safe-incremental-coding` first on untested legacy code) for a trivial single-track slice. `diagnose` for bugs found mid-work. |
+| 5. Verify | autonomous | ordered, fail-fast: run the acceptance contract → `coding-review-simplify` (self-simplify while context is fresh) → `full-review` (deep security pass when flagged by `security-gate`) → `browser-smoke` in pipeline mode for web-facing changes, otherwise the harness `run` check. The multi-model gate reviews **final** code — never let a mutating pass follow it unreviewed. Failures loop to phase 4 via `diagnose`. |
+| 6. Deliver | autonomous | commit, make unapplied review findings durable per `references/residual-findings.md`, open PR via `open-pr` (skipped in local-only mode), move the issue's triage label, store a continuity note via `session-handoff` (body per `summarize`'s cold-start test), and — when the run solved a non-obvious problem — `capture-learning` in headless mode. The human merges; `resolve-pr-feedback` closes the post-review loop when comments arrive. |
 
 Skip phases 0–1 when the input is already a PRD or approved spec; skip to phase 3 when approved slices already exist.
 
@@ -42,18 +44,13 @@ The Slice Contract — machine-checkable `acceptance` commands plus `gates` flag
 
 ## Autonomous loop
 
-For each ready slice, in dependency order:
+For more than one ready slice, delegate scheduling to `implement-feature`: it executes the dependency DAG with parallel worktrees, integration-head rebasing, and a feature-wide seam review, calling `implement-and-review` per task. For a single slice, run phases 3–6 directly in an isolated worktree created via the `worktree` skill (harness-native isolation first — never a worktree the harness cannot see).
 
-1. Create an isolated worktree for the slice.
-2. Run phases 3–6.
-3. On completion, pick up the next ready slice. Independent slices may run in parallel worktrees.
-4. On a blocked slice (escalation ladder exhausted at a hard-stop), record why, skip it, continue with unblocked slices, and list all blocked slices in the final report.
-
-For long-running slices, preserve context with `codex-mission-control` or `handoff` rather than degrading in a bloated context window.
+On a blocked slice (escalation ladder exhausted at a hard-stop), record why, skip it, continue with unblocked slices, and list all blocked slices in the final report. For long-running slices, preserve context with `dynamic-harness` (manager/ledger orchestration) or a `session-handoff` note rather than degrading in a bloated context window.
 
 ### Run state
 
-The loop crosses compactions, restarts, and parallel worktrees, so its progress lives in **the ledger, not the transcript**. Keep one run state per slice under `_shared/references/run-state-contract.md`:
+The loop crosses compactions, restarts, and parallel worktrees, so its progress lives in **the ledger, not the transcript** — keep one run state per slice per `_shared/references/run-state-contract.md`. Ship-specific bindings:
 
 - `phase` is the pipeline phase number, appended to `steps` as each completes. A resumed slice restarts at `phase`, not at phase 0 — phases 3–6 are expensive and their outputs are already on disk.
 - The **phase 2 approval** is recorded in `gates` when the user approves the breakdown. It is the last human gate, so a restart that cannot find it in `gates` stops and asks rather than assuming approval; a restart that finds it treats it as **already decided** and does not re-ask.
@@ -72,13 +69,13 @@ Phase 5 review findings that are not applied must become durable before the slic
 
 When an autonomous phase hits a contested or irreversible decision:
 
-1. Run `models-consensus` (or the lighter `council` with `--auto` — never plain `council`, whose default mode interviews the user) — multi-model deliberation substitutes for the user.
+1. Run `models-consensus` in poll mode with `--auto` (budget preset for routine escalations) — multi-model deliberation substitutes for the user. It deliberates only; it never starts implementation.
 2. Still unresolved: pick the most reversible default, record assumption + rationale in a decision log carried into the PR body, proceed.
 3. Hard-stop and wait for the human only for destructive or irreversible operations (data deletion, force-push, external publication, irreversible migration against real data).
 
 ## PR contract
 
-The PR body must contain: acceptance evidence (commands run, output), design-gate verdicts, review summary, decision log with flagged assumptions, and remaining risks. Report outcomes faithfully — failed or skipped checks are stated, never smoothed over.
+PR composition is `open-pr`'s job — delegate it. Ship adds the required pipeline sections to the body: acceptance evidence (commands run, output), design-gate verdicts, review summary, decision log with flagged assumptions, and remaining risks. Report outcomes faithfully — failed or skipped checks are stated, never smoothed over.
 
 ## Gotchas
 
@@ -89,6 +86,7 @@ The PR body must contain: acceptance evidence (commands run, output), design-gat
 5. Do not mark a slice done without its acceptance commands passing in the worktree.
 6. Do not retry pushes or PR actions in local-only mode — one `git remote` check decides the whole run.
 7. Do not let a routing directive leak into spec, plan, or review inputs — sanitize it out before phase 0.
+8. Do not run any mutating pass after `full-review` without re-running it — the gate reviews final code.
 
 ---
 *Model-routing, local-only, evidence-gate, and residual-durability contracts adapted from Every's compound-engineering-plugin (`lfg`).*

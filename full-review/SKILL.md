@@ -93,7 +93,7 @@ Treat explicit repo rules as hard constraints. Do not reference skills, tools, p
 
 ## Phase 1: Collect Context
 
-Prefer `scripts/collect_context.sh` when it covers the input.
+Prefer `scripts/collect_context.sh` when it covers the input. This review is read-only: point its `OUT_DIR` at a temp directory under `$TMPDIR` (or `/tmp`) rather than accepting its `./artifacts/full-review` default, so no review artifact lands in the project tree.
 
 Minimum context:
 
@@ -176,7 +176,7 @@ Run all relevant review seats in one parallel batch when the host supports it.
 Use a shared findings directory:
 
 ```bash
-FINDINGS_DIR="/tmp/full-review-findings-$(date +%s)"
+FINDINGS_DIR="${TMPDIR:-/tmp}/full-review-findings-$(date +%s)"
 mkdir -p "$FINDINGS_DIR"
 echo "$FINDINGS_DIR"
 ```
@@ -213,7 +213,7 @@ The Maintainer Gardener must apply `references/structural_quality_review.md` and
 
 Activate specialists from `references/conditional_specialists.md` only when the diff matches their trigger patterns. Give each specialist only the relevant diff subset plus `rules_compact`.
 
-Tag specialist findings with `specialist_database`, `specialist_api_contract`, `specialist_authorization`, `specialist_performance`, `specialist_integration`, or `specialist_data_integrity`.
+Tag specialist findings with `specialist_database`, `specialist_api_contract`, `specialist_authorization`, `specialist_performance`, `specialist_integration`, `specialist_data_integrity`, or `specialist_react`.
 
 ### External Runners
 
@@ -226,10 +226,16 @@ At preflight, run the shared probe and record the resulting seat table:
 ```bash
 python3 .agents/skills/_shared/scripts/discover_runners.py probe \
   --native-agent yes \
+  --seat opus --seat sonnet --seat codex --seat gemini --seat grok --seat kimi --seat glm \
+  --seat gemma --seat qwen --seat minimax \
   --format json
 ```
 
-Pass `--native-agent yes` only when the host exposes the native `Agent` tool (Claude Code); otherwise pass `no` or omit. The script returns the JSON envelope documented in `_shared/scripts/discover_runners.py`: `seats[]` (each with `seat`, `execution_path`, `available`, `version`, `cli_path`, `blocked_reason`, `depends_on`, `notes`) plus `summary.light_quorum_met` and `summary.quality_quorum_met`. Use those fields directly — do not re-probe `PATH` inline.
+**Script paths.** `_shared` scripts live at `.agents/skills/_shared/...` in an installed skill tree and at `_shared/...` in this source checkout — use whichever layout resolves on the host. This skill's own scripts are always skill-relative (`scripts/collect_context.sh`).
+
+Pass `--native-agent yes` only when the host exposes the native `Agent` tool (Claude Code); otherwise pass `no` or omit. The script returns the JSON envelope documented in `discover_runners.py`: `seats[]` (each with `seat`, `tier`, `execution_path`, `available`, `version`, `cli_path`, `blocked_reason`, `depends_on`, `notes`) plus `summary.light_quorum_met` and `summary.quality_quorum_met`. Use those fields directly — do not re-probe `PATH` inline.
+
+The `--seat` list above names the backup seats (`gemma`, `qwen`, `minimax`) explicitly because the probe only covers `tier: backup` seats when they are named — that is the *only* difference between them and the primary seats. Their availability is read from the same `seats[]` envelope, by the same fields, with no separate check.
 
 The probe covers this default candidate set, in priority order:
 
@@ -237,18 +243,21 @@ Role diversity follows the model's strengths: **GPT for logic and security, Sonn
 
 | Seat | Execution path | Default lens |
 |------|----------------|--------------|
-| `codex` | `codex-runner --effort high` (GPT 5.6 Sol logic); security seat adds `--model gpt-5.3-codex` | `logic_state` (GPT owns logic **and** `security_runtime`) |
-| `sonnet` | native `Agent` subagent (`model: "sonnet"`) or `claude-runner --model claude-sonnet-5` | `structural_maintainability` (Sonnet 5 owns maintainability) |
-| `gemini` | `gemini-runner --model gemini-3.6-flash` (Antigravity `agy`) | `cross_file_consistency` (Gemini 3.6 Flash — broad, long context) |
-| `grok` | `grok-runner --effort high` (Grok 4.5) | `logic_state` second seat — execution paths / CLI & tool invocation flows / integration behavior (Terminal-Bench-class agentic strength) |
-| `glm` | `glm-runner --model zai/glm-5.2` | `broad_sweep` (GLM 5.2 — edge cases / resource & failure paths) |
-| `kimi` | `kimi-runner` (Kimi K3, `moonshotai/kimi-k3`) | `broad_sweep` (broad pragmatic — input/auth) |
-| `opus` | native `Agent` subagent (`model: "opus"`) or `claude-runner --model claude-opus-4-8` | Phase 5 synthesizer; `structural_maintainability` backup behind sonnet |
+| `codex` | `codex-runner --effort high` | `logic_state` (the Codex seat owns logic **and** `security_runtime`) |
+| `codex-code` | `codex-runner --model gpt-5.3-codex --effort high` (see `_shared/references/model-roster.md`) | `security_runtime` — code-specialized secondary Codex seat |
+| `sonnet` | native `Agent` subagent (`model: "sonnet"`) or `claude-runner --model sonnet` | `structural_maintainability` (the Sonnet seat owns maintainability) |
+| `gemini` | `gemini-runner` (Antigravity `agy`) | `cross_file_consistency` (the Gemini seat — broad, long context) |
+| `grok` | `grok-runner --effort high` | `logic_state` second seat — execution paths / CLI & tool invocation flows / integration behavior (Terminal-Bench-class agentic strength) |
+| `glm` | `glm-runner` | `broad_sweep` (the GLM seat — edge cases / resource & failure paths) |
+| `kimi` | `kimi-runner` | `broad_sweep` (broad pragmatic — input/auth) |
+| `opus` | native `Agent` subagent (`model: "opus"`) or `claude-runner --model opus` | Phase 5 synthesizer; `structural_maintainability` backup behind sonnet |
 | `gemma` | `gemma-runner` | `broad_sweep` (regression/perf) backup |
 | `qwen` | `qwen-runner` | `logic_state` backup |
 | `minimax` | `minimax-runner` | `cross_file_consistency` backup |
 
-`security_runtime` is a **GPT** lens: in `quality`/`security_focus` runs, fill it with a second Codex seat on `codex-runner --model gpt-5.3-codex` (the code-specialized security reviewer), alongside the GPT 5.6 Sol `logic_state` seat — matching the markdown's "Security review → GPT 5.6 Sol + GPT 5.3 Codex".
+**Model ids are not pinned here.** `_shared/references/model-roster.md` is the single source of truth for seat → model id. Invocations are alias-first where the CLI supports an alias (`claude-runner --model opus|sonnet`, the native `Agent` tool's `model:` field); otherwise the runner's own default carries the roster id and no `--model` flag is needed. The one deliberate exception is `--model gpt-5.3-codex`, which selects a *different seat* on the same CLI rather than re-pinning the default one.
+
+`security_runtime` is a **Codex** lens: in `quality`/`security_focus` runs, fill it with the `codex-code` seat (`codex-runner --model gpt-5.3-codex`, the code-specialized security reviewer) alongside the default Codex `logic_state` seat — two distinct models on one transport, not one seat used twice.
 
 `logic_state` may likewise be double-seated (the shared-lens rule below already permits it): codex takes logic/state/concurrency on tight code slices, grok takes execution paths, CLI/tool invocation flows, and integration behavior — non-overlapping `{category_emphasis}` values.
 
@@ -295,7 +304,7 @@ Uneven access biases the panel and breaks the multi-model corroboration boost in
 
 #### Invocation
 
-Use `references/external_prompt_template.md`, write composed prompts to files under `artifacts/full-review/`, redirect runner output to persistent files, and check exit codes explicitly. Launch all engaged seats **concurrently**.
+Use `references/external_prompt_template.md`. Write composed prompts to files under `$TMPDIR` (the `$FINDINGS_DIR` above, or a sibling temp directory) — **never** into `artifacts/full-review/` or anywhere else in the project tree; this review does not write to the repo. Redirect runner output to files in that same temp directory so it survives the call, and check exit codes explicitly. Launch all engaged seats **concurrently**.
 
 For each successful runner:
 
@@ -341,7 +350,7 @@ Synthesis is delegated to a **fresh-model synthesizer**, not run inline by the o
 
 ### Synthesizer
 
-A fresh read-only synthesizer context — **on a Claude host** default Opus 4.8 (`Agent` with `subagent_type=general-purpose`, `model: "opus"`); **when running outside Claude** default **GPT 5.6 Sol** (`codex-runner --model gpt-5.6-sol`), the best all-around synthesis model — receives:
+A fresh read-only synthesizer context — **on a Claude host** the Opus seat (`Agent` with `subagent_type=general-purpose`, `model: "opus"`); **when running outside Claude** the default Codex seat (`codex-runner`), the best all-around synthesis model available off-host (ids per `_shared/references/model-roster.md`) — receives:
 
 1. All candidate comments from gates, bug finders, personas, specialists, external runners, and existing PR comments.
 2. A per-finding **corroboration map** keyed by `(path, line_range, category)` showing every originating source and the `corroborated_models` count.
@@ -416,6 +425,8 @@ Verification and corroboration boosts are applied per `references/filtering_pipe
 | `scripts/review_scope.py` | Deterministic scope signals (executable-line count, uncounted files, path/verification signals, fail-closed `lite_eligible`) — Phase 1 |
 | `scripts/findings_mechanics.py` | Mechanical pre-pass: schema validation, exact-duplicate merge, confidence-anchor snapping, quote-the-line gate, triage grouping, stable numbering — before Phase 5 |
 | `_shared/scripts/discover_runners.py` | Standardized preflight probe used by Phase 3 to enumerate available runner seats |
+
+Paths in the first four rows are **skill-relative** — resolve them against the directory holding this SKILL.md. The shared script is repo-relative and has two layouts: `.agents/skills/_shared/scripts/discover_runners.py` in an installed skill tree, `_shared/scripts/discover_runners.py` in this source checkout. Try the installed path first, fall back to the checkout path.
 
 ## Triage Groups and Apply Authority
 

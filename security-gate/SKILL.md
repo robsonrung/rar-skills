@@ -11,7 +11,7 @@ The two leitwörter below are what you name as you work: a **threat-model-lite**
 
 ## Threat-model-lite — spec-time checklist (interactive)
 
-During the phase 1 interview (`grill-with-docs` or `collaborative_discovery`), ask only the questions relevant to the feature; skip rows with no exposure. Record every answer in the PRD's Implementation Decisions so phases 3–6 never have to ask.
+Run this inside the requirements interview — the `interview` skill, or `brainstorm`'s panel-mode discovery. Ask only the questions relevant to the feature; skip rows with no exposure. Record every answer in the PRD's Security Decisions section so the autonomous phases never have to ask.
 
 1. **Actors & auth**: who can invoke this? What roles/permissions gate each action? What happens for unauthenticated or wrong-role access?
 2. **Untrusted input**: what data arrives from users or external systems? Where is it validated, and what is rejected?

@@ -83,7 +83,7 @@ python3 .agents/skills/grok-runner/scripts/run_grok.py --prompt-file /tmp/overla
 python3 .agents/skills/grok-runner/scripts/run_grok.py "Read-only architecture review" --restrict-tools --output-format json --json
 python3 .agents/skills/grok-runner/scripts/run_grok.py "Continue from the accepted report" --role implementer --session-file .ai-workflow/consensus/feature-x.md
 python3 .agents/skills/grok-runner/scripts/run_grok.py "Trace the failing execution path" --role codereviewer --effort high --output-format json --json --output-file /tmp/grok-review.json
-python3 .agents/skills/grok-runner/scripts/run_grok.py --prompt-file /tmp/round1-brief.md --restrict-tools --effort high --json --disable-fallback --output-schema .agents/skills/models-roundtable/schemas/opening-answer.schema.json --output-file /tmp/round1-grok.json
+python3 .agents/skills/grok-runner/scripts/run_grok.py --prompt-file /tmp/round1-brief.md --restrict-tools --effort high --json --disable-fallback --output-schema .agents/skills/models-consensus/schemas/opening-answer.schema.json --output-file /tmp/round1-grok.json
 python3 .agents/skills/grok-runner/scripts/run_grok.py --resume 019fa905-2a08-7180-83fe-64b8bb369912 "Apply the top recommendation" --role implementer --allow-write
 python3 .agents/skills/grok-runner/scripts/run_grok.py "Investigate the flaky test" --output-format json --background
 ```

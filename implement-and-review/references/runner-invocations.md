@@ -1,6 +1,6 @@
 # Seat Invocations
 
-Exact launch patterns for the implement-and-review seats. Paths assume the installed `.agents/skills/` layout; from the source repo, drop the `.agents/skills/` prefix. `<id>` = session id, `<base>` = the commit recorded at preflight, `<wt-fe>` / `<wt-be>` = the frontend/backend worktree paths (see [worktree-and-integration.md](worktree-and-integration.md)).
+Exact launch patterns for the implement-and-review seats. Seat → model ids (and the alias-first policy: prefer `--model opus` over a pinned id) live in `_shared/references/model-roster.md`. Paths assume the installed `.agents/skills/` layout; from the source repo, drop the `.agents/skills/` prefix. `<id>` = session id, `<base>` = the commit recorded at preflight, `<wt-fe>` / `<wt-be>` = the frontend/backend worktree paths (see [worktree-and-integration.md](worktree-and-integration.md)).
 
 ## Table of Contents
 
@@ -10,9 +10,8 @@ Exact launch patterns for the implement-and-review seats. Paths assume the insta
 4. [Backend implementer — GPT 5.6 Sol (Codex)](#backend-implementer--gpt-56-sol-codex)
 5. [Frontend reviewer — Kimi K3](#frontend-reviewer--kimi-k3)
 6. [Backend reviewer — Opus subagent](#backend-reviewer--opus-subagent)
-7. [Joint review & simplify — Opus + Codex](#joint-review--simplify--opus--codex)
-8. [Collecting results](#collecting-results)
-9. [Host portability](#host-portability)
+7. [Collecting results](#collecting-results)
+8. [Host portability](#host-portability)
 
 ## Launcher script (one-call setup)
 
@@ -49,13 +48,13 @@ For a standalone single task, omit `--slice`. The `--slice` namespacing exists s
 
 - The manifest records each track's `worktree`, `branch`, `brief`, `job_id`, and `working_dir`. `poll` reuses `working_dir` to find each job under `<worktree>/.ai-workflow/runner-jobs/`, and on completion reports `success` and `runner_session_id` (use it for `--resume` fix rounds).
 - Briefs must already exist (you write them in Phase 0/1); the launcher copies them into the artifact dir for provenance.
-- The launcher only sets up and fires Phase 1 implement runs. Reviews, fix loops, integration, and the joint pass are driven by you using the commands below.
+- The launcher only sets up and fires Phase 1 implement runs. Reviews, fix loops, integration, the `coding-review-simplify` pass, and the final `full-review` are driven by you — the review seats with the commands below, the two skills by invoking them directly.
 
 When you want fine control, skip the launcher and use the per-seat commands directly.
 
 ## Shared rules
 
-- **Writers vs. reviewers:** implementers get write access (only after the Phase 0 approval, or `--auto`); reviewers and the joint analysis pass are always read-only (`--restrict-tools`, no role that grants writes).
+- **Writers vs. reviewers:** implementers get write access (only after the Phase 0 approval, or `--auto`); review seats are always read-only (`--restrict-tools`, no role that grants writes).
 - **No silent swaps:** every runner gets `--disable-fallback`.
 - **Keep transcripts out of context:** runners use `--output-file` (and `--background` for implementers); read `agent_message` from the file, not raw stdout.
 - **Review contract:** reuse the bundled review schema `.agents/skills/codex-runner/schemas/review-output.schema.json` (verdict `approve`/`needs-attention`, severity-ordered findings with file/line/recommendation, next_steps). Pass it via `--output-schema` to Codex/Kimi; embed the same shape in Opus-subagent reviewer prompts (subagents have no schema flag).
@@ -69,7 +68,7 @@ Spawn a **named** native subagent so fix rounds can continue the same context vi
 Agent(
   name="fe-impl",
   subagent_type="general-purpose",
-  description="Frontend implementer (Opus 4.8)",
+  description="Frontend implementer (Opus seat)",
   model="opus",
   mode="acceptEdits",                 # writes files unattended; use "auto" if it must also run build/test without prompts
   prompt="""
@@ -153,7 +152,7 @@ Read-only review of the BE worktree diff (cross-model: Codex wrote it, Opus revi
 ```text
 Agent(
   subagent_type="general-purpose",
-  description="Backend reviewer (Opus 4.8) — cycle <cycle>",
+  description="Backend reviewer (Opus seat) — cycle <cycle>",
   model="opus",
   mode="plan",                         # read-only
   prompt="""
@@ -168,28 +167,6 @@ SHARED CONTRACTS: <api shapes / types>
 """
 )
 ```
-
-## Joint review & simplify — Opus + Codex
-
-Both review the **integrated** diff read-only and propose behavior-preserving simplifications (reuse, dedupe, dead code, the FE/BE seam).
-
-Codex:
-
-```bash
-python3 .agents/skills/codex-runner/scripts/run_codex.py \
-  --prompt-file .ai-workflow/impl-review/<id>/joint-brief.md \
-  --working-dir <integration-worktree-or-repo> \
-  --role codereviewer \
-  --restrict-tools \
-  --effort high --timeout 900 \
-  --json --disable-fallback \
-  --output-schema .agents/skills/codex-runner/schemas/review-output.schema.json \
-  --output-file .ai-workflow/impl-review/<id>/joint-codex.json
-```
-
-Opus: a `mode:"plan"` subagent with the joint brief and the same JSON shape. The brief gives both `git diff <base>..<integration>` and asks for simplifications that **do not change behavior**.
-
-**Apply step:** the orchestrator reconciles both lists (apply agreed/safe items, drop behavior-changing ones), then applies via one implementer — Codex `--resume <session_id> --full-auto` or a write-enabled Opus subagent — and re-runs verification.
 
 ## Collecting results
 
@@ -206,8 +183,7 @@ Opus: a `mode:"plan"` subagent with the joint brief and the same JSON shape. The
 
 | Capability | Claude Code | Codex host |
 |------------|-------------|------------|
-| FE implementer (Opus) | native `Agent`, `model:"opus"`, write mode | `claude-runner --model claude-opus-4-8 --allow-write` |
+| FE implementer (Opus) | native `Agent`, `model:"opus"`, write mode | `claude-runner --model opus --allow-write` |
 | BE implementer (GPT 5.6 Sol via Codex) | `codex-runner --model gpt-5.6-sol --role implementer --full-auto` | native `spawn_agent` (`fork_context=false`), write-enabled |
 | FE reviewer (Kimi) | `kimi-runner --role codereviewer` | `kimi-runner --role codereviewer` |
-| BE reviewer (Opus) | native `Agent`, `mode:"plan"` | `claude-runner --model claude-opus-4-8 --restrict-tools` |
-| Joint pass | Opus subagent + `codex-runner` | native Codex subagent + `claude-runner` |
+| BE reviewer (Opus) | native `Agent`, `mode:"plan"` | `claude-runner --model opus --restrict-tools` |

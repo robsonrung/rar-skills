@@ -44,8 +44,8 @@ PROVIDER_BY_RUNNER = {
     "grok": "xai",
     "qwen": "qwen",
     "gemma": "google",
-    "glm": "z-ai",
-    "kimi": "moonshot",
+    "glm": "zai",
+    "kimi": "moonshotai",
     "minimax": "minimax",
 }
 

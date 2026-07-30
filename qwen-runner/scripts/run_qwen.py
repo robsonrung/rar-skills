@@ -39,9 +39,9 @@ PROVIDER_BY_RUNNER = {
     "gemini": "google",
     "qwen": "qwen",
     "gemma": "google",
-    "glm": "z-ai",
-    "glm-critical": "z-ai",
-    "kimi": "moonshot",
+    "glm": "zai",
+    "glm-critical": "zai",
+    "kimi": "moonshotai",
     "minimax": "minimax",
 }
 
@@ -58,18 +58,13 @@ def normalize_envelope(
     if result.get("effective_model") is None:
         result["effective_model"] = result.get("model") or requested_model
 
+    # qwen-backed runners never fall back; the seat blocks-and-reports instead.
     result.setdefault("fallback_reason", None)
 
-    if effective_runner != requested_runner and result.get("fallback_reason"):
-        result["auth_ok"] = False
-    elif "auth_ok" not in result or result.get("auth_ok") is None:
-        code = result.get("return_code")
-        if code == 0:
-            result["auth_ok"] = True
-        elif code == -2:
-            result["auth_ok"] = False
-        else:
-            result["auth_ok"] = None
+    # Missing CLI / errors before auth leave auth_ok null (untested), never
+    # false — false is reserved for a detected authentication failure.
+    if "auth_ok" not in result or result.get("auth_ok") is None:
+        result["auth_ok"] = True if result.get("return_code") == 0 else None
 
     result["effective_provider"] = result.get("effective_provider") or PROVIDER_BY_RUNNER.get(
         effective_runner,
@@ -102,8 +97,16 @@ def write_json_output_file(path: str, payload: dict[str, Any]) -> str:
     return str(target)
 
 
-def normalize_prompt_files(prompt_files: list[str] | None) -> list[str]:
-    return [str(Path(path).expanduser()) for path in (prompt_files or [])]
+def resolve_input_path(path: str, working_dir: str | None) -> str:
+    """Resolve a relative input path against --working-dir, not the process cwd."""
+    candidate = Path(path).expanduser()
+    if not candidate.is_absolute() and working_dir:
+        return str(Path(working_dir).expanduser() / candidate)
+    return str(candidate)
+
+
+def normalize_prompt_files(prompt_files: list[str] | None, working_dir: str | None = None) -> list[str]:
+    return [resolve_input_path(path, working_dir) for path in (prompt_files or [])]
 
 
 def resolve_restrict_tools(role: str | None, restrict_tools: bool, allow_write: bool) -> bool:
@@ -245,7 +248,7 @@ def run_qwen(
     del safe
     del bare
 
-    prompt_files = normalize_prompt_files(prompt_files)
+    prompt_files = normalize_prompt_files(prompt_files, working_dir)
     model = model or DEFAULT_MODEL
     cwd = working_dir or os.getcwd()
     restrict_tools = resolve_restrict_tools(role, restrict_tools, allow_write)
@@ -687,6 +690,11 @@ def main(
                         "success": result["success"],
                         "return_code": result["return_code"],
                         "output_file": output_file,
+                        "runner": result.get("runner"),
+                        "effective_runner": result.get("effective_runner"),
+                        "effective_provider": result.get("effective_provider"),
+                        "fallback_from": result.get("fallback_from"),
+                        "status": result.get("status"),
                     },
                     ensure_ascii=False,
                 )

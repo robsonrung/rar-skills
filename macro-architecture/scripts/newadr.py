@@ -11,8 +11,10 @@ import sys
 from pathlib import Path
 
 
-# Canonical template source. references/adrtemplate.md owns the template text;
-# this script loads and fills it at runtime so the two never drift.
+# Runtime template source. references/adrtemplate.md owns the template text; this
+# script loads and fills it at runtime so the two never drift. The repo-canonical
+# ADR template is architecture-lens/references/adr-template.md — adrtemplate.md
+# mirrors it in a machine-readable form.
 TEMPLATE_PATH = Path(__file__).resolve().parent.parent / "references" / "adrtemplate.md"
 
 

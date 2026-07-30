@@ -13,7 +13,7 @@ Per-checkout, user-local preferences for multi-model skills (councils, roundtabl
 
 | Key | Consumed by | Meaning |
 |---|---|---|
-| `seats.preferred` / `seats.excluded` | council, models-consensus, models-roundtable, full-review, diverse-plan | Seat ids to favor / never launch (ids per `discover_runners.py`). |
+| `seats.preferred` / `seats.excluded` | models-consensus, full-review, diverse-plan, panel modes | Seat ids to favor / never launch (ids per `discover_runners.py`). |
 | `models.<seat>` | runner-backed seats | Per-seat model override forwarded to the runner's `--model` when supported. |
 | `quorum.light` / `quorum.quality` | seat-discovery consumers | Advisory quorum thresholds (defaults 2 / 3). |
 | `work_engine_preferences` | implement-and-review, implement-feature, ship | Ordered harness+model candidates with `mode: off\|prefer\|require` and `skip_if_equivalent_to_host`. |

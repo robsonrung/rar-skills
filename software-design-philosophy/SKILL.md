@@ -1,13 +1,13 @@
 ---
 name: software-design-philosophy
-description: Write and review code to minimize long-term complexity, using the deep-modules framework from John Ousterhout's "A Philosophy of Software Design". Use when designing a module, class, or API; deciding where a boundary goes; judging whether an interface is too complex; weighing strategic vs tactical effort; reviewing code for design (not bug) quality; or when the user mentions deep modules, shallow modules, information hiding, complexity, or pulling complexity down. Distinct from clean-code (local refactoring moves) and architecture-lens (layer placement, connascence/trade-offs).
+description: Review code and designs to minimize long-term complexity, combining the deep-modules framework from John Ousterhout's "A Philosophy of Software Design" with the conceptual-integrity lens from Brooks' "The Design of Design". Use when designing a module, class, or API; deciding where a boundary goes; judging whether an interface is too complex; weighing strategic vs tactical effort; shaping a design before code; comparing design alternatives or trade-offs; running a design review of an architecture, API surface, data model, module boundary, UI flow, or feature shape; reviewing code for design (not bug) quality; or when the user mentions deep modules, shallow modules, information hiding, complexity, pulling complexity down, conceptual integrity, change ownership, system shape, design review, Brooks, or The Design of Design. Read-only: it reports findings and recommends a shape, it does not implement. Distinct from clean-code (local refactoring moves), design-patterns (whether a specific GoF pattern fits), and architecture-lens (layer placement, connascence/trade-offs).
 ---
 
 # A Philosophy of Software Design
 
-A design lens whose single goal is **reducing complexity** — the thing that, accumulated over time, makes software hard to understand and risky to change. Use it while designing new modules, while reviewing a diff for design quality, or when deciding how to draw a boundary. It complements bug-finding review; it asks a different question: *will this be cheap or expensive to live with?*
+A design lens with two anchors: **reducing complexity** (Ousterhout) — the thing that, accumulated over time, makes software hard to understand and risky to change — and **conceptual integrity** (Brooks) — whether what you built is still *one* idea. Use it while designing new modules, while reviewing a diff or a plan for design quality, or when deciding how to draw a boundary. It complements bug-finding review; it asks a different question: *will this be cheap or expensive to live with?*
 
-When reviewing, this lens **reports** findings by name; it edits only when the user asks for fixes.
+This lens is **read-only**. It reports findings by name and recommends a shape; it does not implement the change and does not run tests. Applying a fix is a separate request.
 
 ## The one thing this is about: complexity
 
@@ -34,6 +34,22 @@ Complexity has two root causes, and most red flags below trace back to one of th
 6. **Design it twice.** For any consequential interface or module, sketch two or three *meaningfully different* designs and compare them on interface simplicity, generality, and the symptoms above. The cost is small; picking the better of two designs is one of the highest-leverage habits available, even for experts.
 7. **Make code obvious.** Obvious code is read at full speed with correct assumptions and no backtracking. Nonobvious code is a red flag. Achieve obviousness with precise names, consistency, judicious white space, and comments that capture intent. Things that erode it: event-driven control flow, generics/inheritance hiding behavior, and anything that violates a reader's reasonable expectations.
 
+## Conceptual integrity — the Brooks lens
+
+Complexity asks *how much* a reader must understand. **Conceptual integrity** asks whether what they understand is **one thing**. Brooks (*The Design of Design*, *The Mythical Man-Month*) treats it as the first property of a good design: a design has conceptual integrity when it presents **one clear model, consistent vocabulary, coherent boundaries, and predictable interfaces** — so someone who learns one part can correctly predict the rest. Two half-models cost more than either model applied whole.
+
+Three checks carry this lens, and **you name the check as you apply it** — stating which check you are invoking, and what it costs, is what makes a trade-off legible:
+
+1. **conceptual integrity** — is there a single central concept, and do the names match it? Does every edge case follow the same model, or does one branch quietly run on a second model?
+2. **change ownership** — a change wants to live in exactly one place. When it doesn't, you are looking at the **information leakage** red flag below from the design side: one decision is reflected in two or more modules that must now move together. Diagnose it as leakage and give the decision a single owning module; do not treat it as a separate finding.
+3. **smallest coherent shape** — the scope check. Is the design no larger than the problem requires? A coherent design that is bigger than the problem still costs more than it earns, and a smaller design that splits the model is not a design at all. Take the smallest shape that keeps one model intact.
+
+Modelled sentence — produce sentences of this kind: *"Option B keeps **conceptual integrity** but at the cost of **change ownership** — the pricing rule would then live in two modules that have to move together."*
+
+Where the design is consequential, say the central idea in one sentence before judging it. If you cannot state the idea in a sentence, that is the finding.
+
+**Gotcha:** Do not confuse consistency with conceptual integrity — repeating an old mistake consistently is still a design problem. Use the codebase's strongest local patterns as exemplars, except when the pattern is itself what the change is fixing.
+
 ## When designing new code (apply, in order)
 
 1. **State the abstraction first.** What simplified view does this module offer — what does the caller get to *not* know? If you can't say it in a sentence, the boundary is wrong.
@@ -49,8 +65,9 @@ Complexity has two root causes, and most red flags below trace back to one of th
 
 1. Establish the diff/design under review and, for each module touched, name the abstraction it's *supposed* to present.
 2. Walk the **Red flags** checklist below; collect findings with `file:line`, the flag's name, *which root cause* (dependency or obscurity) it stems from, and the fix.
-3. Order findings by leverage (a leaked decision across modules beats a single vague name). Give a one-line verdict.
-4. If a category is clean, say "clean" — don't invent findings.
+3. Run the three conceptual-integrity checks — **conceptual integrity**, **change ownership**, **smallest coherent shape** — and name each one as you apply it.
+4. Order findings by leverage (a leaked decision across modules beats a single vague name). Give a one-line verdict.
+5. If a category is clean, say "clean" — don't invent findings.
 
 ## Red flags
 
@@ -82,7 +99,7 @@ Judge any trend, pattern, or rule by one test: *does it reduce complexity here, 
 
 ## Output contract
 
-For a review, lead with findings ordered by leverage:
+For a standalone review, lead with findings ordered by leverage:
 
 ```
 ## Design review (Philosophy of Software Design lens)
@@ -90,8 +107,28 @@ For a review, lead with findings ordered by leverage:
 ### Findings
 - [file:line] <red-flag name> (<dependency|obscurity>) — <what's complex>. Fix: <structural change>.
 
+### Conceptual integrity
+<which of conceptual integrity / change ownership / smallest coherent shape holds, and which doesn't>
+
 ### Verdict
 <one line: is this strategic or tactical, and the top 1–2 things to address>
 ```
 
-For new-code work, state the module's abstraction, why the interface is simple, what complexity you pulled downward, and which errors you defined out of existence.
+When run as a **reviewer** — under `design-gate`, or any time a caller asks for a proceed-or-revise verdict — return exactly:
+
+1. `verdict`: `proceed` or `revise`.
+2. `conceptual_integrity_check`: whether the design still has one coherent model, naming which of the three checks (**conceptual integrity** / **change ownership** / **smallest coherent shape**) fails if any.
+3. `blocking_findings`: load-bearing findings requiring plan changes (empty when `proceed`).
+4. `advisory_findings`: non-blocking observations worth carrying into implementation.
+5. `required_changes`: numbered plan amendments (only when `revise`).
+
+Reviewer mode stays read-only: no edits, no test runs — findings and required changes only.
+
+For new-design work, state the design's central idea in one sentence, then the module's abstraction, why the interface is simple, what complexity you pulled downward, and which errors you defined out of existence.
+
+## Gotchas
+
+1. Do not turn a small bug fix into a design exercise — match effort to stakes.
+2. Do not preserve an existing pattern blindly when the broken model *is* the request.
+3. Do not confuse consistency with conceptual integrity — repeating an old mistake consistently is still a design problem.
+4. Do not invent findings to fill a category; "clean" is a valid result for any lens.

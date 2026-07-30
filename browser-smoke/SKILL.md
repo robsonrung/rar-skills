@@ -1,6 +1,6 @@
 ---
 name: browser-smoke
-description: "Diff-scoped browser smoke test: map the files changed by a branch or PR to the routes that render them, then drive a real browser through each affected page to verify it loads and works. Use when the user asks to smoke test this branch/PR in the browser, test the affected pages, or run a diff-scoped browser test. Not qa-execution — that is whole-product persona/journey release QA; browser-smoke only smoke-tests the pages a diff touches."
+description: "Diff-scoped browser smoke test: map the files changed by a branch or PR to the routes that render them, then drive a real browser through each affected page to verify it loads and works. Use when the user asks to smoke test this branch/PR in the browser, test the affected pages, or run a diff-scoped browser test; also invoked by ship's phase 5 in pipeline mode for web-facing changes. Scope is the diff, not the product: this is not whole-product release QA (persona journeys, full regression passes across untouched areas) — it only smoke-tests the pages the diff touches."
 argument-hint: "[PR number, branch name, 'current', or --port PORT]"
 ---
 
@@ -11,7 +11,7 @@ Run end-to-end browser checks on the pages affected by a PR or branch, using the
 ## Modes
 
 - **Manual (default):** the user controls the dev server.
-- **Pipeline (`mode:pipeline`):** invoked by an automated pipeline (e.g. implement-and-review or ship). The run is unattended — never block on a question. Read `references/pipeline-orchestration.md` from this skill's directory and follow it; it overrides the dev-server verification (step 5) and any interactive prompts. It still uses the preferred port that step 4 computes.
+- **Pipeline (`mode:pipeline`):** invoked by an automated pipeline — in this repo that is **`ship` phase 5**, which runs `browser-smoke` with `mode:pipeline` for web-facing changes (`implement-and-review` does not call this skill; its verification is tests/build plus `full-review`). The run is unattended — never block on a question. Read `references/pipeline-orchestration.md` from this skill's directory and follow it; it overrides the dev-server verification (step 5) and any interactive prompts. It still uses the preferred port that step 4 computes.
 
 ## Browser Driver Policy
 
@@ -36,15 +36,24 @@ Apply the Browser Driver Policy above and record the selected driver. This skill
 gh pr view [number] --json files -q '.files[].path'
 ```
 
-**If 'current' or empty:**
+**Otherwise resolve the default branch first — never hardcode `main`.** A repo whose trunk is `master`, `develop`, or `trunk` would otherwise diff against a nonexistent ref (or, worse, a stale local `main`) and silently produce an empty or wrong file list. Resolve it and take the diff in **one** shell block, since shell variables do not survive between separate Bash calls:
+
 ```bash
-git diff --name-only main...HEAD
+# origin/HEAD → gh → main
+DEFAULT_BRANCH=$(git symbolic-ref --quiet --short refs/remotes/origin/HEAD 2>/dev/null)
+DEFAULT_BRANCH="${DEFAULT_BRANCH#origin/}"
+if [ -z "$DEFAULT_BRANCH" ]; then
+  DEFAULT_BRANCH=$(gh repo view --json defaultBranchRef -q .defaultBranchRef.name 2>/dev/null)
+fi
+DEFAULT_BRANCH="${DEFAULT_BRANCH:-main}"
+echo "Default branch: ${DEFAULT_BRANCH}"
+
+# 'current' or empty → the working branch; or substitute the branch the user named
+TARGET="${TARGET:-HEAD}"
+git diff --name-only "${DEFAULT_BRANCH}...${TARGET}"
 ```
 
-**If branch name provided:**
-```bash
-git diff --name-only main...[branch]
-```
+Note the branch this echoes and use that literal ref in any later diff command — `$DEFAULT_BRANCH` is gone by the next Bash call. If the diff is empty, there is nothing to smoke-test: stop and report `Result: SKIP` with that reason (step 10) — a run that tested nothing is never reported as a pass.
 
 ### 3. Map Changed Files to Routes
 
@@ -89,20 +98,27 @@ Manual mode uses this preferred port as-is — the user controls their own serve
 
 ### 5. Verify the Dev Server Is Running
 
+The shell block only *reports* whether the port is listening; **you** decide what happens next. Do not put `exit` in it: `exit` inside a tool-invoked shell block ends that block's own subshell and nothing else — the skill keeps running, so an `exit 0` here would fall straight through into route testing with no server behind it and finish looking like a success.
+
 ```bash
 if lsof -i ":${PORT}" -sTCP:LISTEN -t >/dev/null 2>&1; then
-  echo "Server running on port ${PORT}";
+  echo "SERVER_UP on port ${PORT}"
 else
-  echo "Server not running on port ${PORT}";
-  echo "Start your dev server, then re-run:";
-  echo "  Rails: bin/dev  or  rails server -p ${PORT}";
-  echo "  Node/Next.js: npm run dev";
-  echo "  Custom port: run this skill again with --port <your-port>";
-  exit 0;
+  echo "SERVER_DOWN on port ${PORT}"
 fi
 ```
 
-In pipeline mode, do not stop here — `references/pipeline-orchestration.md` auto-starts the server in the background instead.
+Act on the printed result:
+
+- **`SERVER_UP`** → continue to step 6.
+- **`SERVER_DOWN`, manual mode** → **stop the workflow here.** Do not navigate, do not test routes, and do not emit a passing summary. Report the run as **Skip** using the step 10 summary with `Result: SKIP`, the reason (`no dev server listening on port <PORT>`), and the count of affected routes that went untested — a run that tested nothing is never a success, silent or otherwise. Then tell the user how to start a server and re-run:
+
+  ```text
+  Rails:        bin/dev   or   rails server -p <PORT>
+  Node/Next.js: npm run dev
+  Custom port:  run this skill again with --port <your-port>
+  ```
+- **`SERVER_DOWN`, pipeline mode** → do not stop; `references/pipeline-orchestration.md` claims a free port and auto-starts the server in the background instead. If that startup also fails, the run is likewise reported as `Result: SKIP` with the reason and the server log tail — never as a pass.
 
 ### 6. Verify the Root
 
@@ -204,8 +220,10 @@ After all tests complete, present a summary:
 ### Failures: [count]
 - `/dashboard` - [issue description]
 
-### Result: [PASS / FAIL / PARTIAL]
+### Result: [PASS / FAIL / PARTIAL / SKIP]
 ```
+
+`SKIP` is the required result whenever **no** route was actually exercised (no dev server, an empty diff, no affected routes) — state the reason and how many affected routes went untested. `PARTIAL` is for a run that tested some routes and skipped others. Never report `PASS` for a run that tested nothing.
 
 ## Quick Usage Examples
 

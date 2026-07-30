@@ -2,14 +2,28 @@
 
 How the orchestrator isolates the two tracks of **one task**, integrates them, and cleans up. The orchestrator owns the worktree lifecycle so every seat (native subagents and CLI runners) can target a known path. `<id>` = session id, `<base>` = the head this task builds on. (When `implement-feature` drives this skill per task, it passes a per-task `--slice` namespace and a `<base>` = the feature's current integration head — see that skill's reference.)
 
+## Why this engine bypasses the `worktree` skill
+
+The user-facing **`worktree`** skill owns isolation policy for ordinary work, and its first rule is **never create a worktree the harness cannot see** — detect existing isolation, then prefer the harness-native primitive (`EnterWorktree`), and only fall back to plain git.
+
+This engine is a deliberate, narrow **exemption**: it manages *multiple concurrent* worktrees for one task (a frontend tree and a backend tree, multiplied by `--slice` when `implement-feature` runs tasks in parallel), and the harness's native primitive represents a single session-level worktree — it cannot express that set. So this engine calls raw `git worktree add` into a sibling `../.worktrees/` tree and tracks every path itself in `launch-manifest.json`. The exemption covers *only* this multi-worktree engine; anything user-facing goes through the `worktree` skill.
+
+Bypassing the harness does not mean bypassing the safety rules — this engine carries the `worktree` skill's four:
+
+1. **Isolation detection compares resolved absolute paths.** Resolve both `git rev-parse --absolute-git-dir` and `git rev-parse --git-common-dir` to absolute paths before comparing (`(cd "$(git rev-parse --git-common-dir)" && pwd -P)`). Git returns a mix of absolute and relative forms depending on the current directory, so a raw string compare yields a false "already isolated". Equal → normal checkout; different (and `git rev-parse --show-superproject-working-tree` empty) → already inside a linked worktree, so create the track trees from the **repo's common root**, never nested inside another worktree.
+2. **Ignore the worktree directory before creating anything** when it lives inside the repo (`--worktrees-dir` pointed in-tree): check `git check-ignore -q .worktrees/` — **with the trailing slash**, so an existing directory-only rule is honored before the directory exists — and add a `.worktrees/` line to `.gitignore` if it is not ignored. The default sibling `../.worktrees/` is outside the repo and needs no ignore rule.
+3. **One branch is never checked out in two worktrees.** Track branches are namespaced (`impl/<S>-<track>-<id>`) precisely so this cannot happen. If git reports a branch is already checked out elsewhere, report the existing path and reuse it — never force a second worktree onto the same branch.
+4. **PR checkouts land on a local branch, never a detached `FETCH_HEAD`.** When a task starts from a PR, `git fetch origin pull/<n>/head:pr-<n>` then add the worktree on `pr-<n>` (or create the worktree `--detach` and `gh pr checkout <n>` inside it for push-tracking). A detached head orphans the fix loop's commits instead of updating the PR.
+
 ## Table of Contents
 
-1. [Setup](#setup)
-2. [During the tracks](#during-the-tracks)
-3. [Integration](#integration)
-4. [Verification](#verification)
-5. [Cleanup](#cleanup)
-6. [Sequential fallback (no git)](#sequential-fallback-no-git)
+1. [Why this engine bypasses the `worktree` skill](#why-this-engine-bypasses-the-worktree-skill)
+2. [Setup](#setup)
+3. [During the tracks](#during-the-tracks)
+4. [Integration](#integration)
+5. [Verification](#verification)
+6. [Cleanup](#cleanup)
+7. [Sequential fallback (no git)](#sequential-fallback-no-git)
 
 ## Setup
 

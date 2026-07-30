@@ -36,6 +36,7 @@ RUNNER_SCRIPTS = {
     "gemini": REPO_ROOT / "gemini-runner" / "scripts" / "run_gemini.py",
     "grok": REPO_ROOT / "grok-runner" / "scripts" / "run_grok.py",
     "cline": REPO_ROOT / "cline-runner" / "scripts" / "run_cline.py",
+    "qwen": REPO_ROOT / "qwen-runner" / "scripts" / "run_qwen.py",
 }
 
 REQUIRED_KEYS = (

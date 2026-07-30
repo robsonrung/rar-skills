@@ -24,7 +24,10 @@
       "description": "Runner that actually produced output; equals runner unless a fallback occurred."
     },
     "effective_model": {
-      "type": ["string", "null"],
+      "type": [
+        "string",
+        "null"
+      ],
       "description": "Model that actually answered; equals model unless overridden by the CLI/provider."
     },
     "effective_provider": {
@@ -32,12 +35,18 @@
       "description": "Provider backing the effective runner (anthropic, openai, google, xai, qwen, z-ai, moonshot, minimax, ...)."
     },
     "auth_ok": {
-      "type": ["boolean", "null"],
-      "description": "Auth preflight result: true on a successful run; null when auth was never exercised (missing CLI, invalid input, or a failure before auth could be established); false only when an authentication failure was actually detected. A missing CLI is untested auth, not failed auth — it maps to null, never false."
+      "type": [
+        "boolean",
+        "null"
+      ],
+      "description": "Auth preflight result: true on a successful run; null when auth was never exercised (missing CLI, invalid input, or a failure before auth could be established); false only when an authentication failure was actually detected. A missing CLI is untested auth, not failed auth \u2014 it maps to null, never false."
     },
     "fallback_reason": {
-      "type": ["string", "null"],
-      "description": "Why a fallback was used, or null when no fallback occurred. No-fallback runners (grok, qwen, cline, kimi, glm, gemma, minimax) always keep this null."
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Why a fallback was used, or null when no fallback occurred. Which runners fall back and which block-and-report is defined once in _shared/references/runner-common.md (Seat fidelity); block-and-report runners always keep this null."
     },
     "success": {
       "type": "boolean",
@@ -64,27 +73,49 @@
       "description": "Working directory the CLI ran in."
     },
     "model": {
-      "type": ["string", "null"],
+      "type": [
+        "string",
+        "null"
+      ],
       "description": "Model requested by the caller."
     },
     "output_format": {
       "type": "string",
-      "enum": ["text", "json", "stream-json"]
+      "enum": [
+        "text",
+        "json",
+        "stream-json"
+      ]
     },
     "input_format": {
       "type": "string",
-      "enum": ["text", "stream-json"]
+      "enum": [
+        "text",
+        "stream-json"
+      ]
     },
     "approval_mode": {
       "type": "string",
-      "enum": ["plan", "default", "auto-edit", "auto", "yolo"]
+      "enum": [
+        "plan",
+        "default",
+        "auto-edit",
+        "auto",
+        "yolo"
+      ]
     },
     "role": {
-      "type": ["string", "null"],
+      "type": [
+        "string",
+        "null"
+      ],
       "description": "Role overlay applied (planner, codereviewer, implementer, synthesizer, adversarial, challenger, researcher), or null."
     },
     "session_file": {
-      "type": ["string", "null"]
+      "type": [
+        "string",
+        "null"
+      ]
     },
     "restrict_tools": {
       "type": "boolean",
@@ -98,11 +129,17 @@
       "description": "qwen-backed runners: always false; the wrapper forces --chat-recording=false."
     },
     "agent_message": {
-      "type": ["string", "null"],
+      "type": [
+        "string",
+        "null"
+      ],
       "description": "Clean final answer: trimmed result text for plain runs, or JSON-serialized output for --output-schema (structured_output) runs. Orchestrators should read this instead of parsing stdout."
     },
     "session_id": {
-      "type": ["string", "null"],
+      "type": [
+        "string",
+        "null"
+      ],
       "description": "Session id reported by the native CLI (or recovered from history for cline-backed runners), when available."
     },
     "native_result": {
@@ -111,7 +148,11 @@
     "status": {
       "type": "string",
       "description": "Failure classification when relevant: seat_unavailable (return_code -2), timeout (return_code -1), or auth_failed (detected authentication failure; forces success=false).",
-      "enum": ["seat_unavailable", "timeout", "auth_failed"]
+      "enum": [
+        "seat_unavailable",
+        "timeout",
+        "auth_failed"
+      ]
     },
     "fallback_from": {
       "type": "string",
@@ -119,7 +160,9 @@
     },
     "fallback_attempts": {
       "type": "array",
-      "items": {"type": "object"},
+      "items": {
+        "type": "object"
+      },
       "description": "gemini-runner: the sibling runners tried and skipped before the returned result (including not_installed siblings), so the attempt log is complete even when every fallback was unavailable."
     },
     "output_json_valid": {
@@ -127,7 +170,10 @@
       "description": "gemini-runner with --output-format json: whether the fence-stripped agent_message parsed as JSON."
     },
     "finish_reason": {
-      "type": ["string", "null"],
+      "type": [
+        "string",
+        "null"
+      ],
       "description": "cline-backed runners: Cline's native finishReason (completed, error, ...) from the terminal run_result event."
     },
     "native_model_id": {
@@ -143,7 +189,10 @@
       "description": "cline-backed runners: the raw process exit code before return-code normalization."
     },
     "thinking": {
-      "type": ["string", "null"],
+      "type": [
+        "string",
+        "null"
+      ],
       "description": "cline-backed runners: the reasoning-effort level forwarded to cline --thinking, when set."
     },
     "provider_config_mutated": {
@@ -156,12 +205,17 @@
     },
     "prompt_files": {
       "type": "array",
-      "items": {"type": "string"},
+      "items": {
+        "type": "string"
+      },
       "description": "Present when more than one --prompt-file was supplied."
     },
     "verification_evidence": {
-      "type": ["object", "null"],
-      "description": "Implementation-run evidence contract, reported by roles that change behavior (implementer tracks in implement-and-review/implement-feature). Red-before-implementation evidence exists only in this report — it cannot be reconstructed from the tree afterward, so orchestrators must persist it. Absent/null for analysis roles.",
+      "type": [
+        "object",
+        "null"
+      ],
+      "description": "Implementation-run evidence contract, reported by roles that change behavior (implementer tracks in implement-and-review/implement-feature). Red-before-implementation evidence exists only in this report \u2014 it cannot be reconstructed from the tree afterward, so orchestrators must persist it. Absent/null for analysis roles.",
       "properties": {
         "behavior_changed": {
           "type": "boolean",
@@ -169,17 +223,24 @@
         },
         "existing_tests_inspected": {
           "type": "array",
-          "items": {"type": "string"},
+          "items": {
+            "type": "string"
+          },
           "description": "Existing tests read to locate coverage for the touched behavior (paths or test names)."
         },
         "tests_added_or_changed": {
           "type": "array",
-          "items": {"type": "string"},
+          "items": {
+            "type": "string"
+          },
           "description": "Tests created or modified by this run (paths or test names)."
         },
         "red_baseline": {
-          "type": ["string", "null"],
-          "description": "The observed failing output or characterization baseline captured BEFORE implementing — verbatim excerpt or file:line pointer. Null only with evidence_strategy no-test-exception."
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "The observed failing output or characterization baseline captured BEFORE implementing \u2014 verbatim excerpt or file:line pointer. Null only with evidence_strategy no-test-exception."
         },
         "evidence_strategy": {
           "type": "string",
@@ -193,11 +254,16 @@
           "description": "Which evidence route was taken (see implement-and-review references/evidence-strategy.md)."
         },
         "no_test_reason": {
-          "type": ["string", "null"],
+          "type": [
+            "string",
+            "null"
+          ],
           "description": "Required when evidence_strategy is no-test-exception: why no automated test was meaningful, plus the replacement verification performed."
         }
       },
-      "required": ["behavior_changed"]
+      "required": [
+        "behavior_changed"
+      ]
     }
   },
   "additionalProperties": true

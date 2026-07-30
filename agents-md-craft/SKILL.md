@@ -1,6 +1,6 @@
 ---
 name: agents-md-craft
-description: Hand-craft, audit, and optimize AGENTS.md / CLAUDE.md agent-memory files using the HumanLayer "good CLAUDE.md" principles — WHAT/WHY/HOW framing, instruction/length budgets, progressive disclosure into agent_docs/, file:line pointers, and offloading style rules to linters/hooks. Use when the user wants to create, write, audit, review, optimize, de-bloat, shrink, or fix drift in a CLAUDE.md or AGENTS.md (or "agent memory / onboarding / context doc") for a project. Both modes (create-from-scratch and optimize-existing) and both filenames are supported. This is an advisor/auditor that proposes a draft/diff and never writes without approval — the deliberate counterweight to /init; do NOT trigger it on /init, and it does not author SKILL.md skills (that is write-a-skill / skill-expert).
+description: Hand-craft, audit, and optimize AGENTS.md / CLAUDE.md agent-memory files using the HumanLayer "good CLAUDE.md" principles — WHAT/WHY/HOW framing, instruction/length budgets, progressive disclosure into agent_docs/, file:line pointers, and offloading style rules to linters/hooks. Use when the user wants to create, write, audit, review, optimize, de-bloat, shrink, or fix drift in a CLAUDE.md or AGENTS.md (or "agent memory / onboarding / context doc") for a project. Both modes (create-from-scratch and optimize-existing) and both filenames are supported. This is an advisor/auditor that proposes a draft/diff and never writes without approval — the deliberate counterweight to /init; do NOT trigger it on /init, and it does not author SKILL.md skills (that is skill-expert).
 disable-model-invocation: true
 ---
 
@@ -67,5 +67,9 @@ for Codex and others; CLAUDE.md = Claude Code's). Detect which exist, or ask whi
 - Budgets and thresholds are **HumanLayer's opinions**, surfaced as overridable defaults — never
   hard pass/fail. The **only** non-overridable rule is the Review Gate (step 8).
 - Stay scoped to agent-memory docs + their `agent_docs/` layer. Do **not** become a doc generator, a
-  linter replacement, or a skill author — hand off SKILL.md authoring to `write-a-skill` / `skill-expert`.
+  linter replacement, or a skill author — hand off SKILL.md authoring to `skill-expert`.
+- This is not the only skill that edits these files. `capture-learning`'s **Discoverability Check**
+  also proposes a small CLAUDE.md/AGENTS.md edit — one line making the solutions store findable —
+  and it too requires explicit consent before writing. Expect its line to already be there; treat
+  it as intentional content and budget for it rather than pruning it as drift.
 - Keep this skill small: this file + the two references. See [references/checklist.md](references/checklist.md).

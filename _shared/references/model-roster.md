@@ -1,0 +1,31 @@
+# Model roster — the single source of truth for seat → model ids
+
+Every multi-model skill references this table instead of inlining model ids.
+When a provider ships a new model, update **this file** (and the runner script
+defaults it names) — prose in individual skills must say "the Claude seat",
+"the Codex seat", etc., and point here.
+
+Aliases are preferred over pinned ids in invocations where the CLI supports
+them (`claude --model opus`); the envelope's `effective_model` receipt records
+what actually served, which is what agreement weighting uses (never the
+request, never a self-claim).
+
+| Seat | Transport | Requested model / alias | Pinned id (current) | Notes |
+|---|---|---|---|---|
+| opus | native `Agent` tool, fallback `claude-runner` | `opus` | `claude-opus-5` | Claude flagship. Orchestrator, organizer/synthesizer, judge seats. |
+| sonnet | native `Agent` tool, fallback `claude-runner` | `sonnet` | `claude-sonnet-5` | Fast Claude seat; maintainability lens. |
+| codex | `codex-runner` (`codex` CLI) | — | `gpt-5.6-sol` | Default OpenAI seat: logic, security. |
+| codex-code | `codex-runner` (`codex` CLI) | alias `codex` | `gpt-5.3-codex` | Code-specialized secondary OpenAI seat (agentic coding, regression, security review). Used by `diverse-plan` and `full-review`; same CLI, distinct model. |
+| gemini | `gemini-runner` (`agy` CLI) | — | `gemini-3.6-flash` | Cross-file consistency lens. The probe checks `agy`, not a `gemini` binary. |
+| grok | `grok-runner` (`grok` CLI) | — | `grok-4.5` | xAI seat; execution-path verification. |
+| kimi | `kimi-runner` → `cline` CLI | — | `moonshotai/kimi-k3` | Single K3 id — no `-code`/`-thinking` variants. Long-horizon coding, 1M context. |
+| glm | `glm-runner` → `cline` CLI | — | `zai/glm-5.2` | Edge-case lens; outsider stance default. |
+| qwen | `qwen-runner` (`qwen` CLI) | — | `qwen3.6-plus` | Backup seat. |
+| gemma | `gemma-runner` → `qwen` CLI | — | `google/gemma-4-31b-it` | Backup seat. |
+| minimax | `minimax-runner` → `qwen` CLI | — | `minimax/minimax-m2.7` | Backup seat. |
+
+Seat availability is probed by `_shared/scripts/discover_runners.py` — always
+probe; never assume a CLI exists. Quorum floors: light = 2, quality = 3
+distinct available seats (the probe's `summary.light_quorum_met` /
+`quality_quorum_met` are advisory; multi-seat skills stop below 3 distinct
+seats unless they declare a degraded posture).

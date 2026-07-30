@@ -31,8 +31,7 @@ Default to *newcomer + whole-repo overview* if the user just says "explain the a
 with no qualifier.
 
 Once audience is fixed, read `references/viewpoints.md` for that viewpoint's template and
-length guidance before exploring. If working in greenspark-aws, also read
-`references/greenspark.md` for the known service map, seam inventory, and layer mapping.
+length guidance before exploring.
 
 ## Step 1 — Explore (don't guess)
 
@@ -61,8 +60,8 @@ Group components into the three layers (from the book), so the reader sees order
   frontend app.
 - **Technology** — infra plumbing: cloud runtime, database, auth, build/deploy.
 
-Derive the layers from what you actually find rather than forcing these names. (For
-greenspark-aws, use the layer mapping in `references/greenspark.md`.)
+Derive the layers from what you actually find rather than forcing these names — a repo
+that has no separate worker tier does not get one in the explanation.
 
 ## Step 3 — Explain (output)
 

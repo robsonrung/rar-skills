@@ -1,3 +1,8 @@
+# Panel routing for `collaborative_delivery` (panel gates are mandatory here).
+#
+# Model ids come from `_shared/references/model-roster.md` — update the roster
+# first, then this file.
+
 [skill]
 name = "collaborative_delivery"
 artifact_dir = ".codex_workflow/delivery"
@@ -9,8 +14,8 @@ workflow = "Follow the skill SKILL.md instructions, keep role outputs independen
 [providers.synthesis_anchor]
 kind = "native_codex"
 provider = "codex"
-model = "gpt-5.5"
-model_label = "GPT 5.5"
+model = "gpt-5.6-sol"
+model_label = "GPT 5.6 Sol"
 enabled = true
 native_response_required = true
 duty = "Synthesize, reconcile, coordinate native Codex subagents when allowed, and own final decisions inside the host Codex session."
@@ -20,7 +25,7 @@ kind = "runner"
 runner = "claude"
 provider = "anthropic"
 model = "opus"
-model_label = "Opus 4.8"
+model_label = "Opus"
 enabled = true
 script = ".agents/skills/claude-runner/scripts/run_claude.py"
 timeout_seconds = 1200
@@ -31,8 +36,8 @@ runner_args = ["--output-format", "json", "--no-session-persistence", "--restric
 kind = "runner"
 runner = "gemini"
 provider = "google"
-model = "gemini-3.1-pro-preview"
-model_label = "Gemini 3.1 Pro"
+model = "gemini-3.6-flash"
+model_label = "Gemini 3.6 Flash"
 enabled = true
 script = ".agents/skills/gemini-runner/scripts/run_gemini.py"
 timeout_seconds = 1200
@@ -43,13 +48,17 @@ runner_args = ["--output-format", "json"]
 kind = "runner"
 runner = "kimi"
 provider = "moonshot"
-model = "kimi-code/kimi-for-coding"
-model_label = "Kimi Code"
+model = "moonshotai/kimi-k3"
+model_label = "Kimi K3"
 enabled = true
 script = ".agents/skills/kimi-runner/scripts/run_kimi.py"
 timeout_seconds = 1200
 duty = "Pressure test execution feasibility, sequencing, long horizon integration, and implementation risks."
-runner_args = ["--output-format", "stream-json", "--no-session-persistence", "--restrict-tools"]
+# `--data-dir` isolates cline state so a panel run never rewrites the interactive
+# user's ~/.cline provider default. Provision auth in that directory once.
+# `--no-session-persistence` is a documented no-op on cline, and `--restrict-tools`
+# is already the default for every non-implementer role, so neither is passed.
+runner_args = ["--output-format", "stream-json", "--data-dir", "/tmp/cline-panel-state"]
 
 [roles.synthesis_anchor]
 provider = "synthesis_anchor"

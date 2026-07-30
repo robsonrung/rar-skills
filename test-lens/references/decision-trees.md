@@ -197,8 +197,8 @@ class InactivityChecker {
 
 ## Relationship to sibling skills
 
-- `tdd` / `clean-code` / `code-review` — see the SKILL.md frontmatter and intro for how
-  `test-lens` differs from each.
+- `tdd` / `clean-code` — see the SKILL.md frontmatter and intro for how `test-lens`
+  differs from each. Bug hunting belongs in a code-review pass, not this lens.
 - `safe-incremental-coding` — making scary legacy code safe to change. Overlaps on Humble
   Object / extracting logic; `test-lens` focuses on what makes the *new* test valuable.
 - `architecture-lens` — the functional-core/mutable-shell split here is the same

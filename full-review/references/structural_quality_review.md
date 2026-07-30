@@ -57,6 +57,8 @@ Flag aggressively when the changed code introduces:
 
 Do not flag cosmetic taste, minor naming, local formatting, or broad refactor dreams without a concrete safer shape. The finding must point to changed code and explain the simpler path.
 
+Name the flags and remedies below with `clean-code`'s vocabulary — it is the canonical smell and naming catalog (primitive obsession, data clump, feature envy, earned comment, and the rest); do not coin a local synonym for a smell it already names.
+
 ## Preferred Remedies
 
 Prefer remedies that remove complexity instead of decorating it:

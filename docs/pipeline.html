@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>rar-skills — how a feature moves through the pipeline</title>
+<style>
+  :root{
+    --paper:#eaeef4; --surface:#f7f9fc; --surface2:#eff3f8;
+    --ink:#131c27; --ink-soft:#46566a; --ink-faint:#55677c;
+    --rule:#c6d0dd; --rule-soft:#dbe3ec;
+    --human:#8a5a10; --auto:#12604f; --gate:#94293e; --accent:#1c587f;
+    --human-wash:rgba(154,101,18,.09); --auto-wash:rgba(18,96,79,.08);
+    --gate-wash:rgba(148,41,62,.08); --accent-wash:rgba(28,88,127,.08);
+    --mono:ui-monospace,"SF Mono",SFMono-Regular,"JetBrains Mono",Menlo,Consolas,monospace;
+    --serif:"Iowan Old Style","Palatino Linotype",Palatino,"Book Antiqua",Georgia,ui-serif,serif;
+    --shadow:0 1px 2px rgba(19,28,39,.06),0 8px 24px -16px rgba(19,28,39,.28);
+  }
+  @media (prefers-color-scheme:dark){
+    :root{
+      --paper:#0d151f; --surface:#131e2a; --surface2:#16222f;
+      --ink:#dfe7f0; --ink-soft:#9db0c4; --ink-faint:#7c8fa4;
+      --rule:#24344a; --rule-soft:#1b2938;
+      --human:#e0a442; --auto:#4fc4ac; --gate:#e2758c; --accent:#6cb6e8;
+      --human-wash:rgba(224,164,66,.10); --auto-wash:rgba(79,196,172,.09);
+      --gate-wash:rgba(226,117,140,.10); --accent-wash:rgba(108,182,232,.10);
+      --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 30px -18px rgba(0,0,0,.8);
+    }
+  }
+  :root[data-theme="dark"]{
+    --paper:#0d151f; --surface:#131e2a; --surface2:#16222f;
+    --ink:#dfe7f0; --ink-soft:#9db0c4; --ink-faint:#7c8fa4;
+    --rule:#24344a; --rule-soft:#1b2938;
+    --human:#e0a442; --auto:#4fc4ac; --gate:#e2758c; --accent:#6cb6e8;
+    --human-wash:rgba(224,164,66,.10); --auto-wash:rgba(79,196,172,.09);
+    --gate-wash:rgba(226,117,140,.10); --accent-wash:rgba(108,182,232,.10);
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 10px 30px -18px rgba(0,0,0,.8);
+  }
+  :root[data-theme="light"]{
+    --paper:#eaeef4; --surface:#f7f9fc; --surface2:#eff3f8;
+    --ink:#131c27; --ink-soft:#46566a; --ink-faint:#55677c;
+    --rule:#c6d0dd; --rule-soft:#dbe3ec;
+    --human:#8a5a10; --auto:#12604f; --gate:#94293e; --accent:#1c587f;
+    --human-wash:rgba(154,101,18,.09); --auto-wash:rgba(18,96,79,.08);
+    --gate-wash:rgba(148,41,62,.08); --accent-wash:rgba(28,88,127,.08);
+    --shadow:0 1px 2px rgba(19,28,39,.06),0 8px 24px -16px rgba(19,28,39,.28);
+  }
+
+  *{box-sizing:border-box}
+  body{
+    margin:0;
+    background:var(--paper);
+    background-image:linear-gradient(var(--rule-soft) 1px,transparent 1px),
+                     linear-gradient(90deg,var(--rule-soft) 1px,transparent 1px);
+    background-size:32px 32px;
+    color:var(--ink);
+    font-family:var(--serif);
+    font-size:17px;line-height:1.62;
+    -webkit-font-smoothing:antialiased;
+  }
+  .sheet{max-width:1000px;margin:0 auto;padding:0 24px 96px}
+  code,.m{font-family:var(--mono)}
+  h2,h3,h4,.lbl,.num,.stat-n{font-family:var(--mono);font-weight:600}
+  p{margin:0 0 14px;max-width:66ch}
+  a{color:var(--accent)}
+
+  /* masthead */
+  .masthead{padding:64px 0 34px;border-bottom:2px solid var(--ink)}
+  .eyebrow{font-family:var(--mono);font-size:11.5px;letter-spacing:.22em;text-transform:uppercase;color:var(--accent);margin:0 0 18px}
+  h1{font-family:var(--serif);font-size:clamp(31px,5.2vw,52px);line-height:1.1;margin:0 0 22px;letter-spacing:-.018em;text-wrap:balance;font-weight:600;max-width:19ch}
+  h1 em{font-style:italic;color:var(--accent)}
+  .thesis{font-size:clamp(17px,2.1vw,20px);color:var(--ink-soft);max-width:58ch;margin:0;padding-left:16px;border-left:2px solid var(--accent)}
+  .thesis b{color:var(--ink);font-weight:600}
+
+  .stats{display:flex;flex-wrap:wrap;gap:0;margin:34px 0 0;border:1px solid var(--rule);background:var(--surface)}
+  .stat{flex:1 1 150px;padding:15px 18px;border-right:1px solid var(--rule)}
+  .stat:last-child{border-right:0}
+  .stat-n{display:block;font-size:23px;line-height:1.1;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+  .stat-l{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-faint);margin-top:5px;display:block}
+  .stat.rm .stat-n{color:var(--gate)} .stat.add .stat-n{color:var(--auto)}
+
+  /* section headers */
+  section{padding:54px 0 0}
+  .shead{display:flex;align-items:baseline;gap:12px;border-bottom:1px solid var(--rule);padding-bottom:9px;margin-bottom:9px}
+  .shead h2{font-size:15px;letter-spacing:.13em;text-transform:uppercase;margin:0}
+  .shead .of{font-family:var(--mono);font-size:11px;color:var(--ink-faint);margin-left:auto;letter-spacing:.1em}
+  .sublede{color:var(--ink-soft);font-size:16px;margin:0 0 26px;max-width:64ch}
+
+  /* zone banner */
+  .zonebar{display:flex;align-items:stretch;border:1px solid var(--rule);margin:0 0 4px;background:var(--surface)}
+  .zb{padding:11px 16px;flex:1}
+  .zb .lbl{display:block;font-size:11px;letter-spacing:.14em;text-transform:uppercase}
+  .zb .d{font-size:14px;color:var(--ink-soft);font-family:var(--serif)}
+  .zb.h{background:var(--human-wash)} .zb.h .lbl{color:var(--human)}
+  .zb.a{background:var(--auto-wash)} .zb.a .lbl{color:var(--auto)}
+
+  /* the spine */
+  .relay{position:relative;margin:0}
+  .station{display:grid;grid-template-columns:64px 1fr;gap:0;position:relative}
+  .rail{position:relative;border-right:1px solid var(--rule)}
+  .rail::before{content:"";position:absolute;left:-1px;top:0;bottom:0;width:3px}
+  .station[data-zone="human"] .rail::before{background:var(--human)}
+  .station[data-zone="auto"] .rail::before{background:var(--auto)}
+  .num{position:absolute;top:20px;right:14px;font-size:12px;color:var(--ink-faint);font-variant-numeric:tabular-nums;letter-spacing:.06em}
+  .card{padding:20px 0 22px 24px}
+  .card h3{margin:0 0 4px;font-size:17px;letter-spacing:-.01em}
+  .card h3 .sk{color:var(--ink)}
+  .card h3 .sk::before{content:"/";color:var(--ink-faint);margin-right:1px}
+  .card .role{font-family:var(--serif);font-size:15px;color:var(--ink-faint);font-style:italic;margin:0 0 11px}
+  .card p{font-size:16px;color:var(--ink-soft);margin:0 0 10px}
+  .card p:last-child{margin-bottom:0}
+  .card strong{color:var(--ink);font-weight:600}
+
+  /* handoff baton */
+  .handoff{display:grid;grid-template-columns:64px 1fr;background:var(--surface2);border-top:1px dashed var(--rule);border-bottom:1px dashed var(--rule)}
+  .handoff .rail{border-right:1px solid var(--rule)}
+  .handoff .rail::after{content:"↓";position:absolute;top:50%;right:13px;transform:translateY(-50%);color:var(--ink-faint);font-family:var(--mono);font-size:15px}
+  .ho{padding:14px 0 15px 24px}
+  .ho .lbl{font-family:var(--mono);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-faint);display:block;margin-bottom:5px}
+  .artifact{font-family:var(--mono);font-size:14.5px;color:var(--accent);background:var(--accent-wash);padding:2px 7px;border:1px solid var(--rule);display:inline-block;margin-bottom:7px}
+  .ho p{font-size:15px;color:var(--ink-soft);margin:0;max-width:62ch}
+  .ho .verb{color:var(--ink);font-weight:600;font-family:var(--mono);font-size:13.5px}
+
+  /* the gate */
+  .gate{margin:0;padding:17px 24px;background:var(--gate-wash);border:1px solid var(--gate);display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+  .gate .tag{font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--gate);border:1px solid var(--gate);padding:4px 9px;white-space:nowrap}
+  .gate p{margin:0;font-size:15.5px;color:var(--ink-soft)}
+  .gate p b{color:var(--ink);font-weight:600}
+
+  /* verify chain */
+  .chain{display:flex;flex-wrap:wrap;gap:0;border:1px solid var(--rule);margin:6px 0 0;background:var(--surface)}
+  .link{flex:1 1 168px;padding:13px 15px;border-right:1px solid var(--rule)}
+  .link:last-child{border-right:0}
+  .link .n{font-family:var(--mono);font-size:10.5px;color:var(--ink-faint);letter-spacing:.1em;display:block;margin-bottom:4px}
+  .link .s{font-family:var(--mono);font-size:13.5px;color:var(--ink);display:block;margin-bottom:3px}
+  .link .d{font-size:14px;color:var(--ink-soft);font-family:var(--serif);line-height:1.45}
+
+  /* merge table */
+  .tw{overflow-x:auto;border:1px solid var(--rule);background:var(--surface)}
+  table{border-collapse:collapse;width:100%;min-width:560px;font-size:15px}
+  th,td{text-align:left;padding:10px 15px;border-bottom:1px solid var(--rule-soft);vertical-align:top}
+  th{font-family:var(--mono);font-size:10.5px;letter-spacing:.13em;text-transform:uppercase;color:var(--ink-faint);font-weight:600;background:var(--surface2)}
+  tr:last-child td{border-bottom:0}
+  td.from{font-family:var(--mono);font-size:13px;color:var(--gate)}
+  td.to{font-family:var(--mono);font-size:13px;color:var(--auto);white-space:nowrap}
+  td.why{color:var(--ink-soft)}
+
+  .ladder{counter-reset:rung;list-style:none;padding:0;margin:6px 0 0;border:1px solid var(--rule);background:var(--surface)}
+  .ladder li{counter-increment:rung;padding:13px 18px 13px 52px;position:relative;border-bottom:1px solid var(--rule-soft);font-size:15.5px;color:var(--ink-soft)}
+  .ladder li:last-child{border-bottom:0}
+  .ladder li::before{content:counter(rung);position:absolute;left:18px;top:13px;font-family:var(--mono);font-size:12px;color:var(--accent)}
+  .ladder li b{color:var(--ink);font-weight:600}
+
+  .note{margin-top:44px;padding-top:18px;border-top:2px solid var(--ink);font-size:15px;color:var(--ink-faint)}
+  .note code{font-size:13.5px;color:var(--ink-soft)}
+
+  @media (max-width:640px){
+    body{font-size:16px}
+    .station,.handoff{grid-template-columns:40px 1fr}
+    .num{right:8px;font-size:11px}
+    .card{padding-left:16px} .ho{padding-left:16px}
+    .handoff .rail::after{right:7px}
+  }
+  @media (prefers-reduced-motion:no-preference){
+    .station .card{transition:background .18s ease}
+    .station:hover .card{background:var(--surface)}
+  }
+  :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+</style>
+</head>
+<body>
+<div class="sheet">
+
+  <header class="masthead">
+    <p class="eyebrow">rar-skills · pipeline sheet</p>
+    <h1>One feature, seven stations, and the artifact each one <em>hands</em> the next.</h1>
+    <p class="thesis">The skills aren't a grab-bag. They form a relay: <b>every step lifts what the previous step decided instead of re-deriving it.</b> That's what keeps the thing you approved and the thing that gets built from drifting apart.</p>
+    <div class="stats">
+      <div class="stat"><span class="stat-n">56</span><span class="stat-l">skills, from 68</span></div>
+      <div class="stat rm"><span class="stat-n">−17</span><span class="stat-l">removed</span></div>
+      <div class="stat add"><span class="stat-n">+5</span><span class="stat-l">added</span></div>
+      <div class="stat"><span class="stat-n">1</span><span class="stat-l">human gate</span></div>
+    </div>
+  </header>
+
+  <section>
+    <div class="shead"><h2>The relay</h2><span class="of">station → handoff → station</span></div>
+    <p class="sublede">Read the dashed bands, not just the boxes. Each one names the artifact that crosses the gap and the verb the next station applies to it — that crossing is the whole design.</p>
+
+    <div class="zonebar">
+      <div class="zb h"><span class="lbl">Interactive · you're in the room</span><span class="d">Framing, requirements, planning. All judgment is collected here.</span></div>
+    </div>
+
+    <div class="relay">
+
+      <article class="station" data-zone="human">
+        <div class="rail"><span class="num">00</span></div>
+        <div class="card">
+          <h3><span class="sk">brainstorm</span></h3>
+          <p class="role">Should we build this at all?</p>
+          <p>Digs into the motivation before the mechanism, explores the codebase, and widens the option set before narrowing it. Optional — skip it when the request is already concrete. If a design question can only be settled by running code, it detours through <code>/prototype</code>, which builds a throwaway and then throws it away.</p>
+        </div>
+      </article>
+
+      <div class="handoff">
+        <div class="rail"></div>
+        <div class="ho">
+          <span class="lbl">hands off</span>
+          <span class="artifact">a verdict — BUILD / DEFER / REDUCE SCOPE / REJECT</span>
+          <p>With confidence and recommended scope. On BUILD it names the next step by hand.</p>
+        </div>
+      </div>
+
+      <article class="station" data-zone="human">
+        <div class="rail"><span class="num">01</span></div>
+        <div class="card">
+          <h3><span class="sk">interview</span></h3>
+          <p class="role">What exactly are we building?</p>
+          <p>Reads the glossary, the ADRs, and the code <strong>before asking you anything</strong> — a question that exploration could answer is not a question for you. Then grills the angles that change what gets built: actors and permissions, edge cases, what's explicitly out of scope, data lifecycle, migration and rollback. It runs the security checklist while you're still here, and names the observable behaviour at the highest seam for each requirement.</p>
+        </div>
+      </article>
+
+      <div class="handoff">
+        <div class="rail"></div>
+        <div class="ho">
+          <span class="lbl">hands off</span>
+          <span class="artifact">a decision record, in the conversation</span>
+          <p>Decisions, explicit assumptions with defaults, descoped items, security answers, named test seams. The exit test: every question the autonomous half would hit is answered, assumed, or descoped.</p>
+        </div>
+      </div>
+
+      <article class="station" data-zone="human">
+        <div class="rail"><span class="num">02</span></div>
+        <div class="card">
+          <h3><span class="sk">to-spec</span></h3>
+          <p class="role">Write it down</p>
+          <p>Does not interview you again — it synthesizes what station 01 already produced. This is the <strong>autonomy contract</strong>: the last artifact written while a human is in the room, so anything it omits becomes a question nobody downstream is allowed to ask.</p>
+        </div>
+      </article>
+
+      <div class="handoff">
+        <div class="rail"></div>
+        <div class="ho">
+          <span class="lbl">hands off</span>
+          <span class="artifact">a PRD, published, labelled ready-for-agent</span>
+          <p>Two sections carry weight downstream: <span class="verb">Security Decisions</span> pre-marks which surfaces are sensitive, and <span class="verb">Testing Decisions</span> names the seams that become acceptance behaviours.</p>
+        </div>
+      </div>
+
+      <article class="station" data-zone="human">
+        <div class="rail"><span class="num">03</span></div>
+        <div class="card">
+          <h3><span class="sk">to-tasks</span></h3>
+          <p class="role">Cut it into slices you can approve</p>
+          <p>Breaks the PRD into tracer-bullet vertical slices — each one thin, complete through every layer, and demoable alone. Every slice gets a stable ID that is never renumbered, so later reorders and splits can't break a "blocked by" reference.</p>
+          <p>Each slice carries a <strong>Slice Contract</strong>: <span class="verb">acceptance</span> — exact commands verified to exist in your repo, plus behaviours <em>lifted</em> from the PRD's seams — and <span class="verb">gates</span> — which design lenses apply, and whether the deep security pass is required, read off the routing tables rather than re-decided.</p>
+        </div>
+      </article>
+
+      <div class="gate">
+        <span class="tag">Approval gate</span>
+        <p>You approve the breakdown once, in a five-question quiz. <b>This is the last time anything asks you a question.</b> Past this line, contested decisions go to a multi-model council instead of to you.</p>
+      </div>
+
+      <div class="zonebar" style="margin-top:22px">
+        <div class="zb a"><span class="lbl">Autonomous · per slice, in a worktree</span><span class="d">Design gate, build, verify, deliver. Escalates rather than interrupts.</span></div>
+      </div>
+
+      <article class="station" data-zone="auto">
+        <div class="rail"><span class="num">04</span></div>
+        <div class="card">
+          <h3><span class="sk">coding-design-plan</span> → <span class="sk">design-gate</span></h3>
+          <p class="role">Is the approach sound, before code exists?</p>
+          <p>The plan gets shaped and its test scenarios named; then the gate reads the slice's <code>gates</code> flags, picks <strong>at most three</strong> lenses from a lookup table, and runs them as parallel read-only reviewers. Choosing which architecture lens applies used to be a judgment call — that was itself a mid-flight question waiting to happen, so it became a table.</p>
+        </div>
+      </article>
+
+      <div class="handoff">
+        <div class="rail"></div>
+        <div class="ho">
+          <span class="lbl">hands off</span>
+          <span class="artifact">one merged verdict — proceed | revise</span>
+          <p>A <code>revise</code> only blocks when it carries a concrete, load-bearing finding; cosmetic notes are listed and ignored. Lenses that disagree about a real trade-off escalate — they don't ask you.</p>
+        </div>
+      </div>
+
+      <article class="station" data-zone="auto">
+        <div class="rail"><span class="num">05</span></div>
+        <div class="card">
+          <h3><span class="sk">implement-and-review</span></h3>
+          <p class="role">Build it, test-first</p>
+          <p><strong>Lifts the contract rather than re-deriving it:</strong> the <code>acceptance</code> commands <em>are</em> the definition of done, the behaviours are the test-first targets, and the <code>gates</code> flags select each track's lenses. Frontend and backend build in parallel isolated worktrees where <strong>the implementer never reviews its own track</strong>, with <code>/tdd</code> running the red-green-refactor loop inside each.</p>
+          <p>Untested legacy code gets a characterization net from <code>/safe-incremental-coding</code> first. Bugs found mid-loop go to <code>/diagnose</code>, never to a guess.</p>
+        </div>
+      </article>
+
+      <div class="handoff">
+        <div class="rail"></div>
+        <div class="ho">
+          <span class="lbl">hands off</span>
+          <span class="artifact">merged code + verification evidence</span>
+          <p>Which tests were inspected, which were added, which ran, and what they proved. A behaviour change that arrives without coherent evidence gets exactly one recovery attempt, then hard-blocks.</p>
+        </div>
+      </div>
+
+      <article class="station" data-zone="auto">
+        <div class="rail"><span class="num">06</span></div>
+        <div class="card">
+          <h3>Verify — ordered, fail-fast</h3>
+          <p class="role">Cheapest check first; the expensive gate reads final code</p>
+          <div class="chain">
+            <div class="link"><span class="n">01</span><span class="s">acceptance</span><span class="d">Run the slice's own commands.</span></div>
+            <div class="link"><span class="n">02</span><span class="s">coding-review-simplify</span><span class="d">Self-simplify while context is fresh. Mutating.</span></div>
+            <div class="link"><span class="n">03</span><span class="s">full-review</span><span class="d">Specialists, multi-model triangulation, execution-verified bugs.</span></div>
+            <div class="link"><span class="n">04</span><span class="s">browser-smoke</span><span class="d">Drive the real pages the diff touched.</span></div>
+          </div>
+          <p style="margin-top:12px">The order is load-bearing and was previously wrong: the expensive multi-model gate used to run <em>before</em> a mutating simplify pass, so the reviewed code and the shipped code weren't the same code. Failures loop back to station 05 through <code>/diagnose</code>.</p>
+        </div>
+      </article>
+
+      <div class="handoff">
+        <div class="rail"></div>
+        <div class="ho">
+          <span class="lbl">hands off</span>
+          <span class="artifact">green slice + residual findings, made durable</span>
+          <p>Review findings that were <em>not</em> applied get filed rather than dropped — a finding nobody acted on still has to survive the run.</p>
+        </div>
+      </div>
+
+      <article class="station" data-zone="auto">
+        <div class="rail"><span class="num">07</span></div>
+        <div class="card">
+          <h3><span class="sk">open-pr</span> → <span class="sk">resolve-pr-feedback</span></h3>
+          <p class="role">Ship it</p>
+          <p>The PR body carries acceptance evidence, the design-gate verdicts, the review summary, and a decision log naming every assumption taken on your behalf. When review comments land, each one is judged against the actual code — valid ones fixed, invalid ones answered with evidence — then the threads are resolved.</p>
+          <p><strong>Your only remaining job is merging.</strong></p>
+        </div>
+      </article>
+
+    </div>
+  </section>
+
+  <section>
+    <div class="shead"><h2>What replaces asking you</h2><span class="of">after the gate</span></div>
+    <p class="sublede">The autonomous half is only honest if it has somewhere to go when it's genuinely unsure. Three rungs, in order.</p>
+    <ol class="ladder">
+      <li><b>Ask the other models.</b> <code>models-consensus</code> in poll mode: a blind fan-out to every available seat, five-dimension reconciliation, one gap-repair round, two judges, then a dedicated synthesizer. Read-only, and it never starts implementing.</li>
+      <li><b>Take the most reversible default</b> and record the assumption in the decision log that reaches the PR body.</li>
+      <li><b>Stop for a human</b> — only for something destructive or irreversible: data deletion, force-push, external publication, a migration against real data.</li>
+    </ol>
+  </section>
+
+  <section>
+    <div class="shead"><h2>What changed</h2><span class="of">68 → 56 skills</span></div>
+    <p class="sublede">Two problems. The pipeline referenced four skills that didn't exist in the repo — including the interview and the test loop, its first and fourth working steps. And several skills competed at the same step, each one a fork in the road an agent had to resolve mid-flight.</p>
+
+    <div class="tw">
+      <table>
+        <thead><tr><th>These were merged</th><th>into</th><th>because</th></tr></thead>
+        <tbody>
+          <tr><td class="from">models-roundtable, council, decision-council</td><td class="to">models-consensus</td><td class="why">Four skills ran the same five-stage protocol differing in six knobs, with four copies of the seat roster — and two of them both claimed the trigger “council this”.</td></tr>
+          <tr><td class="from">collaborative_discovery, _specification, _task_design</td><td class="to">panel modes</td><td class="why">Same step, same artifact, only more models. As separate skills their output couldn't carry the Slice Contract, so the conductor was patching it by hand.</td></tr>
+          <tr><td class="from">the five fable-* skills</td><td class="to">fable-mindset</td><td class="why">One body of thought wearing five frontmatters, each cross-citing the other four.</td></tr>
+          <tr><td class="from">design-integrity</td><td class="to">software-design-philosophy</td><td class="why">Every step already had a stronger owner in the deep-modules lens; the vocabulary moved across verbatim.</td></tr>
+          <tr><td class="from">architecture_session_review</td><td class="to">architecture-lens</td><td class="why">It duplicated the router and the planner, and its one caller asked it to review read-only while it instructed implementation.</td></tr>
+          <tr><td class="from">coding-implementation-guard, pragmatic-coding-session</td><td class="to">tdd + lenses</td><td class="why">Recombinations of skills that already existed, near-verbatim in places.</td></tr>
+          <tr><td class="from">feature-models-roundtable, codex-mission-control</td><td class="to">implement-feature, dynamic-harness</td><td class="why">Glue for a handoff the callee already documented; and a second copy of the same ledger discipline.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p style="margin-top:20px"><strong>Five skills were added</strong>, each filling a step the pipeline already called for: <code>interview</code>, <code>tdd</code>, <code>diagnose</code>, <code>prototype</code>, and <code>fable-mindset</code>. The pipeline now runs entirely on skills that exist in this collection.</p>
+  </section>
+
+  <p class="note">Written alongside the restructuring on 2026-07-30. Prose companions: <code>docs/workflow.md</code> for the narrative, <code>docs/restructuring-2026-07-30.md</code> for the full change ledger, <code>docs/porting-trigger-audit.md</code> for the per-merge rationale. The skill catalogue lives in <code>workflow.html</code>.</p>
+
+</div>
+</body>
+</html>

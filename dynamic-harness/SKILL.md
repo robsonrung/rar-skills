@@ -1,6 +1,6 @@
 ---
 name: dynamic-harness
-description: "Dynamic multi agent harness orchestration for complex, high value tasks. Use when the user invokes $dynamic-harness or asks for a workflow, dynamic workflow, dynamic harness, ultracode style harness, many subagents, competing agents, tournament, fan out and synthesis, generate and filter, adversarial verification, classify and act routing, loop until done investigation, large migration, multi agent deep research, deep verification, qualitative sorting, triage at scale, or root cause analysis at scale with competing hypotheses."
+description: "Dynamic multi agent harness orchestration plus thin manager mission control for complex, high value tasks. Use when the user invokes $dynamic-harness or asks for a workflow, dynamic workflow, dynamic harness, ultracode style harness, many subagents, competing agents, tournament, fan out and synthesis, generate and filter, adversarial verification, classify and act routing, loop until done investigation, large migration, multi agent deep research, deep verification, qualitative sorting, triage at scale, or root cause analysis at scale with competing hypotheses. Also use for mission control: preserve context, avoid compaction, run subagents, create focused threads, split workstreams, manage handoffs, or supervise parallel agent execution."
 disable-model-invocation: true
 ---
 
@@ -11,7 +11,7 @@ Use this skill as a Codex port of dynamic workflows: move orchestration into a c
 ## First Move
 
 1. Restate the user goal, success criteria, constraints, risk level, and available budget.
-2. Decide whether this needs a full workflow, a quick workflow, or a direct answer with normal verification. For small tasks, use a quick workflow only when independent checking adds value.
+2. Decide whether this needs a full workflow, a quick workflow, or a direct answer with normal verification. For small tasks, use a quick workflow only when independent checking adds value. When the run is a long mission across turns or threads and the manager's context is the scarce resource, add [Manager Mode](#manager-mode-codex-host).
 3. Identify the immediate critical path task for the main agent. Do that locally while subagents handle independent side work.
 4. Use the smallest sufficient parallelism, then scale up aggressively only when slices are independent and added agents reduce context pressure or improve verification. Avoid duplicate agents that would produce the same evidence.
 
@@ -33,12 +33,10 @@ Risk guard:
 Expected output:
 ```
 
-If working in the GreenSpark AWS repo, read `references/greenspark.md` first.
-
 ## Runtime
 
 1. If subagent tools are not visible, call tool search for multi agent spawn subagents.
-2. In Codex, orchestrate with available subagent tools such as `multi_agent_v1.spawn_agent`, `wait_agent`, and `send_input`.
+2. In Codex, orchestrate with available subagent tools such as `multi_agent_v1.spawn_agent`, `wait_agent`, `send_input`, and `close_agent`. Call `wait_agent` only at a real barrier — do non overlapping local work while agents run — inspect each worker's report and changed files before integrating, and close agents that are no longer needed. Record the preflight result (which tools are visible, or that none are) wherever the run keeps its ledger.
 3. If running inside Claude Code with native dynamic workflows enabled, prefer the native workflow runtime for repeatable large runs because the host script can hold intermediate results, run in the background, and be saved for reuse.
 4. If the user asks for a reusable native workflow artifact, place it where the host expects workflow files, such as project or user workflow folders, only after confirming the runtime format from local evidence or official docs.
 5. If no subagent tools are available, emulate the workflow serially, state that no subagents were spawned, and do not imply parallel execution happened.
@@ -148,6 +146,55 @@ A loop-until-done workflow needs **three exits**, not one: the stop condition wh
 5. Run the nearest real verification command when code changed and the command is safe.
 6. If verification cannot run, say exactly what was not verified and why.
 
+## Manager Mode (Codex Host)
+
+Use manager mode when the run is a long **mission** rather than one fan-out: it spans multiple turns or threads, the manager's own context is the scarce resource, and workstreams must survive compaction. The manager stays **thin** — it owns the goal, constraints, workstream map, routing, handoffs, thread registry, integration, and the final answer, and nothing else. Deep exploration, long logs, and bounded implementation slices move out. The manager never redoes delegated work; it integrates, verifies, and resolves conflicts.
+
+Everything above still applies and is not restated here: [Runtime](#runtime) is the only preflight (run it and record the result in the ledger before delegating), [Agent Design](#agent-design) is the only worker contract and the only disjoint-write-scope rule, and [Synthesis Rules](#synthesis-rules) item 1 is the only ledger rule. Manager mode adds the following.
+
+### Start the mission
+
+```bash
+python3 <skill_dir>/scripts/start_mission.py --title "short task title"
+# keep support files out of the workspace:
+python3 <skill_dir>/scripts/start_mission.py --title "short task title" --root /tmp/harness-missions
+```
+
+It creates a unique run directory (`work/harness-missions/<task-slug>/<timestamp>-<slug>-<suffix>/` by default) with sibling `handoffs/` and `worker-reports/` directories and a uniquely named ledger inside. Mission ids are collision-proof by construction — timestamp plus slug plus random suffix, created with `exist_ok=False` so a collision fails loudly instead of joining someone else's mission. A single fixed ledger or handoff filename collides across runs; always use the mission-scoped path, and use that same run directory for the run state. If the script is unavailable, replicate its layout by hand — read it for the exact ledger template.
+
+### Subagent or separate thread
+
+Spawn a **subagent** when all of these hold: the user asked for delegation or parallel agent work; the slice is concrete, bounded, and materially advances the mission; it can run without blocking the manager's next step; and, for edits, its write scope is disjoint from other active work.
+
+Open a **separate thread** when any of these holds: the slice will take multiple turns; it needs its own worktree, branch, or repo-scoped environment; it is a follow-up audit or implementation item that should keep its own context; or the manager thread is filling up and the next workstream can start from a compact handoff. Keep read-only audits separate from mutating implementation threads unless the user asks otherwise.
+
+**Fork policy:** `fork_context=false` is the default (Agent Design item 2). Never fork a bloated manager context — a clean thread seeded by a compact handoff beats a fork carrying everything the manager has already spent.
+
+### Separate-thread reality
+
+A skill file cannot open a Codex UI thread. If the host exposes a thread-creation tool, use it and record the returned thread id. If it does not, **emit a handoff file plus the exact seed prompt** for that thread and record both in the ledger — never imply a thread exists that nobody opened. Integration stays with the manager after the thread reports back.
+
+### Configuration reality
+
+1. Native subagent availability is controlled by the host runtime and config, such as `~/.codex/config.toml` with the multi agent feature enabled.
+2. A project `routing.toml` is not a subagent switch. TOML routing files matter only to skills that parse them explicitly.
+3. `agents/openai.yaml` is Codex UI metadata (display name, default prompt, invocation policy), not a runtime.
+4. If the preflight cannot expose `multi_agent_v1`, patching TOML from inside a skill will not create subagent tools for this turn. Continue serially and say no subagents were spawned.
+
+### Handoff contract
+
+One screen when possible, seven items: (1) mission id and source ledger path, (2) this workstream's goal, (3) relevant files, routes, commands, docs, or issue links, (4) constraints and non goals, (5) expected deliverable, (6) required verification, (7) the output contract for the worker's final message. Save it under the mission's `handoffs/` directory with the mission id, workstream slug, and a timestamp or thread id in the filename. A worker brief is the Agent Design contract plus three mission fields: mission id, source ledger path, and runtime target (subagent role or separate thread).
+
+### Ledger versus run state
+
+The Markdown ledger is for humans and is **write-only from the machine's side** — nothing reads it back, so it cannot drive a resume. Keep it (update it after each meaningful event: preflight, workstream start, thread created or handoff written or subagent spawned, worker completed, decision, files changed, verification, final integration; link to reports instead of pasting logs), and write a `run-state.json` beside it in the same mission directory per `_shared/references/run-state-contract.md`.
+
+- `status`, `phase`, and `steps` mirror the workstream table, so a resumed mission reconstructs what completed from the file rather than from the manager's memory.
+- `ceilings.max_workers` bounds concurrent workers, `ceilings.max_dispatched` the total spawned. A manager with no worker ceiling is the shape that spawns until something else stops it.
+- Every spawned agent id, role, scope, and final status goes in `steps` as well as the ledger table — that is the replay trace.
+- Worker side effects (commits, merges, PRs) carry a `side_effects` key written before the effect, so re-dispatching a crashed worker does not duplicate what it already landed.
+- **Resume:** load `run-state.json`, resume at `phase` with `attempts` intact, treat every gate in `gates` as already decided, skip every step in `steps` and every key in `side_effects`, and terminate orphaned workers from the prior session before dispatching new ones.
+
 ## Final Response
 
 Report:
@@ -157,5 +204,6 @@ Report:
 3. Verified result or winning option.
 4. Evidence, commands, sources, or changed files.
 5. Unresolved risks or blocked decisions.
+6. In manager mode, also the mission id and ledger path, any thread ids, and the handoffs written.
 
 Keep the final answer concise. Do not include raw subagent transcripts unless the user asks.

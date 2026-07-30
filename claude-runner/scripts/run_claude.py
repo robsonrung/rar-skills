@@ -33,9 +33,9 @@ PROVIDER_BY_RUNNER = {
     "gemini": "google",
     "qwen": "qwen",
     "gemma": "google",
-    "glm": "z-ai",
-    "glm-critical": "z-ai",
-    "kimi": "moonshot",
+    "glm": "zai",
+    "glm-critical": "zai",
+    "kimi": "moonshotai",
     "minimax": "minimax",
 }
 
@@ -649,7 +649,7 @@ Examples:
         "-m",
         type=str,
         default=None,
-        help="Claude model alias or full model name (for example 'claude-sonnet-5' or 'claude-opus-4-8')",
+        help="Claude model alias ('opus', 'sonnet') or a full model id; aliases are preferred so the seat tracks _shared/references/model-roster.md",
     )
     parser.add_argument(
         "--output-format",

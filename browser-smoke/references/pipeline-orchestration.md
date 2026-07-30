@@ -1,6 +1,6 @@
 # Pipeline-Mode Server Orchestration
 
-Read and follow this file only when browser-smoke is invoked with `mode:pipeline` (from an automated pipeline such as implement-and-review or ship). It overrides interactive prompts, free-port selection, and dev-server startup. It does not change browser-driver selection. In pipeline mode you run unattended — never block on a question.
+Read and follow this file only when browser-smoke is invoked with `mode:pipeline` — in this repo that caller is **`ship` phase 5**, which runs this skill for web-facing changes (`implement-and-review` does not call it). It overrides interactive prompts, free-port selection, and dev-server startup. It does not change browser-driver selection. In pipeline mode you run unattended — never block on a question.
 
 ## 1. No interactive prompts
 
@@ -44,11 +44,13 @@ for i in $(seq 1 30); do
   sleep 1
 done
 if ! lsof -i ":${PORT}" -sTCP:LISTEN -t >/dev/null 2>&1; then
-  echo "Server did not start in 30s. Last output:"
+  echo "SERVER_START_FAILED after 30s. Last output:"
   tail -20 /tmp/dev-server-${PORT}.log 2>/dev/null
   exit 1
 fi
 ```
+
+`exit 1` ends only this shell block's subshell — it does not stop the skill. So on `SERVER_START_FAILED`, **you** stop the browser work: do not navigate, do not test routes, and report the run as `Result: SKIP` with the reason, the captured log tail, and the count of affected routes left untested. A pipeline run that tested nothing must never be handed back as a pass.
 
 The scan may land on a different port than the preferred one, and `$PORT` does not survive into later shell calls. Note the number this block echoes ("Using dev server port: N") and use that literal port in every subsequent selected-driver navigation — do not rely on `${PORT}` carrying over. Then return to the "Test Each Affected Page" step, navigate to `http://localhost:<N>`, inspect the rendered state, and test each route.
 

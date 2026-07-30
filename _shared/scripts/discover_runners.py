@@ -2,7 +2,7 @@
 """Preflight probe for runner-skill availability.
 
 Standardized seat discovery shared by skills that fan work out across multiple
-model runners (full-review, models-roundtable, council, dynamic-harness, …).
+model runners (full-review, models-consensus, diverse-plan, dynamic-harness, …).
 Probes the CLIs each runner depends on and emits a stable JSON envelope that
 callers can parse to build their seat table.
 
@@ -53,11 +53,15 @@ class SeatSpec:
     version_args: tuple[str, ...] = ("--version",)
     fallback_version_args: tuple[tuple[str, ...], ...] = (("-V",), ("version",))
     notes: str = ""
+    # "default" seats form the roster a council fans out to when no --seat filter
+    # is given. "backup" seats are probed only when named explicitly, so adding
+    # one never silently enlarges (or re-prices) an existing fan-out.
+    tier: str = "default"
 
 
-# Seat → probe table. Keep in sync with full-review SKILL.md Phase 3,
-# models-roundtable SKILL.md Preflight step 1, and models-consensus SKILL.md
-# preflight step 2.
+# Seat → probe table and the single source for seat availability. Model ids for
+# each seat live in _shared/references/model-roster.md. Keep in sync with
+# full-review SKILL.md Phase 3 and models-consensus SKILL.md preflight.
 SEAT_SPECS: tuple[SeatSpec, ...] = (
     SeatSpec(
         seat="opus",
@@ -102,6 +106,31 @@ SEAT_SPECS: tuple[SeatSpec, ...] = (
         depends_on=("cline",),
         notes="cline-backed shim; forwards --model zai/glm-5.2 to `cline`, requires a Cline provider authenticated via `cline auth`.",
     ),
+    # Backup seats. Not part of the default council rosters — probed so skills
+    # that name them explicitly (`--seat qwen`) resolve instead of exiting 2.
+    SeatSpec(
+        seat="qwen",
+        execution_path="qwen_runner",
+        probe_cli="qwen",
+        notes="Backup seat. Qwen Code CLI; no fallback chain — blocks-and-reports when `qwen` is missing.",
+        tier="backup",
+    ),
+    SeatSpec(
+        seat="gemma",
+        execution_path="gemma_runner_via_qwen",
+        probe_cli="qwen",
+        depends_on=("qwen",),
+        notes="Backup seat. qwen-backed shim; forwards --model google/gemma-4-31b-it to `qwen`.",
+        tier="backup",
+    ),
+    SeatSpec(
+        seat="minimax",
+        execution_path="minimax_runner_via_qwen",
+        probe_cli="qwen",
+        depends_on=("qwen",),
+        notes="Backup seat. qwen-backed shim; forwards --model minimax/minimax-m2.7 to `qwen`.",
+        tier="backup",
+    ),
 )
 
 CLAUDE_SEATS = frozenset({"opus", "sonnet"})
@@ -118,6 +147,7 @@ class SeatProbe:
     blocked_reason: Optional[str] = None
     depends_on: tuple[str, ...] = field(default_factory=tuple)
     notes: str = ""
+    tier: str = "default"
 
     def to_dict(self) -> dict:
         return {
@@ -130,6 +160,7 @@ class SeatProbe:
             "blocked_reason": self.blocked_reason,
             "depends_on": list(self.depends_on),
             "notes": self.notes,
+            "tier": self.tier,
         }
 
 
@@ -166,6 +197,7 @@ def probe_seat(spec: SeatSpec, native_agent: str, version_timeout: float) -> Sea
             cli_path=None,
             depends_on=spec.depends_on,
             notes="Native Agent tool reported by host (--native-agent yes).",
+            tier=spec.tier,
         )
 
     cli_path = shutil.which(spec.probe_cli)
@@ -182,6 +214,7 @@ def probe_seat(spec: SeatSpec, native_agent: str, version_timeout: float) -> Sea
             blocked_reason=blocked,
             depends_on=spec.depends_on,
             notes=spec.notes,
+            tier=spec.tier,
         )
 
     version = _probe_version(cli_path, spec, version_timeout)
@@ -194,12 +227,14 @@ def probe_seat(spec: SeatSpec, native_agent: str, version_timeout: float) -> Sea
         version=version,
         depends_on=spec.depends_on,
         notes=spec.notes,
+        tier=spec.tier,
     )
 
 
 def filter_specs(seat_filter: Optional[set[str]]) -> tuple[SeatSpec, ...]:
     if not seat_filter:
-        return SEAT_SPECS
+        # Backup seats are opt-in by name; they never join a default fan-out.
+        return tuple(s for s in SEAT_SPECS if s.tier == "default")
     unknown = seat_filter - {s.seat for s in SEAT_SPECS}
     if unknown:
         print(

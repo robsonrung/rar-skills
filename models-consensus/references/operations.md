@@ -1,23 +1,28 @@
 # Operations Reference
 
-Operational detail for models-consensus: startup selection templates, interactive question mechanics, cost governance, crash recovery, response schema validation, artifact policy, runner launch policy, input format, and mode behavior. Read the relevant section when its trigger in SKILL.md fires.
+Operational detail for models-consensus: startup selection templates, interactive question mechanics, cost governance, crash recovery, response schema validation, artifact policy, runner launch policy, input format, the `clarify` and `decider_context` flags, the moderator time budget, and the handoff rules. Read the relevant section when its trigger in SKILL.md fires. This file is mode-agnostic — per-mode pipelines live in [poll-protocol.md](poll-protocol.md), SKILL.md (`debate`), and [personas.md](personas.md).
 
 ## Startup Selection Templates
 
-Question templates for preflight step 0 (seat selection). Ask via the Interactive Questions protocol; prefer one multi-select question over a series of yes/no prompts.
+Question templates for preflight step 0 (seat selection). Ask via the Interactive Questions protocol; prefer one multi-select question over a series of yes/no prompts. Skipped entirely under `--auto`.
 
-**Multi-select template** (preferred; include `All available (Recommended)` plus the detected candidate seats, omitting seats not present in `candidate_seats`):
+**The picker must list every roster seat the probe reports as a candidate.** A seat missing from the picker can never be chosen, so build the option list from the probe output against `_shared/references/model-roster.md` — never from a hand-remembered subset. Use seat names, not pinned model ids.
+
+**Multi-select template** (preferred; include `All available (Recommended)` plus every detected candidate seat, omitting only seats absent from `candidate_seats`):
 
 ```text
 Which models to use?
 [ ] All available (Recommended)
-[ ] Claude Opus 4.8
-[ ] Claude Sonnet 5
-[ ] Codex
-[ ] Gemini
-[ ] Kimi
-[ ] GLM
+[ ] Claude Opus (native, else claude-runner)
+[ ] Claude Sonnet (native, else claude-runner)
+[ ] Codex (native on a Codex host, else codex-runner)
+[ ] Gemini (gemini-runner / agy)
+[ ] Grok (grok-runner)
+[ ] Kimi (kimi-runner / cline)
+[ ] GLM (glm-runner / cline)
 ```
+
+If the probe also reports backup seats from the roster (`qwen`, `gemma`, `minimax`) or the secondary `codex-code` seat as available, append them as options in the same list — the rule is one option per available roster seat, no exceptions.
 
 **Small single-choice menu** (when the host tool cannot multi-select):
 1. `All available (Recommended)`
@@ -93,15 +98,26 @@ State follows `_shared/references/run-state-contract.md`; council-specific keys 
 
 ## Response Schema Validation
 
-Validate seat outputs before accepting them into the moderator digest. Seat outputs ARE schema-validated against the field lists below.
+Validate every model output before accepting it into the digest/analysis. Outputs ARE schema-validated against the bundled schemas below.
 
-Bundled JSON Schemas (the machine-checkable form of these field lists):
-- Round 1: `schemas/round1-response.schema.json`
-- Later rounds: `schemas/later-round-response.schema.json`
+### Schema → mode and stage
 
-Pass the matching schema via `--output-schema` to seats that accept it — Codex validates it natively; the cline-backed Kimi and GLM seats accept the flag but enforce it by prompt. Gemini and Claude seats have no schema flag; for them (and as a backstop for everyone) the brief's trailing `Return ONLY JSON …` line holds the shape, and the moderator validates against the field lists below.
+| Schema file (`models-consensus/schemas/`) | Mode | Stage / producer |
+|---|---|---|
+| `opening-answer.schema.json` | `poll` | Phase 1 — every seat's blind answer to the raw prompt |
+| `organizer-analysis.schema.json` | `poll` | Phase 2 — the organizer's five-dimension analysis (its `material_gaps` boolean gates Phase 3) |
+| `disagreement-round.schema.json` | `poll` | Phase 3 — each seat's one bounded gap-repair response |
+| `judge.schema.json` | `poll` | Phase 4 — each of the two judges' verdicts on the still-open points |
+| `synthesis.schema.json` | `poll` | Phase 5 — the synthesizer's consensus answer + attribution map |
+| `round1-response.schema.json` | `debate` | Round 1 — each seat's blinded, stance-carrying opening |
+| `later-round-response.schema.json` | `debate` | Rounds 2..N — each seat's rebuttal/refinement after the anonymized digest |
+| — | `personas` | No JSON schemas: advisors, reviewers, and the chairman return prose in the fixed section structure of [personas.md](personas.md) |
 
-**Round 1 required fields:**
+Pass the matching schema via `--output-schema` to seats that accept it — Codex and Grok validate it natively (`grok-runner` forwards it to grok's own `--json-schema`); the cline-backed Kimi and GLM seats accept the flag but enforce it by prompt. Gemini and Claude seats have no schema flag; for them (and as a backstop for everyone) the brief's trailing `Return ONLY JSON …` line holds the shape, and the moderator validates against the field lists below.
+
+**`poll` required fields** (top level, per schema): opening answer — `answer`, `key_points`, `assumptions`, `confidence` (plus `sources_used` / `failed_lookups` under a research profile); organizer analysis — `consensus`, `contradictions`, `partial_coverage`, `unique_insights`, `blind_spots`, `material_gaps`; gap-repair — `item_responses`, `confidence`; judge — `verdicts`; synthesis — `consensus_answer`, `attribution_map`, `confidence_rationale`, `confidence`.
+
+**`debate` Round 1 required fields:**
 - `stance`
 - `position_summary`
 - `key_arguments`
@@ -110,7 +126,7 @@ Pass the matching schema via `--output-schema` to seats that accept it — Codex
 - `confidence`
 - `questions_for_the_council`
 
-**Later rounds required fields:**
+**`debate` later-round required fields:**
 - `updated_position`
 - `what_changed`
 - `points_conceded`
@@ -118,7 +134,7 @@ Pass the matching schema via `--output-schema` to seats that accept it — Codex
 - `best_next_step`
 - `confidence`
 
-**Validation behavior:**
+**Validation behavior (the `malformed_output` path):**
 - If a response is missing required fields, retry once with a compact schema reminder prepended to the prompt.
 - If the retry also fails, mark the seat as `malformed_output`, exclude it from the digest, and degrade gracefully.
 - Do not fabricate missing fields from the seat's partial output.
@@ -146,36 +162,121 @@ When artifact mode is `inline`:
 - return the final report and state inline, with `report_path` and `state_path` set to `null`
 - keep round digests and moderator digests in memory
 
+### Report sections per mode
+
+The report is the same document in both artifact modes — written to `.ai-workflow/consensus/{session_id}.md` when `persisted`, returned inline otherwise. Its sections depend on the mode:
+
+- **`poll`** — the ten numbered sections in [poll-protocol.md](poll-protocol.md#phase-5--synthesis-final-call-report): Task / Run config / Seats and judges / Consensus answer / Agreements / How disagreements resolved / Blind spots and partial coverage / Attribution map / Confidence / Open caveats.
+- **`debate`** — Task and clarified brief / Run config and seat table (with stance assignments per round) / Round-by-round digests (anonymized as they were passed forward) / Agreement points / Disagreement points with each side's strongest case / Convergence classification and its evidence / Decision options with the recommended direction / Evidence gaps and follow-up questions / Independence accounting (`effective_model` per seat, duplicates and shared providers labeled) / Confidence (answer and diversity, separately) / Open divergence if the run stopped at the `max_iterations` ceiling.
+- **`personas`** — the fixed verdict structure in [personas.md](personas.md#step-5--present-the-verdict): Where the Council Agrees / Where the Council Clashes / Blind Spots the Council Caught / The Recommendation / The One Thing to Do First / Reversal Trigger (medium and expensive tiers only), plus the reversal-cost tier, whether peer review ran, and the mode-switch note when `personas` was reached by degradation.
+
+Every mode additionally honors the shared output contract in SKILL.md (adoption grade, two-floor grounding gate, receipt-verified independence, the single next step, both confidence numbers).
+
 ## Runner Launch Policy
 
 Launch seats using native host tools when available; fall back to runner scripts only when native paths are unavailable. See [runner-invocations.md](runner-invocations.md) for complete invocation patterns, auth rules, and the runner output contract.
 
-Runner seats invoke local CLIs and may send prompt context, selected files, and runner metadata to their configured providers. Prefer `--restrict-tools` for review and planning seats. Do not pass permission bypass or full auto flags unless the user has explicitly approved unattended write capable execution for that run.
+Runner seats invoke local CLIs and may send prompt context, selected files, and runner metadata to their configured providers. Pass `--restrict-tools` to every council seat — they are all analysis seats. Do not pass permission bypass or full auto flags unless the user has explicitly approved unattended write capable execution for that run.
 
 Key flags for every runner-backed seat:
 - `--disable-fallback` (mandatory)
-- `--timeout 900`
+- `--timeout 900` for `debate` rounds carrying a digest; `--timeout 600` is ample for a single `poll` answering pass
 - `--json` for wrapper envelope
 - `--output-file` for persisted artifacts
+- `--output-schema <stage schema>` where the runner accepts one ([Schema → mode and stage](#schema--mode-and-stage))
 
-In `inline` mode, combine stance and brief into a single positional prompt. In `persisted` mode, use `--prompt-file` flags when the runner supports them.
+`debate` seats also carry a `--role` and a stance in `--metadata-json`; `poll` seats carry **neither** (they answer the raw prompt) — see [runner-invocations.md#poll-mode-deltas](runner-invocations.md#poll-mode-deltas).
+
+In `inline` mode, combine the overlay and brief into a single positional prompt. In `persisted` mode, use `--prompt-file` flags when the runner supports them.
 
 ## Input Format
 
 Expected input payload:
 - `question`: required
+- `mode`: optional council mode — `poll` (default), `debate`, or `personas` (SKILL.md, Mode Selection)
 - `context_files`: optional list of repo-relative or absolute file paths
-- `max_iterations`: optional, default `4`
+- `max_iterations`: optional, default `3` (the `debate` rotation schedule defines exactly rounds 1–3; `poll` is fixed at one gap-repair round and ignores this)
 - `session_id`: required unique identifier
 - `auto`: optional boolean, default `false`
-- `mode`: optional, `interactive` (default) or `autonomous`
+- `clarify`: optional boolean, default `false` (see [Clarify Flag](#clarify-flag))
+- `decider_context`: optional, `full` (default) or `report_only` (see [Decider Context: report_only](#decider-context-report_only))
+- `interaction_mode`: optional, `interactive` (default) or `autonomous`
+- `preset`: optional `poll` preset — `quality` (default), `budget`, `research` ([poll-protocol.md](poll-protocol.md#presets))
 
-Free-form shortcut:
+Free-form shortcuts:
 - `--auto` is equivalent to `auto=true`
+- `clarify` as a bare word is equivalent to `clarify=true`
 
-## Mode Behavior
+`mode` selects the council protocol; `interaction_mode` only controls pausing. Never conflate the two.
 
-Startup seat selection is governed by preflight step 0 in SKILL.md (the single normative rule). Mode only affects later pausing:
+## Interaction Mode Behavior
+
+Startup seat selection is governed by preflight step 0 in SKILL.md (the single normative rule). `interaction_mode` only affects later pausing:
 
 - `interactive`: pause later only when disagreement is material or preference-sensitive.
 - `autonomous`: run the rounds without further pauses and return recommendations and reasoning.
+
+`--auto` implies `autonomous` and additionally suppresses the startup seat-selection question and the `clarify` interview.
+
+## Clarify Flag
+
+A pre-stage interview that runs **before any round of any mode**, when `clarify` is set. Keep asking short blocking questions until confidence is ≥ 95%, then build one clarified prompt and hand only that to the council.
+
+**Misread test:** if a reasonable expert could misread the task in more than one materially different way, confidence is below 95%.
+
+Be confident about six things:
+1. the actual objective
+2. the target artifact or output
+3. the important constraints
+4. the success criteria
+5. the autonomy level expected
+6. any required inputs, files, or environment assumptions
+
+**Decision ladder:**
+- `>= 95` — proceed without more user input
+- `90–94` — ask only if the missing information could change the outcome in a meaningful way
+- `< 90` — ask targeted questions
+
+Rules:
+- Ask **only blocking** questions. Do not interview for preferences that cannot change the outcome.
+- Ask one short question at a time unless an interactive multiple-choice UI is available and materially faster (see [Interactive Question Mechanics](#interactive-question-mechanics)).
+- Never leak the interview transcript into the council: the seats receive the **clarified prompt only** — no interview notes, no orchestrator analysis, no preferred answer. In `poll` this is mandatory (the fan-out is blind).
+- Be conservative about false confidence: 95% means you would be comfortable acting without reinterpretation.
+- Under `--auto`, skip the interview entirely, **record the assumptions** you are making in state and in the report, and continue. Never block a pipeline caller on a clarify question.
+- If a required answer never arrives through any question channel, stop with `awaiting_human` (non-`--auto` only).
+
+## Decider Context: report_only
+
+The final decider — `poll` synthesizer, `debate` report writer, `personas` chairman — sees **ONLY** the moderator/organizer report. No repo access, no seat transcripts, no orchestrator notes, and in `personas` no frozen host position.
+
+Rules:
+- The report handed over must not smuggle in context that was absent from round 1. If a fact was not surfaced by the council, it does not reach the decider.
+- The decider is always a **fresh context** (separate from the orchestrator, the seats, the organizer, and the judges).
+- This information starvation is deliberate protocol, not a limitation: it forces the decision to rest on what the council actually surfaced, so a weak council produces a visibly weak decision instead of an orchestrator-rescued one.
+- If the decider reports it cannot decide on the report alone, that is a **finding** — record it as an evidence gap and, in interactive runs, offer another round rather than quietly widening the decider's context.
+- Record `decider_context` in the run config section of the report so the reader knows how the decision was constrained.
+
+## Moderator Time Budget and Process Cleanup
+
+The moderator waits, but never indefinitely.
+
+- Budget ~2–3 minutes for native seats and 10–15 minutes for runner-backed seats per round.
+- Once at least 3 independent providers have completed **and** the major disagreements are clear, stop waiting — unless a straggler could change the decision materially.
+- After the cutoff: close native seats you no longer need and **kill unfinished runner processes**. Never leave orphaned background work behind.
+- Record every cut-off seat as `unavailable` with the reason (`timeout_cutoff`), and lower confidence one band exactly as for any missing seat — a cut seat is a missing seat, not a silent omission.
+- On resume, terminate any runner PIDs or background jobs recorded from the prior session before launching new seats (see [Crash Recovery and State Resumption](#crash-recovery-and-state-resumption)); background runner jobs are managed with `_shared/scripts/runner_jobs.py` (`status` / `result` / `cancel`).
+
+## Handoff After Approval Rules
+
+Deliberation-only is absolute: no mode, preset, or flag combination (including `--auto`) authorizes execution. Handoff happens only when **all** of these hold:
+
+1. The user explicitly approved a direction after seeing the verdict — approval by the council itself, by a seat, or by inference from silence does not count.
+2. The user did not ask for analysis only. If the request was "review", "compare", or "what do you think", stop at the report.
+
+Then, and only then:
+
+- Build a **compact handoff brief**: the final recommendation, the minority concerns worth carrying, and the acceptance criteria. Not the full transcript.
+- Prefer a native seat for the implementation; otherwise invoke the selected runner with `--role implementer` (or `--role codereviewer` for a review handoff) — the only roles that legitimately leave read-only mode.
+- Never pass permission-bypass or full-auto flags on the council's own initiative; that requires the user's explicit approval for unattended write-capable execution in this run.
+- Record the handoff in `gates` (what was approved, to whom it was handed, with which brief) so a resumed session does not re-hand the same work.
+- The council never runs the implementation itself, and never edits files in any mode.

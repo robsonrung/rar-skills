@@ -34,9 +34,9 @@ Relationships between two contexts, by who controls the model and how much they 
 ### Cooperation (teams succeed/fail together)
 - **Partnership** — ad hoc, bidirectional coordination; integration evolves as needed.
 - **Shared Kernel** — a shared subset of the model owned by multiple contexts/teams. Any
-  change ripples to all sharers → high coordination cost. Keep it small and stable. In this
-  repo: `backend/common` + `gslogic`. Watch for context-specific logic creeping into it
-  that should live in one service instead.
+  change ripples to all sharers → high coordination cost. Keep it small and stable —
+  typically a shared domain/common module. Watch for context-specific logic creeping into
+  it that should live in one service instead.
 
 ### Customer–Supplier (one upstream, one downstream)
 - **Conformist** — downstream conforms to upstream's model with no translation. Cheap, but
@@ -44,8 +44,8 @@ Relationships between two contexts, by who controls the model and how much they 
   can't influence it — fine for non-core consumers, risky for core subdomains.
 - **Anticorruption Layer (ACL)** — downstream translates upstream's model into its own at
   the boundary, preventing corruption of its model. **Use for external/legacy/third-party
-  integrations** — e.g. every ERP connector in `erp-sync-workflow`. The ACL is where the
-  foreign vocabulary is mapped to ours and never deeper.
+  integrations** — e.g. each connector in an external-system sync service. The ACL is
+  where the foreign vocabulary is mapped to ours and never deeper.
 - **Open-Host Service (OHS)** — upstream protects *downstream* by exposing a stable,
   versioned **published language** (a public API/event contract) decoupled from its
   internal model. Use when a context has many consumers. The OpenAPI contract that

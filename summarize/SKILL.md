@@ -17,6 +17,8 @@ Use only conversation context, command results, and files that were already open
 
 Output the summary directly in the reply; only write it to a file if the user asks, defaulting to `./HANDOFF.md`.
 
+**Durable storage of a handoff belongs to `session-handoff`** — the managed store, the immutable per-topic path, and the frontmatter contract are its job. This skill produces the body; when the user wants the handoff kept and rediscoverable later, hand this body to `session-handoff` rather than inventing a storage location here.
+
 Write a compact Markdown summary with these sections when relevant:
 
 1. Goal

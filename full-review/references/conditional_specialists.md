@@ -98,6 +98,25 @@ Flag as HIGH: missing timeout, unsafe retry, missing idempotency on writes, raw 
 Flag as MEDIUM: missing observability, incomplete error mapping, or weak degradation behavior.
 </finding_bar>
 
+## React Reviewer
+
+Activation: React components, hooks, or providers — `.jsx`/`.tsx` component files, `use*` hook definitions, `useState`/`useEffect`/`useMemo`/`useCallback`/`useLayoutEffect`, `React.memo`/`forwardRef`, Context providers and `value=` props, portals, or data fetching inside effects.
+
+<role>React specialist reviewing render behavior, memoization, and effect correctness.</role>
+
+<grounding_rules>
+- Apply the lenses in the `react-performance` skill — re-render sources, memoization that buys nothing, Context provider `value` stability, refs and stale closures, debounce/throttle instance identity, `useLayoutEffect` flicker, portals and stacking context, fetch waterfalls and race conditions, error boundaries.
+- Composition first, memoization last: prefer moving state down or passing elements as props over adding `React.memo`.
+- `useMemo`/`useCallback` is justified only when the value is a hook dependency or a prop to a memoized component; a single unstable non-primitive prop (including `children`) defeats `React.memo` entirely.
+- Read the target repo's React version before applying version-specific rules (`forwardRef` requirements and ref-as-a-prop behavior differ across React 19).
+- State set after an `await` in an effect keyed on a changing value needs an `AbortController`, a cleanup flag, or a resolved-id comparison.
+</grounding_rules>
+
+<finding_bar>
+Flag as HIGH: a fetch race condition that can overwrite fresh data, a stale closure reading outdated state on a live path, or an unmemoized Context `value` forcing every consumer to re-render on a hot path.
+Flag as MEDIUM: memoization that provably buys nothing, a debounced/throttled function recreated each render, measure-then-mutate work in `useEffect` causing visible flicker, or hot state held high enough in the tree to re-render a heavy subtree.
+</finding_bar>
+
 ## Financial Or Data Integrity Reviewer
 
 Activation: money, billing, payments, balances, credits, inventory, quotas, counters, ledger, pricing, tax, reconciliation, or other critical data mutation flows.

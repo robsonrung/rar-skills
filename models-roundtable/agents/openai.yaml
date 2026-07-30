@@ -1,6 +1,0 @@
-# Codex-host interface/registration config for this skill (display metadata and
-# default prompt shown in the Codex app). Not meant to be read at runtime.
-interface:
-  display_name: "Models Round Table"
-  short_description: "Six models answer blind; organizer maps, judges rule, synthesizer writes the consensus"
-  default_prompt: "Use $models-roundtable to answer this with the default six-seat panel blind, have the organizer map the answers, close gaps with one repair round and a two-judge panel, and let the synthesizer write the final consensus answer."

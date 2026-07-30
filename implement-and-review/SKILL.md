@@ -1,11 +1,11 @@
 ---
 name: implement-and-review
-description: Implement ONE scoped task end-to-end with cross-model review. Given a task prompt, decide the frontend/backend split and which model does what, build it test-first — a frontend track (a native Opus 4.8 subagent implements, Kimi K3 reviews) and a backend track (GPT 5.6 Sol implements via the Codex CLI, an Opus 4.8 subagent reviews) in parallel isolated git worktrees, applying the repo's lens skills — loop implement→cross-review→fix (max 3) per track, integrate the two tracks, run the full-review skill, and leave tests/build green. Opus orchestrates. Use to implement/build/fix a single scoped task with split frontend/backend work, TDD, and cross-model review. For a whole feature (many tasks), use implement-feature, which calls this per task. Distinct from models-roundtable (answer only, no code) and ship (single-model pipeline).
+description: Implement ONE scoped task end-to-end with cross-model review. Given a task prompt, decide the frontend/backend split and which model does what, build it test-first — a frontend track (a native Opus subagent implements, Kimi K3 reviews) and a backend track (GPT 5.6 Sol implements via the Codex CLI, an Opus subagent reviews) in parallel isolated git worktrees, applying the repo's lens skills — loop implement→cross-review→fix (max 3) per track, integrate the two tracks, self-simplify the integrated diff with coding-review-simplify, then gate the final code with full-review's multi-model triangulation (seat roster per _shared/references/model-roster.md), leaving tests/build green. Opus orchestrates. Use to implement/build/fix a single scoped task with split frontend/backend work, TDD, and cross-model review. For a whole feature (many tasks), use implement-feature, which calls this per task. Distinct from models-consensus (deliberation only, produces no code) and from ship (the idea→PR conductor, including the interactive phases and PR delivery).
 ---
 
 # Implement And Review
 
-Implement **one scoped task** with two model tracks that build in parallel and review each other's work, then converge on one integrated, reviewed, tested change. You (the main agent, Opus 4.8) are the **orchestrator**: you decide the split, dispatch seats, gate writes, run the fix loops, integrate, and run the final review. You never implement a track yourself — you delegate and coordinate.
+Implement **one scoped task** with two model tracks that build in parallel and review each other's work, then converge on one integrated, reviewed, tested change. You (the main agent, the Opus seat — model ids live only in `_shared/references/model-roster.md`) are the **orchestrator**: you decide the split, dispatch seats, gate writes, run the fix loops, integrate, and run the final review. You never implement a track yourself — you delegate and coordinate.
 
 This skill builds **one task**. To break a plan into many tasks and build them all, use **`implement-feature`**, which calls this skill per task. Keep this skill simple and self-contained.
 
@@ -15,9 +15,10 @@ Both tracks are **test-first (TDD)** and follow the **boy-scout rule** — leave
 
 | Track | Implementer | Reviewer |
 |-------|-------------|----------|
-| Frontend | native Opus 4.8 subagent (`Agent`, `model:"opus"`, write-enabled) | Kimi K3 (`kimi-runner --role codereviewer`, read-only) |
-| Backend | GPT 5.6 Sol (`codex-runner --model gpt-5.6-sol --role implementer`, write-enabled) | native Opus 4.8 subagent (read-only) |
-| Final review | the **`full-review`** skill on the task's diff (multi-model: GPT 5.6 Sol + GPT 5.3 Codex + Claude + bug finders + verification), then apply findings | — |
+| Frontend | native Opus subagent (`Agent`, `model:"opus"`, write-enabled) | Kimi K3 (`kimi-runner --role codereviewer`, read-only) |
+| Backend | GPT 5.6 Sol (`codex-runner --model gpt-5.6-sol --role implementer`, write-enabled) | native Opus subagent (read-only) |
+| Self-simplify | **`coding-review-simplify`** (standard mode) on the integrated diff, before the final gate | — |
+| Final review | the **`full-review`** skill on the task's integrated diff — full-review's multi-model triangulation (seat roster per `_shared/references/model-roster.md`) — then apply findings | — |
 
 Several independent Opus contexts exist (orchestrator, FE implementer, BE reviewer). Keep them separate.
 
@@ -32,7 +33,7 @@ Exact launch commands and the worktree/integration git flow are in
 2. **Cross-model review is mandatory.** Kimi K3 reviews FE (Opus's work); Opus reviews BE (GPT 5.6 Sol's work). An implementer never reviews its own track.
 3. **Test-first (TDD).** Both tracks build via red-green-refactor — a failing test before the code that passes it, one test → one minimal change, refactor only on green.
 4. **Good code, boy-scout rule.** Produce clean code (clear names, small focused units, no duplication/dead code) and leave touched files cleaner than found — but scope improvements to what the task changes; never rewrite unrelated areas or change behavior beyond the task.
-5. **Apply the repo's lens skills.** Each track works through the relevant quality/architecture skills (see [Methodology & Per-Track Skills](#methodology--per-track-skills)); the final review uses **`full-review`**.
+5. **Apply the repo's lens skills.** Each track works through the relevant quality/architecture skills (see [Methodology & Per-Track Skills](#methodology--per-track-skills)); the integrated diff gets a **`coding-review-simplify`** pass, and the final gate is **`full-review`** on the code that ships.
 6. **Writes are gated.** No code until the user approves the plan + FE/BE split in Phase 0 (skip only when `--auto`). Implementers run unattended-write only after that approval.
 7. **Isolated parallelism.** Each track builds in its own git worktree/branch so they cannot clobber each other. Fall back to sequential same-tree execution when the project is not a git repo.
 8. **Bounded fix loop.** At most **3** review→fix cycles per track. Still blocking after 3 → stop and escalate with the open findings.
@@ -45,9 +46,10 @@ These are Claude Code skills. The **orchestrator** invokes them directly — in 
 
 | Scope | Skills to apply |
 |-------|-----------------|
-| Both tracks | `tdd` (+ `safe-incremental-coding`), `clean-code`, `safe-incremental-coding` (untested/legacy code → characterization-test net first), `architecture-lens` (coupling, layer placement, cohesion, trade-offs when restructuring), `coding-design-plan`, `coding-implementation-guard`, `test-lens` |
+| Both tracks | `tdd` (+ `safe-incremental-coding`), `clean-code`, `safe-incremental-coding` (untested/legacy code → characterization-test net first), `architecture-lens` (coupling, layer placement, cohesion, trade-offs when restructuring), `coding-design-plan`, `test-lens` |
 | Frontend | `frontend-design`, `react-performance` (when React — 17 + MUI + Redux Toolkit: re-renders, memo, context, stale closures, fetch races), `ui-ux-pro-max` |
 | Backend | `data-systems-coding-lens` (stored state, transactions, idempotency/retries, concurrency, migrations, observability), `domain-driven-design` (business-logic pattern + aggregate invariants; bounded-context boundaries & integration when crossing a service/context boundary), `agent-architecture-lens` (when the thing being built is an agent — loop vs graph, agent state, bounded retries, termination ceilings) |
+| Integrated diff | `coding-review-simplify` (standard mode) — behavior-preserving tightening before the final gate |
 | Final review | `full-review`; `security-gate` / full-review `security_focus=true` when the change is security-sensitive |
 
 Apply only the lenses that fit the task; don't force every skill onto every change. Checklists + paste-in snippets: [references/methodology.md](references/methodology.md).
@@ -100,10 +102,11 @@ Never apply review findings yourself; the implementer fixes its own track. Never
 1. Merge both track branches into an integration branch off `<base>` (commands in the worktree reference). Disjoint scopes should make this clean; resolve any conflict using both diffs, preserving each track's intent and the shared contracts. The merge is a side effect: append `merge:<track>-><integration>` to `side_effects` before running it, and skip a merge whose key is already recorded — a resumed run must not re-merge a branch it already merged.
 2. Run the full verification commands. Red → bounded integration-fix loop (≤3), counted in `attempts.integration_fix` on the same read-increment-write rule as Phase 2: route the failure to the responsible track, re-merge, re-test.
 3. Proceed only when **green** (or escalate).
+4. **Self-simplify before the gate.** With the integration green, run **`coding-review-simplify`** (standard mode) on the integrated diff — a behavior-preserving tightening pass (reuse, dedupe, dead code, unnecessary abstraction, the FE/BE seam) run while the context is still fresh and *before* the review gate. Apply its safe findings via the responsible implementer (BE → Codex `--resume`; FE → `SendMessage`), re-verify **green**, then enter Phase 4. Ordering is load-bearing: `full-review` gates the **final** code, so never let a mutating pass follow it unreviewed.
 
 ## Phase 4 — Final Review (full-review) & Apply
 
-Run the **`full-review`** skill on the task's integrated diff — it is multi-model (GPT 5.6 Sol + GPT 5.3 Codex + Claude + Gemini external runners, bug finders, personas, specialists, execution-based verification, structural-maintainability), so it fulfills "Opus and GPT review together" and goes further than the per-track review.
+Run the **`full-review`** skill on the task's integrated diff — full-review's multi-model triangulation (seat roster per `_shared/references/model-roster.md`) plus bug finders, personas, specialists, execution-based verification, and a structural-maintainability pass, so it goes well beyond the per-track review.
 
 1. **Invoke** `full-review` (local diff vs `<base>`, or range `<base>..<integration>`). `security_focus=true` when security-sensitive. It is **read-only**.
 2. **Triage:** fix every CRITICAL/HIGH; apply safe, behavior-preserving MEDIUM simplification/maintainability findings; record deferrals with a reason. The machine JSON is the source of truth.
@@ -119,10 +122,11 @@ Deliver inline and write `.ai-workflow/impl-review/<session_id>/report.md` (pers
 3. **Frontend** — what was built, tests added (test-first), lenses applied, review cycles, findings resolved vs. outstanding.
 4. **Backend** — same.
 5. **Integration** — merge notes, conflicts resolved.
-6. **Final review (full-review)** — verdict, findings by severity, what was fixed/simplified, deferrals with reasons.
-7. **Verification** — exact commands run and results (green/red); confirm the new test-first tests pass; state plainly if none existed.
-8. **Branch/worktrees** — the integration branch name and how to inspect/land it. Do not push, open a PR, or delete worktrees unless asked.
-9. **Escalations** — any track stopped at the 3-cycle cap, with open findings.
+6. **Self-simplify (coding-review-simplify)** — what was tightened on the integrated diff, and what was left alone.
+7. **Final review (full-review)** — verdict, findings by severity, what was fixed/simplified, deferrals with reasons.
+8. **Verification** — exact commands run and results (green/red); confirm the new test-first tests pass; state plainly if none existed.
+9. **Branch/worktrees** — the integration branch name and how to inspect/land it. Do not push, open a PR, or delete worktrees unless asked.
+10. **Escalations** — any track stopped at the 3-cycle cap, with open findings.
 
 When called by `implement-feature`, return this report compactly so the orchestrator can integrate the task and move on.
 

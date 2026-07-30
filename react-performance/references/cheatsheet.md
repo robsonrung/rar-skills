@@ -123,7 +123,7 @@ const ScrollDetector = ({ children }) => {
 - **Split providers** so unrelated values don't co-trigger; `useReducer` separates stable
   `dispatch` from changing state, enabling two contexts (state vs API).
 - No native selectors; emulate with `React.memo` + HOC, but for anything non-trivial use
-  **RTK** (already in this repo) with memoized selectors.
+  the repo's **external store** (Redux Toolkit, Zustand, Jotai, …) with memoized selectors.
 
 ## Ch 9 — Refs
 
@@ -131,7 +131,8 @@ const ScrollDetector = ({ children }) => {
   **not** re-render. Good for: timers, latest-value tracking, previous value, DOM nodes.
 - `<div ref={r} />` → `r.current` is the DOM node after render. Refs can be passed as normal
   props.
-- To pass the real `ref` prop to a function component (React 17): `forwardRef`.
+- To pass the real `ref` prop to a function component (required before React 19; from
+  React 19 `ref` is a regular prop): `forwardRef`.
   ```jsx
   const InputField = forwardRef((props, ref) => <input ref={ref} />);
   ```
@@ -179,8 +180,9 @@ const ScrollDetector = ({ children }) => {
 - **Nothing escapes a Stacking Context** (formed by `position`+`z-index`, `transform`,
   `translate`, `opacity`, filters, …).
 - **Portal** renders DOM outside the subtree (modals, tooltips). React events bubble along
-  the React tree; layout follows the portal target. MUI `Modal`/`Popper`/`Tooltip` already
-  portal — flag hand-rolled overlays that don't.
+  the React tree; layout follows the portal target. Component-library overlays (MUI
+  `Modal`/`Popper`/`Tooltip`, Radix, Headless UI) already portal — flag hand-rolled
+  overlays that don't.
 
 ## Ch 14 — Data fetching & waterfalls
 
@@ -210,8 +212,8 @@ const ScrollDetector = ({ children }) => {
     return () => ac.abort();
   }, [url]);
   ```
-- **Prefer RTK Query** for server state — it handles dedup, caching, and stale-response
-  discarding for you.
+- **Prefer a server-state data layer** (RTK Query, TanStack Query, SWR, Apollo) when the
+  repo has one — it handles dedup, caching, and stale-response discarding for you.
 
 ## Ch 16 — Error handling
 

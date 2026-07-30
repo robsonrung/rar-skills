@@ -59,13 +59,6 @@ without the component map leaves them unable to locate code. Give both.
 
 ---
 
-## Worked example
-
-For a full worked example (greenspark-aws whole-repo, newcomer viewpoint), see
-`greenspark.md` in this directory.
-
----
-
 ## Boundaries with neighboring skills
 
 - `improve-codebase-architecture` finds **refactoring** opportunities — not orientation.

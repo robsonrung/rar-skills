@@ -15,7 +15,7 @@ How the implement-and-review tracks use the repository's skills, and the exact t
 - **`safe-incremental-coding`** — keep each increment tiny and committed; for untested/legacy code, build a characterization-test net *before* changing it, then TDD on top.
 - **`clean-code`** — naming, small focused units, no duplication/dead code; the "good code" bar.
 - **`coding-design-plan`** — shape non-trivial work in Phase 0 before briefing.
-- **`coding-implementation-guard`** — keep changes safe, local, and verifiable (stored state, APIs, async, retries, migrations).
+- **`data-systems-coding-lens`** — keep changes safe, local, and verifiable wherever they touch stored state, APIs, async work, retries, or migrations.
 - **`test-lens`** — sanity-check test quality/coverage of the changed behavior.
 - **`architecture-lens`** — coupling/connascence and layer-placement/cohesion checks when restructuring (applies to both tracks, not just backend).
 

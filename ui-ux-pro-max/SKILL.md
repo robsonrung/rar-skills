@@ -69,6 +69,14 @@ This creates (where `<project-slug>` is the lowercased, hyphenated project name,
 - `design-system/<project-slug>/MASTER.md` — Global Source of Truth with all design rules
 - `design-system/<project-slug>/pages/` — Folder for page-specific overrides
 
+Persisted files land under the **current working directory** by default. Pass `--output-dir` (short form `-o`) to write the `design-system/` tree somewhere else — the repo root, a `docs/` folder, or a scratch directory:
+
+```bash
+python3 <skill-dir>/scripts/search.py "<query>" --design-system --persist -p "Project Name" -o <target-dir>
+```
+
+Set it deliberately when the shell's working directory is not where the design system belongs; the confirmation output prints paths relative to the chosen directory.
+
 **With page-specific override:**
 ```bash
 python3 <skill-dir>/scripts/search.py "<query>" --design-system --persist -p "Project Name" --page "dashboard"
@@ -109,6 +117,8 @@ python3 <skill-dir>/scripts/search.py "layout responsive form" --stack html-tail
 ```
 
 For the full list of `--domain` and `--stack` values, see `references/search-reference.md`.
+
+**React re-render and memoization review is not this skill's job.** `data/react-performance.csv` is a data lookup — rules you can search and cite. Auditing an actual component tree for unnecessary re-renders, memoization that buys nothing, Context provider churn, stale closures, or fetch race conditions belongs to the `react-performance` skill, which is the reviewer. Use this skill for the design system; route the performance pass there.
 
 **Then:** Synthesize the design system + detailed searches and implement the design, citing the design system for every choice.
 

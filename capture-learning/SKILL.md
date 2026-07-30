@@ -1,6 +1,6 @@
 ---
 name: capture-learning
-description: Documents one recently solved problem as a durable solution doc in docs/solutions/ with searchable YAML frontmatter, and captures new domain vocabulary into the repo-root CONCEPTS.md. Use when the user says capture this learning, document what we learned, document what we solved, compound the knowledge, or write a solution doc — or when a pipeline invokes it with mode:headless after a verified fix. Not for ephemeral chat-only lesson extraction with no durable store (that is lesson-learned) and not for session continuity or handoff summaries (that is summarize / context-compress).
+description: Documents one recently solved problem as a durable solution doc in docs/solutions/ with searchable YAML frontmatter, and captures new domain vocabulary into the repo-root CONCEPTS.md. Use when the user says capture this learning, document what we learned, document what we solved, compound the knowledge, or write a solution doc — or when a pipeline invokes it with mode:headless after a verified fix (ship's wrap-up phase does exactly this). Not for ephemeral chat-only lesson extraction that leaves no durable store behind, and not for session-compression flows or session continuity and handoff summaries (that is summarize / session-handoff).
 ---
 
 # capture-learning
@@ -15,7 +15,7 @@ Document ONE recently solved problem while context is fresh, as a structured doc
 
 **Interactive (default).** Runs the full workflow, auto-picks Full vs Lightweight (below), and asks exactly one question in the whole run: consent for the Discoverability Check edit.
 
-**Headless.** Enter headless mode when the invocation arguments contain the `mode:headless` token, or when the caller makes non-interactive intent unmistakable ("headless", "non-interactively", "unattended", "without prompts"). Ambiguous or absent signals default to interactive. In headless mode: ask no blocking questions, never edit instruction files (report gaps instead), skip optional reviews, and end with a structured report whose last line is the terminal signal `Documentation complete` (or `Documentation skipped` when no doc was written) so pipelines can detect the outcome.
+**Headless.** `ship`'s deliver phase invokes this skill in headless mode after a verified fix, so headless is a first-class path, not a fallback. Enter headless mode when the invocation arguments contain the `mode:headless` token, or when the caller makes non-interactive intent unmistakable ("headless", "non-interactively", "unattended", "without prompts"). Ambiguous or absent signals default to interactive. In headless mode: ask no blocking questions, never edit instruction files (report gaps instead), skip optional reviews, and end with a structured report whose last line is the terminal signal `Documentation complete` (or `Documentation skipped` when no doc was written) so pipelines can detect the outcome.
 
 Depth is a headless-only selector: `depth:lightweight` runs Lightweight Mode, `depth:full` (or no depth token) runs Full Mode. An unknown or duplicated `depth:` token means do not guess — emit the failure report and end with `Documentation skipped`. Tokens starting with `mode:` or `depth:` are flags; strip them before treating the remaining arguments as a context hint.
 
@@ -170,7 +170,7 @@ Single-pass alternative — same artifact type, no subagents, reduced research a
 5. **Mechanical claims check** and **parser-safety check** exactly as in Phase 2.45 step 1 and Phase 2 step 6. Lightweight skips only the semantic validator, not these deterministic checks.
 6. **Read-only discoverability check**: assess from context already in hand; report `no gap`, `gap noted — tip emitted`, or `not applicable`. Never open-and-edit instruction files from Lightweight.
 
-Lightweight may create a doc that semantically overlaps an existing one; that is acceptable — note it for refresh-learnings rather than broadening the run.
+Lightweight may create a doc that semantically overlaps an existing one; that is acceptable — record it in the `Refresh recommendation:` line for **refresh-learnings (a future, deferred skill — it does not exist yet)** rather than broadening the run.
 
 ## Success Output
 

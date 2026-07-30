@@ -2,13 +2,16 @@
 
 Complete invocation patterns for every council seat, organized by host capability.
 
+Model selection is not pinned here: pass the roster's alias (`--model opus`) or rely on the runner's default, and read `_shared/references/model-roster.md` for the seat → model mapping. The only id that still appears below is Gemini's, where `--model` is a metadata label rather than a model switch.
+
 ## Table of Contents
 
 1. [Host Tool Mapping](#host-tool-mapping)
 2. [Native Seat Patterns](#native-seat-patterns)
 3. [Runner Fallback Patterns](#runner-fallback-patterns)
-4. [Auth and Transport Rules](#auth-and-transport-rules)
-5. [Runner Output Contract](#runner-output-contract)
+4. [Poll-Mode Deltas](#poll-mode-deltas)
+5. [Auth and Transport Rules](#auth-and-transport-rules)
+6. [Runner Output Contract](#runner-output-contract)
 
 ---
 
@@ -31,30 +34,32 @@ When the workflow needs user input, use the Interactive Questions protocol in SK
 
 ## Native Seat Patterns
 
-### Claude Opus 4.8 (Claude Code host)
+### Claude Opus (Claude Code host)
 
 ```text
 Agent(
   subagent_type="general-purpose",
-  description="Claude Opus 4.8 council seat — round {n}",
-  model="claude-opus-4-8",
+  description="Claude Opus council seat — round {n}",
+  model="opus",
+  mode="plan",
   prompt="<stance overlay>\n\n---\n\n<shared brief>",
   run_in_background=true
 )
 ```
 
-Use `model="claude-sonnet-5"` for the Sonnet 5 seat.
+Use `model="sonnet"` for the Sonnet seat. Aliases, not pinned ids — the alias resolves to whatever the roster currently pins, and the `effective_model` receipt records what actually served.
 
 ### Codex (Codex host)
 
 ```text
 spawn_agent(
   fork_context=false,
-  model="gpt-5.6-sol",
   reasoning_effort="medium",
   message="<stance overlay>\n\n---\n\n<shared brief>"
 )
 ```
+
+Omitting `model` uses the host's Codex model; pass one explicitly only to pin the roster's `codex` seat model deliberately (read the id from the roster, never from this file).
 
 For adversarial or research-heavy rounds, raise `reasoning_effort` to `high`.
 
@@ -68,7 +73,7 @@ If full-history context inheritance is needed, either spawn without explicit `mo
 
 Use runner scripts only when the native seat path is unavailable. Pass `--disable-fallback` so councils fail a seat explicitly instead of silently borrowing another provider.
 
-### Claude Opus 4.8 / Sonnet 5 (runner fallback)
+### Claude Opus / Sonnet (runner fallback)
 
 ```bash
 python3 .agents/skills/claude-runner/scripts/run_claude.py \
@@ -76,7 +81,7 @@ python3 .agents/skills/claude-runner/scripts/run_claude.py \
   --prompt-file .ai-workflow/consensus/{session_id}-round-{n}-brief.md \
   --timeout 900 \
   --role planner \
-  --model claude-opus-4-8 \
+  --model opus \
   --output-format json \
   --json \
   --no-session-persistence \
@@ -86,7 +91,7 @@ python3 .agents/skills/claude-runner/scripts/run_claude.py \
   --metadata-json '{"session":"{session_id}","round":{n},"seat":"claude-opus","stance":"supportive_with_integrity"}'
 ```
 
-Use `--model claude-sonnet-5` for the Sonnet 5 seat.
+Use `--model sonnet` for the Sonnet seat.
 
 In `inline` artifact mode, combine the prompt and pass it as a single positional prompt instead of `--prompt-file` flags.
 
@@ -97,7 +102,6 @@ python3 .agents/skills/codex-runner/scripts/run_codex.py \
   --prompt-file .ai-workflow/consensus/{session_id}-round-{n}-codex.md \
   --timeout 900 \
   --role challenger \
-  --model gpt-5.6-sol \
   --effort high \
   --json \
   --ephemeral \
@@ -108,7 +112,7 @@ python3 .agents/skills/codex-runner/scripts/run_codex.py \
   --metadata-json '{"session":"{session_id}","round":{n},"seat":"codex","stance":"devils_advocate"}'
 ```
 
-`codex-runner` supports `--effort none|minimal|low|medium|high|xhigh`. Use `high` for adversarial or research-heavy rounds, mirroring the native Codex seat guidance.
+The Codex seat runs `codex-runner`'s default model (the roster's `codex` seat) — omit `--model` rather than pinning an id. `codex-runner` supports `--effort none|minimal|low|medium|high|xhigh`; use `high` for adversarial or research-heavy rounds, mirroring the native Codex seat guidance.
 
 `--output-schema` is natively validated by Codex; for rounds after the first, swap in `schemas/later-round-response.schema.json`. The cline-backed Kimi and GLM seats accept the same flag (prompt-enforced, not natively validated). Gemini and Claude seats have no schema flag — for them the brief's trailing `Return ONLY JSON …` line holds the shape (see [operations.md#response-schema-validation](operations.md#response-schema-validation)).
 
@@ -153,7 +157,6 @@ python3 .agents/skills/kimi-runner/scripts/run_kimi.py \
   --prompt-file .ai-workflow/consensus/{session_id}-round-{n}-kimi.md \
   --timeout 900 \
   --role implementer \
-  --model moonshotai/kimi-k3 \
   --output-format stream-json \
   --json \
   --no-session-persistence \
@@ -162,6 +165,8 @@ python3 .agents/skills/kimi-runner/scripts/run_kimi.py \
   --output-file .ai-workflow/consensus/{session_id}-round-{n}-kimi-output.json \
   --metadata-json '{"session":"{session_id}","round":{n},"seat":"kimi","stance":"pragmatic_engineering"}'
 ```
+
+`kimi-runner` forwards its default Moonshot model through `cline` — omit `--model` rather than pinning the id here.
 
 ### GLM
 
@@ -181,6 +186,18 @@ python3 .agents/skills/glm-runner/scripts/run_glm.py \
 
 ---
 
+## Poll-Mode Deltas
+
+The command shapes above are written for `debate` (stance overlay + `--role` + a per-round stance in `--metadata-json`). In `mode: poll` the same commands apply with these differences — see [poll-protocol.md](poll-protocol.md):
+
+- **No `--role`, no stance.** Poll seats answer the raw prompt; pass `--restrict-tools` and no role at all under the default `no_tools` profile. Drop `stance` from `--metadata-json` and keep `{"session":…,"round":…,"seat":…}` (plus `"sample":n` when self-paired).
+- **Schemas.** Point `--output-schema` at the poll schema for the stage: `schemas/opening-answer.schema.json` (Phase 1), `schemas/disagreement-round.schema.json` (Phase 3), `schemas/judge.schema.json` (Phase 4 judges), `schemas/organizer-analysis.schema.json` (organizer), `schemas/synthesis.schema.json` (synthesizer). Full mapping: [operations.md#response-schema-validation](operations.md#response-schema-validation).
+- **Native validation.** `--output-schema` is natively validated by **Codex and Grok** (`grok-runner` forwards it to grok's own `--json-schema` and forces JSON output for the run). The cline-backed Kimi and GLM seats accept the flag but enforce it by prompt; Gemini and the Claude seats have no schema flag and rely on the brief's trailing `Return ONLY JSON …` line.
+- **Timeout.** `--timeout 600` is ample for a single answering pass; keep 900 for debate rounds that carry a digest.
+- **Artifact paths.** Write one brief per phase and point every `--prompt-file` at it; per-seat outputs follow the artifact policy naming (`{session_id}-round-{n}-{seat}-output.json`).
+- **Self-pairing.** Launch duplicates with distinct labels (`"seat":"opus#1"`) and distinct `--output-file`s, vary the brief with a `SAMPLE: n` line, and mark `is_duplicate: true` in the seat table.
+- **Organizer / judges / synthesizer.** Same runner shapes, always read-only, no role, each a fresh context: native `Agent` (`model: "opus"`, `mode: "plan"`) on a Claude host, `codex-runner --restrict-tools --effort high --disable-fallback --output-schema <stage schema>` elsewhere.
+
 ## Auth and Transport Rules
 
 ### `--disable-fallback`
@@ -199,21 +216,20 @@ Do not use `--bare` for Claude runner seats when relying on Claude OAuth or keyc
 
 ## Runner Output Contract
 
-All runner-script paths return a wrapper envelope with fields such as:
-- `success`
-- `stdout`
-- `stderr`
-- `return_code`
-- `runner`
-- `effective_runner`
-- `role`
-- `prompt_file` or `prompt_files` when applicable
-- `session_file` when applicable
+The envelope is **not** defined here. Every `--json` runner response conforms to the shared contract in **`_shared/references/runner-common.md`** (schema: `_shared/runner-envelope.schema.json`) — read that for the full required-key list, the seat-fidelity invariant, and the roles table. This section names only what the council does with it.
 
-Important:
-- `--json` controls the wrapper envelope.
-- Native CLI JSON or JSONL output stays in `stdout`.
-- Every runner skill in this repo emits `agent_message` (the clean final answer) when it can extract one, and `session_id` when the underlying CLI reports it — prefer `agent_message` over parsing `stdout`. For the Claude seat this requires `--output-format json` or `stream-json`. Do not assume `usage` or token-cost fields exist unless the specific runner emitted them.
-- When `--output-file` is used, treat the file as the source of truth. Stdout may be only a small acknowledgment payload.
+Three keys carry the council's independence accounting and MUST be recorded in the seat table for every runner-backed seat:
 
-Normalize native-seat output into the same envelope shape before comparing seats.
+- **`effective_model` — the independence receipt.** The model the backend reports it actually served. Cross-seat agreement counts as independent corroboration **only** when this field confirms the serving model — never the requested model, never a self-claim. An unverified seat's agreement weighs as if it came from the host model, and two seats reporting the same `effective_model` collapse to one independent source.
+- **`auth_ok`** — the auth preflight result: `true` on a successful run, `null` when auth was never exercised (missing CLI, invalid input, or a failure before auth), `false` only when an authentication failure was actually detected. Treat anything other than `true` on a launched seat as a blocker, not a warning.
+- **`fallback_reason`** — non-null means the runner substituted another path. Any labeled substitution (paired with `fallback_from`) is a **loss of seat independence**: mark the original seat unavailable for independence accounting even when the substitute answered successfully. This is also why `--disable-fallback` is mandatory on every council call — it turns a silent substitution into an explicit seat failure.
+
+Alongside those, the envelope always carries `runner`, `effective_runner`, `effective_provider`, `success`, and `return_code`.
+
+Reading results:
+- `--json` controls the wrapper envelope; native CLI JSON or JSONL output stays in `stdout`.
+- Prefer `agent_message` (the clean final answer) over parsing `stdout`; `session_id` appears when the underlying CLI reports it. For the Claude seat, `agent_message` requires `--output-format json` or `stream-json`.
+- When `--output-file` is used, treat the file as the source of truth — stdout may be only a small acknowledgment payload.
+- Do not assume `usage` or token-cost fields exist unless the specific runner emitted them (cost tracking degrades to the round counter, see [operations.md#cost-governance](operations.md#cost-governance)).
+
+Normalize native-seat output into the same envelope shape before comparing seats — including a synthetic `effective_model` for native seats, so the independence rule applies uniformly.

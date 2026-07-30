@@ -1,4 +1,6 @@
+# Codex-host interface/registration config for this skill (display metadata and
+# default prompt shown in the Codex app). Not meant to be read at runtime.
 interface:
   display_name: "Models Consensus"
-  short_description: "Moderate a multi-model decision council"
-  default_prompt: "Use $models-consensus to moderate a stance-driven council across all detected model seats for this repository decision."
+  short_description: "One council, three modes: blind poll, stance debate, or five-lens personas"
+  default_prompt: "Use $models-consensus to run a multi-model council on this. Default to poll mode (fan the raw prompt out blind to every available seat, organizer five-dimension analysis, one gated gap-repair round, two judges, a dedicated synthesizer); use debate mode for stance-driven rounds with anonymized digests, or personas mode for a five-lens council with anonymized peer review and a chairman. Deliberation only — it answers and decides, it never implements."

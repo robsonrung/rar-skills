@@ -27,7 +27,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 # Runner dirs that intentionally have no seat in discover_runners.py:
 # transport delegates and seats dropped from the council lineup.
 NON_SEAT_RUNNERS = {
-    "dcode-runner",     # transport delegate (glm-runner routes through it historically)
+    "dcode-runner",     # manual-only runner; no council seat (see _shared/references/model-roster.md)
     "gemma-runner",     # dropped from council lineup
     "minimax-runner",   # dropped from council lineup
     "opencode-runner",  # not part of the seat catalog

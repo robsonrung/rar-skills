@@ -10,18 +10,22 @@ The orchestrator discovers available runners at preflight (see SKILL.md Phase 3 
 
 Role diversity follows model strengths: **GPT for logic and security, Sonnet for maintainability, Gemini for cross-file consistency, GLM for edge cases, Kimi for broad pragmatic review, Grok for execution-path and agentic-flow verification.**
 
+Seat → model id mapping is **not pinned in this file** — `_shared/references/model-roster.md` owns it. Invocations below are alias-first (`claude-runner --model opus|sonnet`) or rely on the runner's roster-backed default; the one explicit id is `--model gpt-5.3-codex`, which selects a distinct code-specialized seat rather than re-pinning the default Codex seat.
+
 | Seat | Default lens | Why |
 |---|---|---|
-| `codex` (`codex-runner --effort high`, GPT 5.6 Sol) | `logic_state` | Best at logic, state, and concurrency reasoning on tight code slices. GPT also **owns `security_runtime`**: fill it with a second Codex seat `--model gpt-5.3-codex` (the code-specialized security reviewer) |
-| `sonnet` (native Agent or `claude-runner`, Sonnet 5) | `structural_maintainability` | Strongest at clean-code / maintainability — applies `references/structural_quality_review.md` and names a safer refactor path |
-| `gemini` (`gemini-runner --model gemini-3.6-flash`) | `cross_file_consistency` | Gemini 3.6 Flash — broad, long context; feed whole touched files + dependents, not just the diff slice |
-| `grok` (`grok-runner --effort high`, Grok 4.5) | `logic_state` second seat | Terminal-Bench-class agentic strength — execution paths, CLI/tool invocation flows, integration behavior; non-overlapping emphasis with codex's logic/state/concurrency |
-| `glm` (`glm-runner --model zai/glm-5.2`) | `broad_sweep` | GLM 5.2 — edge cases, boundary conditions, resource/failure paths; assign a different category emphasis than kimi |
-| `kimi` (`kimi-runner`, Kimi K3) | `broad_sweep` | Fast, pragmatic — input-validation, exposure, resource leaks across the whole diff |
+| `codex` (`codex-runner --effort high`) | `logic_state` | Best at logic, state, and concurrency reasoning on tight code slices. The Codex seat also **owns `security_runtime`**: fill it with a second Codex seat `--model gpt-5.3-codex` (the code-specialized security reviewer — see `_shared/references/model-roster.md`) |
+| `sonnet` (native Agent or `claude-runner --model sonnet`) | `structural_maintainability` | Strongest at clean-code / maintainability — applies `references/structural_quality_review.md` and names a safer refactor path |
+| `gemini` (`gemini-runner`) | `cross_file_consistency` | Broad, long context; feed whole touched files + dependents, not just the diff slice |
+| `grok` (`grok-runner --effort high`) | `logic_state` second seat | Terminal-Bench-class agentic strength — execution paths, CLI/tool invocation flows, integration behavior; non-overlapping emphasis with codex's logic/state/concurrency |
+| `glm` (`glm-runner`) | `broad_sweep` | Edge cases, boundary conditions, resource/failure paths; assign a different category emphasis than kimi |
+| `kimi` (`kimi-runner`) | `broad_sweep` | Fast, pragmatic — input-validation, exposure, resource leaks across the whole diff |
 | `opus` (native Agent or `claude-runner`) | `structural_maintainability` backup | Deep reasoning; primary role is the Phase 5 synthesizer — backs up sonnet on maintainability when needed |
 | `gemma` (`gemma-runner`) | `broad_sweep` | Cheap third sweep — pair with kimi/glm to form a skeptic pool for adversarial verify |
 | `qwen` (`qwen-runner`) | `logic_state` | Codex backup when codex is unavailable; otherwise lend to broad_sweep |
 | `minimax` (`minimax-runner`) | `cross_file_consistency` | Gemini backup with long context; otherwise lend to broad_sweep |
+
+The `gemma`, `qwen`, and `minimax` rows are ordinary probe results like every other row — `discover_runners.py` only covers them when they are named with `--seat` (see SKILL.md Phase 3), and their `available` field is read the same way. "Backup" describes their lens priority, not a different discovery mechanism.
 
 When two seats default to the same lens, give them **non-overlapping category emphasis** within that lens (e.g. kimi → input-validation + auth, glm → edge cases + resource leaks, gemma → regression + perf). The lens prompt's `<focus_emphasis>` block carries this assignment.
 

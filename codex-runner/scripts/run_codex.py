@@ -66,9 +66,9 @@ PROVIDER_BY_RUNNER = {
     "gemini": "google",
     "qwen": "qwen",
     "gemma": "google",
-    "glm": "z-ai",
-    "glm-critical": "z-ai",
-    "kimi": "moonshot",
+    "glm": "zai",
+    "glm-critical": "zai",
+    "kimi": "moonshotai",
     "minimax": "minimax",
 }
 

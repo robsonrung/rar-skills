@@ -1,6 +1,6 @@
 ---
 name: react-performance
-description: Advise on and review React code through the lenses of "Advanced React" (Makarevich) — unnecessary re-renders, composition-before-memoization, the memo/useMemo/useCallback traps, Context performance, refs & stale closures, debounce/throttle, useLayoutEffect flicker, portals & stacking context, data-fetching waterfalls & race conditions, and error boundaries. Use when writing or reviewing a React component/hook/context/provider, when chasing "why does this re-render" or "should I memoize this", or when dealing with stale state in a callback, UI flicker, modal clipping, fetch race conditions, or error handling. Frontend is React 17 + MUI + Redux Toolkit. Distinct from architecture-lens (architecture) and design-patterns (GoF).
+description: Advise on and review React code through the lenses of "Advanced React" (Makarevich) — unnecessary re-renders, composition-before-memoization, the memo/useMemo/useCallback traps, Context performance, refs & stale closures, debounce/throttle, useLayoutEffect flicker, portals & stacking context, data-fetching waterfalls & race conditions, and error boundaries. Use when writing or reviewing a React component/hook/context/provider, when chasing "why does this re-render" or "should I memoize this", or when dealing with stale state in a callback, UI flicker, modal clipping, fetch race conditions, or error handling. Detects the target repo's React version and state/UI libraries before applying version-specific rules. Distinct from architecture-lens (architecture) and design-patterns (GoF).
 ---
 
 # React Performance & Patterns Lens
@@ -8,7 +8,7 @@ description: Advise on and review React code through the lenses of "Advanced Rea
 Advise and review React code using the rules from *Advanced React* by Nadia Makarevich.
 It asks one set of questions: **will this re-render more than it needs to, is memoization
 actually doing anything, is this closure stale, and is the async path safe?** Not a bug
-hunt for logic errors — use `code-review` for that.
+hunt for logic errors — use a code-review pass for that.
 
 Two modes, pick by context:
 
@@ -18,18 +18,40 @@ Two modes, pick by context:
   grouped by lens. Cite `file:line`, name the rule, propose the concrete fix. Skip lenses
   that don't apply rather than padding. If a component is clean, say so plainly.
 
-## Repo context (read before applying)
+## Detect the target first (read before applying)
 
-- Frontend is **React 17** (see `frontend/CLAUDE.md` at the app repo root): no
-  automatic batching outside React event handlers, `forwardRef` is still required to pass
-  a `ref` prop, and the React 19 "ref as a regular prop" change does **not** apply here.
-  The book (2023) matches React 17/18 closely — prefer its advice over half-remembered
-  React 19 behavior.
-- **MUI** component trees are deep and re-render-sensitive; unnecessary parent re-renders
-  cascade through styled components.
-- **Redux Toolkit** is already the external store with memoized selectors. For
-  cross-tree shared state, reach for RTK selectors over a hand-rolled Context; use Context
-  for low-frequency, localized config (theme, current entity), not hot state.
+Every lens below applies from **React 17 onward**. What differs across versions is a
+handful of specific rules — so detect, never assume:
+
+1. **React version.** Read the target repo's `package.json` (`react` / `react-dom`, and
+   the lockfile if the range is loose). Note the major.
+2. **State library.** Look for an external store — Redux Toolkit, Zustand, Jotai, MobX,
+   TanStack Query, SWR, Apollo — and whether it already owns server state.
+3. **UI library.** Look for MUI, Chakra, Radix, Headless UI, Ant, shadcn/ui, Tailwind-only,
+   or hand-rolled components.
+
+Then apply the lenses against what you found, and **flag version-specific rules
+explicitly** rather than asserting one version's behavior:
+
+- **Refs and `forwardRef`.** Before React 19, `forwardRef` is required for a function
+  component to receive a `ref`. From React 19, `ref` is a regular prop and `forwardRef` is
+  no longer needed. Check the detected version before flagging either shape as wrong.
+- **Automatic batching.** React 17 batches only inside React event handlers; React 18+
+  batches everywhere. A "why did this render twice" finding depends on which one you are in.
+- Say which version a finding assumes: "on the detected React 17, …" beats a bare rule.
+
+Two detection-driven judgments that recur:
+
+- **Deep, re-render-sensitive component trees** (styled-component-heavy libraries such as
+  MUI are the common case) make unnecessary parent re-renders expensive — the cascade runs
+  through every styled wrapper. Weight Lens 1 higher when you detect one.
+- **When an external store with memoized selectors already exists**, reach for its
+  selectors over a hand-rolled Context for cross-tree shared state; keep Context for
+  low-frequency, localized config (theme, current entity), not hot state. When no such
+  store exists, the Context guidance in Lens 3 is the whole answer.
+
+The book (2023) matches React 17/18 closely; where the detected version is newer, prefer
+the detected framework's documented behavior over the book's assumption.
 
 ## The golden rule (applies to every lens below)
 
@@ -101,8 +123,8 @@ memoization can't stop it**.
   doesn't re-render consumers of the other. `useState` → `useReducer` helps keep the data
   and the API in separate stable contexts.
 - No real selectors exist for Context; you can fake them with `React.memo` + HOCs (see
-  cheatsheet ch 7), but if you find yourself doing that, **use RTK** (this repo already
-  has it) instead.
+  cheatsheet ch 7), but if you find yourself doing that, reach for the **external store the
+  repo already has** (per detection above) instead — a real selector API beats a faked one.
 
 ## Lens 4 — Refs, closures & stale state (ch 9–11)
 
@@ -110,9 +132,10 @@ memoization can't stop it**.
   re-render and is synchronous. Use it for values that must persist but shouldn't trigger
   renders (timers, latest-callback, previous value, DOM nodes). Don't use it for anything
   that should appear in the UI.
-- **`forwardRef`** is required (React 17) to pass a `ref` prop to a function component;
-  expose a controlled imperative API with `useImperativeHandle` rather than leaking the
-  DOM node.
+- **`forwardRef`** is required *before React 19* to pass a `ref` prop to a function
+  component; from React 19 `ref` is a regular prop. Check the detected version before
+  flagging. Either way, expose a controlled imperative API with `useImperativeHandle`
+  rather than leaking the DOM node.
 - **Stale closure** = the #1 bug here. A function created in render "freezes" the state and
   props it closed over. If it's memoized (`useCallback`/`useMemo`) with a missing dep, or
   stored in a ref once, it keeps reading old values.
@@ -142,8 +165,9 @@ before paint. SSR caveat and exact pattern: cheatsheet ch 12.
 
 Modals/tooltips/dropdowns clipped by an ancestor's `overflow` or trapped in a Stacking
 Context (nothing escapes one, not even `position: fixed`) → render via a **Portal**.
-MUI's `Modal`/`Popper` already portal — flag hand-rolled overlays that don't. CSS rules
-and event-bubbling behavior: cheatsheet ch 13.
+Most component libraries' overlay primitives already portal (MUI `Modal`/`Popper`, Radix,
+Headless UI) — check the detected library, then flag hand-rolled overlays that don't. CSS
+rules and event-bubbling behavior: cheatsheet ch 13.
 
 ## Lens 8 — Data fetching: waterfalls & race conditions (ch 14–15)
 
@@ -155,8 +179,9 @@ and event-bubbling behavior: cheatsheet ch 13.
   value (e.g. `url`, an id). A slow earlier request can resolve after a newer one and
   overwrite fresh data. Fixes (prefer the last two): compare the resolved id before
   `setState`; cleanup-flag in `useEffect`; **`AbortController`**. Exact patterns:
-  cheatsheet ch 15. (RTK Query handles this for you — prefer it over hand-rolled `fetch`
-  in effects when the data is server state.)
+  cheatsheet ch 15. (A server-state data layer — RTK Query, TanStack Query, SWR, Apollo —
+  handles this for you; when the repo has one, prefer it over hand-rolled `fetch` in
+  effects for server state.)
 
 ## Lens 9 — Error handling (ch 16)
 
