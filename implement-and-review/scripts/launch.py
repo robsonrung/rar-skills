@@ -5,26 +5,29 @@ Deterministic helper for the implement-and-review skill. It does the parts that
 are pure shell/git so the orchestrator does not have to hand-issue them:
 
   * create one git worktree + branch per active track off a clean base
-  * fire the backend implementer (Codex) and, in --fe-mode runner, the frontend
-    implementer (Opus via claude-runner) as tracked background jobs
+  * fire the backend implementer and the selected frontend implementer as
+    tracked background jobs
   * write a launch manifest the orchestrator (and `poll`) reads back
   * poll those jobs to a consolidated status in one call
 
-It CANNOT spawn a native Opus `Agent` subagent — that is an in-process tool only
-the orchestrator has. Use --fe-mode subagent (the default on a Claude Code host)
-to have the launcher set up the frontend worktree + brief and leave the spawn to
-the orchestrator; use --fe-mode runner to fire the frontend via claude-runner so
-both implementers run as background jobs pollable by this script.
+It CANNOT spawn a native Opus `Agent` subagent because that is an in-process
+tool only the orchestrator has. The default frontend seat is Codex for standard
+product interface work. Select --fe-seat opus for visual reconstruction or
+highly creative work; --fe-mode auto then leaves a native Opus subagent pending,
+while --fe-mode runner uses claude-runner.
 
 Examples:
-  # set up both worktrees, fire backend job, leave frontend for a native subagent
+  # standard product interface: fire both Codex implementers
   launch.py launch --session-id feat-x \
       --fe-brief .ai-workflow/impl-review/feat-x/frontend-brief.md \
-      --be-brief .ai-workflow/impl-review/feat-x/backend-brief.md \
-      --fe-mode subagent
+      --be-brief .ai-workflow/impl-review/feat-x/backend-brief.md
 
-  # fire BOTH implementers as background jobs in one call
-  launch.py launch --session-id feat-x --fe-brief fe.md --be-brief be.md --fe-mode runner
+  # visual or highly creative interface: leave frontend for a native Opus seat
+  launch.py launch --session-id feat-x --fe-brief fe.md --be-brief be.md --fe-seat opus
+
+  # use the Opus runner instead of a native subagent
+  launch.py launch --session-id feat-x --fe-brief fe.md --be-brief be.md \
+      --fe-seat opus --fe-mode runner
 
   # backend-only task
   launch.py launch --session-id feat-x --be-brief be.md --no-frontend
@@ -153,6 +156,8 @@ def cmd_launch(args) -> int:
     root = repo_root()
     if not args.frontend and not args.backend:
         fail("both tracks disabled; enable at least one (omit --no-frontend/--no-backend)")
+    if args.frontend and args.fe_seat == "codex" and args.fe_mode == "subagent":
+        fail("--fe-mode subagent is only valid with --fe-seat opus")
 
     # validate briefs for active tracks
     fe_brief = Path(args.fe_brief).resolve() if args.fe_brief else None
@@ -209,6 +214,7 @@ def cmd_launch(args) -> int:
         wt_be = wt_base / "backend"
         info = setup_track("backend", be_brief, branch_for("backend"), wt_be)
         info["runner"] = "codex"
+        info["seat"] = "codex"
         info["mode"] = "runner"
         be_argv = [
             "--prompt-file", info["brief"],
@@ -229,13 +235,35 @@ def cmd_launch(args) -> int:
     if args.frontend:
         wt_fe = wt_base / "frontend"
         info = setup_track("frontend", fe_brief, branch_for("frontend"), wt_fe)
-        if args.fe_mode == "runner":
-            info["runner"] = "claude"
+        fe_mode = args.fe_mode
+        if fe_mode == "auto":
+            fe_mode = "subagent" if args.fe_seat == "opus" else "runner"
+        if args.fe_seat == "codex":
+            info["runner"] = "codex"
+            info["seat"] = "codex"
             info["mode"] = "runner"
             fe_argv = [
                 "--prompt-file", info["brief"],
                 "--working-dir", str(wt_fe),
-                "--model", args.fe_model,
+                "--role", "implementer",
+                "--effort", args.codex_effort,
+                "--timeout", str(args.timeout),
+                "--disable-fallback",
+                "--metadata-json", json.dumps({"session": args.session_id, "slice": slice_id, "track": "frontend", "phase": "implement"}),
+            ]
+            if args.fe_model:
+                fe_argv += ["--model", args.fe_model]
+            if args.full_auto:
+                fe_argv += ["--full-auto"]
+            info.update(fire_runner("codex", fe_argv, wt_fe, args.dry_run))
+        elif fe_mode == "runner":
+            info["runner"] = "claude"
+            info["seat"] = "opus"
+            info["mode"] = "runner"
+            fe_argv = [
+                "--prompt-file", info["brief"],
+                "--working-dir", str(wt_fe),
+                "--model", args.fe_model or "opus",
                 "--role", "implementer",
                 "--allow-write",
                 "--output-format", "json",
@@ -246,6 +274,7 @@ def cmd_launch(args) -> int:
             info.update(fire_runner("claude", fe_argv, wt_fe, args.dry_run))
         else:
             info["runner"] = "opus-subagent"
+            info["seat"] = "opus"
             info["mode"] = "subagent"
             info["job_id"] = None
             info["pending"] = (
@@ -382,10 +411,12 @@ def build_parser() -> argparse.ArgumentParser:
     L.add_argument("--be-brief", help="path to the backend brief file (required if backend active)")
     L.add_argument("--no-frontend", dest="frontend", action="store_false", help="skip the frontend track")
     L.add_argument("--no-backend", dest="backend", action="store_false", help="skip the backend track")
-    L.add_argument("--fe-mode", choices=("subagent", "runner"), default="subagent",
-                   help="frontend implementer path: 'subagent' (default; orchestrator spawns native Opus) or 'runner' (fire claude-runner as a job)")
-    L.add_argument("--fe-model", default="opus", help="model for the runner-mode frontend seat (alias-first; see _shared/references/model-roster.md)")
-    L.add_argument("--be-model", default="gpt-5.6-sol", help="Codex model for the backend implementer seat (default: gpt-5.6-sol — the recommended GPT 5.6 Sol Codex implementer)")
+    L.add_argument("--fe-seat", choices=("codex", "opus"), default="codex",
+                   help="frontend implementer seat: codex for standard product UI (default), opus for visual or highly creative work")
+    L.add_argument("--fe-mode", choices=("auto", "subagent", "runner"), default="auto",
+                   help="frontend execution path: auto selects a Codex runner or native Opus subagent; runner forces the matching runner; subagent is Opus only")
+    L.add_argument("--fe-model", default=None, help="optional model override for the selected frontend runner; defaults to the seat's roster model")
+    L.add_argument("--be-model", default=None, help="optional backend model override; defaults to the Codex seat in _shared/references/model-roster.md")
     L.add_argument("--codex-effort", default="high", help="Codex reasoning effort for the backend implement run")
     L.add_argument("--timeout", type=int, default=1800, help="per-implementer timeout in seconds")
     L.add_argument("--full-auto", action=argparse.BooleanOptionalAction, default=True,

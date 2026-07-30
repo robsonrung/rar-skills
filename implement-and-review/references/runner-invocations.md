@@ -6,26 +6,28 @@ Exact launch patterns for the implement-and-review seats. Seat → model ids (an
 
 1. [Launcher script (one-call setup)](#launcher-script-one-call-setup)
 2. [Shared rules](#shared-rules)
-3. [Frontend implementer — Opus subagent](#frontend-implementer--opus-subagent)
-4. [Backend implementer — GPT 5.6 Sol (Codex)](#backend-implementer--gpt-56-sol-codex)
-5. [Frontend reviewer — Kimi K3](#frontend-reviewer--kimi-k3)
-6. [Backend reviewer — Opus subagent](#backend-reviewer--opus-subagent)
+3. [Standard frontend implementer — Codex seat](#standard-frontend-implementer--codex-seat)
+4. [Visual or creative frontend implementer — Opus seat](#visual-or-creative-frontend-implementer--opus-seat)
+5. [Backend implementer — Codex seat](#backend-implementer--codex-seat)
+6. [Cross-model review routing](#cross-model-review-routing)
 7. [Collecting results](#collecting-results)
 8. [Host portability](#host-portability)
 
 ## Launcher script (one-call setup)
 
-`scripts/launch.py` collapses Phase 1's deterministic setup into one call: it creates the per-track git worktrees+branches off a clean base, fires the runner-backed implementer(s) as tracked background jobs, writes `launch-manifest.json`, and polls them. It **cannot** spawn a native Opus `Agent` subagent (an in-process orchestrator tool), so the frontend has two modes.
+`scripts/launch.py` collapses Phase 1's deterministic setup into one call: it creates the per-track git worktrees+branches off a clean base, fires the runner-backed implementer(s) as tracked background jobs, writes `launch-manifest.json`, and polls them. The default frontend route is the Codex seat for standard product UI. Visual reconstruction and highly creative work select the Opus seat.
 
 ```bash
 L=.agents/skills/implement-and-review/scripts/launch.py
 
-# default: set up both worktrees + briefs, fire ONLY the backend (Codex) job;
-# you then spawn the native Opus FE subagent in the printed frontend worktree.
+# default: standard product interface; fire both frontend and backend Codex jobs
 python3 $L launch --session-id <id> --fe-brief <fe.md> --be-brief <be.md>
 
-# fire BOTH implementers as background jobs (frontend via claude-runner):
-python3 $L launch --session-id <id> --fe-brief <fe.md> --be-brief <be.md> --fe-mode runner
+# visual reconstruction or highly creative work; leave frontend for native Opus
+python3 $L launch --session-id <id> --fe-brief <fe.md> --be-brief <be.md> --fe-seat opus
+
+# same visual route through claude-runner
+python3 $L launch --session-id <id> --fe-brief <fe.md> --be-brief <be.md> --fe-seat opus --fe-mode runner
 
 # single-track task:
 python3 $L launch --session-id <id> --be-brief <be.md> --no-frontend
@@ -42,7 +44,7 @@ python3 $L poll --session-id <id> --wait
 python3 $L cleanup --session-id <id> [--slice <S>]
 ```
 
-Key flags: `--slice <S>` (per-task namespace for parallel feature builds: worktrees at `…/impl-review-<id>/<S>/{frontend,backend}`, branches `impl/<S>-<track>-<id>`, artifacts under `…/<id>/<S>/`), `--fe-mode {subagent|runner}` (default `subagent`), `--no-frontend`/`--no-backend`, `--no-full-auto` (Codex writes off), `--base <sha>` (branch off a given head, not stale base), `--worktrees-dir <dir>`, `--allow-dirty`, `--force` (recreate existing worktrees), `--dry-run`. The `launch`/`poll` output is JSON on stdout; `poll` exits non-zero if any runner track failed.
+Key flags: `--slice <S>` (per-task namespace for parallel feature builds: worktrees at `…/impl-review-<id>/<S>/{frontend,backend}`, branches `impl/<S>-<track>-<id>`, artifacts under `…/<id>/<S>/`), `--fe-seat {codex|opus}` (default `codex`), `--fe-mode {auto|subagent|runner}` (default `auto`), `--no-frontend`/`--no-backend`, `--no-full-auto` (Codex writes off), `--base <sha>` (branch off a given head, not stale base), `--worktrees-dir <dir>`, `--allow-dirty`, `--force` (recreate existing worktrees), `--dry-run`. The `launch`/`poll` output is JSON on stdout; `poll` exits non-zero if any runner track failed.
 
 For a standalone single task, omit `--slice`. The `--slice` namespacing exists so **`implement-feature`** can run many per-task builds in parallel without collision; cross-task scheduling and integration live in that skill, not here.
 
@@ -60,7 +62,31 @@ When you want fine control, skip the launcher and use the per-seat commands dire
 - **Review contract:** reuse the bundled review schema `.agents/skills/codex-runner/schemas/review-output.schema.json` (verdict `approve`/`needs-attention`, severity-ordered findings with file/line/recommendation, next_steps). Pass it via `--output-schema` to Codex/Kimi; embed the same shape in Opus-subagent reviewer prompts (subagents have no schema flag).
 - **Briefs:** write each track's brief once under `.ai-workflow/impl-review/<id>/` — the task set + the shared contracts (API shapes/types both tracks must honor) — and reuse it across that track's cycles.
 
-## Frontend implementer — Opus subagent
+## Standard frontend implementer — Codex seat
+
+Use the default Codex seat for product interfaces with an explicit component and
+behavior contract. Omit `--model`; the roster-backed runner default selects the
+current Codex seat.
+
+```bash
+python3 .agents/skills/codex-runner/scripts/run_codex.py \
+  --prompt-file .ai-workflow/impl-review/<id>/frontend-brief.md \
+  --working-dir <wt-fe> \
+  --role implementer \
+  --full-auto \
+  --effort high \
+  --timeout 1800 \
+  --json \
+  --disable-fallback \
+  --background \
+  --metadata-json '{"session":"<id>","track":"frontend","phase":"implement","shape":"standard_product"}'
+```
+
+The brief carries the literal frontend scope, acceptance commands, shared
+contracts, and the instruction to continue until the acceptance contract passes
+or a configured exit fires. Keep the returned session id for fix rounds.
+
+## Visual or creative frontend implementer — Opus seat
 
 Spawn a **named** native subagent so fix rounds can continue the same context via `SendMessage`.
 
@@ -83,6 +109,12 @@ FRONTEND TASKS:
 SHARED CONTRACTS:
 <api shapes / types>
 
+UNCHANGED BEHAVIOR BOUNDARY:
+<files / behavior that must not change>
+
+ACCEPTANCE CONTRACT:
+<exact commands and observable behavior>
+
 Return a COMPACT summary only: files changed, how to test, and any risks you noted.
 Do NOT paste full file contents or the full diff.
 """
@@ -91,15 +123,14 @@ Do NOT paste full file contents or the full diff.
 
 **Fix round:** `SendMessage({to:"fe-impl", ...})` with the reviewer's findings; tell it to address them in the same worktree and re-commit. Re-spawning would lose its context.
 
-## Backend implementer — GPT 5.6 Sol (Codex)
+## Backend implementer — Codex seat
 
-Run in the backend worktree with write access; keep the `session_id` for fixes. GPT 5.6 Sol is the recommended Codex implementer (best all-around engineering model), so pass `--model gpt-5.6-sol` explicitly.
+Run in the backend worktree with write access and keep the `session_id` for fixes. Omit `--model`; the roster-backed runner default selects the current Codex seat.
 
 ```bash
 python3 .agents/skills/codex-runner/scripts/run_codex.py \
   --prompt-file .ai-workflow/impl-review/<id>/backend-brief.md \
   --working-dir <wt-be> \
-  --model gpt-5.6-sol \
   --role implementer \
   --full-auto \
   --effort high \
@@ -118,23 +149,27 @@ python3 .agents/skills/codex-runner/scripts/run_codex.py \
 python3 .agents/skills/codex-runner/scripts/run_codex.py \
   --resume <session_id> \
   --working-dir <wt-be> \
-  --model gpt-5.6-sol --role implementer --full-auto --effort high --timeout 1800 \
+  --role implementer --full-auto --effort high --timeout 1800 \
   --json --disable-fallback --output-file .ai-workflow/impl-review/<id>/be-fix-<cycle>.json \
   "Address these review findings and re-commit:\n<findings>"
 ```
 
-## Frontend reviewer — Kimi K3
+## Cross-model review routing
 
-Read-only review of the FE worktree diff (cross-model: Opus wrote it, Kimi K3 reviews).
+Opus reviews work written by the Codex seat. Use a fresh native subagent when
+available, or `claude-runner --model opus --role codereviewer --effort medium --restrict-tools --disable-fallback`.
+Give it the complete task, the boundary around unchanged behavior, the diff,
+and the review output contract.
+
+The default Codex seat reviews work written by Opus:
 
 ```bash
-python3 .agents/skills/kimi-runner/scripts/run_kimi.py \
+python3 .agents/skills/codex-runner/scripts/run_codex.py \
   --prompt-file .ai-workflow/impl-review/<id>/fe-review-brief.md \
   --working-dir <wt-fe> \
-  --model moonshotai/kimi-k3 \
   --role codereviewer \
   --restrict-tools \
-  --output-format stream-json \
+  --effort high \
   --timeout 900 \
   --json \
   --disable-fallback \
@@ -143,30 +178,24 @@ python3 .agents/skills/kimi-runner/scripts/run_kimi.py \
   --metadata-json '{"session":"<id>","track":"frontend","phase":"review","cycle":<cycle>}'
 ```
 
-The review brief instructs Kimi to review `git diff <base>..HEAD` in the worktree against the FE task set + shared contracts, return the review-output shape, and not modify anything.
+Kimi is the first fallback for either reviewer role:
 
-## Backend reviewer — Opus subagent
-
-Read-only review of the BE worktree diff (cross-model: Codex wrote it, Opus reviews). Spawn a fresh subagent each cycle.
-
-```text
-Agent(
-  subagent_type="general-purpose",
-  description="Backend reviewer (Opus seat) — cycle <cycle>",
-  model="opus",
-  mode="plan",                         # read-only
-  prompt="""
-Review (read-only) the backend changes in this worktree: <wt-be>
-Run: git diff <base>..HEAD
-Judge against the BACKEND task set and SHARED CONTRACTS below. Do not edit anything.
-
-Return ONLY JSON: {verdict:"approve"|"needs-attention", summary, findings:[{severity,file,line,recommendation,confidence}], next_steps}
-
-BACKEND TASKS: <be task set>
-SHARED CONTRACTS: <api shapes / types>
-"""
-)
+```bash
+python3 .agents/skills/kimi-runner/scripts/run_kimi.py \
+  --prompt-file .ai-workflow/impl-review/<id>/<track>-review-brief.md \
+  --working-dir <worktree> \
+  --role codereviewer \
+  --restrict-tools \
+  --output-format stream-json \
+  --timeout 900 \
+  --json \
+  --disable-fallback \
+  --output-schema .agents/skills/codex-runner/schemas/review-output.schema.json \
+  --output-file .ai-workflow/impl-review/<id>/<track>-review-<cycle>.json
 ```
+
+Every review prompt names the task, shared contracts, test evidence, and
+unchanged-behavior boundary. An implementer never reviews its own work.
 
 ## Collecting results
 
@@ -183,7 +212,9 @@ SHARED CONTRACTS: <api shapes / types>
 
 | Capability | Claude Code | Codex host |
 |------------|-------------|------------|
-| FE implementer (Opus) | native `Agent`, `model:"opus"`, write mode | `claude-runner --model opus --allow-write` |
-| BE implementer (GPT 5.6 Sol via Codex) | `codex-runner --model gpt-5.6-sol --role implementer --full-auto` | native `spawn_agent` (`fork_context=false`), write-enabled |
-| FE reviewer (Kimi) | `kimi-runner --role codereviewer` | `kimi-runner --role codereviewer` |
-| BE reviewer (Opus) | native `Agent`, `mode:"plan"` | `claude-runner --model opus --restrict-tools` |
+| Standard FE implementer | `codex-runner --role implementer --full-auto` | native Codex subagent or `codex-runner` |
+| Visual/creative FE implementer | native `Agent`, `model:"opus"`, write mode | `claude-runner --model opus --allow-write` |
+| BE implementer | `codex-runner --role implementer --full-auto` | native Codex subagent or `codex-runner` |
+| Reviewer of Codex work | native `Agent`, `model:"opus"`, read-only | `claude-runner --model opus --restrict-tools` |
+| Reviewer of Opus work | `codex-runner --role codereviewer --restrict-tools` | native Codex subagent or `codex-runner` |
+| Fallback reviewer | `kimi-runner --role codereviewer` | `kimi-runner --role codereviewer` |

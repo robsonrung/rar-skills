@@ -38,9 +38,14 @@ the roster and the routing files that name it.
 
 Do not hardcode model choices in the workflow. Use the role names the calling
 skill declares (always including `synthesis_anchor` and `adversarial_anchor`). The
-default routing maps the native OpenAI seat to the synthesis anchor and Anthropic
-to the adversarial anchor, with other seats (such as Gemini and Kimi) assigned to
-specialist roles, but the mapping is editable in the routing file.
+mapping is task shaped and editable in the routing file: ambiguous planning may
+use the Opus seat for synthesis and the Codex seat for structured challenge,
+while explicit task planning and delivery may reverse those anchors. Other seats
+such as Gemini and Kimi remain assigned to specialist roles.
+
+Read `_shared/references/task-shaped-model-routing.md` before changing a model
+assignment. It defines the shared task categories, prompt shape, effort policy,
+and evaluation contract.
 
 Every configured phase must run through `_shared/scripts/panel_round.py` unless the
 user explicitly disables model collaboration. A phase is complete only when every
@@ -129,7 +134,7 @@ the native response, then record it:
 python3 _shared/scripts/record_native_response.py \
   --phase <phase> \
   --routing <routing-file> \
-  --role synthesis_anchor \
+  --role <native-role> \
   --from-file /tmp/native-response.md
 ```
 

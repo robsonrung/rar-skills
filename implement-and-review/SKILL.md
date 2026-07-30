@@ -1,6 +1,6 @@
 ---
 name: implement-and-review
-description: Implement ONE scoped task end-to-end with cross-model review. Given a task prompt, decide the frontend/backend split and which model does what, build it test-first — a frontend track (a native Opus subagent implements, Kimi K3 reviews) and a backend track (GPT 5.6 Sol implements via the Codex CLI, an Opus subagent reviews) in parallel isolated git worktrees, applying the repo's lens skills — loop implement→cross-review→fix (max 3) per track, integrate the two tracks, self-simplify the integrated diff with coding-review-simplify, then gate the final code with full-review's multi-model triangulation (seat roster per _shared/references/model-roster.md), leaving tests/build green. Opus orchestrates. Use to implement/build/fix a single scoped task with split frontend/backend work, TDD, and cross-model review. For a whole feature (many tasks), use implement-feature, which calls this per task. Distinct from models-consensus (deliberation only, produces no code) and from ship (the idea→PR conductor, including the interactive phases and PR delivery).
+description: Implement ONE scoped task end-to-end with cross-model review. Given a task prompt, decide the frontend/backend split and route each track by task shape: the default Codex seat executes explicit backend and standard product-interface work, while the Opus seat handles visual or highly creative interfaces and unresolved root-cause diagnosis; the other seat reviews. Build test-first in parallel isolated git worktrees, apply the repo's lens skills, loop implement→cross-review→fix (max 3), integrate, self-simplify, then gate the final code with full-review. Use to implement/build/fix a single scoped task with TDD and cross-model review. For a whole feature, use implement-feature.
 ---
 
 # Implement And Review
@@ -11,16 +11,18 @@ This skill builds **one task**. To break a plan into many tasks and build them a
 
 **Runs standalone on any input grade.** The task can arrive as a one-line prompt, a tracker-issue brief, or a full `to-tasks` Slice Contract — the engine is the same; only how much it has to derive changes. It needs no pipeline around it: invoke it directly on a bare prompt and it derives the split, lenses, and done-gate itself. For unattended / looped use, pass `--auto` to skip the Phase 0 approval gate. A richer input (a Slice Contract) is an enrichment it *lifts* (Phase 0, step 1), never a requirement.
 
-Both tracks are **test-first (TDD)** and follow the **boy-scout rule** — leave touched code cleaner than found. The defining shape is **cross-model review**: the model that writes a track never reviews its own track.
+Both tracks are **test-first (TDD)** and follow the **boy-scout rule** — leave touched code cleaner than found. The defining shape is **cross-model review**: the model that writes a track never reviews its own track. Read `_shared/references/task-shaped-model-routing.md` before assigning seats.
 
-| Track | Implementer | Reviewer |
+| Track shape | Implementer | Reviewer |
 |-------|-------------|----------|
-| Frontend | native Opus subagent (`Agent`, `model:"opus"`, write-enabled) | Kimi K3 (`kimi-runner --role codereviewer`, read-only) |
-| Backend | GPT 5.6 Sol (`codex-runner --model gpt-5.6-sol --role implementer`, write-enabled) | native Opus subagent (read-only) |
+| Standard product interface from an explicit contract | default Codex seat (`codex-runner --role implementer`, write-enabled) | fresh Opus seat (read-only) |
+| Visual reconstruction, games, animation, 3D, or highly creative interface | Opus seat (`Agent model:"opus"` or `claude-runner --model opus`, write-enabled) | fresh default Codex seat (read-only) |
+| Backend after the contract or reproduction is explicit | default Codex seat (`codex-runner --role implementer`, write-enabled) | fresh Opus seat (read-only) |
+| Difficult root-cause investigation without a reproduction or diagnostic plan | Opus seat, read-only diagnosis first | default Codex seat executes only after the chain is closed |
 | Self-simplify | **`coding-review-simplify`** (standard mode) on the integrated diff, before the final gate | — |
 | Final review | the **`full-review`** skill on the task's integrated diff — full-review's multi-model triangulation (seat roster per `_shared/references/model-roster.md`) — then apply findings | — |
 
-Several independent Opus contexts exist (orchestrator, FE implementer, BE reviewer). Keep them separate.
+Kimi is the first fallback reviewer when the preferred cross-model reviewer is unavailable. Several independent contexts may use the same seat; keep them separate and never count them as model diversity.
 
 Exact launch commands and the worktree/integration git flow are in
 [references/runner-invocations.md](references/runner-invocations.md) and
@@ -29,8 +31,8 @@ Exact launch commands and the worktree/integration git flow are in
 
 ## Hard Rules
 
-1. **Orchestrator coordinates, never implements.** Delegate FE to the Opus subagent and BE to GPT 5.6 Sol (via `codex-runner --model gpt-5.6-sol`).
-2. **Cross-model review is mandatory.** Kimi K3 reviews FE (Opus's work); Opus reviews BE (GPT 5.6 Sol's work). An implementer never reviews its own track.
+1. **Orchestrator coordinates, never implements.** Classify the task shape and dispatch the assigned seat from the table above.
+2. **Cross-model review is mandatory.** The preferred reviewer is the other primary seat: Opus reviews Codex work and Codex reviews Opus work. Kimi is a fallback reviewer, never the first default. An implementer never reviews its own track.
 3. **Test-first (TDD).** Both tracks build via red-green-refactor — a failing test before the code that passes it, one test → one minimal change, refactor only on green.
 4. **Good code, boy-scout rule.** Produce clean code (clear names, small focused units, no duplication/dead code) and leave touched files cleaner than found — but scope improvements to what the task changes; never rewrite unrelated areas or change behavior beyond the task.
 5. **Apply the repo's lens skills.** Each track works through the relevant quality/architecture skills (see [Methodology & Per-Track Skills](#methodology--per-track-skills)); the integrated diff gets a **`coding-review-simplify`** pass, and the final gate is **`full-review`** on the code that ships.
@@ -57,7 +59,7 @@ Apply only the lenses that fit the task; don't force every skill onto every chan
 ## Preflight
 
 1. **Host & git.** Confirm the `Agent` tool exists (native Opus subagents). Confirm `git rev-parse --is-inside-work-tree`. No git → sequential fallback (worktree reference).
-2. **Seats.** Use the shared probe: `python3 .agents/skills/_shared/scripts/discover_runners.py probe --native-agent yes --seat codex --seat kimi --seat grok --format json`. Require `codex.available` (BE implementer + a full-review external runner) and `kimi.available` (FE reviewer); `grok.available` matters only as the fallback BE implementer when codex is missing. Mark missing seats and degrade.
+2. **Seats.** Use the shared probe: `python3 .agents/skills/_shared/scripts/discover_runners.py probe --native-agent yes --seat codex --seat opus --seat kimi --seat grok --format json`. Require the default Codex seat and either a native or runner-backed Opus seat. Kimi is the first fallback reviewer; Grok matters only as the fallback backend implementer when Codex is missing. Mark missing seats and degrade.
 3. **Verification commands.** Detect how this project tests/builds and runs a *single* test (TDD needs a fast inner loop). These back the done gate — unless the task carries a Slice Contract, whose `acceptance` commands are the authoritative done gate (confirm they exist and run; reconcile with the user if they don't, never silently swap).
 4. **Base & artifacts.** Record the current head as `<base>` (when called by `implement-feature`, this is the task's assigned base). When `.ai-workflow/` is writable, use `.ai-workflow/impl-review/<session_id>/`; else keep state inline.
 
@@ -65,7 +67,7 @@ Apply only the lenses that fit the task; don't force every skill onto every chan
 
 1. **Understand the task.** The default input is just a task description (often a bare prompt) — read it, and if it's ambiguous, clarify first (or, under `--auto`, record an assumption and proceed). **Lift a Slice Contract when one is present:** a task from `to-tasks` additionally carries `acceptance` (exact commands + observable behaviors) and `gates` (design-lens flags + `security: deep|standard`). When those fields exist, **lift them, don't re-derive them** — the `acceptance` commands ARE the done gate (Hard Rule 9) and the `behaviors` are the test-first targets; the `gates` flags select which lenses each track applies (step 2) and whether the final review runs `security_focus=true` (Phase 4). Re-deriving what an approved contract already states invites drift between what was approved and what gets built. With no contract, derive all of this yourself in the steps below.
 2. **Design pass** (lightweight) running the lenses the `gates` flags select when a contract is present, otherwise the planning/architecture lenses as warranted — `coding-design-plan`, `design-gate`, `domain-driven-design` (BE business-logic pattern). Informs the briefs, not a deliverable.
-3. **Split the task** into a **frontend** part and a **backend** part with **disjoint file scopes** (e.g. `client/**` vs `server/**`), the **behaviors to test first**, and the **shared contracts** (API shapes, types) both tracks must honor. A task may be single-track (pure-FE or pure-BE).
+3. **Split and route the task** into a **frontend** part and a **backend** part with **disjoint file scopes** (e.g. `client/**` vs `server/**`), the **behaviors to test first**, and the **shared contracts** (API shapes, types) both tracks must honor. Classify frontend as `standard_product` or `visual_creative`; use `standard_product` unless the task explicitly requires visual reconstruction, games, animation, 3D, or original creative direction. If a difficult bug lacks a reproduction or diagnostic plan, run an Opus diagnosis before assigning implementation. A task may be single-track (pure-FE or pure-BE).
 4. **Present** the split, which model does what, the behaviors-to-test, the shared contracts, and the verification commands. **Get approval before any code is written**, unless `--auto`.
 5. **Record the approval.** Append `{"gate": "phase0_plan_approval", "decision": "approved"}` (or `"auto"` under `--auto`) to `gates` in the run state before Phase 1. On resume, a gate already in `gates` is **already decided** — do not re-ask. A gate *absent* from `gates` was never granted, whatever the transcript appears to say, so a resumed run that cannot find it stops and asks.
 
@@ -75,12 +77,13 @@ This skill follows `_shared/references/run-state-contract.md`. Extend the launch
 
 ## Phase 1 — Implement (FE + BE, test-first, parallel)
 
-Fast path: the bundled launcher creates the worktrees, fires the runner-backed implementer(s), and polls — `python3 .agents/skills/implement-and-review/scripts/launch.py launch --session-id <id> --fe-brief <f> --be-brief <f>` (default `--fe-mode subagent` fires only the Codex BE job and leaves the FE worktree for a native Opus subagent; `--fe-mode runner` fires both). See [the launcher section](references/runner-invocations.md#launcher-script-one-call-setup). Manual git is the fallback.
+Fast path: the bundled launcher creates the worktrees, fires the runner-backed implementer(s), and polls — `python3 .agents/skills/implement-and-review/scripts/launch.py launch --session-id <id> --fe-brief <f> --be-brief <f>`. The default frontend seat is Codex for `standard_product`; pass `--fe-seat opus` for `visual_creative`, and add `--fe-mode runner` when no native Opus subagent is available. See [the launcher section](references/runner-invocations.md#launcher-script-one-call-setup). Manual git is the fallback.
 
-Create one worktree+branch per non-empty track off `<base>`, then build both tracks **concurrently** (issue the Codex `Bash` call and the Opus `Agent` call in one message). Every brief embeds the track methodology from [references/methodology.md](references/methodology.md): the **TDD loop**, the **good-code / boy-scout** rule, and the track's **lens checklist**.
+Create one worktree+branch per non-empty track off `<base>`, then build both tracks **concurrently**. Every brief embeds the track methodology from [references/methodology.md](references/methodology.md): the **TDD loop**, the **good-code / boy-scout** rule, the track's **lens checklist**, the explicit scope, the acceptance contract, and the commands that must pass.
 
-- **Frontend:** spawn a named Opus subagent (`Agent`, `model:"opus"`, write-enabled, addressable for fix rounds via `SendMessage`). It works only in the FE scope, implements test-first, honors the shared contracts, applies the FE lenses, runs FE-local tests after each step, and returns a compact summary (files, tests added, how to test, risks) — not its full diff.
-- **Backend:** run `codex-runner --model gpt-5.6-sol --role implementer` (write access) in the BE scope — GPT 5.6 Sol is the recommended Codex implementer; brief = BE work + behaviors-to-test + shared contracts + embedded TDD/boy-scout/BE-lens snippets. Use `--background`/`--output-file`; keep the `session_id` for `--resume` fixes.
+- **Standard frontend:** run the default Codex seat with write access in the FE scope. It implements test-first, honors shared contracts, applies FE lenses, and continues until the FE acceptance commands pass or a configured exit fires.
+- **Visual or creative frontend:** spawn a named Opus subagent (`Agent`, `model:"opus"`, write-enabled, addressable for fix rounds via `SendMessage`) or use `claude-runner --model opus --allow-write`. Give it the complete specification and an explicit boundary around unchanged behavior.
+- **Backend:** run the default Codex seat with write access in the BE scope. Give it the BE work, behaviors-to-test, shared contracts, exact scope, acceptance commands, and embedded methodology. Use `--background`/`--output-file`; keep the `session_id` for `--resume` fixes.
 
 Commit tests and code interleaved (not all tests then all code).
 
@@ -90,9 +93,9 @@ Commit tests and code interleaved (not all tests then all code).
 
 For each track, each cycle: read `attempts.<track>_fix_cycle` from the run state (absent = `0`), increment and write it back **before** starting the cycle — a cycle that crashes mid-review has still been spent — then compare against `ceilings.max_cycles`. At or over the bound, go straight to step 4 without starting another review. **The model never decides the retry**: the cap is the counter on disk, not a recollection of how many rounds have happened.
 
-1. **Review the diff** (`git -C <worktree> diff <base>..HEAD`) with the cross-model reviewer, read-only, against the task + shared contracts, **through the track's lens checklist**. The reviewer also checks that changed behavior is covered by test-first tests and that touched code was left clean. Require the review-output contract (verdict `approve`/`needs-attention`, severity-ordered findings with file/line/recommendation): reuse `.agents/skills/codex-runner/schemas/review-output.schema.json` for Kimi (`--output-schema`); embed the same shape in the Opus reviewer's prompt.
+1. **Review the diff** (`git -C <worktree> diff <base>..HEAD`) with the other primary seat, read-only, against the task + shared contracts, **through the track's lens checklist**. Opus reviews Codex work; the default Codex seat reviews Opus work. The reviewer also checks that changed behavior is covered by test-first tests and that touched code was left clean. Require the review-output contract (verdict `approve`/`needs-attention`, severity-ordered findings with file/line/recommendation). Kimi may fill either reviewer role only when the preferred reviewer is unavailable.
 2. **Stop** when the reviewer returns `approve` with no high-severity findings.
-3. **Else fix** via the **same implementer** (FE → `SendMessage`; BE → `codex-runner --resume <session_id>`); re-review.
+3. **Else fix** via the **same implementer** using its saved subagent or runner session; re-review.
 4. After **3** cycles without approval, stop and escalate the open findings, and set `status` to `ceiling_hit` naming the track that exhausted its cycles.
 
 Never apply review findings yourself; the implementer fixes its own track. Never auto-accept — the reviewer re-checks after each fix.
@@ -102,7 +105,7 @@ Never apply review findings yourself; the implementer fixes its own track. Never
 1. Merge both track branches into an integration branch off `<base>` (commands in the worktree reference). Disjoint scopes should make this clean; resolve any conflict using both diffs, preserving each track's intent and the shared contracts. The merge is a side effect: append `merge:<track>-><integration>` to `side_effects` before running it, and skip a merge whose key is already recorded — a resumed run must not re-merge a branch it already merged.
 2. Run the full verification commands. Red → bounded integration-fix loop (≤3), counted in `attempts.integration_fix` on the same read-increment-write rule as Phase 2: route the failure to the responsible track, re-merge, re-test.
 3. Proceed only when **green** (or escalate).
-4. **Self-simplify before the gate.** With the integration green, run **`coding-review-simplify`** (standard mode) on the integrated diff — a behavior-preserving tightening pass (reuse, dedupe, dead code, unnecessary abstraction, the FE/BE seam) run while the context is still fresh and *before* the review gate. Apply its safe findings via the responsible implementer (BE → Codex `--resume`; FE → `SendMessage`), re-verify **green**, then enter Phase 4. Ordering is load-bearing: `full-review` gates the **final** code, so never let a mutating pass follow it unreviewed.
+4. **Self-simplify before the gate.** With the integration green, run **`coding-review-simplify`** (standard mode) on the integrated diff — a behavior-preserving tightening pass (reuse, dedupe, dead code, unnecessary abstraction, the FE/BE seam) run while the context is still fresh and *before* the review gate. Apply its safe findings through the responsible implementer's saved runner or subagent session, re-verify **green**, then enter Phase 4. Ordering is load-bearing: `full-review` gates the **final** code, so never let a mutating pass follow it unreviewed.
 
 ## Phase 4 — Final Review (full-review) & Apply
 
@@ -110,7 +113,7 @@ Run the **`full-review`** skill on the task's integrated diff — full-review's 
 
 1. **Invoke** `full-review` (local diff vs `<base>`, or range `<base>..<integration>`). `security_focus=true` when security-sensitive. It is **read-only**.
 2. **Triage:** fix every CRITICAL/HIGH; apply safe, behavior-preserving MEDIUM simplification/maintainability findings; record deferrals with a reason. The machine JSON is the source of truth.
-3. **Apply** via the responsible implementer (BE → Codex `--resume`; FE → `SendMessage`), preserving TDD — add/adjust a test for any behavioral fix.
+3. **Apply** through the responsible implementer's saved runner or subagent session, preserving TDD — add/adjust a test for any behavioral fix.
 4. **Re-verify:** **green**; re-run `full-review` (or `quick_mode`) when CRITICAL/HIGH were fixed, until `APPROVE` or only accepted findings remain.
 
 ## Phase 5 — Report
@@ -132,7 +135,7 @@ When called by `implement-feature`, return this report compactly so the orchestr
 
 ## Degrade Gracefully
 
-- **Kimi K3 missing (FE reviewer):** use GPT 5.6 Sol / GPT 5.3 Codex as the FE reviewer (still cross-model, since FE is Opus's work); note the substitution.
+- **Preferred reviewer missing:** use Kimi as the first fallback, then another available model distinct from the implementer; note the substitution.
 - **GPT 5.6 Sol / Codex missing (BE implementer):** first try **Grok 4.5** as the fallback BE implementer (`grok-runner --role implementer --effort high`, write-enabled; Opus still reviews — cross-vendor diversity is preserved) and note the substitution. If `grok` is also missing, with approval have an Opus subagent implement BE and a *different* model review it; flag lost cross-vendor diversity. If no write-capable seat + distinct reviewer remain for a non-empty track, stop and report.
 - **Not a git repo:** run the tracks **sequentially** in the working tree (backend first so the FE builds against settled contracts), no worktrees; full-review against the local diff.
 - **No tests/build found:** TDD still drives design where a harness can be introduced; if truly none exists, build + review + `full-review`, and report that verification could not run — never imply it passed.

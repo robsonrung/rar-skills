@@ -43,7 +43,7 @@ A single-track task (pure-FE or pure-BE) uses `--no-backend` / `--no-frontend`.
 ## Scheduling & parallelism (DAG)
 
 1. Build the graph from each task's `blocked_by`.
-2. A task is **ready** when every blocker is integrated. Launch ready tasks **concurrently up to the cap** (default 3) — fire each task's build (above) with its own `--slice <T>`; their Codex BE jobs run as background jobs and their Opus FE subagents run concurrently.
+2. A task is **ready** when every blocker is integrated. Launch ready tasks **concurrently up to the cap** (default 3) — fire each task's build (above) with its own `--slice <T>`; backend and standard frontend Codex jobs run as background jobs, while a task classified `visual_creative` may use an Opus frontend subagent.
 3. HITL tasks first; AFK unattended.
 4. When a task integrates, recompute readiness and pull the next ready tasks into flight.
 5. An **escalated** task (its `implement-and-review` hit the 3-cycle cap) blocks only its dependents; keep building independents.

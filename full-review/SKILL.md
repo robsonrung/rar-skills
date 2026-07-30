@@ -239,18 +239,18 @@ The `--seat` list above names the backup seats (`gemma`, `qwen`, `minimax`) expl
 
 The probe covers this default candidate set, in priority order:
 
-Role diversity follows the model's strengths: **GPT for logic and security, Sonnet for maintainability, Gemini for cross-file consistency, GLM for edge cases, Kimi for broad pragmatic review, Grok for execution-path and agentic-flow verification.**
+Role diversity follows the model's strengths: **the default Codex seat for recall and logic, Opus for precision and root cause validation, the code-specialized Codex seat for security, Sonnet for maintainability, Gemini for cross-file consistency, GLM for edge cases, Kimi for broad pragmatic review, and Grok for execution-path and agentic-flow verification.** Shared rationale: `_shared/references/task-shaped-model-routing.md`.
 
 | Seat | Execution path | Default lens |
 |------|----------------|--------------|
-| `codex` | `codex-runner --effort high` | `logic_state` (the Codex seat owns logic **and** `security_runtime`) |
-| `codex-code` | `codex-runner --model gpt-5.3-codex --effort high` (see `_shared/references/model-roster.md`) | `security_runtime` — code-specialized secondary Codex seat |
+| `codex` | `codex-runner --effort high` | `logic_state` broad recall |
+| `opus` | native `Agent` subagent (`model: "opus"`) or `claude-runner --model opus --effort medium` | `precision_root_cause`; Phase 5 synthesizer |
 | `sonnet` | native `Agent` subagent (`model: "sonnet"`) or `claude-runner --model sonnet` | `structural_maintainability` (the Sonnet seat owns maintainability) |
 | `gemini` | `gemini-runner` (Antigravity `agy`) | `cross_file_consistency` (the Gemini seat — broad, long context) |
 | `grok` | `grok-runner --effort high` | `logic_state` second seat — execution paths / CLI & tool invocation flows / integration behavior (Terminal-Bench-class agentic strength) |
 | `glm` | `glm-runner` | `broad_sweep` (the GLM seat — edge cases / resource & failure paths) |
 | `kimi` | `kimi-runner` | `broad_sweep` (broad pragmatic — input/auth) |
-| `opus` | native `Agent` subagent (`model: "opus"`) or `claude-runner --model opus` | Phase 5 synthesizer; `structural_maintainability` backup behind sonnet |
+| `codex-code` | `codex-runner --model gpt-5.3-codex --effort high` (see `_shared/references/model-roster.md`) | `security_runtime` — code-specialized secondary Codex seat |
 | `gemma` | `gemma-runner` | `broad_sweep` (regression/perf) backup |
 | `qwen` | `qwen-runner` | `logic_state` backup |
 | `minimax` | `minimax-runner` | `cross_file_consistency` backup |
@@ -270,10 +270,10 @@ The `triangulation` knob selects how many seats run and which lenses are mandato
 | Preset | Seats engaged | Lens coverage |
 |---|---|---|
 | `off` | none | Skip external runners entirely. Use only when the host has zero runners or the caller explicitly disables. |
-| `light` | 2 cheap seats (kimi + glm, falling back to gemma/qwen) | `broad_sweep` only, with two non-overlapping `category_emphasis` assignments. Default for `quick_mode`. |
-| `quality` | All available distinct seats, up to 7 | One seat per lens (`logic_state` ×1–2, `cross_file_consistency`, `broad_sweep` ×1–3, `security_runtime`, `structural_maintainability`). Default otherwise. |
+| `light` | default Codex seat + one cheap sweep seat (glm, then kimi, then gemma/qwen) | `logic_state` for broad recall plus one `broad_sweep`. Default for `quick_mode`. |
+| `quality` | All available distinct seats, up to 7 | Core coverage is default Codex `logic_state`, Opus `precision_root_cause`, Sonnet `structural_maintainability`, Gemini `cross_file_consistency`, Grok execution-path `logic_state`, and up to two non-overlapping `broad_sweep` seats. |
 
-When `security_focus=true`, force the `security_runtime` lens to be filled even if it costs the `structural_maintainability` seat.
+When `security_focus=true`, force the `security_runtime` lens onto the code-specialized Codex seat and drop the last `broad_sweep` seat if the seven-seat cap is reached. Never drop Opus precision or Sonnet maintainability to make room.
 
 #### Quorum
 
@@ -350,7 +350,7 @@ Synthesis is delegated to a **fresh-model synthesizer**, not run inline by the o
 
 ### Synthesizer
 
-A fresh read-only synthesizer context — **on a Claude host** the Opus seat (`Agent` with `subagent_type=general-purpose`, `model: "opus"`); **when running outside Claude** the default Codex seat (`codex-runner`), the best all-around synthesis model available off-host (ids per `_shared/references/model-roster.md`) — receives:
+A fresh read-only Opus synthesizer context receives the candidate record: use `Agent` with `subagent_type=general-purpose`, `model: "opus"` when native, otherwise `claude-runner --model opus --effort medium --restrict-tools --disable-fallback`. If the Opus seat is unavailable, fall back to the default Codex seat at high effort and lower confidence one band. Model ids remain in `_shared/references/model-roster.md`.
 
 1. All candidate comments from gates, bug finders, personas, specialists, external runners, and existing PR comments.
 2. A per-finding **corroboration map** keyed by `(path, line_range, category)` showing every originating source and the `corroborated_models` count.

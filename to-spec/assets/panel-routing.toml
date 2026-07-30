@@ -14,15 +14,6 @@ required_outputs = ["prd.md", "codebase_fit.md", "domain_notes.md", "interface_c
 workflow = "Follow the skill SKILL.md instructions, keep role outputs independent before reconciliation, preserve disagreements in the decision log, and do not mark the phase complete until every listed role has a real response and mandatory anchor roles are recorded."
 
 [providers.synthesis_anchor]
-kind = "native_codex"
-provider = "codex"
-model = "gpt-5.6-sol"
-model_label = "GPT 5.6 Sol"
-enabled = true
-native_response_required = true
-duty = "Synthesize, reconcile, coordinate native Codex subagents when allowed, and own final decisions inside the host Codex session."
-
-[providers.adversarial_anchor]
 kind = "runner"
 runner = "claude"
 provider = "anthropic"
@@ -31,8 +22,17 @@ model_label = "Opus"
 enabled = true
 script = ".agents/skills/claude-runner/scripts/run_claude.py"
 timeout_seconds = 1200
-duty = "Challenge assumptions, find risks, inspect security and architecture, and block unsafe convergence."
-runner_args = ["--output-format", "json", "--no-session-persistence", "--restrict-tools"]
+duty = "Synthesize product, domain, interface, and architecture judgment into the final specification."
+runner_args = ["--output-format", "json", "--no-session-persistence", "--restrict-tools", "--effort", "high"]
+
+[providers.adversarial_anchor]
+kind = "native_codex"
+provider = "codex"
+model = "gpt-5.6-sol"
+model_label = "GPT 5.6 Sol"
+enabled = true
+native_response_required = true
+duty = "Challenge the specification against explicit constraints, acceptance criteria, execution risk, and security boundaries."
 
 [providers.broad_context]
 kind = "runner"
@@ -65,7 +65,7 @@ runner_args = ["--output-format", "stream-json", "--data-dir", "/tmp/cline-panel
 [roles.synthesis_anchor]
 provider = "synthesis_anchor"
 runner_role = "synthesizer"
-duty = "Native synthesis, final reconciliation, implementation aware decision making, and audit trail ownership."
+duty = "Final synthesis, cross contract reconciliation, implementation aware judgment, and audit trail ownership."
 
 [roles.adversarial_anchor]
 provider = "adversarial_anchor"

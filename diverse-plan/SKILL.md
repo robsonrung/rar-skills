@@ -15,19 +15,20 @@ Self-contained: this skill runs its own loop and never calls the council skill (
 ## Best model for each task
 
 Assign work to the model best suited to it. This is the default routing; fall back per the rules below when a seat is missing.
+Read `_shared/references/task-shaped-model-routing.md` before changing these assignments.
 
 | Task | Model (seat) | How to launch | Why this model |
 |---|---|---|---|
 | Branch: **smallest viable change** | Kimi K3 | `kimi-runner --role planner` | pragmatic, code-native, strong long-horizon coding judgment |
-| Branch: **cleanest design** | Opus 4.8 | native `Agent` `model:"opus"` `mode:"plan"` (else `claude-runner --model opus --role planner`) | deepest design/boundary reasoning |
+| Branch: **cleanest design** | Opus seat | native `Agent` `model:"opus"` `mode:"plan"` (else `claude-runner --model opus --role planner --effort high`) | ambiguous architecture and boundary judgment |
 | Branch: **most robust** | GLM 5.2 | `glm-runner --role planner` | edge cases, long-context / backend reasoning, failure modes |
 | Branch: **different boundary/placement** (optional 4th) | Grok 4.5 | `grok-runner --role planner --effort high` | independent lineage (xAI), deep execution-grounded agentic reasoning, token-efficient |
-| Lens: **architecture / module complexity** | Opus 4.8 | native `Agent` running `architecture-lens` / `software-design-philosophy` | strongest structural judgment |
+| Lens: **architecture / module complexity** | Opus seat | native `Agent` running `architecture-lens` / `software-design-philosophy` | structural judgment and reconciliation |
 | Lens: **data-systems** (state, async, migrations, retries) | GPT 5.3 Codex | `codex-runner --model gpt-5.3-codex --role codereviewer --effort high` | correctness & concurrency rigor, regression analysis |
 | Lens: **security** (auth, input, secrets, untrusted data) | GPT 5.3 Codex | `codex-runner --model gpt-5.3-codex --role adversarial --effort high` | best code-focused adversarial/security reviewer |
 | Lens: **clean-code / readability / test coverage** | Sonnet 5 | native `Agent` `model:"sonnet"` running `clean-code` / `test-lens` | clean code, readability, and test quality are Sonnet's strength |
-| **Synthesis & enrichment** | GPT 5.6 Sol | `codex-runner --role synthesizer --effort xhigh` | flagship all-around engineering + synthesis model; synthesis is the dominant lever |
-| **Completeness critic** | GPT 5.3 Codex | `codex-runner --model gpt-5.3-codex --role adversarial --effort high` | one focused skeptical pass — kept on a *different* model than the GPT 5.6 Sol synthesizer so it doesn't rubber-stamp (`high` is plenty; `xhigh` is too slow for a final gap check) |
+| **Synthesis & enrichment** | Opus seat | native `Agent` `model:"opus"` `mode:"plan"` (else `claude-runner --model opus --role synthesizer --effort high`) | reconcile competing architectural judgment before execution |
+| **Execution completeness critic** | Codex seat | `codex-runner --role adversarial --effort high` | check the chosen plan against explicit scope, acceptance, commands, and verification |
 
 GLM 5.2 anchors the **most robust** branch (edge cases / long context) and is also the spare diversity seat — use it as a fallback branch model or an extra critique angle when another seat is missing.
 
@@ -99,18 +100,18 @@ For a lens assigned to **Opus or Sonnet** on a Claude host, run the **actual len
 
 Capture, per branch: strongest aspect, biggest weakness, any fatal flaw.
 
-## Step 4 — Synthesize & enrich (GPT 5.6 Sol)
+## Step 4 — Synthesize and enrich (Opus seat)
 
-Hand the **full record** (every branch + every critique) to the synthesis seat — **GPT 5.6 Sol** (`codex-runner --role synthesizer --effort xhigh`), the flagship all-around engineering + synthesis model — and produce **one** plan:
+Hand the **full record** (every branch + every critique) to a fresh **Opus seat**: native `Agent` with `model:"opus"` and `mode:"plan"` when available, otherwise `claude-runner --model opus --role synthesizer --effort high`. Give it the complete brief and an explicit boundary around what must not change. It produces **one** plan:
 - Pick the strongest branch as the spine.
 - Graft the best ideas from the other branches into it.
 - Resolve every surviving critique, or note why it's accepted.
 
 Output the enriched plan: ordered steps, files to change, sequencing, tests to add/update, risks + mitigations, rollback/notes. Briefly state which approaches were considered, on which models, and why this synthesis won. Validate the synthesis against the record — every plan element should trace to a branch or a resolved critique.
 
-## Step 5 — Completeness check (one bounded round, GPT 5.3 Codex)
+## Step 5 — Execution completeness check (one bounded round, Codex seat)
 
-Run one hard skeptical pass (GPT 5.3 Codex `--model gpt-5.3-codex --role adversarial --effort high` — a *different* model than the GPT 5.6 Sol synthesizer, so it won't rubber-stamp): *what angle, edge case, model, or applicable lens did we still not cover?*
+Run one hard skeptical pass with the default Codex seat at high effort. Give it the chosen scope, acceptance contract, relevant commands, and this question: *what angle, edge case, model, or applicable lens did we still not cover, and can an implementer execute this plan without making a design decision?*
 - Material gap → do **one** targeted patch round (re-critique just that gap on its best model, fold the fix into the plan).
 - Otherwise stop. Do not loop further — keep it simple.
 
@@ -131,7 +132,7 @@ Write a file only if the user asks.
 - **Self-contained.** Never call `models-consensus` — in any mode (poll, debate, personas). This skill owns its own loop.
 - **Multi-model by construction.** Branches run on distinct models via the runners (≥2 quorum); lenses and synthesis run on the model the routing table assigns. `--disable-fallback` on every runner; never substitute a provider silently.
 - **Blind branches, same brief.** Only the premise line differs across branches.
-- **Best model per task, but don't overspend.** GPT 5.6 Sol for synthesis/enrichment, Opus for the deep design lenses, GPT 5.3 Codex for correctness/security/adversarial, Sonnet 5 for clean-code/tests, Kimi K3 / GLM 5.2 / Grok 4.5 (Gemini 3.6 Flash as its fallback) for the branch seats. Run only the lenses the change touches.
+- **Best model per task, but don't overspend.** Opus for architectural synthesis and deep design lenses, the default Codex seat for execution completeness, GPT 5.3 Codex for focused correctness/security lenses, Sonnet 5 for clean-code/tests, Kimi K3 / GLM 5.2 / Grok 4.5 (Gemini 3.6 Flash as its fallback) for the branch seats. Run only the lenses the change touches.
 - **One completeness round max.**
 - **Read `agent_message` from `--output-file`,** never raw stdout (Kimi appends a resume hint; Codex emits a transcript).
 - **This produces a plan, not code.** Hand the plan off to your implementation flow.

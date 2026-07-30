@@ -9,6 +9,8 @@ name: skill guards
 #      name matches its directory, no upstream prefixes.
 #   3. Runner-dir parity — a runner skill cannot land without registering
 #      its seat in discover_runners.py (or being deliberately allowlisted).
+#   4. Task-shaped routing — planning, review, and delivery assignments keep
+#      their intended seat roles and launcher defaults.
 
 on:
   push:
@@ -25,5 +27,7 @@ jobs:
           python-version: "3.x"
       - name: Cross-runner envelope parity
         run: python3 _shared/tests/test_runner_parity.py
+      - name: Task shaped model routing
+        run: python3 _shared/tests/test_model_routing.py
       - name: Skill frontmatter + runner-dir parity
         run: python3 _shared/scripts/validate_skill_frontmatter.py

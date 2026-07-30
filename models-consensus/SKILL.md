@@ -24,6 +24,7 @@ Flags, combinable with any mode: [`clarify`](#clarify), [`decider_context: repor
 ## Shared Preflight
 
 `personas` runs on one model (the strongest available) and skips seat probing; everything else below applies to `poll` and `debate`.
+For judgment-heavy `personas` runs, prefer the Opus seat, then the Codex seat, then the strongest remaining available seat. Resolve current model ids through `_shared/references/model-roster.md` and the task-shaped rationale through `_shared/references/task-shaped-model-routing.md`.
 
 ### 0. Resolve seat selection
 

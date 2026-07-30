@@ -5,6 +5,9 @@ When a provider ships a new model, update **this file** (and the runner script
 defaults it names) — prose in individual skills must say "the Claude seat",
 "the Codex seat", etc., and point here.
 
+Seat ids live here; task assignments do not. Read
+`task-shaped-model-routing.md` for the shared routing and evaluation contract.
+
 Aliases are preferred over pinned ids in invocations where the CLI supports
 them (`claude --model opus`); the envelope's `effective_model` receipt records
 what actually served, which is what agreement weighting uses (never the

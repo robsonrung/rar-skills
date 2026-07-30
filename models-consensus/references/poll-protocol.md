@@ -33,11 +33,12 @@ Record the run config (preset, tool profile, organizer/synthesizer/judge models)
 
 ## Dedicated roles
 
-- **Organizer (Phase 2).** A fresh read-only model reads ALL seat answers and emits the five-dimension structured analysis — the substrate everything downstream consumes. On a Claude host default to the Opus seat model (native subagent, `mode: "plan"`, a *different* subagent than the Opus seat); outside Claude default to the Codex seat model via `codex-runner` — else the strongest available seat model.
+- **Organizer (Phase 2).** A fresh read-only model reads ALL seat answers and emits the five-dimension structured analysis — the substrate everything downstream consumes. In `quality` and `research`, default to the Opus seat model on every host: use a native subagent with `mode: "plan"` when available, otherwise `claude-runner --model opus --effort high`. In `budget`, use the Codex seat model. Fall back to the strongest available seat model.
 - **Judges (Phase 4).** Two fresh read-only judges — default the Opus and Codex seat models — validate and challenge the organizer's analysis on the surviving open points (they consume it; they do not re-derive it).
-- **Synthesizer (Phase 5).** A fresh read-only model writes the final consensus answer grounded in the record. Same defaults as the organizer.
+- **Synthesizer (Phase 5).** A fresh read-only model writes the final consensus answer grounded in the record. Use the same preset-specific defaults as the organizer.
 
 All three are user-selectable and recorded in the report. Each is a separate context from the seats, the orchestrator, and each other (SKILL.md, Shared Preflight step 6).
+Task shaped role guidance lives in `_shared/references/task-shaped-model-routing.md`.
 
 ## Schemas
 
@@ -92,7 +93,7 @@ Conform to [../schemas/organizer-analysis.schema.json](../schemas/organizer-anal
 
 `agreements`/`disagreements` are derived views of this analysis, not the whole output. Keep a compact digest; never paste full answers forward. **The machine gate:** the schema's required `material_gaps` boolean decides Phase 3 — when the organizer sets it `false` (no material contradictions, blind spots, or contested unique insights; only trivial/wording differences), skip Phase 3 and go straight to judging/synthesis.
 
-Organizer invocation: native `Agent` (`model: "opus"`, `mode: "plan"`) on a Claude host; `codex-runner` with `--output-schema` pointing at the organizer schema on other hosts (no `--role`).
+Organizer invocation: native `Agent` (`model: "opus"`, `mode: "plan"`) when available; otherwise `claude-runner --model opus --effort high --restrict-tools --disable-fallback` for `quality` and `research`, or `codex-runner --effort high --restrict-tools --disable-fallback` for `budget`. Apply the organizer schema without a role.
 
 ## Phase 3 — Gap-repair round (one round, gated)
 

@@ -196,7 +196,7 @@ The command shapes above are written for `debate` (stance overlay + `--role` + a
 - **Timeout.** `--timeout 600` is ample for a single answering pass; keep 900 for debate rounds that carry a digest.
 - **Artifact paths.** Write one brief per phase and point every `--prompt-file` at it; per-seat outputs follow the artifact policy naming (`{session_id}-round-{n}-{seat}-output.json`).
 - **Self-pairing.** Launch duplicates with distinct labels (`"seat":"opus#1"`) and distinct `--output-file`s, vary the brief with a `SAMPLE: n` line, and mark `is_duplicate: true` in the seat table.
-- **Organizer / judges / synthesizer.** Same runner shapes, always read-only, no role, each a fresh context: native `Agent` (`model: "opus"`, `mode: "plan"`) on a Claude host, `codex-runner --restrict-tools --effort high --disable-fallback --output-schema <stage schema>` elsewhere.
+- **Organizer / judges / synthesizer.** Same runner shapes, always read-only, no role, each a fresh context. For `quality` and `research`, use native `Agent` (`model: "opus"`, `mode: "plan"`) when available or `claude-runner --model opus --effort high --restrict-tools --disable-fallback` elsewhere. For `budget`, use `codex-runner --restrict-tools --effort high --disable-fallback --output-schema <stage schema>`. Judges remain one fresh Opus context and one fresh Codex context.
 
 ## Auth and Transport Rules
 

@@ -89,7 +89,7 @@ python3 .agents/skills/claude-runner/scripts/run_claude.py "Compare two implemen
 python3 .agents/skills/claude-runner/scripts/run_claude.py --prompt-file /tmp/overlay.md --prompt-file /tmp/brief.md --role codereviewer --model opus
 python3 .agents/skills/claude-runner/scripts/run_claude.py "Read-only architecture review" --restrict-tools --bare --no-session-persistence
 python3 .agents/skills/claude-runner/scripts/run_claude.py "Continue from the accepted report" --role implementer --session-file .ai-workflow/consensus/feature-x.md
-python3 .agents/skills/claude-runner/scripts/run_claude.py "Deep audit of the auth module" --role codereviewer --effort xhigh --output-format json --json
+python3 .agents/skills/claude-runner/scripts/run_claude.py "Deep audit of the auth module" --role codereviewer --effort high --output-format json --json
 python3 .agents/skills/claude-runner/scripts/run_claude.py --resume 1f2e3d4c-... "Apply the top recommendation" --role implementer --allow-write
 python3 .agents/skills/claude-runner/scripts/run_claude.py "Investigate the flaky test" --output-format json --background
 ```

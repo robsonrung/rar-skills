@@ -8,19 +8,20 @@ A seat without a lens-matched mission is a wasted seat. If the active triangulat
 
 The orchestrator discovers available runners at preflight (see SKILL.md Phase 3 "Runner Discovery") and assigns each one a default lens from this table. The table is a default, not a hard binding — when `security_focus=true` or a specialist trigger fires, the orchestrator may reassign a seat to the matching lens.
 
-Role diversity follows model strengths: **GPT for logic and security, Sonnet for maintainability, Gemini for cross-file consistency, GLM for edge cases, Kimi for broad pragmatic review, Grok for execution-path and agentic-flow verification.**
+Role diversity follows model strengths: **the default Codex seat for recall and logic, Opus for precision and root cause validation, the code-specialized Codex seat for security, Sonnet for maintainability, Gemini for cross-file consistency, GLM for edge cases, Kimi for broad pragmatic review, and Grok for execution-path and agentic-flow verification.**
 
 Seat → model id mapping is **not pinned in this file** — `_shared/references/model-roster.md` owns it. Invocations below are alias-first (`claude-runner --model opus|sonnet`) or rely on the runner's roster-backed default; the one explicit id is `--model gpt-5.3-codex`, which selects a distinct code-specialized seat rather than re-pinning the default Codex seat.
 
 | Seat | Default lens | Why |
 |---|---|---|
-| `codex` (`codex-runner --effort high`) | `logic_state` | Best at logic, state, and concurrency reasoning on tight code slices. The Codex seat also **owns `security_runtime`**: fill it with a second Codex seat `--model gpt-5.3-codex` (the code-specialized security reviewer — see `_shared/references/model-roster.md`) |
+| `codex` (`codex-runner --effort high`) | `logic_state` | Broad recall for logic, state, concurrency, and focused execution paths |
+| `opus` (native Agent or `claude-runner --model opus --effort medium`) | `precision_root_cause` | Precision pass over the highest-risk candidate paths; also serves as the fresh Phase 5 synthesizer |
 | `sonnet` (native Agent or `claude-runner --model sonnet`) | `structural_maintainability` | Strongest at clean-code / maintainability — applies `references/structural_quality_review.md` and names a safer refactor path |
 | `gemini` (`gemini-runner`) | `cross_file_consistency` | Broad, long context; feed whole touched files + dependents, not just the diff slice |
 | `grok` (`grok-runner --effort high`) | `logic_state` second seat | Terminal-Bench-class agentic strength — execution paths, CLI/tool invocation flows, integration behavior; non-overlapping emphasis with codex's logic/state/concurrency |
 | `glm` (`glm-runner`) | `broad_sweep` | Edge cases, boundary conditions, resource/failure paths; assign a different category emphasis than kimi |
 | `kimi` (`kimi-runner`) | `broad_sweep` | Fast, pragmatic — input-validation, exposure, resource leaks across the whole diff |
-| `opus` (native Agent or `claude-runner`) | `structural_maintainability` backup | Deep reasoning; primary role is the Phase 5 synthesizer — backs up sonnet on maintainability when needed |
+| `codex-code` (`codex-runner --model gpt-5.3-codex --effort high`) | `security_runtime` | Code-specialized security, regression, and runtime reliability review |
 | `gemma` (`gemma-runner`) | `broad_sweep` | Cheap third sweep — pair with kimi/glm to form a skeptic pool for adversarial verify |
 | `qwen` (`qwen-runner`) | `logic_state` | Codex backup when codex is unavailable; otherwise lend to broad_sweep |
 | `minimax` (`minimax-runner`) | `cross_file_consistency` | Gemini backup with long context; otherwise lend to broad_sweep |
@@ -204,6 +205,34 @@ Whole touched files plus any auth/middleware/config files the orchestrator ident
 </context_window_policy>
 ```
 
+### `precision_root_cause`
+
+```text
+<role>
+You are the precision and root cause reviewer. Challenge high-confidence claims,
+trace symptoms through mechanism to cause, and suppress findings whose evidence
+does not survive surrounding context.
+</role>
+
+<what_to_look_for>
+1. A reported symptom whose actual cause sits across a caller, callee, or state transition.
+2. A plausible finding contradicted by a guard, framework contract, test, or recovery path.
+3. A narrow correctness or security defect with a complete trigger, mechanism, and impact chain.
+4. A proposed fix that treats the symptom or changes behavior outside the stated task.
+</what_to_look_for>
+
+<focus_emphasis>
+Precision over volume. Every finding must name its artifact of proof and the
+symptom to mechanism to cause chain. Return an empty list when that chain cannot
+be closed. Do not add style comments or speculative hardening.
+</focus_emphasis>
+
+<context_window_policy>
+Receive the whole touched files for the highest-risk paths plus their immediate
+callers, callees, guards, and focused tests. Do not sweep unrelated files.
+</context_window_policy>
+```
+
 ### `structural_maintainability`
 
 ```text
@@ -272,7 +301,7 @@ Return JSON:
 
 ### `{extended_context}`
 
-Lens-driven. The orchestrator populates this slot when the lens's `<context_window_policy>` requires more than the diff (cross_file_consistency, security_runtime, structural_maintainability). For `logic_state` and `broad_sweep`, leave empty.
+Lens-driven. The orchestrator populates this slot when the lens's `<context_window_policy>` requires more than the diff (cross_file_consistency, security_runtime, precision_root_cause, structural_maintainability). For `logic_state` and `broad_sweep`, leave empty.
 
 ```text
 Extended context:
