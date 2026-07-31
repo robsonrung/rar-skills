@@ -24,17 +24,32 @@ Sanitize every routing directive out of the feature request before it enters pha
 
 Run `git remote` once at the start of the run. No remote flips the whole run local-only: make every commit the phases call for, but skip every push, PR create/edit, and CI attempt — zero retries, no hunting for a remote. A missing remote is a terminal state, not an error. In local-only mode do not invoke `open-pr`; phase 6 ends at the local commits, the committed residual-findings record, and the handoff note.
 
+## Delegation
+
+You are a **thin conductor**. Every phase that does not need the user runs in its own subagent, and what crosses between phases is a file, not a paragraph. The contract is `_shared/references/handoff-contract.md` (brief → report → envelope); the per-station binding — what each worker invokes, reads, and must carry forward — is [references/station-dispatch.md](references/station-dispatch.md). Read it before phase 3.
+
+**Hand off the path, not the payload.** Your context holds the run-state path, the current slice id, and one ≤15-line envelope per completed station. Not a PRD body, not a diff, not a findings list, not a station transcript. Open a report body only when a decision *you* must make depends on the detail — routing a `revise`, assembling the final report, reconciling two stations that disagree.
+
+Why the split falls where it does:
+
+- **Phases 0–2 run in your context** because only you can ask the user, and the phase-2 approval gate is the last human touchpoint. Their durable outputs already exist (the PRD in the tracker or a repo-root file, the slices in issues or `TASKS.md`) — once written, cite them by path and drop the working detail.
+- **Phase 1's grounding pass is delegated anyway.** Reading `CONCEPTS.md`, the ADRs, and the code is input-gathering, not conversation; a read-only worker returns the questions the repo already answers so they never reach the user.
+- **Phases 3–6 run one worker per station per slice.** Nothing after the gate needs the user; a contested call goes to `models-consensus`.
+- **Seats inside a station route through runner CLIs** (`discover_runners.py probe --native-agent no`), because a worker cannot rely on nesting the `Agent` tool.
+
+With no subagent tool on the host, run the station inline — but still write its brief and its report, and say in the final report that no worker was spawned. The file-based handoff is what survives a compaction; the isolation is what the host may or may not provide.
+
 ## Pipeline
 
-| Phase | Mode | Invoke |
-|---|---|---|
-| 0. Frame | interactive, optional | `brainstorm` (fuzzy idea — panel mode for high-stakes multi-model discovery); `prototype` (design unknown only running code can settle) |
-| 1. Specify | interactive | `interview` then `to-spec`; high-stakes or contested: run both in panel mode. The `interview` runs the `security-gate` spec-time checklist and names the test seams; `to-spec` records them as the PRD's Security Decisions and Testing Decisions, so phase 2 can lift both. |
-| 2. Plan | interactive — last human gate | `to-tasks` (panel mode when the delivery needs per-task test plans and architecture mapping). Its Slice Contract carries `acceptance` + `gates` natively. User approves the breakdown. |
-| 3. Design gate | autonomous, per task | `coding-design-plan`, then `design-gate` with the slice's lens flags |
-| 4. Implement | autonomous, per task | `implement-and-review` per slice — it lifts the Slice Contract natively (`acceptance` becomes the done-gate, `gates` select the lenses) and never pushes. Alternatives: `collaborative_delivery` when a recorded multi-model audit trail is required; direct `tdd` (+ `safe-incremental-coding` first on untested legacy code) for a trivial single-track slice. `diagnose` for bugs found mid-work. |
-| 5. Verify | autonomous | ordered, fail-fast: run the acceptance contract → `coding-review-simplify` (self-simplify while context is fresh) → `full-review` (deep security pass when flagged by `security-gate`) → `browser-smoke` in pipeline mode for web-facing changes, otherwise the harness `run` check. The multi-model gate reviews **final** code — never let a mutating pass follow it unreviewed. Failures loop to phase 4 via `diagnose`. |
-| 6. Deliver | autonomous | commit, make unapplied review findings durable per `references/residual-findings.md`, open PR via `open-pr` (skipped in local-only mode), move the issue's triage label, store a continuity note via `session-handoff` (body per `summarize`'s cold-start test), and — when the run solved a non-obvious problem — `capture-learning` in headless mode. The human merges; `resolve-pr-feedback` closes the post-review loop when comments arrive. |
+| Phase | Mode | Runs in | Invoke |
+|---|---|---|---|
+| 0. Frame | interactive, optional | main | `brainstorm` (fuzzy idea — panel mode for high-stakes multi-model discovery); `prototype` (design unknown only running code can settle) |
+| 1. Specify | interactive | main (+ delegated grounding) | a read-only worker grounds the request in the glossary, the ADRs, and the code → `01-grounding.report.md`; then `interview` inline against that report, then `to-spec`. High-stakes or contested: run both in panel mode. The `interview` runs the `security-gate` spec-time checklist and names the test seams; `to-spec` records them as the PRD's Security Decisions and Testing Decisions, so phase 2 can lift both. |
+| 2. Plan | interactive — last human gate | main | `to-tasks` (panel mode when the delivery needs per-task test plans and architecture mapping). Its Slice Contract carries `acceptance` + `gates` natively. User approves the breakdown. |
+| 3. Design gate | autonomous, per task | subagent | `coding-design-plan`, then `design-gate` with the slice's lens flags |
+| 4. Implement | autonomous, per task | subagent | `implement-and-review` per slice — it lifts the Slice Contract natively (`acceptance` becomes the done-gate, `gates` select the lenses) and never pushes. Alternatives: `collaborative-delivery` when a recorded multi-model audit trail is required; direct `tdd` (+ `safe-incremental-coding` first on untested legacy code) for a trivial single-track slice. `diagnose` for bugs found mid-work. |
+| 5. Verify | autonomous | subagent (one, whole chain) | ordered, fail-fast: run the acceptance contract → `coding-review-simplify` (self-simplify while context is fresh) → `full-review` (deep security pass when flagged by `security-gate`) → `browser-smoke` in pipeline mode for web-facing changes, otherwise the harness `run` check. The multi-model gate reviews **final** code — never let a mutating pass follow it unreviewed. Failures loop to phase 4 via `diagnose`. |
+| 6. Deliver | autonomous | subagent | commit, make unapplied review findings durable per `references/residual-findings.md`, open PR via `open-pr` (skipped in local-only mode), move the issue's triage label, store a continuity note via `session-handoff` (body per `summarize`'s cold-start test), and — when the run solved a non-obvious problem — `capture-learning` in headless mode. The human merges; `resolve-pr-feedback` closes the post-review loop when comments arrive. |
 
 Skip phases 0–1 when the input is already a PRD or approved spec; skip to phase 3 when approved slices already exist.
 
@@ -44,15 +59,16 @@ The Slice Contract — machine-checkable `acceptance` commands plus `gates` flag
 
 ## Autonomous loop
 
-For more than one ready slice, delegate scheduling to `implement-feature`: it executes the dependency DAG with parallel worktrees, integration-head rebasing, and a feature-wide seam review, calling `implement-and-review` per task. For a single slice, run phases 3–6 directly in an isolated worktree created via the `worktree` skill (harness-native isolation first — never a worktree the harness cannot see).
+For more than one ready slice, delegate scheduling to `implement-feature`: it executes the dependency DAG with parallel worktrees, integration-head rebasing, and a feature-wide seam review, calling `implement-and-review` per task. Scheduling is conductor work, not station work — `implement-feature` runs in your context and dispatches the per-slice station workers itself; it is the one skill after the gate that is not wrapped in a station subagent. For a single slice, dispatch phases 3–6 yourself per the [Delegation](#delegation) section, in an isolated worktree created via the `worktree` skill (harness-native isolation first — never a worktree the harness cannot see).
 
-On a blocked slice (escalation ladder exhausted at a hard-stop), record why, skip it, continue with unblocked slices, and list all blocked slices in the final report. For long-running slices, preserve context with `dynamic-harness` (manager/ledger orchestration) or a `session-handoff` note rather than degrading in a bloated context window.
+On a blocked slice (escalation ladder exhausted at a hard-stop), record why, skip it, continue with unblocked slices, and list all blocked slices in the final report. Station delegation already keeps the per-slice work out of your context; when a run outgrows even that — many slices across many sessions — move to `dynamic-harness` manager mode (same handoff contract, mission-scoped ledger) or close the session with a `session-handoff` note rather than degrading in a bloated context window.
 
 ### Run state
 
 The loop crosses compactions, restarts, and parallel worktrees, so its progress lives in **the ledger, not the transcript** — keep one run state per slice per `_shared/references/run-state-contract.md`. Ship-specific bindings:
 
 - `phase` is the pipeline phase number, appended to `steps` as each completes. A resumed slice restarts at `phase`, not at phase 0 — phases 3–6 are expensive and their outputs are already on disk.
+- Every delegated step's entry carries its `brief` and `report` paths, so a resumed run recovers the station's *reasoning* and not just its number. A station whose report exists is done — re-dispatch it only when its `status` says it failed.
 - The **phase 2 approval** is recorded in `gates` when the user approves the breakdown. It is the last human gate, so a restart that cannot find it in `gates` stops and asks rather than assuming approval; a restart that finds it treats it as **already decided** and does not re-ask.
 - Commits, the PR, filed tickets, and the residual record each get a `side_effects` key (`commit:<slice-id>`, `pr:<branch>`, `ticket:<finding-id>`) written *before* the effect. A resumed slice that finds the key skips the effect instead of duplicating it — this is what stops a re-run from filing every residual ticket twice.
 - Declare the slice's ceilings up front, and end every slice through one of **three exits**: `complete`, `failed` (a hard-block or exhausted ladder), or `ceiling_hit`. A blocked slice is a recorded exit, not a silent skip.
@@ -87,6 +103,8 @@ PR composition is `open-pr`'s job — delegate it. Ship adds the required pipeli
 6. Do not retry pushes or PR actions in local-only mode — one `git remote` check decides the whole run.
 7. Do not let a routing directive leak into spec, plan, or review inputs — sanitize it out before phase 0.
 8. Do not run any mutating pass after `full-review` without re-running it — the gate reviews final code.
+9. Do not read a station's report body to stay informed — the envelope is the interface, and reading every report is exactly the context spend delegation buys back.
+10. Do not paste a report's content into the next station's brief. Cite the path, or the heading inside it; a worker that needs more opens the file itself.
 
 ---
 *Model-routing, local-only, evidence-gate, and residual-durability contracts adapted from Every's compound-engineering-plugin (`lfg`).*

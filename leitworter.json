@@ -74,6 +74,18 @@
       "must_not_contain": []
     },
     {
+      "file": "ship/SKILL.md",
+      "concept": "thin conductor / hand off the path, not the payload / the ledger, not the transcript",
+      "must_contain": ["thin conductor", "hand off the path, not the payload", "the ledger, not the transcript"],
+      "must_not_contain": []
+    },
+    {
+      "file": "_shared/references/handoff-contract.md",
+      "concept": "hand off the path, not the payload / fresh-reader test",
+      "must_contain": ["hand off the path, not the payload", "fresh-reader test"],
+      "must_not_contain": []
+    },
+    {
       "file": "_shared/references/run-state-contract.md",
       "concept": "the ledger, not the transcript / the model never decides the retry / three exits / crash-resume test",
       "must_contain": ["the ledger, not the transcript", "the model never decides the retry", "three exits", "crash-resume test", "already decided"],
@@ -115,7 +127,10 @@
     { "concept": "success, retries exhausted, and a hard ceiling", "leitwort": "three exits", "drift_terms": ["exit criteria"] },
     { "concept": "the retry bound lives outside the model's judgment", "leitwort": "the model never decides the retry", "drift_terms": ["retry policy"] },
     { "concept": "run progress lives in a durable artifact, not the message history", "leitwort": "the ledger, not the transcript", "drift_terms": ["persisted state"] },
-    { "concept": "prove resumption by killing the run mid-flight", "leitwort": "crash-resume test", "drift_terms": ["recovery test", "resilience test"] }
+    { "concept": "prove resumption by killing the run mid-flight", "leitwort": "crash-resume test", "drift_terms": ["recovery test", "resilience test"] },
+    { "concept": "delegated work crosses as a file reference, never as pasted content", "leitwort": "hand off the path, not the payload", "drift_terms": ["pass the context along", "include the full output"] },
+    { "concept": "an orchestrator that routes and integrates but never absorbs its workers' working set", "leitwort": "thin conductor", "drift_terms": [] },
+    { "concept": "prove a handoff doc stands alone by giving it to a context that saw nothing else", "leitwort": "fresh-reader test", "drift_terms": [] }
   ],
   "filler_verbs": ["carefully", "thoroughly", "make sure", "be sure to", "as appropriate", "as needed", "properly"]
 }

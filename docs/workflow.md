@@ -9,6 +9,7 @@ The authoritative description of how these skills compose. `ship` is the conduct
 3. **The contract is the boundary.** A task marked `ready-for-agent` carries a machine-checkable acceptance contract and its gate flags — everything needed to finish it unattended.
 4. **Vertical slices.** The unit of work cuts through every layer, is demoable alone, and ships with commands that prove it.
 5. **One user-called skill per step.** Choosing among ten design lenses is itself a mid-flight question; `design-gate` turns that choice into a table lookup.
+6. **Hand off the path, not the payload.** The conductor is thin: every phase that does not need the user runs in its own subagent, and what crosses between phases is a markdown report on disk plus a short envelope — never a pasted body. Contract in `_shared/references/handoff-contract.md`, per-station binding in `ship/references/station-dispatch.md`. This is what keeps a run's reasoning recoverable after a compaction, and the conductor's context flat across a seven-station run.
 
 ## The seven steps
 
@@ -46,7 +47,7 @@ After the step-2 gate, a contested or irreversible decision escalates:
 ## Cross-cutting
 
 - **Design lenses** — `architecture-lens` (trade-offs, connascence, layer placement, cohesion, dependency direction, scope), `macro-architecture` (macro style + decomposition), `domain-driven-design`, `software-design-philosophy` (deep modules, complexity, conceptual integrity), `design-patterns`, `data-systems-coding-lens`, `agent-architecture-lens`, `react-performance`. Reached through `design-gate`; each returns the same reviewer contract.
-- **Multi-model** — `models-consensus` (answer/decide, three modes), `diverse-plan` (multi-model planning), `collaborative_delivery` (panel-audited delivery), `dynamic-harness` (agent orchestration patterns and manager mode), and the `*-runner` seat family.
+- **Multi-model** — `models-consensus` (answer/decide, three modes), `diverse-plan` (multi-model planning), `collaborative-delivery` (panel-audited delivery), `dynamic-harness` (agent orchestration patterns and manager mode), and the `*-runner` seat family.
 - **Knowledge** — `CONCEPTS.md` is the glossary the interview and spec speak; `docs/adr/` holds decisions; `capture-learning` accretes solved problems; `skill-expert` and `agents-md-craft` maintain the skills and the agent-memory files.
 - **Posture** — `fable-mindset` covers the five moments of a working turn (intake, diagnosis, decision, implementation, reporting). It governs *how* an agent reads a request and reports a result; the procedural skills govern *what* it does.
 

@@ -16,7 +16,9 @@ One user-called skill per step. `ship` runs the whole pipeline; each step is als
 | 5. Verify | `coding-review-simplify` → `full-review` → `browser-smoke` | Self-simplify, then the multi-model review gate on final code, then drive the real app. |
 | 6. Deliver | `open-pr` · `resolve-pr-feedback` | PR with acceptance evidence and the decision log; resolve review threads. |
 
-Full narrative, design principles, and conventions: [docs/workflow.md](docs/workflow.md). Visual map: `workflow.html`.
+`ship` is a **thin conductor**: steps 3–6 each run in their own subagent, and what crosses between them is a markdown report on disk plus a short envelope — *hand off the path, not the payload*. Steps 0–2 stay in the main context because only they talk to you. That keeps the conductor's context flat across a whole run, and keeps each step's reasoning recoverable after a compaction.
+
+Full narrative, design principles, and conventions: [docs/workflow.md](docs/workflow.md). Visual map: `workflow.html`. How a feature moves through the relay: [docs/pipeline.html](docs/pipeline.html).
 
 Supporting casts: **design lenses** (`architecture-lens`, `macro-architecture`, `domain-driven-design`, `software-design-philosophy`, `design-patterns`, `data-systems-coding-lens`, `agent-architecture-lens`, `react-performance`) are routed by `design-gate` rather than chosen by hand; **`models-consensus`** answers contested questions with a multi-model council (modes `poll` / `debate` / `personas`) and is what the autonomous phases escalate to instead of asking the user; **`fable-mindset`** governs turn-level posture; the **`*-runner`** family provides the model seats.
 
@@ -32,11 +34,35 @@ npx skills@latest add robsonrung/rar-skills --skill '*'
 
 Skills install under `.agents/skills/` in the target repo. The runner scripts and shared assets (`_shared/`) are expected at `.agents/skills/_shared/...` once installed.
 
+To install straight from a local checkout (symlinks by default, so edits here flow through):
+
+```bash
+scripts/install-skills.sh /path/to/your-project
+```
+
+## Other harnesses
+
+`.agents/skills/` is the AgentSkills location, so the collection is not Claude Code-only. [docs/openhands.md](docs/openhands.md) walks through running the whole pipeline on **OpenHands**, including a CLI-only mode that needs no API keys — OpenHands drives your existing Claude Code or Codex CLI over ACP, so the run bills against the CLI subscription:
+
+```bash
+scripts/install-skills.sh /path/to/your-project
+scripts/run-pipeline-acp.py /path/to/your-project \
+  -t "Read .claude/skills/ship/SKILL.md and follow it for: <feature idea>"
+```
+
+The `*-runner` seats are CLI-backed already, so a host with the runner CLIs installed keeps the full multi-model council with no API key anywhere.
+
+`pipeline-board/` serves a live kanban of in-flight runs, one column per pipeline station, read from the durable run state:
+
+```bash
+python3 pipeline-board/serve.py /path/to/your-project
+```
+
 ## Prerequisites
 
 Most skills here are **pure-prompt** (the design lenses, reviews, and planning skills — e.g. `design-gate`, `architecture-lens`, `clean-code`, `tdd`, `coding-design-plan`). They need nothing beyond Claude Code itself, and the pipeline is self-contained: every skill `ship` invokes lives in this collection.
 
-The prerequisites below apply to the **multi-model and runner skills** — `models-consensus`, `diverse-plan`, `implement-and-review`, `implement-feature`, `full-review`, `collaborative_delivery`, the panel modes of `brainstorm` / `to-spec` / `to-tasks`, and the `*-runner` skills they drive. You only need the pieces for the seats you actually want; these skills run on a **quorum** (typically ≥3 seats) and degrade gracefully when a CLI is missing — they report the absent seat rather than faking it (*seat fidelity*). Seat → model ids live in one place: [`_shared/references/model-roster.md`](_shared/references/model-roster.md).
+The prerequisites below apply to the **multi-model and runner skills** — `models-consensus`, `diverse-plan`, `implement-and-review`, `implement-feature`, `full-review`, `collaborative-delivery`, the panel modes of `brainstorm` / `to-spec` / `to-tasks`, and the `*-runner` skills they drive. You only need the pieces for the seats you actually want; these skills run on a **quorum** (typically ≥3 seats) and degrade gracefully when a CLI is missing — they report the absent seat rather than faking it (*seat fidelity*). Seat → model ids live in one place: [`_shared/references/model-roster.md`](_shared/references/model-roster.md).
 
 ### 1. Runtime
 

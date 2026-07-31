@@ -76,6 +76,8 @@ Stable keys are derived from the work, not from a counter: `pr:<branch>`, `commi
 
 Append one entry per completed step: the step name, its result, and the path to its artifact. This is what answers "what ran, in what order, and where is the output" after the run is over. Append; never rewrite history.
 
+A step that was **delegated** records its `brief` and `report` paths alongside `result` (shapes in `handoff-contract.md`), so a resumed run recovers the step's reasoning and not only its name. Those two paths are also the completion signal: a step whose report exists is done, and is re-dispatched only when its `result` says it failed.
+
 ### Cadence
 
 Write after every step boundary, every attempt increment, every gate decision, and every side-effect key. Update `updated_at` on each write.

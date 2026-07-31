@@ -183,7 +183,13 @@ A skill file cannot open a Codex UI thread. If the host exposes a thread-creatio
 
 ### Handoff contract
 
-One screen when possible, seven items: (1) mission id and source ledger path, (2) this workstream's goal, (3) relevant files, routes, commands, docs, or issue links, (4) constraints and non goals, (5) expected deliverable, (6) required verification, (7) the output contract for the worker's final message. Save it under the mission's `handoffs/` directory with the mission id, workstream slug, and a timestamp or thread id in the filename. A worker brief is the Agent Design contract plus three mission fields: mission id, source ledger path, and runtime target (subagent role or separate thread).
+The brief, report, and envelope shapes are `_shared/references/handoff-contract.md` — read it before writing the first handoff, and follow its rule: **hand off the path, not the payload**. A manager that pastes a worker's output into the next worker's brief has re-absorbed the context delegation just bought.
+
+Manager mode binds it to the mission layout:
+
+1. The brief's `run_id` is the mission id and its `run_state` is the mission's `run-state.json`; add a third mission field, the **runtime target** (subagent role or separate thread).
+2. Briefs are saved under the mission's `handoffs/` directory, named with the mission id, workstream slug, and a timestamp or thread id. Worker reports go under `worker-reports/` with the matching name.
+3. A worker brief is the [Agent Design](#agent-design) contract plus those three mission fields. Agent Design governs the worker's role, write scope, and evidence; the handoff contract governs what crosses in and out.
 
 ### Ledger versus run state
 

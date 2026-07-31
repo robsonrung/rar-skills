@@ -216,7 +216,7 @@
         <div class="card">
           <h3><span class="sk">interview</span></h3>
           <p class="role">What exactly are we building?</p>
-          <p>Reads the glossary, the ADRs, and the code <strong>before asking you anything</strong> — a question that exploration could answer is not a question for you. Then grills the angles that change what gets built: actors and permissions, edge cases, what's explicitly out of scope, data lifecycle, migration and rollback. It runs the security checklist while you're still here, and names the observable behaviour at the highest seam for each requirement.</p>
+          <p>Reads the glossary, the ADRs, and the code <strong>before asking you anything</strong> — a question that exploration could answer is not a question for you. That reading is delegated to a read-only worker that returns <code>01-grounding.report.md</code>, so the conductor spends its context on the conversation and not on the repository. Then grills the angles that change what gets built: actors and permissions, edge cases, what's explicitly out of scope, data lifecycle, migration and rollback. It runs the security checklist while you're still here, and names the observable behaviour at the highest seam for each requirement.</p>
         </div>
       </article>
 
@@ -263,7 +263,7 @@
       </div>
 
       <div class="zonebar" style="margin-top:22px">
-        <div class="zb a"><span class="lbl">Autonomous · per slice, in a worktree</span><span class="d">Design gate, build, verify, deliver. Escalates rather than interrupts.</span></div>
+        <div class="zb a"><span class="lbl">Autonomous · per slice, in a worktree</span><span class="d">Design gate, build, verify, deliver. Escalates rather than interrupts. Each station runs in its own subagent and hands the next one a report file — the conductor only ever sees a short envelope.</span></div>
       </div>
 
       <article class="station" data-zone="auto">
@@ -279,7 +279,7 @@
         <div class="rail"></div>
         <div class="ho">
           <span class="lbl">hands off</span>
-          <span class="artifact">one merged verdict — proceed | revise</span>
+          <span class="artifact">03-design-gate.report.md — one merged verdict, proceed | revise</span>
           <p>A <code>revise</code> only blocks when it carries a concrete, load-bearing finding; cosmetic notes are listed and ignored. Lenses that disagree about a real trade-off escalate — they don't ask you.</p>
         </div>
       </div>
@@ -298,7 +298,7 @@
         <div class="rail"></div>
         <div class="ho">
           <span class="lbl">hands off</span>
-          <span class="artifact">merged code + verification evidence</span>
+          <span class="artifact">04-implement.report.md — merged code + verification evidence</span>
           <p>Which tests were inspected, which were added, which ran, and what they proved. A behaviour change that arrives without coherent evidence gets exactly one recovery attempt, then hard-blocks.</p>
         </div>
       </div>
@@ -322,7 +322,7 @@
         <div class="rail"></div>
         <div class="ho">
           <span class="lbl">hands off</span>
-          <span class="artifact">green slice + residual findings, made durable</span>
+          <span class="artifact">05-verify.report.md — green slice + residual findings, made durable</span>
           <p>Review findings that were <em>not</em> applied get filed rather than dropped — a finding nobody acted on still has to survive the run.</p>
         </div>
       </div>
@@ -338,6 +338,23 @@
       </article>
 
     </div>
+  </section>
+
+  <section>
+    <div class="shead"><h2>How the conductor stays thin</h2><span class="of">hand off the path, not the payload</span></div>
+    <p class="sublede">A relay only works if the runner isn't carrying every previous leg. Each autonomous station runs in its own subagent; three artifacts move between them, and only the smallest one re-enters the conductor.</p>
+
+    <div class="chain">
+      <div class="link"><span class="n">in</span><span class="s">&lt;NN&gt;-&lt;station&gt;.brief.md</span><span class="d">Ten fields, one screen. Inputs are <em>paths</em> — a brief that quotes the last report's body has already lost the point.</span></div>
+      <div class="link"><span class="n">out</span><span class="s">&lt;NN&gt;-&lt;station&gt;.report.md</span><span class="d">Seven fixed sections: verdict, what ran, evidence, decisions, findings not applied, inputs for the next step, artifacts. Fixed so the next brief can cite a heading.</span></div>
+      <div class="link"><span class="n">back</span><span class="s">the envelope</span><span class="d">Under 15 lines of JSON — status, verdict, the report's path. The only thing that enters the conductor's context.</span></div>
+    </div>
+
+    <p style="margin-top:12px">So the conductor holds the run-state path, the slice id, and one envelope per finished station. It opens a report body only to route a <code>revise</code>, to assemble the final report, or to reconcile two stations that disagree. Everything else it can name without having read. The same discipline is what makes a compaction survivable: the reasoning was written to disk instead of spoken into the transcript.</p>
+
+    <p>Two constraints shape where the line falls. Stations 00–03 stay in the conductor's own context because <strong>only it can ask you</strong> — though station 01's reading of the glossary, the ADRs, and the code is delegated anyway, since that part was never conversation. And a station's own fan-out — the design lenses, the review seats — reaches its models through the runner CLIs rather than nested subagents, which is what <code>discover_runners.py probe --native-agent no</code> is for.</p>
+
+    <p class="note" style="margin-top:26px;border-top-width:1px;padding-top:12px">File ordinals follow <code>ship</code>'s phase numbers, which merge stations 01 and 02 into one <em>Specify</em> phase — so station 04 on this sheet writes <code>03-design-gate.report.md</code>. Contracts: <code>_shared/references/handoff-contract.md</code> for the shapes, <code>ship/references/station-dispatch.md</code> for the per-station binding.</p>
   </section>
 
   <section>
@@ -372,7 +389,7 @@
     <p style="margin-top:20px"><strong>Five skills were added</strong>, each filling a step the pipeline already called for: <code>interview</code>, <code>tdd</code>, <code>diagnose</code>, <code>prototype</code>, and <code>fable-mindset</code>. The pipeline now runs entirely on skills that exist in this collection.</p>
   </section>
 
-  <p class="note">Written alongside the restructuring on 2026-07-30. Prose companions: <code>docs/workflow.md</code> for the narrative, <code>docs/restructuring-2026-07-30.md</code> for the full change ledger, <code>docs/porting-trigger-audit.md</code> for the per-merge rationale. The skill catalogue lives in <code>workflow.html</code>.</p>
+  <p class="note">Written alongside the restructuring on 2026-07-30. Prose companions: <code>docs/workflow.md</code> for the narrative, <code>docs/restructuring-2026-07-30.md</code> for the full change ledger, <code>docs/porting-trigger-audit.md</code> for the per-merge rationale. The skill catalogue lives in <code>workflow.html</code>. To run this pipeline on OpenHands — and watch it on a kanban with one column per station — see <code>docs/openhands.md</code> and <code>pipeline-board/</code>.</p>
 
 </div>
 </body>

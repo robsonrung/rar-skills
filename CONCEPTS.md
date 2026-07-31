@@ -37,7 +37,7 @@ The transport that actually executed (envelope key `effective_runner`) — e.g. 
 One of the five points in a working turn that `fable-mindset` governs — intake, diagnosis, decision, implementation, reporting. A moment is about *posture* (how a request is read, how evidence is weighed, how a result is reported) rather than a domain or a procedure; the procedural counterpart of each moment lives in its own skill (`diagnose`, `coding-design-plan`, `tdd`, `summarize`).
 
 ### Panel mode
-The opt-in multi-model path inside a pipeline skill (`brainstorm`, `to-spec`, `to-tasks`) and the whole of `collaborative_delivery`. Panel mode fans a phase out to real model seats through `_shared/scripts/panel_round.py` and writes an auditable artifact set; it replaces drafting, never the human approval gate. A generated prompt is not participation — see the status taxonomy in `_shared/collaborative-panel-runner.md`.
+The opt-in multi-model path inside a pipeline skill (`brainstorm`, `to-spec`, `to-tasks`) and the whole of `collaborative-delivery`. Panel mode fans a phase out to real model seats through `_shared/scripts/panel_round.py` and writes an auditable artifact set; it replaces drafting, never the human approval gate. A generated prompt is not participation — see the status taxonomy in `_shared/collaborative-panel-runner.md`.
 
 ### Seat tier
 Whether a seat joins a default fan-out (`default`) or is probed only when named explicitly (`backup`, currently qwen / gemma / minimax). Declared in `discover_runners.py`; adding a backup seat never silently enlarges or re-prices an existing council.
@@ -59,6 +59,12 @@ Every ported or shared script has a named owner skill; a script reused by more t
 
 ### Run state
 The durable JSON file a long-running orchestration skill keeps at `.ai-workflow/<skill>/<run-id>/run-state.json`, holding status, phase, attempt counters, ceilings, gate decisions, side-effect keys, and the step trace. Contract in `_shared/references/run-state-contract.md`. It is the source of truth for progress — **the ledger, not the transcript** — so a run survives a crash, a compaction, or a restart.
+
+### Station handoff
+The file-based contract between two steps of an orchestrated run: a **brief** the orchestrator writes, a **report** the worker writes (seven fixed sections), and a **station envelope** — under 15 lines — that is the only thing crossing back into the orchestrator's context. Contract in `_shared/references/handoff-contract.md`; `ship`'s per-station binding in `ship/references/station-dispatch.md`. The rule it enforces is **hand off the path, not the payload**: inputs and outputs are file paths, never pasted bodies. Distinct from the runner [Envelope](#envelope), which is a transport wrapper around one CLI call.
+
+### Thin conductor
+An orchestrator that owns routing, gates, integration, and the final report — and nothing else. Every step that does not need the user runs in its own subagent, so the conductor's context grows by one envelope per step rather than by the size of each step's work. `ship` is the pipeline's thin conductor; `dynamic-harness`'s manager mode is the general form.
 
 ### Ceiling
 A bound on a run counted outside the model's judgment — cycles, dispatched agents, spend, or a deadline — recorded in the run state's `ceilings`. Distinct from a stop condition, which depends on the work converging. Every run ends through one of **three exits**: success, retries exhausted, or ceiling hit.
