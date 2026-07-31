@@ -4,6 +4,8 @@ How to run the full delivery relay from [pipeline.html](pipeline.html) — brain
 
 OpenHands (v1.x: the `openhands` CLI plus `openhands-sdk`) loads Agent Skills in exactly the format this repo uses — `SKILL.md` with `name`/`description` frontmatter, discovered from `.agents/skills/` in the project and `~/.agents/skills/` for the user, with progressive disclosure. Skills invoke each other by name in prose, run state is plain JSON, the runner skills wrap CLIs, and `open-pr` needs only `gh` — so the collection ports without rewrites.
 
+> Running the autonomous half is also possible with **no framework at all** — [scheduler.md](scheduler.md) drives phases 3–6 by spawning the `*-runner` wrappers directly, with real parallel slices and the run-state ledger enforced in Python. Prefer it when you want no dependency; prefer this page when you want OpenHands' conversation management, MCP config, and persistence.
+
 **Two ways to supply the model**, and the choice changes the setup:
 
 | | Who runs the model | Billing |
