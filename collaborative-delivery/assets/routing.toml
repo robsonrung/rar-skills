@@ -1,10 +1,10 @@
-# Panel routing for `collaborative_delivery` (panel gates are mandatory here).
+# Panel routing for `collaborative-delivery` (panel gates are mandatory here).
 #
 # Model ids come from `_shared/references/model-roster.md` — update the roster
 # first, then this file.
 
 [skill]
-name = "collaborative_delivery"
+name = "collaborative-delivery"
 artifact_dir = ".codex_workflow/delivery"
 mandatory_presence = ["synthesis_anchor", "adversarial_anchor"]
 required_phases = ["task_intake", "red", "green", "refactor", "review", "verification", "handoff"]

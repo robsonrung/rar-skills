@@ -1,6 +1,7 @@
 ---
-name: collaborative_delivery
-description: Multi-model panel-gated delivery workflow with mandatory anchor review at every phase — the panel-audited alternative to `implement-and-review`'s default build. Use when an approved task plan exists and the user wants multi-model collaborative delivery: auditable red-green-refactor with recorded model participation left in the repository. Choose it over `implement-and-review` when the audit trail of who reviewed what is itself a requirement; choose `implement-and-review` when you want the fastest correct build.
+name: collaborative-delivery
+description: >-
+  Multi-model panel-gated delivery workflow with mandatory anchor review at every phase — the panel-audited alternative to `implement-and-review`'s default build. Use when an approved task plan exists and the user wants multi-model collaborative delivery: auditable red-green-refactor with recorded model participation left in the repository. Choose it over `implement-and-review` when the audit trail of who reviewed what is itself a requirement; choose `implement-and-review` when you want the fastest correct build.
 ---
 
 # Collaborative delivery
@@ -14,7 +15,7 @@ The panel scripts are shared, not bundled here: they live in `_shared/scripts/` 
 ```bash
 python3 _shared/scripts/panel_round.py \
   --phase <phase> \
-  --routing collaborative_delivery/assets/routing.toml \
+  --routing collaborative-delivery/assets/routing.toml \
   --goal "the task being delivered" \
   --context-file <task-file> \
   --out .codex_workflow/delivery \

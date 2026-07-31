@@ -37,7 +37,7 @@ class PanelRoutingTests(unittest.TestCase):
     def test_explicit_planning_and_delivery_keep_codex_synthesis(self):
         for path in (
             "to-tasks/assets/panel-routing.toml",
-            "collaborative_delivery/assets/routing.toml",
+            "collaborative-delivery/assets/routing.toml",
         ):
             with self.subTest(path=path):
                 providers = load_routing(path)["providers"]

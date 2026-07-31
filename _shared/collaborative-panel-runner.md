@@ -7,7 +7,7 @@ list, role list, and required outputs, and points here for everything below.
 
 ## Panel-capable skills
 
-Panel mode is **opt-in** everywhere except `collaborative_delivery`. The pipeline
+Panel mode is **opt-in** everywhere except `collaborative-delivery`. The pipeline
 skills each own an interactive single-model spine and fan out to seats only when
 the user asks for a panel:
 
@@ -16,10 +16,10 @@ the user asks for a panel:
 | `brainstorm` | "Panel mode" section — divergence + cross-critique fan out | `brainstorm/assets/panel-routing.toml` | `.codex_workflow/brainstorm` |
 | `to-spec` | "Panel mode" section — 7 definition phases | `to-spec/assets/panel-routing.toml` | `.codex_workflow/spec` |
 | `to-tasks` | "Panel mode" section — 5 planning phases | `to-tasks/assets/panel-routing.toml` | `.codex_workflow/tasks` |
-| `collaborative_delivery` | the whole skill — panel gates are mandatory | `collaborative_delivery/assets/routing.toml` | `.codex_workflow/delivery` |
+| `collaborative-delivery` | the whole skill — panel gates are mandatory | `collaborative-delivery/assets/routing.toml` | `.codex_workflow/delivery` |
 
-`collaborative_delivery` is the audit-trail delivery variant, so its panel is not
-optional. Read `collaborative_delivery/references/workflow_contract.md` when
+`collaborative-delivery` is the audit-trail delivery variant, so its panel is not
+optional. Read `collaborative-delivery/references/workflow_contract.md` when
 porting or reconfiguring it; for the three pipeline skills, the panel contract
 lives in their own SKILL.md "Panel mode" section.
 
@@ -92,7 +92,7 @@ python3 _shared/scripts/panel_round.py \
 - `--goal` (required) — short statement of the current goal.
 - `--routing` — path to the skill's routing TOML. Required for any skill whose
   routing is not `<skill_root>/assets/routing.toml`, which is every skill in the
-  table above except `collaborative_delivery`. The calling skill's root is taken
+  table above except `collaborative-delivery`. The calling skill's root is taken
   to be the routing file's grandparent directory.
 - `--context-file` — repeatable; one or more context files to feed the panel.
 - `--out` — artifact directory (defaults to the routing file's `artifact_dir`).

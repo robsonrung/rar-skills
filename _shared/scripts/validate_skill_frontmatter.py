@@ -2,9 +2,14 @@
 """Mechanical guards for skill hygiene. CI-safe: no network, no LLM judgment.
 
 Checks, across every top-level skill dir (any dir containing SKILL.md):
-  1. SKILL.md opens with YAML frontmatter delimited by --- lines.
-  2. `name:` present and equal to the directory name (kebab-case, repo-native
-     — upstream prefixes like `ce-` are banned in skill names).
+  1. SKILL.md opens with YAML frontmatter delimited by --- lines, and that
+     frontmatter parses as strict YAML. Harnesses that load skills with a real
+     YAML parser (OpenHands and other AgentSkills hosts) silently drop a skill
+     whose unquoted description contains ": " — quote it or use a block scalar.
+  2. `name:` present, equal to the directory name, and matching the AgentSkills
+     pattern (lowercase alphanumerics and hyphens — an underscore makes the
+     skill undiscoverable on AgentSkills hosts). Upstream prefixes like `ce-`
+     are banned in skill names.
   3. `description:` present and at least 20 characters (enough to route on).
   4. Runner parity: every `*-runner/` dir ships scripts/run_<prefix>.py and is
      either registered in _shared/scripts/discover_runners.py or explicitly
@@ -22,7 +27,15 @@ import re
 import sys
 from pathlib import Path
 
+try:
+    import yaml
+except ImportError:  # keep the guard runnable without the dep
+    yaml = None
+
 REPO_ROOT = Path(__file__).resolve().parents[2]
+
+# AgentSkills name rule: lowercase alphanumerics separated by single hyphens.
+SKILL_NAME_RE = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
 
 # Runner dirs that intentionally have no seat in discover_runners.py:
 # transport delegates and seats dropped from the council lineup.
@@ -36,10 +49,22 @@ NON_SEAT_RUNNERS = {
 
 BANNED_NAME_PREFIXES = ("ce-",)
 
+# _shared/SKILL.md is a marker, not a skill: it stops AgentSkills hosts from
+# pinning every file under _shared/references/ into the system prompt as an
+# always-on legacy skill. Its name is intentionally not AgentSkills-valid so
+# hosts skip loading it. See _shared/SKILL.md.
+NOT_A_SKILL = {"_shared"}
 
-def check_frontmatter(failures: list[str]) -> int:
+# AgentSkills hosts truncate descriptions at this length, cutting off the
+# "Use when ... / Do not use ..." tail that routing depends on.
+DESCRIPTION_TRUNCATION_LIMIT = 1024
+
+
+def check_frontmatter(failures: list[str], warnings: list[str]) -> int:
     count = 0
     for skill_md in sorted(REPO_ROOT.glob("*/SKILL.md")):
+        if skill_md.parent.name in NOT_A_SKILL:
+            continue
         count += 1
         rel = skill_md.relative_to(REPO_ROOT)
         text = skill_md.read_text(encoding="utf-8", errors="replace")
@@ -48,6 +73,15 @@ def check_frontmatter(failures: list[str]) -> int:
             failures.append(f"{rel}: missing YAML frontmatter")
             continue
         fm = m.group(1)
+        if yaml is not None:
+            try:
+                yaml.safe_load(fm)
+            except yaml.YAMLError as exc:
+                detail = str(exc).splitlines()[0]
+                failures.append(
+                    f"{rel}: frontmatter is not valid YAML ({detail}) — AgentSkills "
+                    "hosts drop this skill; quote the value or use a >- block scalar"
+                )
         name = re.search(r"^name:\s*(.+)$", fm, re.M)
         if not name:
             failures.append(f"{rel}: frontmatter has no name:")
@@ -55,6 +89,11 @@ def check_frontmatter(failures: list[str]) -> int:
             n = name.group(1).strip().strip("\"'")
             if n != skill_md.parent.name:
                 failures.append(f"{rel}: name {n!r} != directory {skill_md.parent.name!r}")
+            if not SKILL_NAME_RE.match(n):
+                failures.append(
+                    f"{rel}: name {n!r} is not AgentSkills-compatible — use lowercase "
+                    "alphanumerics separated by single hyphens"
+                )
             for prefix in BANNED_NAME_PREFIXES:
                 if n.startswith(prefix):
                     failures.append(f"{rel}: name {n!r} carries banned upstream prefix {prefix!r}")
@@ -63,6 +102,11 @@ def check_frontmatter(failures: list[str]) -> int:
             failures.append(f"{rel}: frontmatter has no description:")
         elif len(desc) < 20:
             failures.append(f"{rel}: description under 20 chars — too thin to route on")
+        elif len(desc) > DESCRIPTION_TRUNCATION_LIMIT:
+            warnings.append(
+                f"{rel}: description is {len(desc)} chars — AgentSkills hosts truncate "
+                f"at {DESCRIPTION_TRUNCATION_LIMIT}, dropping the routing tail"
+            )
     return count
 
 
@@ -113,14 +157,18 @@ def check_runner_parity(failures: list[str]) -> None:
 
 def main() -> int:
     failures: list[str] = []
-    count = check_frontmatter(failures)
+    warnings: list[str] = []
+    count = check_frontmatter(failures, warnings)
     check_runner_parity(failures)
+    for w in warnings:
+        print(f"warning: {w}")
     if failures:
         for f in failures:
             print(f"FAIL: {f}")
         print(f"{len(failures)} violation(s) across {count} skills.")
         return 1
-    print(f"OK: {count} skills pass frontmatter + runner-parity guards.")
+    suffix = f" ({len(warnings)} warning(s))" if warnings else ""
+    print(f"OK: {count} skills pass frontmatter + runner-parity guards{suffix}.")
     return 0
 
 

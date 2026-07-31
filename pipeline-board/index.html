@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>rar-skills — pipeline board</title>
+<style>
+  :root{
+    --paper:#eaeef4; --surface:#f7f9fc; --surface2:#eff3f8;
+    --ink:#131c27; --ink-soft:#46566a; --ink-faint:#55677c;
+    --rule:#c6d0dd; --rule-soft:#dbe3ec;
+    --human:#8a5a10; --auto:#12604f; --gate:#94293e; --accent:#1c587f;
+    --human-wash:rgba(154,101,18,.09); --auto-wash:rgba(18,96,79,.08);
+    --gate-wash:rgba(148,41,62,.08); --accent-wash:rgba(28,88,127,.08);
+    --mono:ui-monospace,"SF Mono",SFMono-Regular,"JetBrains Mono",Menlo,Consolas,monospace;
+    --serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,ui-serif,serif;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{
+      --paper:#0d151f; --surface:#131e2a; --surface2:#16222f;
+      --ink:#dfe7f0; --ink-soft:#9db0c4; --ink-faint:#7c8fa4;
+      --rule:#24344a; --rule-soft:#1b2938;
+      --human:#e0a442; --auto:#4fc4ac; --gate:#e2758c; --accent:#6cb6e8;
+      --human-wash:rgba(224,164,66,.10); --auto-wash:rgba(79,196,172,.09);
+      --gate-wash:rgba(226,117,140,.10); --accent-wash:rgba(108,182,232,.10);
+    }
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--serif);font-size:15px}
+  header{padding:18px 24px 12px;border-bottom:2px solid var(--ink);display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
+  header h1{font-family:var(--mono);font-size:14px;letter-spacing:.16em;text-transform:uppercase;margin:0}
+  #meta{font-family:var(--mono);font-size:11.5px;color:var(--ink-faint);margin-left:auto}
+  #board{display:flex;gap:10px;padding:16px 24px 48px;overflow-x:auto;align-items:flex-start}
+  .col{flex:0 0 218px;background:var(--surface);border:1px solid var(--rule);min-height:180px}
+  .col-h{padding:9px 12px;border-bottom:1px solid var(--rule);font-family:var(--mono)}
+  .col-h .n{font-size:10px;color:var(--ink-faint);letter-spacing:.12em;display:block}
+  .col-h .t{font-size:12.5px;font-weight:600}
+  .col[data-zone="human"] .col-h{background:var(--human-wash)} .col[data-zone="human"] .col-h .n{color:var(--human)}
+  .col[data-zone="auto"]  .col-h{background:var(--auto-wash)}  .col[data-zone="auto"]  .col-h .n{color:var(--auto)}
+  .col[data-zone="gate"]  .col-h{background:var(--gate-wash)}  .col[data-zone="gate"]  .col-h .n{color:var(--gate)}
+  .col[data-zone="done"]  .col-h{background:var(--accent-wash)}.col[data-zone="done"]  .col-h .n{color:var(--accent)}
+  .cards{padding:8px}
+  .card{background:var(--paper);border:1px solid var(--rule);border-left:3px solid var(--auto);padding:8px 10px;margin-bottom:8px}
+  .card .id{font-family:var(--mono);font-size:11.5px;font-weight:600;word-break:break-all}
+  .card .sk{font-family:var(--mono);font-size:10.5px;color:var(--accent)}
+  .card .ph{font-family:var(--mono);font-size:10.5px;color:var(--ink-soft);margin-top:3px}
+  .card .st{display:inline-block;font-family:var(--mono);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;padding:1px 6px;border:1px solid currentColor;margin-top:5px}
+  .card .age{font-family:var(--mono);font-size:10px;color:var(--ink-faint);margin-top:5px}
+  .card[data-status="running"]{border-left-color:var(--auto)} .card[data-status="running"] .st{color:var(--auto)}
+  .card[data-status="awaiting_human"]{border-left-color:var(--human);background:var(--human-wash)}
+  .card[data-status="awaiting_human"] .st{color:var(--human)}
+  .card[data-status="failed"],.card[data-status="ceiling_hit"]{border-left-color:var(--gate)}
+  .card[data-status="failed"] .st,.card[data-status="ceiling_hit"] .st{color:var(--gate)}
+  .card[data-status="complete"]{border-left-color:var(--accent);opacity:.85} .card[data-status="complete"] .st{color:var(--accent)}
+  .card[data-status="cancelled"]{border-left-color:var(--rule);opacity:.6} .card[data-status="cancelled"] .st{color:var(--ink-faint)}
+  #empty{padding:40px 24px;color:var(--ink-faint);font-style:italic;display:none}
+</style>
+</head>
+<body>
+<header>
+  <h1>rar-skills · pipeline board</h1>
+  <span id="meta">connecting…</span>
+</header>
+<div id="board"></div>
+<p id="empty">No run state yet — the board fills in once a pipeline run writes <code>.ai-workflow/&lt;skill&gt;/&lt;run-id&gt;/run-state.json</code>.</p>
+
+<script>
+const COLUMNS = [
+  {n:"00", t:"Frame",       zone:"human"},
+  {n:"01", t:"Specify",     zone:"human"},
+  {n:"02", t:"Plan · gate", zone:"gate"},
+  {n:"03", t:"Design gate", zone:"auto"},
+  {n:"04", t:"Implement",   zone:"auto"},
+  {n:"05", t:"Verify",      zone:"auto"},
+  {n:"06", t:"Deliver",     zone:"auto"},
+  {n:"✓",  t:"Done",        zone:"done"},
+];
+const DONE = COLUMNS.length - 1;
+
+const KEYWORDS = [
+  [/frame|brainstorm|prototype/, 0],
+  [/specify|interview|to.?spec|prd/, 1],
+  [/plan|to.?tasks|breakdown|approv/, 2],
+  [/design/, 3],
+  [/implement|backend|frontend|build|fix|integrat|tdd/, 4],
+  [/verify|review|acceptance|smoke|simplif|consensus/, 5],
+  [/deliver|pr\b|open.?pr|commit|residual|handoff/, 6],
+];
+const SKILL_DEFAULT = {
+  "ship": 0, "implement-feature": 4, "implement-and-review": 4,
+  "consensus": 5, "models-consensus": 5, "full-review": 5,
+  "dynamic-harness": 4,
+};
+
+function columnFor(run){
+  if (run.status === "complete") return DONE;
+  const phase = String(run.phase ?? "");
+  const num = phase.match(/^\d+/);
+  if (num && run.skill === "ship") return Math.min(parseInt(num[0], 10), 6);
+  for (const [re, col] of KEYWORDS) if (re.test(phase.toLowerCase())) return col;
+  return SKILL_DEFAULT[run.skill] ?? 4;
+}
+
+function age(iso){
+  if (!iso) return "";
+  const s = (Date.now() - Date.parse(iso)) / 1000;
+  if (isNaN(s)) return "";
+  if (s < 90) return Math.round(s) + "s ago";
+  if (s < 5400) return Math.round(s / 60) + "m ago";
+  return Math.round(s / 3600) + "h ago";
+}
+
+function render(data){
+  const board = document.getElementById("board");
+  board.innerHTML = "";
+  const runs = (data.runs || []).filter(r => !r.parse_error && (r.run_id || r.session_id));
+  document.getElementById("empty").style.display = runs.length ? "none" : "block";
+  const buckets = COLUMNS.map(() => []);
+  for (const r of runs) buckets[columnFor(r)].push(r);
+  COLUMNS.forEach((c, i) => {
+    const col = document.createElement("div");
+    col.className = "col"; col.dataset.zone = c.zone;
+    col.innerHTML = `<div class="col-h"><span class="n">${c.n}</span><span class="t">${c.t}</span></div><div class="cards"></div>`;
+    const cards = col.querySelector(".cards");
+    buckets[i]
+      .sort((a, b) => String(b.updated_at || "").localeCompare(String(a.updated_at || "")))
+      .forEach(r => {
+        const status = r.status || "running";
+        const el = document.createElement("div");
+        el.className = "card"; el.dataset.status = status;
+        el.title = r.file || "";
+        el.innerHTML =
+          `<div class="id">${r.run_id || r.session_id}</div>` +
+          `<div class="sk">${r.skill || ""}</div>` +
+          (r.phase != null ? `<div class="ph">phase: ${r.phase}</div>` : "") +
+          `<span class="st">${status === "awaiting_human" ? "needs you" : status}</span>` +
+          `<div class="age">${age(r.updated_at)}</div>`;
+        cards.appendChild(el);
+      });
+    board.appendChild(col);
+  });
+  document.getElementById("meta").textContent =
+    `${runs.length} run${runs.length === 1 ? "" : "s"} · ${data.target} · refreshed ${new Date().toLocaleTimeString()}`;
+}
+
+async function tick(){
+  try {
+    const res = await fetch("/api/runs");
+    render(await res.json());
+  } catch {
+    document.getElementById("meta").textContent = "server unreachable — retrying";
+  }
+}
+tick();
+setInterval(tick, 3000);
+</script>
+</body>
+</html>
