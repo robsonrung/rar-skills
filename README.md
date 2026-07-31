@@ -42,7 +42,18 @@ scripts/install-skills.sh /path/to/your-project
 
 ## Other harnesses
 
-`.agents/skills/` is the AgentSkills location, so the collection is not Claude Code-only. [docs/openhands.md](docs/openhands.md) walks through running the whole pipeline on **OpenHands**, including a CLI-only mode that needs no API keys — OpenHands drives your existing Claude Code or Codex CLI over ACP, so the run bills against the CLI subscription:
+`.agents/skills/` is the AgentSkills location, so the collection is not Claude Code-only.
+
+**The scheduler** ([docs/scheduler.md](docs/scheduler.md)) runs ship phases 3–6 over a slice queue with no orchestration framework underneath — it spawns a headless CLI agent per step through the repo's own `*-runner` wrappers, so there is no API key anywhere. Plan interactively through the approval gate, then hand the queue over:
+
+```bash
+scripts/pipeline_scheduler.py /path/to/your-project --approved --dry-run   # see the schedule
+scripts/pipeline_scheduler.py /path/to/your-project --approved             # run it
+```
+
+It owns only what a model should not: the run-state ledger, attempt ceilings, gate persistence, side-effect keys, DAG readiness, and worktree isolation. Every phase stays a prose skill.
+
+[docs/openhands.md](docs/openhands.md) is the alternative — the same pipeline on **OpenHands**, also CLI-only and also without API keys, driving your Claude Code or Codex CLI over ACP:
 
 ```bash
 scripts/install-skills.sh /path/to/your-project
