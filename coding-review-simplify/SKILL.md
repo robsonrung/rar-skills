@@ -76,6 +76,17 @@ For each finding, include:
 3. The smallest useful fix.
 4. The verification that would prove it.
 
+## Slop Taxonomy
+
+Name each finding with the slop it is — a named category travels between reviewers better than "this feels off". Comment slop stays owned by `clean-code` (its earned-comment test); this pass owns the rest:
+
+1. **Helper slop** — tiny wrappers that add no meaning, helper files created only to make one function look shorter, indirection with no decision behind it.
+2. **Type slop** — exported one-off types, custom result/error shapes where the codebase has a standard one, annotations where inference is clearer, types that paper over awkward code instead of fixing it.
+3. **Memo/callback slop** — memoization (`useMemo`/`useCallback`/manual caches) added without a measured or structural reason. Framework-gated: only in codebases using such primitives.
+4. **Effect slop** — effects that mirror props/state, reset derived state, or handle events after the fact instead of in the handler. Framework-gated likewise.
+5. **Compatibility cruft** — bolted-on behavior that preserves accidental architecture instead of building the coherent end state. **Search for real callers before preserving compatibility**: a mode, prop, wrapper, alias, or fallback with no current caller is deleted, not improved. Optimize for the code that should exist, not the smallest diff from the old shape.
+6. **Diff churn** — unrelated renames, formatting, comments, or wrappers that make the change larger without improving the design.
+
 ## Simplification Pass
 
 **Never simplify away a safety check.** Validation at trust boundaries, authorization checks, invariant assertions, escaping and encoding, and accessibility affordances are not removable boilerplate — they stay even when they look redundant from the local diff, and even when a lower layer appears to cover them. Defense in depth is intentional; if a check is truly dead, prove it with a citation, don't assume it.

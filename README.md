@@ -114,6 +114,16 @@ Two optional integrations are used when present and skipped when not: a code-rev
 
 If a referenced skill is absent, the calling skill notes it and continues with the lenses it can apply — the pipeline degrades, it does not break.
 
+### 6. Command guard (optional, recommended)
+
+Runner skills launch CLI seats headless with auto-approve flags. `_shared/hooks/` ships an opt-in guard that blocks catastrophic commands (rm on `/`/`~`, raw-disk writes, fork bombs, `curl | sh`, remote-history rewrites, `gh repo delete`, token exfiltration) before any seat runs them, while leaving recoverable commands alone. Install is manual — no skill ever wires it for you:
+
+```bash
+mkdir -p ~/.agents/hooks && cp _shared/hooks/deny-dangerous.sh _shared/hooks/dangerous-patterns.txt ~/.agents/hooks/
+```
+
+Then register `~/.agents/hooks/deny-dangerous.sh` as a `PreToolUse` (matcher `Bash`) hook in each CLI that supports hooks — wiring details and per-CLI gotchas are in [`_shared/references/runner-common.md`](_shared/references/runner-common.md) under "Guardrails". After editing the patterns file, run `~/.agents/hooks/test-guard.sh` (copy it too) — it must end `failed: 0`.
+
 ## License
 
 See [LICENSE](LICENSE).

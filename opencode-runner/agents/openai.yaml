@@ -1,0 +1,7 @@
+# Codex agent interface metadata; consumed by the Codex host, not read at runtime by the model.
+interface:
+  display_name: "OpenCode Runner"
+  short_description: "Guide OpenCode CLI runs through the host approval flow"
+  default_prompt: "Use $opencode-runner to run this prompt through the OpenCode CLI seat via the host agent approval flow, reporting the seat's output faithfully or its absence."
+policy:
+  allow_implicit_invocation: false

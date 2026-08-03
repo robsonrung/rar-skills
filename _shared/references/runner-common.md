@@ -62,6 +62,18 @@ Every role except `implementer` is an analysis seat and defaults to read-only mo
 - Never auto-apply review findings; present them and ask which to fix.
 - If a run fails, report the failure with the most actionable stderr lines — do not silently substitute another model's answer (seat fidelity). Any fallback run is always labeled via `fallback_from`/`fallback_reason`.
 
+## Guardrails (opt-in command guard)
+
+Runner skills launch CLI seats headless with auto-approve flags — the guard puts a floor under that. `_shared/hooks/` ships a denylist of catastrophic commands (`dangerous-patterns.txt`), a shared PreToolUse guard script (`deny-dangerous.sh`), and its test suite (`test-guard.sh`). The guard blocks only irreversible damage (rm on /|~, raw-disk writes, sudo rm, fork bombs, curl|sh, remote-history rewrites, gh repo delete, token exfil); recoverable commands stay allowed. It is a seatbelt against accidents, not a sandbox against a malicious agent — keep sandboxing and permission modes on regardless.
+
+**Install is opt-in and user-driven; no skill ever wires it automatically.** Copy the two files to `~/.agents/hooks/` (or point configs at the repo checkout) and register the script per CLI:
+
+- **Claude Code** — `~/.claude/settings.json`, `PreToolUse` hook with matcher `Bash` running the script (exit 2 blocks). Merge into any existing `hooks` object, never overwrite.
+- **Codex CLI** — `~/.codex/hooks.json`, same `PreToolUse`/`Bash` shape. Gotcha: Codex pins hook-entry trust by hash — after editing the hook ENTRY (not the patterns file), re-trust via `/hooks` in Codex or it silently skips the guard.
+- **Cline-backed seats (cline, kimi, glm) and qwen-backed seats** — no user-global PreToolUse hook system as of 2026-08; their floor is the sandbox/approval mode each runner script already sets. Note the gap rather than pretending coverage.
+
+Use absolute paths in configs (`~` expansion is inconsistent across hosts). After ANY pattern change run `test-guard.sh` (must end `failed: 0`). Known false-positive class: a harmless command whose argument text contains a dangerous-looking string can be blocked — put the text in a file and reference it.
+
 ## Background jobs
 
 `--background` detaches the run as a tracked job under `<working-dir>/.ai-workflow/runner-jobs/<job-id>/` and immediately prints `{success, job_id, pid, job_dir, ...}`. Manage jobs with the shared CLI (used by every runner skill):

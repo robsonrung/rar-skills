@@ -11,6 +11,8 @@ name: skill guards
 #      its seat in discover_runners.py (or being deliberately allowlisted).
 #   4. Task-shaped routing — planning, review, and delivery assignments keep
 #      their intended seat roles and launcher defaults.
+#   5. Command guard — the runner-fleet denylist blocks every catastrophic
+#      probe and allows every recoverable lookalike.
 
 on:
   push:
@@ -31,3 +33,5 @@ jobs:
         run: python3 _shared/tests/test_model_routing.py
       - name: Skill frontmatter + runner-dir parity
         run: python3 _shared/scripts/validate_skill_frontmatter.py
+      - name: Command guard denylist
+        run: _shared/hooks/test-guard.sh

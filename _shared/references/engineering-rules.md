@@ -29,3 +29,9 @@ Test driven development
 3. Implement the smallest change to pass.
 4. Refactor only with tests green.
 5. Record commands and evidence.
+
+Contract integrity
+
+1. Never delete, skip, weaken, narrow, or mock-away tests — and never loosen acceptance checks — to make a contract pass.
+2. If the contract itself is wrong, stop and report it; a corrected contract is a user decision, not an implementation move.
+3. Green obtained by gaming the check is a failure with extra steps: it converts a visible red into an invisible defect.

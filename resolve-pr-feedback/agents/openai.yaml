@@ -1,0 +1,7 @@
+# Codex agent interface metadata; consumed by the Codex host, not read at runtime by the model.
+interface:
+  display_name: "Resolve PR Feedback"
+  short_description: "Evaluate, fix, reply to, and resolve PR review threads end to end"
+  default_prompt: "Use $resolve-pr-feedback to work through this PR's review feedback end to end — evaluate every comment against the code, fix valid findings, commit and push, reply to each thread with quoted context, and resolve the threads."
+policy:
+  allow_implicit_invocation: false

@@ -1,0 +1,7 @@
+# Codex agent interface metadata; consumed by the Codex host, not read at runtime by the model.
+interface:
+  display_name: "Agents Md Craft"
+  short_description: "Hand craft or audit AGENTS.md and CLAUDE.md agent memory files"
+  default_prompt: "Use $agents-md-craft to create or audit this project's AGENTS.md/CLAUDE.md using the good-CLAUDE.md principles — WHAT/WHY/HOW framing, instruction and length budgets, progressive disclosure — proposing a draft or diff without writing until approved."
+policy:
+  allow_implicit_invocation: false

@@ -1,0 +1,7 @@
+# Codex agent interface metadata; consumed by the Codex host, not read at runtime by the model.
+interface:
+  display_name: "Knowledge Graph"
+  short_description: "Build and query a knowledge graph from documents via four shared schema prompts"
+  default_prompt: "Use $knowledge-graph to build or operate a knowledge graph from these documents — extraction, entity resolution, entity summarization, and graph-grounded querying on one shared schema — including deciding whether a graph is the right tool at all."
+policy:
+  allow_implicit_invocation: false

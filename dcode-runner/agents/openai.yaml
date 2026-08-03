@@ -7,3 +7,5 @@ interface:
   display_name: "Dcode Runner (DeepAgents)"
   short_description: "Run workspace prompts through DeepAgents CLI (dcode)"
   default_prompt: "Use $dcode-runner to execute this task with DeepAgents CLI (dcode) from the current workspace using the user's already-configured model."
+policy:
+  allow_implicit_invocation: false

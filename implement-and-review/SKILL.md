@@ -40,7 +40,7 @@ Exact launch commands and the worktree/integration git flow are in
 6. **Writes are gated.** No code until the user approves the plan + FE/BE split in Phase 0 (skip only when `--auto`). Implementers run unattended-write only after that approval.
 7. **Isolated parallelism.** Each track builds in its own git worktree/branch so they cannot clobber each other. Fall back to sequential same-tree execution when the project is not a git repo.
 8. **Bounded fix loop.** At most **3** review→fix cycles per track. Still blocking after 3 → stop and escalate with the open findings.
-9. **Definition of done = green.** The integrated task — after applying full-review findings — passes the project's tests/build (including the new test-first tests). If none exist, say so; never claim "tests pass" when none ran.
+9. **Definition of done = green.** The integrated task — after applying full-review findings — passes the project's tests/build (including the new test-first tests). If none exist, say so; never claim "tests pass" when none ran. Green must be earned: never delete, skip, weaken, or mock-away tests — or loosen acceptance checks — to reach it (`_shared/references/engineering-rules.md`, Contract integrity); a wrong contract is escalated, not edited around.
 10. **Never fabricate or silently swap a seat.** Pass `--disable-fallback` to every runner. Missing seat → degrade per [Degrade Gracefully](#degrade-gracefully) and say so.
 
 ## Methodology & Per-Track Skills

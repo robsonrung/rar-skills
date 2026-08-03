@@ -1,0 +1,7 @@
+# Codex agent interface metadata; consumed by the Codex host, not read at runtime by the model.
+interface:
+  display_name: "Ship"
+  short_description: "Conduct the full idea to PR pipeline with autonomous gated delivery"
+  default_prompt: "Use $ship to run the complete feature pipeline: interactive framing, specification, and task planning up front, then autonomous design-gated, test-driven, reviewed delivery per task through to the PR."
+policy:
+  allow_implicit_invocation: false

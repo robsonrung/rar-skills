@@ -93,6 +93,33 @@ artifact and growing it.
 
 ---
 
+## Cross-cutting — pit of success (seam hardening)
+
+Applies whenever the diff touches a public seam: an exported function, hook return value,
+setter, component prop, route body, schema, or command. Make misuse hard and the obvious
+call correct.
+
+- [ ] **Footgun test**: if a future maintainer does the obvious thing without knowing the
+      hidden helper or convention, does behavior break? (e.g. calling the raw setter
+      bypasses required semantics; a prop silently requires sibling props in the right
+      combination; a schema accepts states the product never wants.)
+- [ ] The invariant lives **in the seam**, not in caller discipline. Prefer, in order:
+      1. make the existing API do the safe thing by default;
+      2. narrow the type/schema so bad states cannot be represented;
+      3. rename or split the API so the dangerous path is explicit;
+      4. only then add a helper — and only if every natural caller uses it.
+- [ ] Bypasses and duplicate meanings are deleted: no local wrappers or parallel helper
+      names around the seam, no comment explaining the trap in place of removing it.
+- [ ] "Remember to call X first" never survives review when callers can still call the raw
+      API — that is documentation standing in for design.
+- [ ] If compatibility blocks fixing the seam, the dangerous API is named accordingly and
+      a safe default API exists beside it.
+
+**Fix the seam, not the callsite.** A footgun finding scoped to one caller is usually the
+seam's fault; one invariant, one owner, no speculative abstraction.
+
+---
+
 ## What this rubric is NOT
 
 - Not a bug/security finder → use `code-review` / `full-review`.

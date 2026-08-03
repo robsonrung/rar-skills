@@ -10,6 +10,8 @@ Assume there is often a "code judo" move available: a re-organization that uses 
 
 Do not stop at "this could be cleaner." Look for ways to preserve behavior while deleting concepts, branches, helper layers, state modes, wrappers, and special cases. Prefer the implementation that feels inevitable once seen.
 
+When a finding is one of the named slop categories, use the shared vocabulary from `coding-review-simplify`'s Slop Taxonomy (helper slop, type slop, memo/callback slop, effect slop, compatibility cruft, diff churn) — one owner for the taxonomy, referenced here rather than restated.
+
 ## Blocking Bar
 
 Treat these as presumptive blockers unless the author has a clear reason:

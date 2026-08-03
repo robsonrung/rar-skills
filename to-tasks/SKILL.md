@@ -77,6 +77,7 @@ A concise description of this vertical slice. Describe the end-to-end behavior, 
 
 - Commands: each exact command that must pass
 - Behaviors: each observable behavior that must hold, or `Test expectation: none — [reason]` for a non-feature slice
+- Never delete, skip, weaken, narrow, or mock-away tests — or loosen these checks — to make this contract pass. If the contract is wrong, stop and report it.
 
 ## Gates
 

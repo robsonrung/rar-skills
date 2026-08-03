@@ -16,6 +16,10 @@ Checks, across every top-level skill dir (any dir containing SKILL.md):
      allowlisted below as a non-seat runner. A new runner dir that is neither
      fails CI — adding a runner skill without registering its seat is the
      drift this guard exists to catch.
+  5. Invocation parity: `disable-model-invocation: true` is Claude-Code-specific;
+     Codex hosts need agents/openai.yaml with `allow_implicit_invocation: false`.
+     A skill carrying one without the other is manual-only on one harness and
+     auto-invocable on the other — this guard keeps the two in lockstep.
 
 Run: python3 _shared/scripts/validate_skill_frontmatter.py
 Exit 0 on success, 1 with a FAIL line per violation.
@@ -155,11 +159,47 @@ def check_runner_parity(failures: list[str]) -> None:
             )
 
 
+def check_invocation_parity(failures: list[str]) -> None:
+    for skill_md in sorted(REPO_ROOT.glob("*/SKILL.md")):
+        if skill_md.parent.name in NOT_A_SKILL:
+            continue
+        text = skill_md.read_text(encoding="utf-8", errors="replace")
+        m = re.match(r"^---\n(.*?)\n---\n", text, re.S)
+        if not m:
+            continue  # already reported by check_frontmatter
+        manual_claude = bool(
+            re.search(r"^disable-model-invocation:\s*true\s*$", m.group(1), re.M)
+        )
+        openai_yaml = skill_md.parent / "agents" / "openai.yaml"
+        manual_codex = (
+            openai_yaml.exists()
+            and re.search(
+                r"^\s*allow_implicit_invocation:\s*false\s*$",
+                openai_yaml.read_text(encoding="utf-8", errors="replace"),
+                re.M,
+            )
+            is not None
+        )
+        rel = skill_md.relative_to(REPO_ROOT)
+        if manual_claude and not manual_codex:
+            failures.append(
+                f"{rel}: disable-model-invocation is set but agents/openai.yaml lacks "
+                "allow_implicit_invocation: false — Codex hosts can auto-invoke this skill"
+            )
+        elif manual_codex and not manual_claude:
+            failures.append(
+                f"{skill_md.parent.name}/agents/openai.yaml: allow_implicit_invocation is "
+                "false but SKILL.md lacks disable-model-invocation: true — Claude Code "
+                "can auto-invoke this skill"
+            )
+
+
 def main() -> int:
     failures: list[str] = []
     warnings: list[str] = []
     count = check_frontmatter(failures, warnings)
     check_runner_parity(failures)
+    check_invocation_parity(failures)
     for w in warnings:
         print(f"warning: {w}")
     if failures:
