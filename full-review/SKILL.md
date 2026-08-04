@@ -213,7 +213,7 @@ The Maintainer Gardener must apply `references/structural_quality_review.md` and
 
 Activate specialists from `references/conditional_specialists.md` only when the diff matches their trigger patterns. Give each specialist only the relevant diff subset plus `rules_compact`.
 
-Tag specialist findings with `specialist_database`, `specialist_api_contract`, `specialist_authorization`, `specialist_performance`, `specialist_integration`, `specialist_data_integrity`, or `specialist_react`.
+Tag specialist findings with `specialist_database`, `specialist_api_contract`, `specialist_authorization`, `specialist_performance`, `specialist_integration`, `specialist_data_integrity`, `specialist_react`, or `specialist_ui_ux`.
 
 ### External Runners
 

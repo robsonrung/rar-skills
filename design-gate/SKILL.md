@@ -28,6 +28,7 @@ Turn "which of the design lenses applies here?" from a judgment call into a look
 | Stored state, databases, queues, caches, migrations, retries, concurrency, external APIs | `data-systems-coding-lens` |
 | The thing being built **is** an agent — an LLM tool-calling loop, a multi-agent pipeline, or a long-running autonomous run needing durable state, mid-run approval, or replay | `agent-architecture-lens` |
 | React components, hooks, contexts, rendering performance | `react-performance` |
+| New or reworked user-facing surface — screens, flows, visual design, information hierarchy | `ui-ux-pro-max` |
 | Two or more competing approaches with real trade-offs | `architecture-lens` |
 
 **Fallback row (only when no specific row above fits):** no specific lens fits but the change is architecturally significant → run `architecture-lens` as a **Lens 1 trade-off pass** (name the 2–4 characteristics in tension, the real options, and the cost of each), and if the decision is durable, record it with the canonical ADR template at `architecture-lens/references/adr-template.md`. Do not pair this with the rows above — it is the catch-all when a change is significant yet unroutable, not a peer lens.

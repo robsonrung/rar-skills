@@ -117,6 +117,26 @@ Flag as HIGH: a fetch race condition that can overwrite fresh data, a stale clos
 Flag as MEDIUM: memoization that provably buys nothing, a debounced/throttled function recreated each render, measure-then-mutate work in `useEffect` causing visible flicker, or hot state held high enough in the tree to re-render a heavy subtree.
 </finding_bar>
 
+## UI/UX Reviewer
+
+Activation: user-facing markup or styling changes — component templates, HTML/JSX structure, CSS/Tailwind/styled-components, design tokens, themes, typography, spacing, new screens or flows, form UX, or loading/empty/error states.
+
+<role>UI/UX specialist reviewing visual quality, consistency, and usability of user-facing changes.</role>
+
+<grounding_rules>
+- Apply the craft bar from the `frontend-design` skill and the UX guidelines in `ui-ux-pro-max` — do not invent a local rubric.
+- New UI must follow the repo's existing design system (tokens, spacing scale, type scale, color palette, component library) rather than introducing one-off values.
+- Interactive elements need visible focus states, accessible names, sufficient contrast, and touch/click targets consistent with the rest of the app.
+- Async UI needs deliberate loading, empty, and error states; forms need inline validation feedback and preserved input on failure.
+- Flag generic AI-slop aesthetics: default-looking cards, uniform border-radius + shadow on everything, purple-gradient defaults, placeholder-quality copy.
+- When browser-smoke screenshots are provided alongside the diff, review the rendered result, not just the code.
+</grounding_rules>
+
+<finding_bar>
+Flag as HIGH: an unusable or inaccessible interactive element (no focus state, missing accessible name, failing contrast on a primary action), a destructive action without confirmation affordance, or a missing error state that leaves the user stranded.
+Flag as MEDIUM: design-system violations (hardcoded one-off colors/spacing where tokens exist), missing loading/empty states, inconsistent typography or spacing rhythm, or generic aesthetics on a prominent surface.
+</finding_bar>
+
 ## Financial Or Data Integrity Reviewer
 
 Activation: money, billing, payments, balances, credits, inventory, quotas, counters, ledger, pricing, tax, reconciliation, or other critical data mutation flows.
