@@ -1,6 +1,6 @@
 # Runner Common Reference
 
-Canonical, agent-facing rules shared by every runner skill: `claude-runner`, `codex-runner`, `gemini-runner`, `grok-runner`, `qwen-runner`, `cline-runner`, `dcode-runner`, plus the cline-backed `kimi`/`glm` shims and the qwen-backed `gemma`/`minimax` shims. Each runner's SKILL.md points here for these shared blocks and keeps inline only its genuine deltas. Seat → model ids live in [model-roster.md](model-roster.md); seat availability comes from `_shared/scripts/discover_runners.py`.
+Canonical, agent-facing rules shared by every runner skill: `claude-runner`, `codex-runner`, `gemini-runner`, `grok-runner`, `qwen-runner`, `cline-runner`, `dcode-runner`, plus the Cline-backed `kimi`, `glm`, `qwen`, `muse`, `gemma`, and `minimax` shims. Each runner's SKILL.md points here for these shared blocks and keeps inline only its genuine deltas. Seat → model ids live in [model-roster.md](model-roster.md); seat availability comes from `_shared/scripts/discover_runners.py`.
 
 ## Seat fidelity
 
@@ -19,7 +19,7 @@ This is the one place the fallback split is defined; nothing else restates it.
 | `codex` | falls back → `claude` |
 | `gemini` | falls back → `qwen`, `kimi`, `codex`, `claude` (in that order) |
 | `dcode` | falls back → `claude`, `codex`, `qwen`, `kimi` (in that order) |
-| `grok`, `qwen`, `cline`, `kimi`, `glm`, `gemma`, `minimax` | **block-and-report** — never substitutes |
+| `grok`, `qwen`, `cline`, `kimi`, `glm`, `muse`, `gemma`, `minimax` | **block-and-report** — never substitutes |
 
 A fallback is always labeled (`fallback_from`, `fallback_reason`), and every fallback chain passes `--disable-fallback` to the runner it delegates to so chains cannot loop. Either way the seat's identity is never faked.
 
@@ -52,7 +52,7 @@ Supported roles:
 - `challenger`
 - `researcher`
 
-Every role except `implementer` is an analysis seat and defaults to read-only mode (the exact enforcement — Claude planning mode, Codex read-only sandbox, qwen `--approval-mode plan`, or a prompt-level overlay — is runner-specific). Pass `--allow-write` when an analysis role legitimately needs to write.
+Every role except `implementer` is an analysis seat and defaults to read-only mode. The exact enforcement is runner specific: Claude planning mode, Codex read-only sandbox, Cline native `--auto-approve false`, or a prompt-level overlay. Pass `--allow-write` when an analysis role legitimately needs to write.
 
 ## Presenting results
 
@@ -70,7 +70,7 @@ Runner skills launch CLI seats headless with auto-approve flags — the guard pu
 
 - **Claude Code** — `~/.claude/settings.json`, `PreToolUse` hook with matcher `Bash` running the script (exit 2 blocks). Merge into any existing `hooks` object, never overwrite.
 - **Codex CLI** — `~/.codex/hooks.json`, same `PreToolUse`/`Bash` shape. Gotcha: Codex pins hook-entry trust by hash — after editing the hook ENTRY (not the patterns file), re-trust via `/hooks` in Codex or it silently skips the guard.
-- **Cline-backed seats (cline, kimi, glm) and qwen-backed seats** — no user-global PreToolUse hook system as of 2026-08; their floor is the sandbox/approval mode each runner script already sets. Note the gap rather than pretending coverage.
+- **Cline-backed seats (cline, kimi, glm, qwen, muse, gemma, minimax)** — no user-global PreToolUse hook system as of 2026-08; their floor is native `--auto-approve false` for restricted runs. Note the gap rather than pretending coverage.
 
 Use absolute paths in configs (`~` expansion is inconsistent across hosts). After ANY pattern change run `test-guard.sh` (must end `failed: 0`). Known false-positive class: a harmless command whose argument text contains a dangerous-looking string can be blocked — put the text in a file and reference it.
 

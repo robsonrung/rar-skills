@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- SLOT: title -->
+<title>SUBJECT — Architecture Explainer</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { background: #020617; color: #e2e8f0; font-family: 'JetBrains Mono', monospace; line-height: 1.6; padding: 32px 20px 80px; }
+  .wrap { max-width: 1160px; margin: 0 auto; }
+
+  header { margin-bottom: 28px; }
+  .title-row { display: flex; align-items: center; gap: 12px; }
+  .pulse-dot { width: 10px; height: 10px; border-radius: 50%; background: #34d399; animation: pulse 2s infinite; flex-shrink: 0; }
+  @keyframes pulse { 0%,100% { opacity: 1; box-shadow: 0 0 0 0 rgba(52,211,153,.5);} 50% { opacity: .6; box-shadow: 0 0 0 6px rgba(52,211,153,0);} }
+  h1 { font-size: 26px; font-weight: 700; color: #f8fafc; }
+  .subtitle { color: #94a3b8; font-size: 13px; margin-top: 6px; max-width: 900px; }
+  .subtitle b { color: #cbd5e1; }
+
+  .toc { display: flex; flex-wrap: wrap; gap: 8px; margin: 20px 0 8px; }
+  .toc a { font-size: 11px; color: #94a3b8; text-decoration: none; border: 1px solid #1e293b; border-radius: 999px; padding: 4px 12px; transition: all .15s; }
+  .toc a:hover { color: #f8fafc; border-color: #475569; background: #0f172a; }
+  .controls { margin: 10px 0 24px; display: flex; gap: 10px; }
+  .controls button { font-family: inherit; font-size: 11px; color: #94a3b8; background: #0f172a; border: 1px solid #1e293b; border-radius: 6px; padding: 5px 12px; cursor: pointer; }
+  .controls button:hover { color: #f8fafc; border-color: #475569; }
+
+  section.card { background: #0b1120; border: 1px solid #1e293b; border-radius: 12px; padding: 24px 26px; margin-bottom: 26px; }
+  section.card > h2 { font-size: 17px; font-weight: 700; color: #f8fafc; margin-bottom: 4px; display: flex; align-items: center; gap: 10px; }
+  .sec-num { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 5px; border: 1px solid; flex-shrink: 0; }
+  .lede { color: #94a3b8; font-size: 13px; margin: 8px 0 16px; max-width: 950px; }
+  .lede b, p b { color: #e2e8f0; }
+  p { font-size: 13px; color: #b4c0d3; margin: 10px 0; }
+
+  .acc-cyan   { color: #22d3ee; border-color: rgba(34,211,238,.4); }
+  .acc-emerald{ color: #34d399; border-color: rgba(52,211,153,.4); }
+  .acc-rose   { color: #fb7185; border-color: rgba(251,113,133,.4); }
+  .acc-violet { color: #a78bfa; border-color: rgba(167,139,250,.4); }
+  .acc-amber  { color: #fbbf24; border-color: rgba(251,191,36,.4); }
+  .acc-orange { color: #fb923c; border-color: rgba(251,146,60,.4); }
+
+  .diagram { background: #020617; border: 1px solid #1e293b; border-radius: 10px; padding: 10px; margin: 14px 0; overflow-x: auto; }
+  .diagram svg { display: block; min-width: 720px; width: 100%; height: auto; }
+  .diagram-caption { font-size: 11px; color: #64748b; margin: 2px 4px 8px; }
+  svg .clickable { cursor: pointer; }
+  svg .clickable:hover rect { filter: brightness(1.4); }
+
+  details.drill { border: 1px solid #1e293b; border-radius: 8px; margin: 10px 0; background: #0f172a; }
+  details.drill > summary { cursor: pointer; padding: 10px 14px; font-size: 12.5px; font-weight: 600; color: #cbd5e1; list-style: none; display: flex; align-items: center; gap: 8px; user-select: none; }
+  details.drill > summary::-webkit-details-marker { display: none; }
+  details.drill > summary::before { content: '▸'; color: #64748b; transition: transform .15s; display: inline-block; }
+  details.drill[open] > summary::before { transform: rotate(90deg); }
+  details.drill > summary:hover { color: #f8fafc; }
+  details.drill > .drill-body { padding: 2px 16px 14px; border-top: 1px solid #1e293b; }
+  details.drill details.drill { background: #0b1120; }
+  .hint { font-size: 11px; color: #475569; font-weight: 400; margin-left: auto; }
+
+  .code { background: #020617; border: 1px solid #1e293b; border-radius: 8px; margin: 12px 0; overflow: hidden; }
+  .code-src { font-size: 10.5px; color: #7dd3fc; background: #0c1526; padding: 6px 12px; border-bottom: 1px solid #1e293b; display: flex; align-items: center; gap: 6px; }
+  .code-src::before { content: '⌘'; color: #334155; }
+  .code pre { padding: 12px 14px; overflow-x: auto; font-size: 11.5px; line-height: 1.55; color: #c9d5e3; }
+  .code pre .c { color: #5b6b82; font-style: italic; }
+  .code pre .k { color: #f472b6; }
+  .code pre .s { color: #a5d6a7; }
+  .code pre .f { color: #7dd3fc; }
+  code.inline, .path { background: #1e293b; border-radius: 4px; padding: 1px 6px; font-size: 11.5px; color: #93c5fd; white-space: nowrap; }
+  .path { color: #7dd3fc; }
+
+  table { border-collapse: collapse; width: 100%; font-size: 11.5px; margin: 12px 0; }
+  th { text-align: left; color: #94a3b8; font-weight: 600; padding: 7px 10px; border-bottom: 1px solid #334155; }
+  td { padding: 6px 10px; border-bottom: 1px solid #16233b; color: #b4c0d3; vertical-align: top; }
+  tr:hover td { background: rgba(30,41,59,.35); }
+  .tbl-scroll { overflow-x: auto; }
+
+  .flow { counter-reset: step; margin: 16px 0; }
+  .flow-step { display: flex; gap: 14px; padding: 12px 0; border-bottom: 1px dashed #16233b; }
+  .flow-step:last-child { border-bottom: none; }
+  .flow-step::before { counter-increment: step; content: counter(step); width: 26px; height: 26px; border-radius: 50%; flex-shrink: 0; background: rgba(34,211,238,.12); border: 1px solid rgba(34,211,238,.45); color: #22d3ee; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; margin-top: 2px; }
+  .flow-step h4 { font-size: 13px; color: #f1f5f9; margin-bottom: 3px; }
+  .flow-step p { font-size: 12px; color: #94a3b8; margin: 2px 0; }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+  .chip { font-size: 10.5px; padding: 3px 9px; border-radius: 999px; border: 1px solid #334155; color: #94a3b8; background: rgba(30,41,59,.4); }
+  .chip.ev { color: #fbbf24; border-color: rgba(251,191,36,.35); }
+  .chip.write { color: #fb7185; border-color: rgba(251,113,133,.35); }
+  .chip.cond { color: #a78bfa; border-color: rgba(167,139,250,.35); }
+
+  .stack-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(255px, 1fr)); gap: 12px; margin: 16px 0; }
+  .stack-item { background: #0f172a; border: 1px solid #1e293b; border-radius: 8px; padding: 12px 14px; }
+  .stack-item h4 { font-size: 12.5px; color: #f1f5f9; margin-bottom: 3px; }
+  .stack-item .ver { color: #64748b; font-weight: 400; font-size: 10.5px; }
+  .stack-item p { font-size: 11px; color: #94a3b8; margin: 3px 0; }
+  .stack-item .path { font-size: 10px; white-space: normal; word-break: break-all; }
+
+  .callout { border-left: 3px solid; border-radius: 0 8px 8px 0; background: #0f172a; padding: 10px 14px; margin: 12px 0; font-size: 12px; color: #b4c0d3; }
+  .callout.warn { border-color: #fbbf24; }
+  .callout.danger { border-color: #fb7185; }
+  .callout.info { border-color: #22d3ee; }
+  .callout b { color: #e2e8f0; }
+
+  .compare { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 14px 0; }
+  @media (max-width: 860px) { .compare { grid-template-columns: 1fr; } }
+  .compare > div { background: #0f172a; border: 1px solid #1e293b; border-radius: 10px; padding: 14px 16px; }
+  .compare h4 { font-size: 13px; margin-bottom: 8px; }
+  .compare ul { margin: 6px 0 6px 18px; font-size: 11.5px; color: #94a3b8; }
+  .compare li { margin: 4px 0; }
+  .compare li b { color: #cbd5e1; }
+
+  footer { color: #475569; font-size: 10.5px; margin-top: 40px; text-align: center; }
+  footer .path { white-space: normal; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="title-row">
+    <div class="pulse-dot"></div>
+    <!-- SLOT: page title -->
+    <h1>SUBJECT — How It Works</h1>
+  </div>
+  <!-- SLOT: subtitle — what the system is, what the page covers, how to navigate; name the service root path -->
+  <p class="subtitle">
+    SUBJECT is … This page starts with the big picture — click any box in the diagram, or expand the
+    <b>▸ drill-down</b> panels, to descend into the actual code. Every snippet is verbatim from the repo with
+    its source path. Service root: <code class="path">path/to/service/</code>
+  </p>
+</header>
+
+<!-- SLOT: one chip per section; keep hrefs in sync with section ids -->
+<nav class="toc">
+  <a href="#sec-bigpicture">Big picture</a>
+  <a href="#sec-stack">Tech stack</a>
+  <a href="#sec-example">1 · Example section</a>
+</nav>
+<div class="controls">
+  <button onclick="setAll(true)">Expand all details</button>
+  <button onclick="setAll(false)">Collapse all</button>
+</div>
+
+<!-- ═══════ BIG PICTURE — the glance-depth map. Draw arrows before boxes; make boxes clickable. ═══════ -->
+<section class="card" id="sec-bigpicture">
+  <h2><span class="sec-num acc-cyan">MAP</span> The big picture</h2>
+  <!-- SLOT: lede — the whole request/data path in 3-4 sentences, ending with "Click a box to jump to its section." -->
+  <p class="lede">… <b>Click a box to jump to its section.</b></p>
+  <div class="diagram">
+  <!-- SLOT: big-picture SVG. Keep defs; replace content. See references/page-anatomy.md for mechanics. -->
+  <svg viewBox="0 0 1120 300" xmlns="http://www.w3.org/2000/svg" font-family="'JetBrains Mono', monospace">
+    <defs>
+      <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+        <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#0d1526" stroke-width="0.5"/>
+      </pattern>
+      <marker id="arr" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+        <polygon points="0 0, 10 3.5, 0 7" fill="#64748b"/>
+      </marker>
+      <marker id="arrRose" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+        <polygon points="0 0, 10 3.5, 0 7" fill="#fb7185"/>
+      </marker>
+    </defs>
+    <rect width="1120" height="300" fill="url(#grid)"/>
+    <!-- arrows FIRST (painted behind boxes) -->
+    <line x1="200" y1="130" x2="300" y2="130" stroke="#64748b" stroke-width="1.5" marker-end="url(#arr)"/>
+    <!-- boxes: opaque mask rect, then styled rect, inside a clickable group -->
+    <g class="clickable" onclick="jump('sec-example')">
+      <rect x="60" y="100" width="140" height="60" rx="6" fill="#0f172a"/>
+      <rect x="60" y="100" width="140" height="60" rx="6" fill="rgba(8,51,68,0.4)" stroke="#22d3ee" stroke-width="1.5"/>
+      <text x="130" y="127" fill="white" font-size="12" font-weight="600" text-anchor="middle">Client</text>
+      <text x="130" y="144" fill="#94a3b8" font-size="9" text-anchor="middle">entry/file.ts</text>
+    </g>
+    <g class="clickable" onclick="jump('sec-example')">
+      <rect x="300" y="100" width="160" height="60" rx="6" fill="#0f172a"/>
+      <rect x="300" y="100" width="160" height="60" rx="6" fill="rgba(6,78,59,0.4)" stroke="#34d399" stroke-width="1.5"/>
+      <text x="380" y="127" fill="white" font-size="12" font-weight="600" text-anchor="middle">Service</text>
+      <text x="380" y="144" fill="#94a3b8" font-size="9" text-anchor="middle">src/index.ts</text>
+    </g>
+    <!-- SLOT: legend line decoding line styles -->
+    <text x="30" y="280" fill="#64748b" font-size="9">— solid: request/data flow · ┄ rose: auth/identity</text>
+  </svg>
+  </div>
+  <!-- SLOT: caption naming what the page deliberately leaves out -->
+  <p class="diagram-caption">This page focuses on …; it leaves out ….</p>
+</section>
+
+<!-- ═══════ TECH STACK ═══════ -->
+<section class="card" id="sec-stack">
+  <h2><span class="sec-num acc-violet">STACK</span> Technologies and where they live</h2>
+  <p class="lede">From <code class="path">path/to/package.json</code>. Notably absent: ….</p>
+  <div class="stack-grid">
+    <!-- SLOT: one stack-item per technology -->
+    <div class="stack-item"><h4>Library <span class="ver">^1.0.0</span></h4><p>One line of purpose.</p><p class="path">src/where/it/lives.ts</p></div>
+  </div>
+  <details class="drill">
+    <summary>Key concepts you'll see throughout <span class="hint">3–4 ideas</span></summary>
+    <div class="drill-body">
+      <p><b>Concept name.</b> One-paragraph explanation with a <code class="path">file.ts</code> pointer.</p>
+    </div>
+  </details>
+</section>
+
+<!-- ═══════ NUMBERED SECTION — repeat this block per section (6–9 total). Pick one acc-* accent per section. ═══════ -->
+<section class="card" id="sec-example">
+  <h2><span class="sec-num acc-emerald">1</span> Example section title</h2>
+  <!-- SLOT: lede — the section's whole story, including its most surprising fact -->
+  <p class="lede">…</p>
+
+  <!-- Optional: chips row for enumerable facts -->
+  <div class="chips">
+    <span class="chip">plain fact</span>
+    <span class="chip ev">event_name</span>
+    <span class="chip write">write_tool</span>
+    <span class="chip cond">feature-flag</span>
+  </div>
+
+  <!-- Optional: numbered end-to-end flow -->
+  <div class="flow">
+    <div class="flow-step"><div><h4>Step title</h4><p>What happens, with <code class="inline">symbol</code> references.</p></div></div>
+    <div class="flow-step"><div><h4>Next step</h4><p>…</p></div></div>
+  </div>
+
+  <!-- Optional: two-column comparison -->
+  <div class="compare">
+    <div><h4 class="acc-violet">Path A</h4><ul><li><b>Fact:</b> detail</li></ul></div>
+    <div><h4 class="acc-violet">Path B</h4><ul><li><b>Fact:</b> detail</li></ul></div>
+  </div>
+
+  <!-- Drill panel: the descend depth. 2–5 per section. -->
+  <details class="drill">
+    <summary>Panel claim in a short sentence <span class="hint">file-or-topic hint</span></summary>
+    <div class="drill-body">
+      <p>Context sentence for the snippet.</p>
+      <div class="code"><div class="code-src">path/to/file.ts:10-20</div><pre><span class="c">// verbatim code — escape &amp; &lt; &gt; before adding highlight spans</span>
+<span class="k">export function</span> <span class="f">example</span>(): Promise&lt;Result&gt; { … }</pre></div>
+      <div class="callout warn"><b>Caveat:</b> war stories found in code comments belong in callouts.</div>
+    </div>
+  </details>
+</section>
+
+<footer>
+  <!-- SLOT: date, service root, companion docs -->
+  Generated from source on YYYY-MM-DD · service root <span class="path">path/to/service/</span>
+</footer>
+
+</div>
+<script>
+  function jump(id) {
+    const sec = document.getElementById(id);
+    if (!sec) return;
+    sec.querySelectorAll(':scope > details.drill').forEach(d => d.open = true);
+    sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+  function setAll(open) {
+    document.querySelectorAll('details.drill').forEach(d => d.open = open);
+  }
+</script>
+</body>
+</html>

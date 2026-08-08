@@ -1,26 +1,26 @@
 ---
 name: minimax-runner
-description: Execute prompts using Minimax models through Qwen Code CLI in headless mode. Use when users explicitly request Minimax execution, when a workflow needs a Minimax seat, or when a cross-runner workflow wants a Minimax-backed perspective without leaving the current workspace.
+description: Execute prompts using Minimax models through Cline CLI in headless mode. Use when users explicitly request Minimax execution, when a workflow needs a Minimax seat, or when a cross-runner workflow wants a Minimax-backed perspective without leaving the current workspace.
 ---
 
 # Minimax Runner
 
-Execute prompts against Minimax models through the shared Qwen CLI wrapper. This skill adds a Minimax-backed seat for councils and scripted workflows while keeping execution headless and stream-friendly.
+Execute prompts against Minimax models through the shared Qwen shim, which delegates to `cline-runner`. This skill adds a Minimax-backed seat for councils and scripted workflows while keeping execution headless and stream friendly.
 
 ## Default Model
 
 - `minimax/minimax-m2.7`
 
-Pass `--model` if you want to target another Minimax model exposed by the local `qwen` CLI account.
+Pass `--model` if you want to target another Minimax model exposed by the selected Cline provider.
 
 ## Prerequisites
 
-- `qwen` installed and in `PATH`
-- A Minimax provider configured in the qwen CLI — a `modelProviders` entry in `~/.qwen/settings.json` (with its API key env var set) or credentials supplied via `--openai-api-key` / `--auth-type`. The legacy `qwen auth` subcommand has been removed.
+- `cline` installed and in `PATH`
+- A Cline provider authenticated through `cline auth` that can resolve `minimax/minimax-m2.7`
 
 ## Security Model
 
-This skill delegates to `qwen-runner`, so it has the same execution and data sharing model as the Qwen wrapper. Prompt text, prompt files, session files, metadata, and any files Qwen reads during the run may be sent to the selected Minimax provider. Analysis roles (every role except `implementer`) default to restricted mode (read-only overlay plus plan approval mode); pass `--allow-write` to opt out. Otherwise approval mode defaults to `default`.
+This skill delegates through `qwen-runner` to `cline-runner`, so it has the Cline execution and data sharing model. Prompt text, prompt files, session files, metadata, and any files Cline reads during the run may be sent to the selected Minimax provider. Analysis roles default to native `--auto-approve false`; pass `--allow-write` to opt out.
 
 
 ## Shared Wrapper Reference
@@ -38,12 +38,12 @@ python3 .agents/skills/minimax-runner/scripts/run_minimax.py "your prompt here"
 ```bash
 python3 .agents/skills/minimax-runner/scripts/run_minimax.py "Stress-test this implementation idea"
 python3 .agents/skills/minimax-runner/scripts/run_minimax.py --prompt-file /tmp/review.md --role challenger
-python3 .agents/skills/minimax-runner/scripts/run_minimax.py "Return JSON only" --output-format json --json
+python3 .agents/skills/minimax-runner/scripts/run_minimax.py "Return JSON only" --output-format stream-json --json
 ```
 
 ## Behavior
 
 1. Delegates to the shared `qwen-runner` implementation with runner identity set to `minimax`.
-2. Uses `stream-json` as the default native Qwen output format.
+2. Uses the Cline NDJSON stream as the default output format.
 3. Never falls back to another provider. If the run fails (non-zero `return_code` or `auth_ok=false` in the envelope), treat the Minimax seat as blocked and report it unavailable so councils can account for the missing seat — never substitute another provider.
 4. Preserves the shared wrapper envelope so councils can compare Minimax output with other runners consistently.

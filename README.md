@@ -81,11 +81,10 @@ Each model seat is backed by a local CLI. Install only the ones whose seats you 
 | `codex` | Codex (`gpt-5.6-sol`) | `codex-runner` | `codex` CLI authenticated |
 | `agy` (Antigravity CLI) | Gemini / Google | `gemini-runner` | `agy` authenticated; model selected via `/model` or `~/.gemini/antigravity-cli/settings.json` |
 | `grok` | Grok (`grok-4.5` — Grok 4.5) | `grok-runner` | `grok` CLI logged in (`grok login`, grok.com account) |
-| `cline` | Kimi (`moonshotai/kimi-k3` — Kimi K3) and GLM (`zai/glm-5.2` — GLM 5.2) | `kimi-runner`, `glm-runner` | Cline provider authenticated via `cline auth` |
-| `qwen` (Qwen Code CLI) | Qwen, **Gemma, Minimax** (shared transport) | `qwen-runner`, `gemma-runner`, `minimax-runner` | Provider configured in `~/.qwen/settings.json` (see below) |
+| `cline` | Kimi (`moonshotai/kimi-k3`), GLM (`zai/glm-5.2`), Qwen (`qwen/qwen3.8-max`), Muse (`meta/muse-spark-1.1`), Gemma, and Minimax | `kimi-runner`, `glm-runner`, `qwen-runner`, `muse-runner`, `gemma-runner`, `minimax-runner` | Cline provider authenticated via `cline auth`; Muse access is limited to users in the United States |
 | `opencode` (optional) | OpenCode | `opencode-runner` | Its own auth; no bundled wrapper — runs through the host approval flow |
 
-> The Kimi and GLM runners are thin shims over `cline-runner`, forwarding a real `--model` (`moonshotai/kimi-k3`, `zai/glm-5.2`) to the single `cline` CLI. The Gemma/Minimax runners are thin shims over `qwen-runner`, executing through the single `qwen` CLI.
+> The Kimi, GLM, Qwen, and Muse runners are thin shims over `cline-runner`. Gemma and Minimax reuse the Qwen shim with their own model IDs. All six seats execute through `cline`.
 
 ### 3. Cloud / provider configuration
 
@@ -95,15 +94,13 @@ Every CLI seat is an external model call — it sends prompt text, prompt files,
 - **OpenAI / Codex** — for `codex`.
 - **Google** — for `agy` (Gemini).
 - **xAI** — for `grok` (Grok 4.5 seat).
-- **Cline-backed seats** — Kimi (`moonshotai/kimi-k3`) and GLM (`zai/glm-5.2`). Authenticate a Cline provider via `cline auth` that can resolve those model ids (the `cline-pass` gateway covers both; bring-your-own Moonshot / Z.AI entitlements also work).
-- **Qwen-backed providers** — Gemma (`google/gemma-4-31b-it`), Minimax (`minimax/minimax-m2.7`), and Qwen itself. Configure each as a `modelProviders` entry in `~/.qwen/settings.json` (with its API-key env var set), or pass credentials at call time via `--openai-api-key` / `--auth-type`. *(The legacy `qwen auth` subcommand has been removed.)*
+- **Cline-backed seats** — Kimi (`moonshotai/kimi-k3`), GLM (`zai/glm-5.2`), Qwen (`qwen/qwen3.8-max`), Muse (`meta/muse-spark-1.1`), Gemma (`google/gemma-4-31b-it`), and Minimax (`minimax/minimax-m2.7`). Authenticate a Cline provider via `cline auth` that can resolve each model ID. OpenRouter limits Muse access to users in the United States.
 
 ### 4. Environment variables
 
 | Variable | When you need it |
 |----------|------------------|
 | `ANTHROPIC_API_KEY` *or* `ANTHROPIC_AUTH_TOKEN` | Only for `claude-runner` in bare/headless mode (bare mode disables OAuth/keychain). Not needed when the `claude` CLI is interactively logged in. |
-| Provider API keys referenced by `~/.qwen/settings.json` | Whatever env vars your `modelProviders` entries reference, for the Gemma / Minimax / Qwen seats. |
 | `RUNNER_BASE_PATH` | Override the runner-script base path when skills are **not** installed at the default `.agents/skills/` location (e.g. running from a source checkout). |
 
 ### 5. External skills

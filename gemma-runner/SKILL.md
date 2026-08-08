@@ -1,26 +1,26 @@
 ---
 name: gemma-runner
-description: Execute prompts using Google Gemma models through Qwen Code CLI in headless mode. Use when users explicitly request Gemma execution, when a workflow needs a Gemma seat, or when a cross-runner workflow wants a Gemma-backed perspective without leaving the current workspace.
+description: Execute prompts using Google Gemma models through Cline CLI in headless mode. Use when users explicitly request Gemma execution, when a workflow needs a Gemma seat, or when a cross-runner workflow wants a Gemma-backed perspective without leaving the current workspace.
 ---
 
 # Gemma Runner
 
-Execute prompts against Gemma models through the shared Qwen CLI wrapper. This skill gives councils and scripted workflows a Google-backed seat that still runs locally in headless mode.
+Execute prompts against Gemma models through the shared Qwen shim, which delegates to `cline-runner`. This skill gives councils and scripted workflows a Google-backed seat in headless mode.
 
 ## Default Model
 
 - `google/gemma-4-31b-it`
 
-Pass `--model` if you want to target another Gemma model exposed by the local `qwen` CLI account.
+Pass `--model` if you want to target another Gemma model exposed by the selected Cline provider.
 
 ## Prerequisites
 
-- `qwen` installed and in `PATH`
-- A Gemma provider configured in the qwen CLI — a `modelProviders` entry in `~/.qwen/settings.json` (with its API key env var set) or credentials supplied via `--openai-api-key` / `--auth-type`. The legacy `qwen auth` subcommand has been removed.
+- `cline` installed and in `PATH`
+- A Cline provider authenticated through `cline auth` that can resolve `google/gemma-4-31b-it`
 
 ## Security Model
 
-This skill delegates to `qwen-runner`, so it has the same execution and data sharing model as the Qwen wrapper. Prompt text, prompt files, session files, metadata, and any files Qwen reads during the run may be sent to the selected Gemma provider. Analysis roles (every role except `implementer`) default to restricted mode (read-only overlay plus plan approval mode); pass `--allow-write` to opt out. Otherwise approval mode defaults to `default`.
+This skill delegates through `qwen-runner` to `cline-runner`, so it has the Cline execution and data sharing model. Prompt text, prompt files, session files, metadata, and any files Cline reads during the run may be sent to the selected Gemma provider. Analysis roles default to native `--auto-approve false`; pass `--allow-write` to opt out.
 
 
 ## Shared Wrapper Reference
@@ -38,14 +38,14 @@ python3 .agents/skills/gemma-runner/scripts/run_gemma.py "your prompt here"
 ```bash
 python3 .agents/skills/gemma-runner/scripts/run_gemma.py "Summarize the core module architecture"
 python3 .agents/skills/gemma-runner/scripts/run_gemma.py --prompt-file /tmp/review.md --role synthesizer
-python3 .agents/skills/gemma-runner/scripts/run_gemma.py "Return JSON only" --output-format json --json
+python3 .agents/skills/gemma-runner/scripts/run_gemma.py "Return JSON only" --output-format stream-json --json
 ```
 
 ## Behavior
 
 1. Delegates to the shared `qwen-runner` implementation with runner identity set to `gemma`.
-2. Uses `stream-json` as the default native Qwen output format.
-3. Never falls back to another provider. If the `qwen` CLI is missing, the envelope carries `status: seat_unavailable` (return code `-2`); Gemma auth failures fold into return code `-3` with the native `[API Error: ...]` text in `stderr`. In both cases `runner` stays `gemma`, the envelope still carries the `fallback_reason` key, and a failing Gemma smoke test should block the seat.
+2. Uses the Cline NDJSON stream as the default output format.
+3. Never falls back to another provider. If `cline` is missing, the envelope carries `status: seat_unavailable` and return code `-2`. A model or provider failure returns `-3`. In both cases `runner` stays `gemma` and a failing smoke test blocks the seat.
 4. Preserves the shared wrapper envelope so councils can compare Gemma output with other runners consistently.
 
 ## Integration

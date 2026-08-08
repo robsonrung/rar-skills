@@ -1,5 +1,7 @@
 # Runner Invocation Reference
 
+This reference is for `transport: headless`. The interactive cmux transport has separate command shapes and an artifact relay in [cmux-transport.md](cmux-transport.md).
+
 Complete invocation patterns for every council seat, organized by host capability.
 
 Model selection is not pinned here: pass the roster's alias (`--model opus`) or rely on the runner's default, and read `_shared/references/model-roster.md` for the seat → model mapping. The only id that still appears below is Gemini's, where `--model` is a metadata label rather than a model switch.
@@ -114,7 +116,7 @@ python3 .agents/skills/codex-runner/scripts/run_codex.py \
 
 The Codex seat runs `codex-runner`'s default model (the roster's `codex` seat) — omit `--model` rather than pinning an id. `codex-runner` supports `--effort none|minimal|low|medium|high|xhigh`; use `high` for adversarial or research-heavy rounds, mirroring the native Codex seat guidance.
 
-`--output-schema` is natively validated by Codex; for rounds after the first, swap in `schemas/later-round-response.schema.json`. The cline-backed Kimi and GLM seats accept the same flag (prompt-enforced, not natively validated). Gemini and Claude seats have no schema flag — for them the brief's trailing `Return ONLY JSON …` line holds the shape (see [operations.md#response-schema-validation](operations.md#response-schema-validation)).
+`--output-schema` is natively validated by Codex; for rounds after the first, swap in `schemas/later-round-response.schema.json`. Cline-backed seats accept the same flag (prompt-enforced, not natively validated). Gemini and Claude seats have no schema flag — for them the brief's trailing `Return ONLY JSON …` line holds the shape (see [operations.md#response-schema-validation](operations.md#response-schema-validation)).
 
 ### Gemini
 
@@ -192,7 +194,7 @@ The command shapes above are written for `debate` (stance overlay + `--role` + a
 
 - **No `--role`, no stance.** Poll seats answer the raw prompt; pass `--restrict-tools` and no role at all under the default `no_tools` profile. Drop `stance` from `--metadata-json` and keep `{"session":…,"round":…,"seat":…}` (plus `"sample":n` when self-paired).
 - **Schemas.** Point `--output-schema` at the poll schema for the stage: `schemas/opening-answer.schema.json` (Phase 1), `schemas/disagreement-round.schema.json` (Phase 3), `schemas/judge.schema.json` (Phase 4 judges), `schemas/organizer-analysis.schema.json` (organizer), `schemas/synthesis.schema.json` (synthesizer). Full mapping: [operations.md#response-schema-validation](operations.md#response-schema-validation).
-- **Native validation.** `--output-schema` is natively validated by **Codex and Grok** (`grok-runner` forwards it to grok's own `--json-schema` and forces JSON output for the run). The cline-backed Kimi and GLM seats accept the flag but enforce it by prompt; Gemini and the Claude seats have no schema flag and rely on the brief's trailing `Return ONLY JSON …` line.
+- **Native validation.** `--output-schema` is natively validated by **Codex and Grok** (`grok-runner` forwards it to grok's own `--json-schema` and forces JSON output for the run). Cline-backed seats accept the flag but enforce it by prompt; Gemini and the Claude seats have no schema flag and rely on the brief's trailing `Return ONLY JSON …` line.
 - **Timeout.** `--timeout 600` is ample for a single answering pass; keep 900 for debate rounds that carry a digest.
 - **Artifact paths.** Write one brief per phase and point every `--prompt-file` at it; per-seat outputs follow the artifact policy naming (`{session_id}-round-{n}-{seat}-output.json`).
 - **Self-pairing.** Launch duplicates with distinct labels (`"seat":"opus#1"`) and distinct `--output-file`s, vary the brief with a `SAMPLE: n` line, and mark `is_duplicate: true` in the seat table.

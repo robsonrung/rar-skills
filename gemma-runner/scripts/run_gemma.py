@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Execute prompts against Gemma models through Qwen CLI headless mode."""
+"""Execute prompts against Gemma models through Cline CLI headless mode."""
 
 import sys
 from pathlib import Path
@@ -18,5 +18,5 @@ if __name__ == "__main__":
     run_qwen.main(
         default_model=DEFAULT_MODEL,
         runner_name="gemma",
-        description="Execute prompts using Qwen CLI against Gemma models in headless mode.",
+        description="Execute prompts using Cline CLI against Gemma models in headless mode.",
     )

@@ -21,6 +21,15 @@ Routing hints: repo/code/design question needing a reconciled answer → `poll`.
 
 Flags, combinable with any mode: [`clarify`](#clarify), [`decider_context: report_only`](#decider_context-report_only), [`--auto`](#--auto). Input payload: [references/operations.md#input-format](references/operations.md#input-format).
 
+## Transport Selection
+
+| Transport | Default | Execution |
+| --- | --- | --- |
+| `headless` | Yes | Current native-seat and runner workflow. It keeps runner envelopes and verified model receipts. |
+| `cmux` | No | One interactive cmux workspace per seat. The moderator relays turns through JSON artifacts. Read [references/cmux-transport.md](references/cmux-transport.md) before launching. |
+
+`transport: cmux` changes how seats converse, not what the council is allowed to do. It remains deliberation-only and read-only except for each seat's single response artifact. The **terminal relay** is the rule: say, “The **terminal relay** will carry the anonymized digest, not a terminal transcript.”
+
 ## Shared Preflight
 
 `personas` runs on one model (the strongest available) and skips seat probing; everything else below applies to `poll` and `debate`.
@@ -33,6 +42,8 @@ For judgment-heavy `personas` runs, prefer the Opus seat, then the Codex seat, t
 - Persist `selected_seats` and `selection_source` in state before smoke tests. If selection is still unresolved after all question channels (non-`--auto` only), stop with `awaiting_human`.
 
 ### 1. Probe and smoke-test seats
+
+For `transport: headless`, use the existing probe and headless smoke workflow below. For `transport: cmux`, read [references/cmux-transport.md](references/cmux-transport.md), run `cmux ping`, and start only interactive commands through `cmux_council.py`. Do not invoke runner scripts, `codex exec`, or host-native subagents in this transport. The first artifact-producing turn is the authentication and response check; it is not a serving-model receipt.
 
 ```bash
 python3 .agents/skills/_shared/scripts/discover_runners.py probe \
@@ -49,11 +60,11 @@ Artifact mode is `persisted` when `.ai-workflow/consensus/` is writable, else `i
 
 ### 3. Seat table
 
-For each seat record `seat`, `selection_status`, `execution_path` (`native`/`runner`/`unavailable`), `effective_provider`, `effective_model` (the envelope receipt, once known), `blocked_reason`, `is_duplicate`. Launch nothing until the table is complete.
+For each seat record `seat`, `selection_status`, `execution_path` (`native`/`runner`/`cmux_interactive`/`unavailable`), `effective_provider`, `effective_model` (the envelope receipt, once known), `blocked_reason`, `is_duplicate`. In `cmux_interactive`, also record `workspace_id`, `surface_id`, artifact path, and `receipt_status`. Launch nothing until the table is complete.
 
 ### 4. Deterministic seat rules
 
-1. Prefer native seats (Claude via `Agent`; Codex via `spawn_agent` on a Codex host) over runner scripts.
+1. In `headless`, prefer native seats (Claude via `Agent`; Codex via `spawn_agent` on a Codex host) over runner scripts. In `cmux`, use the interactive CLI shape from `cmux-transport.md`.
 2. Runner fallback to another provider = loss of seat independence; mark the original seat unavailable.
 3. Missing CLI = skip that seat entirely (prerequisites: [references/repo-configuration.md](references/repo-configuration.md)); never fabricate a seat or its output.
 4. Same effective provider and same model twice = one independent source; label the duplicate.
@@ -64,7 +75,7 @@ Every active seat in a run gets the SAME tool profile, the same read-only source
 
 ### 6. Separate contexts
 
-The host model may appear as orchestrator, a seat, the organizer/synthesizer, and a judge — each MUST be a distinct context (fresh subagent). The orchestrator is never a seat, organizer, synthesizer, or judge.
+The host model may appear as orchestrator, a seat, the organizer/synthesizer, and a judge — each MUST be a distinct context (fresh subagent or fresh cmux workspace). The orchestrator is never a seat, organizer, synthesizer, or judge.
 
 ### 7. Cost governance
 
@@ -134,7 +145,7 @@ Return: `report_path` (or `null`), `state_path` (or `null`), the final answer/ve
 ## Degrade Gracefully
 
 - Missing seat: continue, lower confidence one band, and say so.
-- Fallback or unverified seat: mark the original seat unavailable for independence accounting.
+- Fallback or unverified seat: mark the original seat unavailable for independence accounting. A `cmux_interactive` response with no observed serving-model receipt may inform the report but cannot raise diversity confidence.
 - Shared provider, different models: keep both seats, note the caveat (a milder diversity drag than self-pairing).
 - Same effective model twice: collapse to one independent source; label it.
 - **`malformed_output` path:** validate every seat output against its schema's required fields; on failure retry ONCE with a compact schema reminder, then mark the seat `malformed_output` and exclude it. Never fabricate missing fields. ([references/operations.md#response-schema-validation](references/operations.md#response-schema-validation))

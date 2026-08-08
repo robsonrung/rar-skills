@@ -90,6 +90,7 @@ State follows `_shared/references/run-state-contract.md`; council-specific keys 
 
 **Orphaned process cleanup:**
 - When resuming, identify any runner PIDs or background tasks from the prior session and terminate them before launching new seats.
+- For `transport: cmux`, retain the recorded workspace and surface IDs for recovery, but do not close a workspace automatically. Closing a user-visible workspace needs explicit user direction; mark it stale and start a fresh workspace only when the user authorizes it.
 - In `inline` mode, recovery is limited to what fits in the current context; persist key digests to state when possible.
 
 **State update cadence:**
@@ -113,7 +114,7 @@ Validate every model output before accepting it into the digest/analysis. Output
 | `later-round-response.schema.json` | `debate` | Rounds 2..N — each seat's rebuttal/refinement after the anonymized digest |
 | — | `personas` | No JSON schemas: advisors, reviewers, and the chairman return prose in the fixed section structure of [personas.md](personas.md) |
 
-Pass the matching schema via `--output-schema` to seats that accept it — Codex and Grok validate it natively (`grok-runner` forwards it to grok's own `--json-schema`); the cline-backed Kimi and GLM seats accept the flag but enforce it by prompt. Gemini and Claude seats have no schema flag; for them (and as a backstop for everyone) the brief's trailing `Return ONLY JSON …` line holds the shape, and the moderator validates against the field lists below.
+Pass the matching schema via `--output-schema` to seats that accept it — Codex and Grok validate it natively (`grok-runner` forwards it to grok's own `--json-schema`); Cline-backed seats accept the flag but enforce it by prompt. Gemini and Claude seats have no schema flag; for them (and as a backstop for everyone) the brief's trailing `Return ONLY JSON …` line holds the shape, and the moderator validates against the field lists below.
 
 **`poll` required fields** (top level, per schema): opening answer — `answer`, `key_points`, `assumptions`, `confidence` (plus `sources_used` / `failed_lookups` under a research profile); organizer analysis — `consensus`, `contradictions`, `partial_coverage`, `unique_insights`, `blind_spots`, `material_gaps`; gap-repair — `item_responses`, `confidence`; judge — `verdicts`; synthesis — `consensus_answer`, `attribution_map`, `confidence_rationale`, `confidence`.
 
@@ -155,6 +156,7 @@ When artifact mode is `persisted`, use:
 - per-round outputs: `.ai-workflow/consensus/{session_id}-round-{n}-{seat}-output.json`
 - optional prompt files only when the selected runner requires them
 - prefer runner-level `--output-file` writes over shell redirection so incomplete seats do not leave misleading zero-byte artifacts
+- for `transport: cmux`, use the same per-round output path as the terminal's only permitted write, then read it with `scripts/cmux_council.py collect`
 
 When artifact mode is `inline`:
 - do not create temp prompt files; build prompts in memory
@@ -173,6 +175,8 @@ The report is the same document in both artifact modes — written to `.ai-workf
 Every mode additionally honors the shared output contract in SKILL.md (adoption grade, two-floor grounding gate, receipt-verified independence, the single next step, both confidence numbers).
 
 ## Runner Launch Policy
+
+This section applies to `transport: headless`. For interactive terminals, read [cmux-transport.md](cmux-transport.md) instead.
 
 Launch seats using native host tools when available; fall back to runner scripts only when native paths are unavailable. See [runner-invocations.md](runner-invocations.md) for complete invocation patterns, auth rules, and the runner output contract.
 

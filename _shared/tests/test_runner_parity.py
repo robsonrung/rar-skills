@@ -36,6 +36,7 @@ RUNNER_SCRIPTS = {
     "gemini": REPO_ROOT / "gemini-runner" / "scripts" / "run_gemini.py",
     "grok": REPO_ROOT / "grok-runner" / "scripts" / "run_grok.py",
     "cline": REPO_ROOT / "cline-runner" / "scripts" / "run_cline.py",
+    "muse": REPO_ROOT / "muse-runner" / "scripts" / "run_muse.py",
     "qwen": REPO_ROOT / "qwen-runner" / "scripts" / "run_qwen.py",
 }
 
@@ -95,6 +96,11 @@ class MissingCliEnvelopeParityTests(unittest.TestCase):
                     f"{name}: a missing CLI is untested auth (null), never false",
                 )
                 self.assertEqual(env["runner"], name)
+                if name == "qwen":
+                    self.assertEqual(env["effective_runner"], "cline")
+                    self.assertEqual(env["effective_model"], "qwen/qwen3.8-max")
+                    self.assertEqual(env["effective_provider"], "qwen")
+                    self.assertIn("Cline CLI not found", env["stderr"])
 
 
 class OutputFilePointerParityTests(unittest.TestCase):

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Muse Runner"
+  short_description: "Run Muse Spark 1.1 through Cline CLI"
+  default_prompt: "Use $muse-runner to execute this task with Muse Spark 1.1 from the current workspace."

@@ -23,8 +23,12 @@ DEFAULT_OUTPUT_FORMAT = "stream-json"
 # model id to infer a vendor from (see infer_provider_from_model).
 PROVIDER_BY_RUNNER = {
     "cline": "cline",
+    "gemma": "google",
     "glm": "zai",
     "kimi": "moonshotai",
+    "minimax": "minimax",
+    "muse": "meta",
+    "qwen": "qwen",
 }
 
 
