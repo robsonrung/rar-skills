@@ -1,6 +1,6 @@
 ---
 name: minimax-runner
-description: Execute prompts using Minimax models through Cline CLI in headless mode. Use when users explicitly request Minimax execution, when a workflow needs a Minimax seat, or when a cross-runner workflow wants a Minimax-backed perspective without leaving the current workspace.
+description: Execute prompts using Minimax models through Cline CLI in headless mode. Use when users explicitly request Minimax execution, when a workflow needs a Minimax seat, or when a cross-runner workflow wants a Minimax-backed perspective.
 ---
 
 # Minimax Runner

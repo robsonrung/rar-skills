@@ -1,6 +1,6 @@
 ---
 name: react-performance
-description: Advise on and review React code through the lenses of "Advanced React" (Makarevich) — unnecessary re-renders, composition-before-memoization, the memo/useMemo/useCallback traps, Context performance, refs & stale closures, debounce/throttle, useLayoutEffect flicker, portals & stacking context, data-fetching waterfalls & race conditions, and error boundaries. Use when writing or reviewing a React component/hook/context/provider, when chasing "why does this re-render" or "should I memoize this", or when dealing with stale state in a callback, UI flicker, modal clipping, fetch race conditions, or error handling. Detects the target repo's React version and state/UI libraries before applying version-specific rules. Distinct from architecture-lens (architecture) and design-patterns (GoF).
+description: Advise on and review React code through the lenses of "Advanced React" (Makarevich) — unnecessary re-renders, composition before memoization, Context performance, refs and stale closures, and async safety. Use when writing or reviewing a React component, hook, context, or provider; when chasing "why does this re-render" or "should I memoize this" (memo/useMemo/useCallback); or when dealing with stale state in a callback, useLayoutEffect flicker, portals and modal clipping, debounce/throttle, data-fetching waterfalls, fetch race conditions, or error boundaries.
 ---
 
 # React Performance & Patterns Lens

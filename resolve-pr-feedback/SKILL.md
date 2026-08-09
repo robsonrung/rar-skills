@@ -1,6 +1,6 @@
 ---
 name: resolve-pr-feedback
-description: Resolves PR review feedback end to end — evaluates every review comment against the actual code, fixes the valid findings, commits and pushes, replies to each thread with quoted context, and resolves the threads via GitHub's API. Use when resolving PR review feedback, addressing review comments, replying to and resolving review threads, or fixing code-review feedback on a GitHub PR. Distinct from full-review and the /review builtin, which review a diff to FIND issues and never resolve threads, and from a git merge-conflict resolution workflow, which handles conflicting commits, not review threads.
+description: Resolves PR review feedback end to end — evaluates every review comment against the code, fixes the valid findings, commits and pushes, then replies to and resolves each thread. Use when resolving PR review feedback, addressing review comments, or replying to and resolving review threads on a GitHub PR. Distinct from full-review and the /review builtin, which review a diff to FIND issues and never resolve threads, and from merge-conflict resolution, which handles conflicting commits, not review threads.
 argument-hint: "[PR number, comment URL, or blank for current branch's PR]"
 allowed-tools:
   - Bash

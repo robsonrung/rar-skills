@@ -1,6 +1,6 @@
 ---
 name: qwen-runner
-description: Execute prompts as the Qwen seat through Cline CLI headless mode, with Qwen3.8 Max forwarded as qwen/qwen3.8-max. Use when users explicitly request Qwen execution, when a workflow needs an independent Qwen seat, or when another runner skill reuses the shared Qwen shim.
+description: Execute prompts as the Qwen seat through Cline CLI headless mode, with Qwen3.8 Max forwarded as qwen/qwen3.8-max. Use when users explicitly request Qwen execution, when a workflow needs an independent Qwen seat, or when a cross-runner workflow selects Qwen.
 ---
 
 # Qwen Runner

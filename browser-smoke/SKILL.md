@@ -1,6 +1,6 @@
 ---
 name: browser-smoke
-description: "Diff-scoped browser smoke test: map the files changed by a branch or PR to the routes that render them, then drive a real browser through each affected page to verify it loads and works. Use when the user asks to smoke test this branch/PR in the browser, test the affected pages, or run a diff-scoped browser test; also invoked by ship's phase 5 in pipeline mode for web-facing changes. Scope is the diff, not the product: this is not whole-product release QA (persona journeys, full regression passes across untouched areas) — it only smoke-tests the pages the diff touches."
+description: "Diff-scoped browser smoke test: map the files changed by a branch or PR to the routes that render them, then drive a real browser through each affected page to verify it loads and works. Use when the user asks to smoke test this branch/PR in the browser, test the affected pages, or run a diff-scoped browser test; also invoked by ship in pipeline mode for web-facing changes. Scope is the diff, not the product: not whole-product release QA or a full regression pass across untouched areas."
 argument-hint: "[PR number, branch name, 'current', or --port PORT]"
 ---
 

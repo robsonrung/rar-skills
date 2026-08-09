@@ -5,12 +5,11 @@ description: >-
   running code can answer, extract the decision and its decision-rich
   snippets, then discard the code. Use when the user says prototype this,
   spike this, try it quick and dirty, test whether this library/data
-  model/state machine/UI feel works, or when a pipeline frame phase hits a
-  design unknown only running code can settle. Distinct from
-  `coding-design-plan` (owns the prototype-vs-tracer-bullet decision rule — a
-  tracer bullet is production-quality and kept), `tdd` (where the production
-  version is rebuilt test-first), and `brainstorm` (explores ideas in prose,
-  not code).
+  model/state machine/UI feel works, or when a pipeline frame phase hits such
+  an unknown. Distinct from `coding-design-plan` (owns the
+  prototype-vs-tracer-bullet decision rule — a tracer bullet is
+  production-quality and kept), `tdd` (rebuilds the production version
+  test-first), and `brainstorm` (explores ideas in prose, not code).
 ---
 
 # Prototype — Spike to Settle a Design Unknown

@@ -1,6 +1,6 @@
 ---
 name: dynamic-harness
-description: "Dynamic multi agent harness orchestration plus thin manager mission control for complex, high value tasks. Use when the user invokes $dynamic-harness or asks for a workflow, dynamic workflow, dynamic harness, ultracode style harness, many subagents, competing agents, tournament, fan out and synthesis, generate and filter, adversarial verification, classify and act routing, loop until done investigation, large migration, multi agent deep research, deep verification, qualitative sorting, triage at scale, or root cause analysis at scale with competing hypotheses. Also use for mission control: preserve context, avoid compaction, run subagents, create focused threads, split workstreams, manage handoffs, or supervise parallel agent execution."
+description: "Dynamic multi agent harness orchestration plus thin manager mission control for complex, high value tasks. Use when the user invokes $dynamic-harness or asks for a dynamic workflow, ultracode style harness, many subagents, competing agents, a tournament, fan out and synthesis, generate and filter, adversarial verification, classify and act routing, or a loop until done investigation — large migrations, multi agent deep research, triage at scale, or root cause analysis at scale with competing hypotheses. Also use for mission control: preserve context, avoid compaction, split workstreams across focused threads, manage handoffs, or supervise parallel agent execution."
 disable-model-invocation: true
 ---
 

@@ -1,6 +1,6 @@
 ---
 name: worktree
-description: "Set up an isolated git worktree — create a fresh branch for new work, or attach a worktree to an existing branch, PR, or commit to work on it in isolation. Both user-invocable and pipeline-invoked: use when the user asks to set up a git worktree, isolate work on a branch/PR/commit, or attach a worktree to an existing PR, and when an automated pipeline needs single-slice isolation (ship's autonomous loop invokes it before building a slice). Detects existing isolation first and prefers the harness-native worktree tool. implement-and-review manages its own multi-worktree flow and carries this skill's safety rules."
+description: "Set up an isolated git worktree — create a fresh branch for new work, or attach a worktree to an existing branch, PR, or commit to work on it in isolation. Use when the user asks to set up a git worktree, isolate work on a branch/PR/commit, or attach a worktree to an existing PR, and when an automated pipeline needs single-slice isolation (ship's autonomous loop invokes it before building a slice). Not for implement-and-review, which manages its own multi-worktree flow."
 ---
 
 # Worktree Isolation

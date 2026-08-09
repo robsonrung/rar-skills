@@ -1,6 +1,6 @@
 ---
 name: brainstorm
-description: "Creative exploration of half-baked ideas, plans, designs, and bugs. Acts as a creative thinking partner: digs into the motivation behind a request, explores the codebase, expands the solution space with alternatives the user hasn't considered, and closes with a strategic BUILD/DEFER/REDUCE SCOPE/REJECT verdict. Use when the user wants to brainstorm, shares a half-baked idea and wants help sharpening it, asks 'should we build this' or 'sharpen this idea', or wants to play devil's advocate on an idea (poke holes, challenge this, what am I missing). An opt-in Panel mode fans the exploration out to multiple models for ambiguous ideas — the multi-model alternative to the `interview` phase."
+description: "Creative exploration of half-baked ideas, plans, designs, and bugs. Acts as a creative thinking partner: digs into the motivation behind the request, expands the solution space with alternatives the user hasn't considered, and closes with a strategic BUILD/DEFER/REDUCE SCOPE/REJECT verdict. Use when the user wants to brainstorm, shares a half-baked idea, asks 'should we build this' or 'sharpen this idea', or wants to play devil's advocate (poke holes, challenge this, what am I missing). An opt-in Panel mode fans the exploration out to multiple models — the multi-model alternative to the `interview` phase."
 ---
 
 # Brainstorm: Creative Exploration

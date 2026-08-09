@@ -1,6 +1,6 @@
 ---
 name: kimi-runner
-description: Execute prompts as the Kimi seat through Cline CLI headless mode, with Moonshot's flagship Kimi K3 model actually forwarded (moonshotai/kimi-k3) — strong long-horizon coding, large-codebase understanding, 1M-token context, always-on thinking. Use when users explicitly request Kimi execution, when a workflow needs a Kimi-backed seat, or when a cross-runner workflow wants a Moonshot Kimi perspective without leaving the current workspace.
+description: Execute prompts as the Kimi seat through Cline CLI headless mode, with Moonshot's Kimi K3 forwarded (moonshotai/kimi-k3). Use when users explicitly request Kimi execution, when a workflow needs a Kimi-backed seat, or when a cross-runner workflow wants a Moonshot Kimi perspective.
 ---
 
 # Kimi Runner

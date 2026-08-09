@@ -1,19 +1,17 @@
 ---
 name: safe-incremental-coding
 description: >-
-  Get untested legacy code under a behavior-preserving characterization net so
-  it becomes safe to change — then hand execution back to `tdd`. Distilled
-  from Dave Farley's "The Software Developers' Guidebook". Use whenever you
-  must change code that has no tests, is scary to touch, or is
-  tangled/deeply-nested/long ("this is legacy", "add tests before I refactor",
-  "make this testable", "characterization tests", "approval tests", "pin the
-  current behavior first"). The defining move is building an approval /
-  characterization net BEFORE changing anything. Distinct from `tdd`
-  (red-green execution on new or already-tested code — the net built here
-  hands back to it), `clean-code` (tidying code that already has tests), and
-  `test-lens` (judging whether a test is worth keeping). Do NOT use for pure
-  diagnosis (use `diagnose`) or for new code with no legacy in sight (go
-  straight to `tdd`).
+  Get untested legacy code under a behavior-preserving characterization net
+  so it becomes safe to change — then hand execution back to `tdd`.
+  Distilled from Dave Farley's "The Software Developers' Guidebook". Use
+  whenever you must change code that has no tests, is scary to touch, or is
+  tangled/deeply-nested/long ("this is legacy", "add tests before I
+  refactor", "make this testable", "characterization tests", "approval
+  tests", "pin the current behavior first"). Distinct from `tdd` (red-green
+  execution on new or already-tested code — the net built here hands back to
+  it), `clean-code` (tidying code that already has tests), and `test-lens`
+  (judging whether a test is worth keeping). Do NOT use for pure diagnosis
+  (use `diagnose`) or for new code with no legacy in sight.
 ---
 
 # Safe Incremental Coding — the Legacy Net

@@ -1,6 +1,6 @@
 ---
 name: gemini-runner
-description: Execute prompts using Antigravity CLI (`agy`) headless print mode for a Gemini/Google seat. Use when users request Gemini execution, Antigravity CLI execution, or when a consensus workflow needs a Gemini seat and local `agy` is installed.
+description: Execute prompts using Antigravity CLI (`agy`) headless print mode for a Gemini/Google seat. Use when users request Gemini execution, Antigravity CLI execution, or when a consensus workflow needs a Gemini seat.
 ---
 
 # Gemini Runner

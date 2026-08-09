@@ -1,6 +1,6 @@
 ---
 name: glm-runner
-description: Execute prompts as the GLM seat through Cline CLI headless mode, with the model actually forwarded (zai/glm-5.2). Use when users explicitly request GLM execution, when a workflow needs a GLM-labelled seat, or when a cross-runner workflow selects GLM as a complementary provider.
+description: Execute prompts as the GLM seat through Cline CLI headless mode with zai/glm-5.2 forwarded. Use when users explicitly request GLM execution, when a workflow needs a GLM seat, or when a cross-runner workflow selects GLM as a complementary provider.
 ---
 
 # GLM Runner

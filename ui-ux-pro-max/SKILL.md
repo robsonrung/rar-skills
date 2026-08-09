@@ -1,6 +1,6 @@
 ---
 name: ui-ux-pro-max
-description: Searchable UI/UX design database (styles, color palettes, font pairings, UX guidelines, chart types, icons, stack best practices) that generates complete design systems. Use when designing or building any web/mobile UI — landing pages, dashboards, components — or when choosing styles, colors, typography, charts, or reviewing/fixing UI quality.
+description: Searchable UI/UX design database (styles, color palettes, font pairings, UX guidelines, chart types, icons, stack best practices) that generates complete design systems. Use when designing or building any web/mobile UI — landing pages, dashboards, components — or when reviewing/fixing UI quality.
 ---
 # ui-ux-pro-max
 

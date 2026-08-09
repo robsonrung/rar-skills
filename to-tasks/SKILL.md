@@ -1,6 +1,6 @@
 ---
 name: to-tasks
-description: Break an approved plan, spec, or PRD into autonomously executable tasks — tracer-bullet vertical slices that each carry a machine-checkable acceptance contract and design/security gate flags, so an agent can complete them without asking the user anything. Use when the user wants to break a plan into tasks, convert a spec or PRD into a work queue, create implementation tasks for autonomous agents, or when a pipeline planning phase needs the task breakdown. Use whenever tasks will be executed by agents; for human-executed tickets without contracts, plain tracker issues suffice. An opt-in Panel mode drafts the breakdown with a multi-model panel.
+description: Break an approved plan, spec, or PRD into autonomously executable tasks — tracer-bullet vertical slices that each carry a machine-checkable acceptance contract and design/security gate flags, so an agent can complete them without asking the user anything. Use when the user wants to break a plan into tasks, convert a spec or PRD into a work queue, create implementation tasks for autonomous agents, or when a pipeline planning phase needs the task breakdown. An opt-in Panel mode drafts the breakdown with a multi-model panel.
 ---
 
 # To Tasks

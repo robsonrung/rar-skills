@@ -1,17 +1,15 @@
 ---
 name: diagnose
 description: >-
-  Procedural debugging from reproduction to regression test — reproduce,
-  minimize, read the actual error, differential hypotheses, instrument, fix
-  the cause, encode the regression. Use when a bug, failing test, or
-  unexpected behavior needs root-causing; when the user says diagnose this,
-  debug this, find the root cause, or why does this fail; or when a pipeline
-  loops a verify failure back to implementation (mode:pipeline for the
-  non-interactive structured return). Distinct from `tdd` (owns the
-  implementation loop — a test failure understood at a glance mid-loop needs
-  no diagnosis), `fable-mindset` (the epistemic posture of its Diagnosis
-  moment — this skill is the procedure), and `full-review` (finds issues in
-  diffs, not in live failures).
+  Procedural debugging from reproduction to proven cause to regression test.
+  Use when a bug, failing test, or unexpected behavior needs root-causing;
+  when the user says diagnose this, debug this, find the root cause, or why
+  does this fail; or when a pipeline loops a verify failure back to
+  implementation (mode:pipeline for the non-interactive structured return).
+  Distinct from `tdd` (owns the implementation loop — a test failure
+  understood at a glance mid-loop needs no diagnosis), `fable-mindset` (the
+  epistemic posture of its Diagnosis moment — this skill is the procedure),
+  and `full-review` (finds issues in diffs, not in live failures).
 ---
 
 # Diagnose — From Symptom to Proven Cause

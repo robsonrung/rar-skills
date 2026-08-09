@@ -1,7 +1,7 @@
 ---
 name: collaborative-delivery
 description: >-
-  Multi-model panel-gated delivery workflow with mandatory anchor review at every phase — the panel-audited alternative to `implement-and-review`'s default build. Use when an approved task plan exists and the user wants multi-model collaborative delivery: auditable red-green-refactor with recorded model participation left in the repository. Choose it over `implement-and-review` when the audit trail of who reviewed what is itself a requirement; choose `implement-and-review` when you want the fastest correct build.
+  Multi-model panel-gated delivery workflow with mandatory anchor review at every phase — auditable red-green-refactor with recorded model participation left in the repository. Use when an approved task plan exists and the user wants multi-model collaborative delivery. Choose it over `implement-and-review` when the audit trail of who reviewed what is itself a requirement; choose `implement-and-review` when you want the fastest correct build.
 disable-model-invocation: true
 ---
 

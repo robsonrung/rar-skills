@@ -1,6 +1,6 @@
 ---
 name: claude-runner
-description: Execute prompts using Claude CLI in headless print mode from the current workspace. Use when users explicitly request Claude execution, when a cross-runner workflow selects Claude as the preferred model, or when repo automation needs a Claude CLI seat alongside the other runner seats.
+description: Execute prompts using Claude CLI in headless print mode. Use when users explicitly request Claude execution, when a cross-runner workflow selects Claude as the preferred model, or when repo automation needs a Claude CLI seat.
 ---
 
 # Claude Runner

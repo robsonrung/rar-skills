@@ -2,15 +2,14 @@
 name: interview
 description: >-
   Interactive requirements interview that stress-tests a feature idea against
-  the codebase, the repo glossary (CONCEPTS.md), and recorded decisions
-  (docs/adr/) until it is spec-ready — the pipeline's specify-phase interview
-  that runs before `to-spec`. Use when the user says interview me about this
-  feature, grill me on this idea, stress-test these requirements, pin down
-  what to build, make this spec-ready, or when a pipeline specify phase needs
-  the interview. Distinct from `brainstorm` (decides WHETHER to build — verdict;
-  its panel-mode discovery is the multi-model alternative to this interview),
-  `to-spec` (synthesizes the PRD from the finished conversation — no
-  interview), and `diagnose` (root-causing a bug, not pinning requirements).
+  the codebase, the repo glossary, and recorded decisions until it is
+  spec-ready — the pipeline's specify-phase interview that runs before
+  `to-spec`. Use when the user says interview me about this feature, grill me
+  on this idea, stress-test these requirements, pin down what to build, make
+  this spec-ready, or when a pipeline specify phase needs the interview.
+  Distinct from `brainstorm` (decides WHETHER to build — a verdict, not
+  requirements) and `to-spec` (synthesizes the PRD from the finished
+  conversation — no interview).
 ---
 
 # Interview — Grill the Feature Until It Is Spec-Ready

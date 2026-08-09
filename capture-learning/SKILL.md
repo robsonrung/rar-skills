@@ -1,6 +1,6 @@
 ---
 name: capture-learning
-description: Documents one recently solved problem as a durable solution doc in docs/solutions/ with searchable YAML frontmatter, and captures new domain vocabulary into the repo-root CONCEPTS.md. Use when the user says capture this learning, document what we learned, document what we solved, compound the knowledge, or write a solution doc — or when a pipeline invokes it with mode:headless after a verified fix (ship's wrap-up phase does exactly this). Not for ephemeral chat-only lesson extraction that leaves no durable store behind, and not for session-compression flows or session continuity and handoff summaries (that is summarize / session-handoff).
+description: Documents one recently solved problem as a durable solution doc in docs/solutions/ with searchable YAML frontmatter, and captures new domain vocabulary into the repo-root CONCEPTS.md. Use when the user says capture this learning, document what we learned, compound the knowledge, or write a solution doc — or when a pipeline invokes it with mode:headless after a verified fix. Not for ephemeral chat-only lesson extraction that leaves no durable store behind, and not for session-compression flows or session continuity and handoff summaries (that is summarize / session-handoff).
 ---
 
 # capture-learning

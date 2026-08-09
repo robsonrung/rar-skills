@@ -1,7 +1,7 @@
 ---
 name: implement-and-review
 description: >-
-  Implement ONE scoped task end-to-end with cross-model review. Given a task prompt, decide the frontend/backend split and route each track by task shape: the default Codex seat executes explicit backend and standard product-interface work, while the Opus seat handles visual or highly creative interfaces and unresolved root-cause diagnosis; the other seat reviews. Build test-first in parallel isolated git worktrees, apply the repo's lens skills, loop implement→cross-review→fix (max 3), integrate, self-simplify, then gate the final code with full-review. Use to implement/build/fix a single scoped task with TDD and cross-model review. For a whole feature, use implement-feature.
+  Implement ONE scoped task end-to-end with cross-model review: decide the frontend/backend split, build test-first in parallel isolated git worktrees, loop implement→cross-review→fix (max 3), integrate, self-simplify, then gate the final code with full-review. Use to implement/build/fix a single scoped task with TDD and cross-model review. For a whole feature, use implement-feature.
 ---
 
 # Implement And Review

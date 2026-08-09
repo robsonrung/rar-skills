@@ -1,13 +1,12 @@
 ---
 name: tdd
 description: >-
-  Execute coding work test-first through the red-green-refactor loop — the
-  pipeline's execution-with-TDD skill. Use when implementing a feature, bug
-  fix, or behavior change with tests; when the user says "tdd", "test-first",
-  "red-green-refactor", "write the test first", or "implement this with
-  tests"; and as the execution phase of a pipeline once a plan or task exists.
-  Entry rule: untested legacy code goes to `safe-incremental-coding` first
-  (characterization net), then returns here. Distinct from `test-lens`
+  Execute coding work test-first through the red-green-refactor loop. Use
+  when implementing a feature, bug fix, or behavior change with tests; when
+  the user says "tdd", "test-first", "red-green-refactor", or "write the
+  test first"; and as the execution phase of a pipeline once a plan or task
+  exists. Entry rule: untested legacy code goes to `safe-incremental-coding`
+  first (characterization net), then returns here. Distinct from `test-lens`
   (judging whether an existing test is worth keeping), `clean-code` (tidying
   already-tested code), and `diagnose` (root-causing a bug). Do NOT use for
   backfilling tests onto code already written — test-after is exactly what

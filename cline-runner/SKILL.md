@@ -1,6 +1,6 @@
 ---
 name: cline-runner
-description: Execute prompts using Cline CLI in headless print mode with NDJSON streaming output by default. Use when users explicitly request Cline execution, when a workflow needs a Cline-backed seat with an arbitrary provider/model pair (Anthropic, OpenAI, Z.AI, OpenRouter, etc.), or when a cross-runner workflow selects Cline as the preferred model.
+description: Execute prompts using Cline CLI in headless mode. Use when users explicitly request Cline execution, when a workflow needs a Cline-backed seat with an arbitrary provider/model pair (OpenRouter or any other Cline-supported provider), or when a cross-runner workflow selects Cline as the preferred model.
 ---
 
 # Cline Runner

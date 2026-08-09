@@ -1,6 +1,6 @@
 ---
 name: open-pr
-description: "Commits, pushes, and opens or updates a GitHub pull request with a high-signal, decision-cost-sized description. Use when the user asks to open a PR, commit push and open a pull request, turn current work into a PR, or write, rewrite, describe, or update a PR description or body. Distinct from ship (full idea-to-PR pipeline — it delegates PR composition here), implement-and-review (implements and reviews code but never pushes or opens PRs), and repo git-safety tooling (guardrails around git operations, not PR composition)."
+description: "Commits, pushes, and opens or updates a GitHub pull request with a high-signal, decision-cost-sized description. Use when the user asks to open a PR, commit push and open a pull request, turn current work into a PR, or write, rewrite, describe, or update a PR description or body. Distinct from ship (full idea-to-PR pipeline — it delegates PR composition here) and implement-and-review (writes and reviews code, never pushes or opens PRs)."
 ---
 
 # Open PR

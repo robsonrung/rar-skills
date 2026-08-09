@@ -1,6 +1,6 @@
 ---
 name: gemma-runner
-description: Execute prompts using Google Gemma models through Cline CLI in headless mode. Use when users explicitly request Gemma execution, when a workflow needs a Gemma seat, or when a cross-runner workflow wants a Gemma-backed perspective without leaving the current workspace.
+description: Execute prompts using Google Gemma models through Cline CLI in headless mode. Use when users explicitly request Gemma execution, when a workflow needs a Gemma seat, or when a cross-runner workflow wants a Gemma-backed perspective.
 ---
 
 # Gemma Runner

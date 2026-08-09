@@ -1,6 +1,6 @@
 ---
 name: test-lens
-description: Judge and write valuable unit/integration tests using Khorikov's framework — score tests on the four pillars (regression protection, resistance to refactoring, fast feedback, maintainability), test observable behavior not implementation details, pick the right testing style, and apply the mock-vs-stub / managed-vs-unmanaged rules. Use when writing tests, reviewing tests, deciding WHAT to test or WHETHER a test is worth keeping, when a test is brittle/flaky on refactor, or when deciding what to mock. Triggers on "is this a good test", "why does this test break when I refactor", "should I mock this", "what should I test here", "review my tests", "is this test worth it". Distinct from tdd (red-green loop mechanics), clean-code (prod readability), and a bug-hunting code-review pass.
+description: Judge and write valuable unit/integration tests using Khorikov's framework — score tests on the four pillars (regression protection, resistance to refactoring, fast feedback, maintainability), test observable behavior not implementation details, pick the right testing style, and apply the mock-vs-stub / managed-vs-unmanaged rules. Use when writing tests, reviewing tests, deciding WHAT to test or WHETHER a test is worth keeping, when a test is brittle/flaky on refactor, or when deciding what to mock. Triggers on "is this a good test", "why does this test break when I refactor". Distinct from tdd (red-green loop mechanics), clean-code (prod readability), and a bug-hunting code-review pass.
 ---
 
 # Test Lens — Valuable Unit Testing
