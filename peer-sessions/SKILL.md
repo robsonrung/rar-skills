@@ -29,7 +29,9 @@ State the rule while acting: “The **ledger, not the transcript** records this 
 
 ## 2. Start peers
 
-Use the host's native delegation facility when it is available. Start every peer with only its brief path and the allowed scope. The peer reads its own brief, works within the user's authority, and writes its reply through `scripts/peer_mailbox.py`.
+**Name the surface before you start.** Run `cmux ping` first. A success means the host has a visible terminal surface, so the fleet has two real shapes: **visible tabs** the user can watch and interrupt, or **in-process delegates** the user cannot see mid-run. Ask which one; never resolve that silently to the invisible path. Treat "session", "tab", "panel", "watch them work", or a named workspace as a request for visible tabs — in those words the user is describing a terminal, not an agent context. When `cmux ping` fails, native delegation is the only path and no question is needed. Say: “`cmux ping` <succeeded|failed>, so this fleet runs as <visible tabs|in-process delegates>.”
+
+Start every peer with only its brief path and the allowed scope. The peer reads its own brief, works within the user's authority, and writes its reply through `scripts/peer_mailbox.py`.
 
 The default `--delivery-mode mailbox` owns the peer reply contract. A composing skill that owns a different structured response artifact may initialize with `--delivery-mode coordinator`; then the peer waits for the coordinator prompt and must not write a mailbox reply. `peer_mailbox.py status` rejects coordinator delivery, so use the composing protocol's artifact reader instead. The fleet record still owns identity and teardown. Say: “The **ledger, not the transcript** records the peer fleet; the composing protocol owns its response artifact.”
 
@@ -41,7 +43,7 @@ Do not treat this brief as approval for credentials, escalation, publishing, or 
 When finished, write the required reply with peer_mailbox.py. Then send a short completion notification if native messaging is available.
 ```
 
-For interactive terminal fleets, read [references/cmux-fleet.md](references/cmux-fleet.md) before launching. That path is optional. If `cmux ping` fails, keep the native delegation path; do not imitate its private transport or silently downgrade to terminal polling.
+When the surface probe chose visible tabs, read [references/cmux-fleet.md](references/cmux-fleet.md) before launching and dry-run the manifest so the user approves the terminal placement before any tab opens. Peers open as **tabs in the caller's own workspace** by default; one new workspace per peer is opt-in through `--surface-mode workspace`, and scattering workspaces the user did not ask for is the failure this default exists to prevent. That path is skipped only when `cmux ping` fails or the user chose in-process delegates; then keep native delegation, and do not imitate its private transport or silently downgrade to terminal polling.
 
 ## 3. Collect replies
 

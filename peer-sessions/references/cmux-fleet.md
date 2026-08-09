@@ -40,7 +40,18 @@ Start it only after confirming the plan and the user's terminal-placement intent
 SKILL_DIR="<absolute path of this peer-sessions directory>"; python3 "$SKILL_DIR/scripts/cmux_fleet.py" start --manifest /absolute/path/to/fleet.json --state-file /absolute/path/to/fleet-terminals.json
 ```
 
-The state file contains only workspace and surface IDs created by this run. It is the teardown allowlist. Do not close a workspace not present in that file.
+## Choose the placement
+
+`--surface-mode` decides where the peers appear, and the two shapes are not interchangeable:
+
+| Mode | Effect | Use when |
+| --- | --- | --- |
+| `tab` (default) | One tab per peer inside one existing workspace, named after the peer. | The user wants to watch the fleet beside their own session. |
+| `workspace` | One new workspace per peer. | The user explicitly wants peers isolated in separate workspaces. |
+
+Tab mode targets `--workspace`, defaulting to the caller's own `CMUX_WORKSPACE_ID`. It opens each tab with `--focus false` so the fleet never steals focus mid-launch, and addresses every `send` with an explicit `--surface`. **Address the surface, never the focus**: an unaddressed `send` lands in whatever tab happens to be selected, which can be the coordinator's own session.
+
+The state file contains only workspace and surface IDs created by this run. It is the teardown allowlist. Do not close a workspace or tab not present in that file. In tab mode the enclosing workspace pre-existed the run and is never yours to close — close only the recorded surfaces.
 
 ## Relay rule
 

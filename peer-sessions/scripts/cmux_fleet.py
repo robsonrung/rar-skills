@@ -5,12 +5,17 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
+import re
 import shlex
 import subprocess
 import sys
 import tempfile
 from pathlib import Path
 from typing import Any
+
+
+UUID = re.compile(r"^[0-9A-Fa-f]{8}(?:-[0-9A-Fa-f]{4}){3}-[0-9A-Fa-f]{12}$")
 
 
 class UsageError(ValueError):
@@ -103,9 +108,58 @@ def surface_id(raw: str) -> str:
     return surface
 
 
-def plan(peers: list[dict[str, Any]], cmux_bin: str) -> list[list[str]]:
+def surface_ids(raw: str) -> list[str]:
+    """Parse `cmux list-pane-surfaces --id-format uuids` rows into surface ids.
+
+    Rows look like `* <uuid>  <title>  [selected]`; the leading marker flags the
+    selected tab and is not part of the id.
+    """
+    found: list[str] = []
+    for line in raw.splitlines():
+        stripped = line.strip().lstrip("*").strip()
+        if not stripped:
+            continue
+        token = stripped.split()[0]
+        if UUID.fullmatch(token):
+            found.append(token)
+    return found
+
+
+def created_surface(before: list[str], after: list[str]) -> str:
+    created = [surface for surface in after if surface not in before]
+    if len(created) != 1:
+        raise UsageError("cmux new-surface did not create exactly one visible tab")
+    return created[0]
+
+
+def target_workspace(explicit: str | None) -> str:
+    """Resolve the workspace that will hold the peer tabs.
+
+    Defaults to the caller's own workspace so the fleet appears as tabs beside
+    the coordinator rather than scattered across new workspaces.
+    """
+    workspace = explicit or os.environ.get("CMUX_WORKSPACE_ID")
+    if not workspace:
+        raise UsageError("no target workspace: pass --workspace or run inside a cmux workspace")
+    return workspace
+
+
+def plan(peers: list[dict[str, Any]], cmux_bin: str, surface_mode: str, workspace: str | None) -> list[list[str]]:
     result: list[list[str]] = []
     for peer in peers:
+        if surface_mode == "tab":
+            target = workspace or "<current-workspace>"
+            result.extend([
+                [cmux_bin, "list-pane-surfaces", "--workspace", target, "--id-format", "uuids"],
+                [cmux_bin, "new-surface", "--type", "terminal", "--workspace", target, "--focus", "false"],
+                [cmux_bin, "list-pane-surfaces", "--workspace", target, "--id-format", "uuids"],
+                [cmux_bin, "rename-tab", "--surface", "<new-surface>", peer["id"]],
+                [cmux_bin, "send", "--surface", "<new-surface>", launch_command(peer)],
+                [cmux_bin, "send-key", "--surface", "<new-surface>", "enter"],
+                [cmux_bin, "send", "--surface", "<new-surface>", f"Read the brief file for {peer['id']} and follow it."],
+                [cmux_bin, "send-key", "--surface", "<new-surface>", "enter"],
+            ])
+            continue
         result.extend([
             [cmux_bin, "list-workspaces", "--json"],
             [cmux_bin, "new-workspace"],
@@ -140,6 +194,28 @@ def write_json(path: Path, value: dict[str, Any]) -> None:
     temporary.replace(path)
 
 
+def start_tabs(run_dir: Path, peers: list[dict[str, Any]], cmux_bin: str, workspace: str) -> dict[str, Any]:
+    """Open one tab per peer inside an existing workspace.
+
+    Every send is addressed with an explicit `--surface`, so a peer's brief can
+    never land in the coordinator's own tab if focus moves mid-launch.
+    """
+    listing = [cmux_bin, "list-pane-surfaces", "--workspace", workspace, "--id-format", "uuids"]
+    terminals = []
+    for peer in peers:
+        before = surface_ids(invoke(listing).stdout)
+        invoke([cmux_bin, "new-surface", "--type", "terminal", "--workspace", workspace, "--focus", "false"])
+        surface = created_surface(before, surface_ids(invoke(listing).stdout))
+        invoke([cmux_bin, "rename-tab", "--surface", surface, peer["id"]])
+        invoke([cmux_bin, "send", "--surface", surface, launch_command(peer)])
+        invoke([cmux_bin, "send-key", "--surface", surface, "enter"])
+        prompt = f"Read {run_dir / 'briefs' / (peer['id'] + '.md')} and follow it."
+        invoke([cmux_bin, "send", "--surface", surface, prompt])
+        invoke([cmux_bin, "send-key", "--surface", surface, "enter"])
+        terminals.append({"peer": peer["id"], "workspace_id": workspace, "surface_id": surface})
+    return {"run_dir": str(run_dir), "transport": "cmux", "surface_mode": "tab", "terminals": terminals}
+
+
 def start(run_dir: Path, peers: list[dict[str, Any]], cmux_bin: str) -> dict[str, Any]:
     terminals = []
     for peer in peers:
@@ -156,16 +232,23 @@ def start(run_dir: Path, peers: list[dict[str, Any]], cmux_bin: str) -> dict[str
         invoke([cmux_bin, "send", prompt])
         invoke([cmux_bin, "send-key", "enter"])
         terminals.append({"peer": peer["id"], "workspace_id": workspace, "surface_id": surface})
-    return {"run_dir": str(run_dir), "transport": "cmux", "terminals": terminals}
+    return {"run_dir": str(run_dir), "transport": "cmux", "surface_mode": "workspace", "terminals": terminals}
 
 
 def parse_args(argv: list[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--cmux-bin", default="cmux")
     subparsers = parser.add_subparsers(dest="command", required=True)
-    launch = subparsers.add_parser("start", help="create one cmux workspace for each peer")
+    launch = subparsers.add_parser("start", help="open one cmux terminal for each peer")
     launch.add_argument("--manifest", required=True)
     launch.add_argument("--state-file")
+    launch.add_argument(
+        "--surface-mode",
+        choices=("tab", "workspace"),
+        default="tab",
+        help="tab: one tab per peer inside an existing workspace (default); workspace: one new workspace per peer",
+    )
+    launch.add_argument("--workspace", help="tab mode only; defaults to the caller's CMUX_WORKSPACE_ID")
     launch.add_argument("--dry-run", action="store_true")
     return parser.parse_args(argv)
 
@@ -175,8 +258,17 @@ def main(argv: list[str] | None = None) -> int:
         args = parse_args(argv if argv is not None else sys.argv[1:])
         manifest = load_json(Path(args.manifest).expanduser(), "manifest")
         run_dir, peers = validate_manifest(manifest)
+        workspace = target_workspace(args.workspace) if args.surface_mode == "tab" and not args.dry_run else args.workspace
         if args.dry_run:
-            result = {"run_dir": str(run_dir), "transport": "cmux", "dry_run": True, "plan": plan(peers, args.cmux_bin)}
+            result = {
+                "run_dir": str(run_dir),
+                "transport": "cmux",
+                "surface_mode": args.surface_mode,
+                "dry_run": True,
+                "plan": plan(peers, args.cmux_bin, args.surface_mode, workspace),
+            }
+        elif args.surface_mode == "tab":
+            result = start_tabs(run_dir, peers, args.cmux_bin, workspace)
         else:
             result = start(run_dir, peers, args.cmux_bin)
             if args.state_file:
