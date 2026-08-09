@@ -43,7 +43,7 @@ Do not treat this brief as approval for credentials, escalation, publishing, or 
 When finished, write the required reply with peer_mailbox.py. Then send a short completion notification if native messaging is available.
 ```
 
-When the surface probe chose visible tabs, read [references/cmux-fleet.md](references/cmux-fleet.md) before launching and dry-run the manifest so the user approves the terminal placement before any tab opens. Peers open as **tabs in the caller's own workspace** by default; one new workspace per peer is opt-in through `--surface-mode workspace`, and scattering workspaces the user did not ask for is the failure this default exists to prevent. That path is skipped only when `cmux ping` fails or the user chose in-process delegates; then keep native delegation, and do not imitate its private transport or silently downgrade to terminal polling.
+When the surface probe chose visible tabs, read [references/cmux-fleet.md](references/cmux-fleet.md) before launching and dry-run the manifest so the user approves the terminal placement before any tab opens. Peers open as **panes split beside the caller** by default, so the whole fleet is visible on one screen; `--surface-mode tab` gives one tab per peer and `workspace` gives one workspace per peer. Scattering workspaces the user did not ask for is the failure this default exists to prevent. Screen space, not the fleet cap, bounds split mode — past roughly six panes, choose tabs and say so. That path is skipped only when `cmux ping` fails or the user chose in-process delegates; then keep native delegation, and do not imitate its private transport or silently downgrade to terminal polling.
 
 ## 3. Collect replies
 

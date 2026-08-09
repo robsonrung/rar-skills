@@ -132,6 +132,31 @@ def created_surface(before: list[str], after: list[str]) -> str:
     return created[0]
 
 
+def caller_surface(cmux_bin: str, explicit: str | None) -> str:
+    """Resolve the surface the fleet splits away from — the caller's own pane."""
+    if explicit:
+        return explicit
+    env = os.environ.get("CMUX_SURFACE_ID")
+    if env:
+        return env
+    identify = json.loads(invoke([cmux_bin, "identify", "--json"]).stdout)
+    ref = identify.get("caller", {}).get("surface_ref")
+    if not isinstance(ref, str):
+        raise UsageError("cmux identify did not report a caller surface to split from")
+    return ref
+
+
+def split_plan(count: int, direction: str) -> list[str]:
+    """Directions for each successive split.
+
+    `auto` alternates right/down so panes tile toward a grid instead of
+    shaving ever-thinner columns off one edge.
+    """
+    if direction != "auto":
+        return [direction] * count
+    return ["right" if index % 2 == 0 else "down" for index in range(count)]
+
+
 def target_workspace(explicit: str | None) -> str:
     """Resolve the workspace that will hold the peer tabs.
 
@@ -144,9 +169,30 @@ def target_workspace(explicit: str | None) -> str:
     return workspace
 
 
-def plan(peers: list[dict[str, Any]], cmux_bin: str, surface_mode: str, workspace: str | None) -> list[list[str]]:
+def plan(
+    peers: list[dict[str, Any]],
+    cmux_bin: str,
+    surface_mode: str,
+    workspace: str | None,
+    direction: str = "auto",
+) -> list[list[str]]:
     result: list[list[str]] = []
-    for peer in peers:
+    headings = split_plan(len(peers), direction)
+    for index, peer in enumerate(peers):
+        if surface_mode == "split":
+            target = workspace or "<current-workspace>"
+            anchor = "<caller-surface>" if index == 0 else "<previous-split>"
+            result.extend([
+                [cmux_bin, "list-pane-surfaces", "--workspace", target, "--id-format", "uuids"],
+                [cmux_bin, "new-split", headings[index], "--workspace", target, "--surface", anchor, "--focus", "false"],
+                [cmux_bin, "list-pane-surfaces", "--workspace", target, "--id-format", "uuids"],
+                [cmux_bin, "rename-tab", "--surface", "<new-split>", peer["id"]],
+                [cmux_bin, "send", "--surface", "<new-split>", launch_command(peer)],
+                [cmux_bin, "send-key", "--surface", "<new-split>", "enter"],
+                [cmux_bin, "send", "--surface", "<new-split>", f"Read the brief file for {peer['id']} and follow it."],
+                [cmux_bin, "send-key", "--surface", "<new-split>", "enter"],
+            ])
+            continue
         if surface_mode == "tab":
             target = workspace or "<current-workspace>"
             result.extend([
@@ -192,6 +238,37 @@ def write_json(path: Path, value: dict[str, Any]) -> None:
         json.dump(value, handle, indent=2, ensure_ascii=False)
         handle.write("\n")
     temporary.replace(path)
+
+
+def start_splits(
+    run_dir: Path,
+    peers: list[dict[str, Any]],
+    cmux_bin: str,
+    workspace: str,
+    anchor: str,
+    direction: str,
+) -> dict[str, Any]:
+    """Split the caller's pane once per peer so the whole fleet shares one screen.
+
+    Each split anchors on the previously created pane, so the panes tile instead
+    of repeatedly halving the coordinator's own pane. As in tab mode, every send
+    is addressed with an explicit `--surface`.
+    """
+    listing = [cmux_bin, "list-pane-surfaces", "--workspace", workspace, "--id-format", "uuids"]
+    terminals = []
+    for peer, heading in zip(peers, split_plan(len(peers), direction)):
+        before = surface_ids(invoke(listing).stdout)
+        invoke([cmux_bin, "new-split", heading, "--workspace", workspace, "--surface", anchor, "--focus", "false"])
+        surface = created_surface(before, surface_ids(invoke(listing).stdout))
+        invoke([cmux_bin, "rename-tab", "--surface", surface, peer["id"]])
+        invoke([cmux_bin, "send", "--surface", surface, launch_command(peer)])
+        invoke([cmux_bin, "send-key", "--surface", surface, "enter"])
+        prompt = f"Read {run_dir / 'briefs' / (peer['id'] + '.md')} and follow it."
+        invoke([cmux_bin, "send", "--surface", surface, prompt])
+        invoke([cmux_bin, "send-key", "--surface", surface, "enter"])
+        terminals.append({"peer": peer["id"], "workspace_id": workspace, "surface_id": surface, "split": heading})
+        anchor = surface
+    return {"run_dir": str(run_dir), "transport": "cmux", "surface_mode": "split", "terminals": terminals}
 
 
 def start_tabs(run_dir: Path, peers: list[dict[str, Any]], cmux_bin: str, workspace: str) -> dict[str, Any]:
@@ -244,11 +321,18 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     launch.add_argument("--state-file")
     launch.add_argument(
         "--surface-mode",
-        choices=("tab", "workspace"),
-        default="tab",
-        help="tab: one tab per peer inside an existing workspace (default); workspace: one new workspace per peer",
+        choices=("split", "tab", "workspace"),
+        default="split",
+        help="split: tile every peer beside the caller on one screen (default); tab: one tab per peer; workspace: one new workspace per peer",
     )
-    launch.add_argument("--workspace", help="tab mode only; defaults to the caller's CMUX_WORKSPACE_ID")
+    launch.add_argument("--workspace", help="split/tab modes; defaults to the caller's CMUX_WORKSPACE_ID")
+    launch.add_argument("--anchor-surface", help="split mode only; the surface to split from, defaults to CMUX_SURFACE_ID")
+    launch.add_argument(
+        "--split-direction",
+        choices=("auto", "left", "right", "up", "down"),
+        default="auto",
+        help="split mode only; auto alternates right/down so panes tile toward a grid",
+    )
     launch.add_argument("--dry-run", action="store_true")
     return parser.parse_args(argv)
 
@@ -258,15 +342,19 @@ def main(argv: list[str] | None = None) -> int:
         args = parse_args(argv if argv is not None else sys.argv[1:])
         manifest = load_json(Path(args.manifest).expanduser(), "manifest")
         run_dir, peers = validate_manifest(manifest)
-        workspace = target_workspace(args.workspace) if args.surface_mode == "tab" and not args.dry_run else args.workspace
+        in_workspace = args.surface_mode in ("split", "tab")
+        workspace = target_workspace(args.workspace) if in_workspace and not args.dry_run else args.workspace
         if args.dry_run:
             result = {
                 "run_dir": str(run_dir),
                 "transport": "cmux",
                 "surface_mode": args.surface_mode,
                 "dry_run": True,
-                "plan": plan(peers, args.cmux_bin, args.surface_mode, workspace),
+                "plan": plan(peers, args.cmux_bin, args.surface_mode, workspace, args.split_direction),
             }
+        elif args.surface_mode == "split":
+            anchor = caller_surface(args.cmux_bin, args.anchor_surface)
+            result = start_splits(run_dir, peers, args.cmux_bin, workspace, anchor, args.split_direction)
         elif args.surface_mode == "tab":
             result = start_tabs(run_dir, peers, args.cmux_bin, workspace)
         else:

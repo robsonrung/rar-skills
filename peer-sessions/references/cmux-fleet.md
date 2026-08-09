@@ -46,10 +46,15 @@ SKILL_DIR="<absolute path of this peer-sessions directory>"; python3 "$SKILL_DIR
 
 | Mode | Effect | Use when |
 | --- | --- | --- |
-| `tab` (default) | One tab per peer inside one existing workspace, named after the peer. | The user wants to watch the fleet beside their own session. |
+| `split` (default) | One pane per peer, tiled beside the caller in the current workspace. | The user wants the whole fleet visible on one screen at once. |
+| `tab` | One tab per peer in one existing workspace. Only one is on screen at a time. | Peers are long-running and the user will switch between them. |
 | `workspace` | One new workspace per peer. | The user explicitly wants peers isolated in separate workspaces. |
 
-Tab mode targets `--workspace`, defaulting to the caller's own `CMUX_WORKSPACE_ID`. It opens each tab with `--focus false` so the fleet never steals focus mid-launch, and addresses every `send` with an explicit `--surface`. **Address the surface, never the focus**: an unaddressed `send` lands in whatever tab happens to be selected, which can be the coordinator's own session.
+Split mode anchors the first split on the caller's own surface (`--anchor-surface`, defaulting to `CMUX_SURFACE_ID`) and every later split on the pane it just created, so panes tile instead of repeatedly halving the coordinator's pane. `--split-direction auto` alternates right/down toward a grid; pass a fixed direction for a single row or column.
+
+All in-workspace modes target `--workspace`, defaulting to the caller's own `CMUX_WORKSPACE_ID`, and create surfaces with `--focus false` so the fleet never steals focus mid-launch. Every `send` carries an explicit `--surface`. **Address the surface, never the focus**: an unaddressed `send` lands in whatever pane happens to be selected, which can be the coordinator's own session.
+
+Screen space is the real limit on split mode, not the fleet cap. Four panes plus the coordinator is comfortable; beyond roughly six, panes get too short to read and `tab` is the better placement. Say which one you chose and why.
 
 The state file contains only workspace and surface IDs created by this run. It is the teardown allowlist. Do not close a workspace or tab not present in that file. In tab mode the enclosing workspace pre-existed the run and is never yours to close — close only the recorded surfaces.
 
