@@ -103,6 +103,83 @@ class RelayProtocolTests(unittest.TestCase):
             cmux_council.new_workspace_id(before, before)
 
 
+class PeerFleetAdoptionTests(unittest.TestCase):
+    def write_peer_fleet(self, root: Path, delivery_mode: str = "coordinator") -> Path:
+        run_dir = root / "peer-fleet"
+        run_dir.mkdir()
+        (run_dir / "state.json").write_text(
+            json.dumps(
+                {
+                    "schema_version": 1,
+                    "delivery_mode": delivery_mode,
+                    "peers": [{"id": "grok"}, {"id": "codex"}],
+                }
+            ),
+            encoding="utf-8",
+        )
+        return run_dir
+
+    def test_adopt_peer_fleet_records_existing_surfaces(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            run_dir = self.write_peer_fleet(root)
+            terminal_state = root / "terminals.json"
+            terminal_state.write_text(
+                json.dumps(
+                    {
+                        "run_dir": str(run_dir),
+                        "transport": "cmux",
+                        "terminals": [
+                            {"peer": "codex", "workspace_id": "workspace:2", "surface_id": "surface:2"},
+                            {"peer": "grok", "workspace_id": "workspace:1", "surface_id": "surface:1"},
+                        ],
+                    }
+                ),
+                encoding="utf-8",
+            )
+            adopted = cmux_council.adopt_peer_fleet(
+                "council-42", str(run_dir), str(terminal_state), ["grok", "codex"]
+            )
+        self.assertEqual(adopted["session"], "consensus-council-42")
+        self.assertEqual([seat["id"] for seat in adopted["seats"]], ["codex", "grok"])
+        self.assertEqual(adopted["seats"][0]["surface_id"], "surface:2")
+
+    def test_adopt_rejects_mailbox_peer_fleet(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            run_dir = self.write_peer_fleet(root, delivery_mode="mailbox")
+            terminal_state = root / "terminals.json"
+            terminal_state.write_text(
+                json.dumps({"run_dir": str(run_dir), "transport": "cmux", "terminals": []}),
+                encoding="utf-8",
+            )
+            with self.assertRaisesRegex(cmux_council.UsageError, "delivery_mode coordinator"):
+                cmux_council.adopt_peer_fleet(
+                    "council-42", str(run_dir), str(terminal_state), ["grok", "codex"]
+                )
+
+    def test_adopt_rejects_a_fleet_with_unselected_seats(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            root = Path(temp_dir)
+            run_dir = self.write_peer_fleet(root)
+            terminal_state = root / "terminals.json"
+            terminal_state.write_text(
+                json.dumps(
+                    {
+                        "run_dir": str(run_dir),
+                        "transport": "cmux",
+                        "terminals": [
+                            {"peer": "codex", "workspace_id": "workspace:2", "surface_id": "surface:2"},
+                            {"peer": "grok", "workspace_id": "workspace:1", "surface_id": "surface:1"},
+                        ],
+                    }
+                ),
+                encoding="utf-8",
+            )
+            with self.assertRaisesRegex(cmux_council.UsageError, "does not match"):
+                cmux_council.adopt_peer_fleet("council-42", str(run_dir), str(terminal_state), ["grok"])
+
+
 class CmuxInvocationTests(unittest.TestCase):
     def test_missing_cmux_is_reported_as_a_usage_error(self):
         with mock.patch("cmux_council.subprocess.run", side_effect=FileNotFoundError):

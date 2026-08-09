@@ -26,9 +26,9 @@ Flags, combinable with any mode: [`clarify`](#clarify), [`decider_context: repor
 | Transport | Default | Execution |
 | --- | --- | --- |
 | `headless` | Yes | Current native-seat and runner workflow. It keeps runner envelopes and verified model receipts. |
-| `cmux` | No | One interactive cmux workspace per seat. The moderator relays turns through JSON artifacts. Read [references/cmux-transport.md](references/cmux-transport.md) before launching. |
+| `cmux` | No | `peer-sessions` creates and records one interactive cmux workspace per seat. The moderator adopts that fleet and relays turns through JSON artifacts. Read [references/cmux-transport.md](references/cmux-transport.md) before launching. |
 
-`transport: cmux` changes how seats converse, not what the council is allowed to do. It remains deliberation-only and read-only except for each seat's single response artifact. The **terminal relay** is the rule: say, “The **terminal relay** will carry the anonymized digest, not a terminal transcript.”
+`transport: cmux` changes how seats converse, not what the council is allowed to do. It remains deliberation-only and read-only except for each seat's single response artifact. `peer-sessions` owns fleet identity, terminal placement, and teardown; this skill owns prompts, artifacts, and anonymized relays. The **terminal relay** is the rule: say, “The **terminal relay** will carry the anonymized digest, not a terminal transcript.”
 
 ## Shared Preflight
 
@@ -43,7 +43,7 @@ For judgment-heavy `personas` runs, prefer the Opus seat, then the Codex seat, t
 
 ### 1. Probe and smoke-test seats
 
-For `transport: headless`, use the existing probe and headless smoke workflow below. For `transport: cmux`, read [references/cmux-transport.md](references/cmux-transport.md), run `cmux ping`, and start only interactive commands through `cmux_council.py`. Do not invoke runner scripts, `codex exec`, or host-native subagents in this transport. The first artifact-producing turn is the authentication and response check; it is not a serving-model receipt.
+For `transport: headless`, use the existing probe and headless smoke workflow below. For `transport: cmux`, read [references/cmux-transport.md](references/cmux-transport.md), run `cmux ping`, and invoke `peer-sessions` in coordinator delivery mode before adopting its terminal state through `cmux_council.py`. Do not invoke runner scripts or host-native subagents in this transport. The first artifact-producing turn is the authentication and response check; it is not a serving-model receipt.
 
 ```bash
 python3 .agents/skills/_shared/scripts/discover_runners.py probe \
@@ -60,7 +60,7 @@ Artifact mode is `persisted` when `.ai-workflow/consensus/` is writable, else `i
 
 ### 3. Seat table
 
-For each seat record `seat`, `selection_status`, `execution_path` (`native`/`runner`/`cmux_interactive`/`unavailable`), `effective_provider`, `effective_model` (the envelope receipt, once known), `blocked_reason`, `is_duplicate`. In `cmux_interactive`, also record `workspace_id`, `surface_id`, artifact path, and `receipt_status`. Launch nothing until the table is complete.
+For each seat record `seat`, `selection_status`, `execution_path` (`native`/`runner`/`cmux_interactive`/`unavailable`), `effective_provider`, `effective_model` (the envelope receipt, once known), `blocked_reason`, `is_duplicate`. In `cmux_interactive`, also record the peer fleet run directory, `workspace_id`, `surface_id`, artifact path, and `receipt_status`. Launch nothing until the table is complete.
 
 ### 4. Deterministic seat rules
 

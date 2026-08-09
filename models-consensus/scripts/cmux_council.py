@@ -250,6 +250,71 @@ def load_json(path: str, label: str) -> Any:
         raise UsageError(f"{label} is not valid JSON: {exc}") from exc
 
 
+def adopt_peer_fleet(
+    session_id: str,
+    peer_run: str,
+    terminal_state: str,
+    expected_seats: Sequence[str],
+) -> dict[str, Any]:
+    """Normalize a peer-sessions terminal record into council seat state."""
+    session = session_name(session_id)
+    run_dir = Path(peer_run).expanduser().resolve()
+    fleet = load_json(str(run_dir / "state.json"), "peer fleet state")
+    if not isinstance(fleet, dict) or fleet.get("schema_version") != 1:
+        raise UsageError("peer fleet state has an unsupported schema")
+    if fleet.get("delivery_mode") != "coordinator":
+        raise UsageError("peer fleet must use delivery_mode coordinator")
+    peers = fleet.get("peers")
+    if not isinstance(peers, list) or not peers:
+        raise UsageError("peer fleet state has no peer roster")
+    roster = {require_token(peer.get("id"), "peer id") for peer in peers if isinstance(peer, dict)}
+    if len(roster) != len(peers):
+        raise UsageError("peer fleet state has an invalid peer roster")
+    expected = {require_token(seat, "expected seat id") for seat in expected_seats}
+    if not expected or len(expected) != len(expected_seats):
+        raise UsageError("expected seat ids must be non-empty and unique")
+    if roster != expected:
+        raise UsageError("peer fleet roster does not match the selected council seats")
+
+    terminals = load_json(terminal_state, "peer terminal state")
+    if not isinstance(terminals, dict) or terminals.get("transport") != "cmux":
+        raise UsageError("peer terminal state must use cmux transport")
+    recorded_run = terminals.get("run_dir")
+    if not isinstance(recorded_run, str) or Path(recorded_run).expanduser().resolve() != run_dir:
+        raise UsageError("peer terminal state belongs to a different fleet run")
+    records = terminals.get("terminals")
+    if not isinstance(records, list) or not records:
+        raise UsageError("peer terminal state has no terminal records")
+
+    adopted: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for record in records:
+        if not isinstance(record, dict):
+            raise UsageError("each peer terminal record must be an object")
+        peer = require_token(record.get("peer"), "peer id")
+        if peer not in roster or peer in seen:
+            raise UsageError("peer terminal records must map one-to-one to the fleet roster")
+        seen.add(peer)
+        adopted.append(
+            {
+                "id": peer,
+                "workspace_id": require_token(record.get("workspace_id"), "workspace id"),
+                "surface_id": require_token(record.get("surface_id"), "surface id"),
+                "execution_path": "cmux_interactive",
+                "receipt_status": "unverified_terminal",
+            }
+        )
+    if seen != roster:
+        raise UsageError("peer terminal records do not cover the complete fleet roster")
+    return {
+        "session": session,
+        "session_id": session_id,
+        "transport": "cmux_interactive",
+        "fleet_run_dir": str(run_dir),
+        "seats": sorted(adopted, key=lambda seat: seat["id"]),
+    }
+
+
 def parse_args(argv: Sequence[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--cmux-bin", default="cmux")
@@ -258,6 +323,12 @@ def parse_args(argv: Sequence[str]) -> argparse.Namespace:
     start.add_argument("--manifest", required=True)
     start.add_argument("--state-file")
     start.add_argument("--dry-run", action="store_true")
+    adopt = subparsers.add_parser("adopt", help="adopt a coordinator-mode peer-sessions cmux fleet")
+    adopt.add_argument("--session-id", required=True)
+    adopt.add_argument("--peer-run", required=True)
+    adopt.add_argument("--terminal-state", required=True)
+    adopt.add_argument("--seat", action="append", required=True, help="selected council seat id; repeat for each seat")
+    adopt.add_argument("--state-file")
     send = subparsers.add_parser("send", help="send one literal message to a recorded surface")
     send.add_argument("--surface", required=True)
     send.add_argument("--message-file", required=True)
@@ -282,6 +353,11 @@ def main(argv: Sequence[str] | None = None) -> int:
                 result["session"] = session_name(manifest["session_id"])
                 if args.state_file:
                     atomic_write_json(Path(args.state_file).expanduser(), result)
+            print(json.dumps(result, indent=2, ensure_ascii=False))
+        elif args.command == "adopt":
+            result = adopt_peer_fleet(args.session_id, args.peer_run, args.terminal_state, args.seat)
+            if args.state_file:
+                atomic_write_json(Path(args.state_file).expanduser(), result)
             print(json.dumps(result, indent=2, ensure_ascii=False))
         elif args.command == "send":
             try:

@@ -80,6 +80,12 @@
       "must_not_contain": []
     },
     {
+      "file": "peer-sessions/SKILL.md",
+      "concept": "durable peer coordination through the ledger, path handoffs, three exits, cold-start test, and acceptance contract",
+      "must_contain": ["the ledger, not the transcript", "hand off the path, not the payload", "three exits", "cold-start test", "acceptance contract"],
+      "must_not_contain": []
+    },
+    {
       "file": "_shared/references/handoff-contract.md",
       "concept": "hand off the path, not the payload / fresh-reader test",
       "must_contain": ["hand off the path, not the payload", "fresh-reader test"],
