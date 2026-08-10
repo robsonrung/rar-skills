@@ -34,7 +34,7 @@ Validate the plan without changing the terminal layout:
 SKILL_DIR="<absolute path of this peer-sessions directory>"; python3 "$SKILL_DIR/scripts/cmux_fleet.py" start --manifest /absolute/path/to/fleet.json --dry-run
 ```
 
-Start it only after confirming the plan and the user's terminal-placement intent:
+Start it only after confirming the plan and the user's terminal-placement intent. `--state-file` is required for a live launch:
 
 ```bash
 SKILL_DIR="<absolute path of this peer-sessions directory>"; python3 "$SKILL_DIR/scripts/cmux_fleet.py" start --manifest /absolute/path/to/fleet.json --state-file /absolute/path/to/fleet-terminals.json
@@ -57,6 +57,16 @@ All in-workspace modes target `--workspace`, defaulting to the caller's own `CMU
 Screen space is the real limit on split mode, not the fleet cap. Four panes plus the coordinator is comfortable; beyond roughly six, panes get too short to read and `tab` is the better placement. Say which one you chose and why.
 
 The state file contains only workspace and surface IDs created by this run. It is the teardown allowlist. Do not close a workspace or tab not present in that file. In tab mode the enclosing workspace pre-existed the run and is never yours to close — close only the recorded surfaces.
+
+## Finish and close
+
+When the job reaches a terminal exit, close the peer terminals immediately:
+
+```bash
+SKILL_DIR="<absolute path of this peer-sessions directory>"; python3 "$SKILL_DIR/scripts/cmux_fleet.py" teardown --state-file /absolute/path/to/fleet-terminals.json
+```
+
+Use `--dry-run` first only when diagnosing a failed cleanup. The teardown verifies that no recorded surface or workspace remains. A nonzero exit means cleanup is incomplete; report the recorded remaining targets and leave the coordinator surface open.
 
 ## Relay rule
 

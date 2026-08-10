@@ -16,6 +16,8 @@ from typing import Any
 
 
 UUID = re.compile(r"^[0-9A-Fa-f]{8}(?:-[0-9A-Fa-f]{4}){3}-[0-9A-Fa-f]{12}$")
+TERMINAL_STATE_SCHEMA = 1
+TERMINAL_STATE_OWNER = "peer-sessions.cmux_fleet"
 
 
 class UsageError(ValueError):
@@ -240,6 +242,99 @@ def write_json(path: Path, value: dict[str, Any]) -> None:
     temporary.replace(path)
 
 
+def terminal_state(surface_mode: str, run_dir: Path, terminals: list[dict[str, Any]]) -> dict[str, Any]:
+    return {
+        "schema_version": TERMINAL_STATE_SCHEMA,
+        "created_by": TERMINAL_STATE_OWNER,
+        "run_dir": str(run_dir),
+        "transport": "cmux",
+        "surface_mode": surface_mode,
+        "terminals": terminals,
+    }
+
+
+def validate_terminal_state(value: dict[str, Any]) -> tuple[str, list[dict[str, str]]]:
+    if value.get("schema_version") != TERMINAL_STATE_SCHEMA or value.get("created_by") != TERMINAL_STATE_OWNER:
+        raise UsageError("terminal state was not created by this peer-sessions launcher")
+    if value.get("transport") != "cmux":
+        raise UsageError("terminal state must use cmux transport")
+    surface_mode = value.get("surface_mode")
+    if surface_mode not in {"split", "tab", "workspace"}:
+        raise UsageError("terminal state has an unsupported surface mode")
+    raw_terminals = value.get("terminals")
+    if not isinstance(raw_terminals, list) or not raw_terminals:
+        raise UsageError("terminal state has no peer terminals")
+    terminals: list[dict[str, str]] = []
+    seen_surfaces: set[str] = set()
+    for raw in raw_terminals:
+        if not isinstance(raw, dict):
+            raise UsageError("each terminal state entry must be an object")
+        peer = raw.get("peer")
+        workspace = raw.get("workspace_id")
+        surface = raw.get("surface_id")
+        if not all(isinstance(value, str) and value for value in (peer, workspace, surface)):
+            raise UsageError("each terminal state entry needs peer, workspace_id, and surface_id")
+        if surface in seen_surfaces:
+            raise UsageError("terminal state surface ids must be unique")
+        seen_surfaces.add(surface)
+        terminals.append({"peer": peer, "workspace_id": workspace, "surface_id": surface})
+    return surface_mode, terminals
+
+
+def teardown_plan(state: dict[str, Any], cmux_bin: str = "cmux") -> list[list[str]]:
+    surface_mode, terminals = validate_terminal_state(state)
+    if surface_mode == "workspace":
+        workspaces = list(dict.fromkeys(terminal["workspace_id"] for terminal in terminals))
+        return [[cmux_bin, "close-workspace", "--workspace", workspace] for workspace in workspaces]
+    return [
+        [cmux_bin, "close-surface", "--workspace", terminal["workspace_id"], "--surface", terminal["surface_id"]]
+        for terminal in terminals
+    ]
+
+
+def run_teardown_command(command: list[str]) -> subprocess.CompletedProcess[str]:
+    try:
+        return subprocess.run(command, check=False, capture_output=True, text=True)
+    except FileNotFoundError as exc:
+        raise UsageError(f"cmux executable not found: {command[0]}") from exc
+
+
+def remaining_terminals(state: dict[str, Any], cmux_bin: str) -> list[dict[str, str]]:
+    surface_mode, terminals = validate_terminal_state(state)
+    if surface_mode == "workspace":
+        live_workspaces = workspace_ids(invoke([cmux_bin, "list-workspaces", "--json"]).stdout)
+        return [terminal for terminal in terminals if terminal["workspace_id"] in live_workspaces]
+    remaining: list[dict[str, str]] = []
+    for workspace in dict.fromkeys(terminal["workspace_id"] for terminal in terminals):
+        live_surfaces = set(
+            surface_ids(invoke([cmux_bin, "list-pane-surfaces", "--workspace", workspace, "--id-format", "uuids"]).stdout)
+        )
+        remaining.extend(
+            terminal for terminal in terminals
+            if terminal["workspace_id"] == workspace and terminal["surface_id"] in live_surfaces
+        )
+    return remaining
+
+
+def teardown(state: dict[str, Any], cmux_bin: str = "cmux") -> dict[str, Any]:
+    commands = teardown_plan(state, cmux_bin)
+    attempts = []
+    for command in commands:
+        result = run_teardown_command(command)
+        attempts.append(
+            {
+                "command": command,
+                "return_code": result.returncode,
+                "stdout": result.stdout.strip(),
+                "stderr": result.stderr.strip(),
+            }
+        )
+    remaining = remaining_terminals(state, cmux_bin)
+    closed = all(attempt["return_code"] == 0 for attempt in attempts) and not remaining
+    state["teardown"] = {"success": closed, "attempts": attempts, "remaining": remaining}
+    return state
+
+
 def start_splits(
     run_dir: Path,
     peers: list[dict[str, Any]],
@@ -268,7 +363,7 @@ def start_splits(
         invoke([cmux_bin, "send-key", "--surface", surface, "enter"])
         terminals.append({"peer": peer["id"], "workspace_id": workspace, "surface_id": surface, "split": heading})
         anchor = surface
-    return {"run_dir": str(run_dir), "transport": "cmux", "surface_mode": "split", "terminals": terminals}
+    return terminal_state("split", run_dir, terminals)
 
 
 def start_tabs(run_dir: Path, peers: list[dict[str, Any]], cmux_bin: str, workspace: str) -> dict[str, Any]:
@@ -290,7 +385,7 @@ def start_tabs(run_dir: Path, peers: list[dict[str, Any]], cmux_bin: str, worksp
         invoke([cmux_bin, "send", "--surface", surface, prompt])
         invoke([cmux_bin, "send-key", "--surface", surface, "enter"])
         terminals.append({"peer": peer["id"], "workspace_id": workspace, "surface_id": surface})
-    return {"run_dir": str(run_dir), "transport": "cmux", "surface_mode": "tab", "terminals": terminals}
+    return terminal_state("tab", run_dir, terminals)
 
 
 def start(run_dir: Path, peers: list[dict[str, Any]], cmux_bin: str) -> dict[str, Any]:
@@ -309,7 +404,7 @@ def start(run_dir: Path, peers: list[dict[str, Any]], cmux_bin: str) -> dict[str
         invoke([cmux_bin, "send", prompt])
         invoke([cmux_bin, "send-key", "enter"])
         terminals.append({"peer": peer["id"], "workspace_id": workspace, "surface_id": surface})
-    return {"run_dir": str(run_dir), "transport": "cmux", "surface_mode": "workspace", "terminals": terminals}
+    return terminal_state("workspace", run_dir, terminals)
 
 
 def parse_args(argv: list[str]) -> argparse.Namespace:
@@ -334,12 +429,29 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
         help="split mode only; auto alternates right/down so panes tile toward a grid",
     )
     launch.add_argument("--dry-run", action="store_true")
+    close = subparsers.add_parser("teardown", help="close only the peer surfaces or workspaces in a launcher state file")
+    close.add_argument("--state-file", required=True)
+    close.add_argument("--dry-run", action="store_true")
     return parser.parse_args(argv)
 
 
 def main(argv: list[str] | None = None) -> int:
     try:
         args = parse_args(argv if argv is not None else sys.argv[1:])
+        if args.command == "teardown":
+            state_path = absolute_path(args.state_file, "state file")
+            state = load_json(state_path, "terminal state")
+            if args.dry_run:
+                result: dict[str, Any] = {"dry_run": True, "plan": teardown_plan(state, args.cmux_bin)}
+                exit_code = 0
+            else:
+                result = teardown(state, args.cmux_bin)
+                write_json(state_path, result)
+                exit_code = 0 if result["teardown"]["success"] else 1
+            print(json.dumps(result, indent=2, ensure_ascii=False))
+            return exit_code
+        if not args.dry_run and not args.state_file:
+            raise UsageError("--state-file is required so the peer fleet can close only its own terminals")
         manifest = load_json(Path(args.manifest).expanduser(), "manifest")
         run_dir, peers = validate_manifest(manifest)
         in_workspace = args.surface_mode in ("split", "tab")
@@ -359,8 +471,8 @@ def main(argv: list[str] | None = None) -> int:
             result = start_tabs(run_dir, peers, args.cmux_bin, workspace)
         else:
             result = start(run_dir, peers, args.cmux_bin)
-            if args.state_file:
-                write_json(absolute_path(args.state_file, "state file"), result)
+        if args.state_file and not args.dry_run:
+            write_json(absolute_path(args.state_file, "state file"), result)
         print(json.dumps(result, indent=2, ensure_ascii=False))
         return 0
     except (UsageError, subprocess.CalledProcessError) as exc:

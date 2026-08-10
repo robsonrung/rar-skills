@@ -90,7 +90,7 @@ State follows `_shared/references/run-state-contract.md`; council-specific keys 
 
 **Orphaned process cleanup:**
 - When resuming, identify any runner PIDs or background tasks from the prior session and terminate them before launching new seats.
-- For `transport: cmux`, retain the recorded workspace and surface IDs for recovery, but do not close a workspace automatically. Closing a user-visible workspace needs explicit user direction; mark it stale and start a fresh workspace only when the user authorizes it.
+- For `transport: cmux`, retain the recorded workspace and surface IDs for recovery until the council reaches a terminal exit. Then use the peer fleet teardown state to close only recorded peer surfaces or workspaces. If verification finds a remaining target, report it as cleanup failure and keep the coordinator surface open.
 - In `inline` mode, recovery is limited to what fits in the current context; persist key digests to state when possible.
 
 **State update cadence:**

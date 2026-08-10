@@ -58,7 +58,7 @@ The output artifact is the **observable behavior**. Validate it with the existin
 
 Interactive CLIs do not all provide an authenticated serving-model receipt. Set `effective_model` to `null` unless a documented, observed receipt proves it. Such a response can inform the conclusion but cannot increase independent diversity confidence; the council cannot report high diversity confidence from unverified terminal seats.
 
-`peer-sessions` owns teardown. Do not close cmux workspaces or clear shared sidebar logs automatically. Closing a user-visible workspace needs an explicit user request.
+`peer-sessions` owns teardown. When the council reaches its final report, run the peer fleet teardown immediately. It closes only the recorded peer surfaces or workspaces and verifies that none remain. A failed teardown is an observable failure: report its remaining targets and keep the coordinator surface open.
 
 ## Sources
 

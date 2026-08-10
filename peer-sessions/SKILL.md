@@ -61,7 +61,7 @@ The fleet has **three exits**: all expected replies are valid, a peer returns `b
 
 Synthesize from reply files, preserving each peer's evidence boundary and ownership. Run the **cold-start test**: a fresh reader must be able to locate the objective, briefs, replies, decisions, and remaining blocker from the run directory alone.
 
-Do not terminate user-visible peers automatically. Stop them only when the user asks or when the user explicitly asked for teardown at fleet creation. A temporary terminal process created solely as plumbing may be closed after confirming its reply artifact exists. Close only recorded process or workspace IDs.
+For a visible cmux fleet, teardown is mandatory when the job reaches a terminal exit: every expected reply is valid, a peer is blocked or failed, or the deadline expires. Run `scripts/cmux_fleet.py teardown` with the state file created at launch. It closes only recorded peer surfaces for split and tab modes, or recorded peer workspaces for workspace mode. The coordinator surface is never in that state file and remains open.
 
 ## Output contract
 
@@ -70,9 +70,9 @@ Report:
 1. `run_dir` and its final mailbox status.
 2. Every peer as `done`, `blocked`, `failed`, `missing`, or `invalid`.
 3. The evidence paths used for the synthesis.
-4. Any remaining decision, expired deadline, or user approval required for teardown.
+4. The teardown result, including every remaining peer surface or workspace when closure failed.
 
-The **acceptance contract** is met only when `peer_mailbox.py status` reports every expected reply as valid, or the report explicitly names the non-success exit and its evidence.
+The **acceptance contract** is met only when `peer_mailbox.py status` reports every expected reply as valid, or the report explicitly names the non-success exit and its evidence, and the cmux teardown reports no remaining peer terminal.
 
 ## Gotchas
 
