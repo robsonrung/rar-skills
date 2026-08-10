@@ -78,6 +78,7 @@ agent sees one consistent token across the whole library:
 | Recognition is not proof of cause | **pattern-match is not diagnosis** | looks like the usual, classic symptom, I've seen this before |
 | Decide, don't enumerate | **recommendation, not survey** | options memo, pros/cons list, exhaustive comparison |
 | A change indistinguishable from the house style | **native diff** | seamless diff, blends in, matches the style |
+| A visual report that moves from decision to evidence and action | **decision surface** | dashboard, visual summary |
 | Open the report with what happened | **lead with the outcome** | bottom line up front, TLDR first |
 | Brevity by omission, not by squeezing | **selection over compression** | be concise, tighten the wording, keep it short |
 | Autonomy the request grants | **the mandate** | permission scope, authorization level |

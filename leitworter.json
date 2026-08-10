@@ -56,6 +56,12 @@
       "must_not_contain": []
     },
     {
+      "file": "consensus-summary-html/SKILL.md",
+      "concept": "decision surface / lead with the outcome / selection over compression / evidence and independence",
+      "must_contain": ["decision surface", "lead with the outcome", "selection over compression", "acceptance contract", "seat fidelity", "flag, never overwrite", "observable failure"],
+      "must_not_contain": []
+    },
+    {
       "file": "fable-mindset/SKILL.md",
       "concept": "the five moments — intake (act or assess / the mandate), diagnosis (pattern-match is not diagnosis / artifact of proof), decision (recommendation, not survey / already decided), implementation (native diff / defensive theater), reporting (lead with the outcome / selection over compression)",
       "must_contain": ["act or assess", "the mandate", "eager fix", "timid report", "pattern-match is not diagnosis", "artifact of proof", "recommendation, not survey", "already decided", "marginal-information test", "survey ends here", "native diff", "earned comment", "defensive theater", "smallest coherent shape", "lead with the outcome", "selection over compression", "honest ledger", "last-paragraph check"],
@@ -120,6 +126,7 @@
     { "concept": "recognition is not proof of cause", "leitwort": "pattern-match is not diagnosis", "drift_terms": ["classic symptom", "the usual suspect"] },
     { "concept": "decide, don't enumerate", "leitwort": "recommendation, not survey", "drift_terms": ["options memo", "exhaustive comparison"] },
     { "concept": "a change indistinguishable from the house style", "leitwort": "native diff", "drift_terms": ["seamless diff", "blends into the codebase"] },
+    { "concept": "a visual report that moves from decision to evidence and action", "leitwort": "decision surface", "drift_terms": [] },
     { "concept": "open the report with what happened", "leitwort": "lead with the outcome", "drift_terms": ["bottom line up front"] },
     { "concept": "brevity by omission, not by squeezing", "leitwort": "selection over compression", "drift_terms": ["tighten the wording"] },
     { "concept": "autonomy the request grants", "leitwort": "the mandate", "drift_terms": ["permission scope", "authorization level"] },

@@ -1,0 +1,291 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- SLOT: replace the page title -->
+<title>Consensus summary</title>
+<style>
+  :root {
+    color-scheme: dark;
+    --bg: #07111f;
+    --panel: #0e1b2d;
+    --panel-strong: #13253d;
+    --line: #263b55;
+    --text: #eef6ff;
+    --muted: #9db0c7;
+    --soft: #70859e;
+    --good: #48d597;
+    --warn: #f7c66b;
+    --open: #ff7f96;
+    --blue: #72b7ff;
+    --shadow: 0 18px 55px rgba(0, 0, 0, .24);
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    min-width: 320px;
+    background:
+      radial-gradient(circle at 10% 0%, rgba(114, 183, 255, .13), transparent 32rem),
+      radial-gradient(circle at 100% 20%, rgba(72, 213, 151, .09), transparent 26rem),
+      var(--bg);
+    color: var(--text);
+    font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    line-height: 1.5;
+  }
+  a { color: var(--blue); }
+  .shell { width: min(1160px, calc(100% - 32px)); margin: 0 auto; padding: 34px 0 64px; }
+  .hero {
+    display: grid;
+    grid-template-columns: minmax(0, 1.55fr) minmax(260px, .8fr);
+    gap: 24px;
+    align-items: stretch;
+    margin-bottom: 20px;
+  }
+  .hero-copy, .verdict-panel, .metric, .section, .next-step, .source-panel {
+    border: 1px solid var(--line);
+    background: rgba(14, 27, 45, .88);
+    box-shadow: var(--shadow);
+  }
+  .hero-copy { border-radius: 22px; padding: 34px; }
+  .eyebrow, .kicker, .label { margin: 0 0 10px; color: var(--soft); font-size: 11px; font-weight: 750; letter-spacing: .14em; text-transform: uppercase; }
+  h1 { max-width: 850px; margin: 0; font-size: clamp(30px, 5vw, 58px); line-height: 1.05; letter-spacing: -.045em; }
+  .lede { max-width: 780px; margin: 18px 0 0; color: var(--muted); font-size: 16px; }
+  .meta, .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 22px; }
+  .badge, .chip, .grade, .tag { display: inline-flex; align-items: center; width: fit-content; border: 1px solid var(--line); border-radius: 999px; padding: 5px 10px; color: var(--muted); background: rgba(19, 37, 61, .75); font-size: 11px; }
+  .verdict-panel { display: flex; flex-direction: column; justify-content: center; border-radius: 22px; padding: 28px; background: linear-gradient(155deg, rgba(19, 52, 65, .95), rgba(14, 27, 45, .9)); }
+  .verdict-answer { margin: 0; font-size: 22px; font-weight: 720; line-height: 1.2; }
+  .grade { margin-top: 18px; border-color: rgba(72, 213, 151, .45); color: var(--good); background: rgba(72, 213, 151, .11); font-weight: 750; }
+  .grade.trial, .grade.hold { border-color: rgba(247, 198, 107, .5); color: var(--warn); background: rgba(247, 198, 107, .1); }
+  .grade.reject, .grade.open { border-color: rgba(255, 127, 150, .5); color: var(--open); background: rgba(255, 127, 150, .1); }
+  .verdict-note { margin: 15px 0 0; color: var(--muted); font-size: 13px; }
+  .metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin: 20px 0; }
+  .metric { border-radius: 14px; padding: 16px; }
+  .metric-label { color: var(--soft); font-size: 11px; text-transform: uppercase; letter-spacing: .08em; }
+  .metric-value { display: block; margin-top: 8px; color: var(--text); font-size: 23px; font-weight: 760; }
+  main { display: grid; gap: 18px; }
+  .section, .next-step, .source-panel { border-radius: 18px; padding: 26px; scroll-margin-top: 16px; }
+  .section-heading { display: flex; align-items: baseline; gap: 12px; margin-bottom: 6px; }
+  .section-heading h2 { margin: 0; font-size: 23px; letter-spacing: -.02em; }
+  .section-intro { margin: 0 0 18px; color: var(--muted); }
+  .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 12px; }
+  .insight-card, .divergence-card, .round, .seat-table-wrap, .confidence-card, .limit-card { border: 1px solid var(--line); border-radius: 13px; background: rgba(19, 37, 61, .58); }
+  .insight-card, .divergence-card, .confidence-card, .limit-card { padding: 17px; }
+  .insight-card h3, .divergence-card h3, .confidence-card h3, .limit-card h3 { margin: 0 0 8px; font-size: 15px; }
+  .insight-card p, .divergence-card p, .confidence-card p, .limit-card p { margin: 0; color: var(--muted); font-size: 13px; }
+  .source { display: block; margin-top: 12px; color: var(--soft); font-size: 11px; word-break: break-word; }
+  .source::before { content: "Evidence · "; color: var(--blue); }
+  .tag.resolved { border-color: rgba(72, 213, 151, .4); color: var(--good); }
+  .tag.open { border-color: rgba(255, 127, 150, .4); color: var(--open); }
+  .divergence-card + .divergence-card { margin-top: 12px; }
+  .divergence-head { display: flex; gap: 10px; align-items: flex-start; justify-content: space-between; }
+  .divergence-head h3 { flex: 1; }
+  .split { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 15px 0; }
+  .position { border-left: 2px solid var(--blue); padding: 9px 12px; background: rgba(7, 17, 31, .44); }
+  .position strong { display: block; margin-bottom: 4px; color: var(--text); font-size: 12px; }
+  .position span { color: var(--muted); font-size: 12px; }
+  .resolution { padding-top: 13px; border-top: 1px solid var(--line); }
+  .rounds { display: grid; gap: 10px; }
+  .round { display: grid; grid-template-columns: 90px minmax(0, 1fr); gap: 16px; padding: 15px; }
+  .round-number { color: var(--blue); font-size: 12px; font-weight: 760; text-transform: uppercase; }
+  .round p { margin: 0; color: var(--muted); font-size: 13px; }
+  .seat-table-wrap { overflow-x: auto; margin-top: 16px; }
+  table { width: 100%; border-collapse: collapse; min-width: 640px; font-size: 12px; }
+  th, td { padding: 11px 12px; text-align: left; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--soft); font-size: 10px; letter-spacing: .08em; text-transform: uppercase; }
+  td { color: var(--muted); }
+  tbody tr:last-child td { border-bottom: 0; }
+  .confidence-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .confidence-value { margin: 2px 0 12px; font-size: 30px; font-weight: 780; }
+  .meter { height: 8px; overflow: hidden; border-radius: 999px; background: #22344d; }
+  .meter span { display: block; height: 100%; width: var(--value, 0%); border-radius: inherit; background: linear-gradient(90deg, var(--blue), var(--good)); }
+  .confidence-card.diversity .meter span { background: linear-gradient(90deg, var(--warn), var(--open)); }
+  .next-step { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 17px; align-items: center; border-color: rgba(72, 213, 151, .42); background: linear-gradient(120deg, rgba(25, 71, 66, .7), rgba(14, 27, 45, .9)); }
+  .next-icon { display: grid; width: 44px; height: 44px; place-items: center; border-radius: 13px; color: var(--good); background: rgba(72, 213, 151, .14); font-size: 22px; }
+  .next-step h2 { margin: 0 0 4px; font-size: 18px; }
+  .next-step p { margin: 0; color: var(--muted); }
+  details { margin-top: 15px; border: 1px solid var(--line); border-radius: 11px; background: rgba(7, 17, 31, .36); }
+  summary { cursor: pointer; padding: 12px 14px; color: var(--text); font-size: 12px; font-weight: 700; }
+  details > div { padding: 0 14px 14px; color: var(--muted); font-size: 12px; }
+  nav { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 20px; }
+  nav a { border: 1px solid var(--line); border-radius: 999px; padding: 6px 11px; color: var(--muted); font-size: 11px; text-decoration: none; }
+  nav a:hover, nav a:focus { border-color: var(--blue); color: var(--text); }
+  .controls { display: flex; gap: 8px; margin: -8px 0 20px; }
+  button { cursor: pointer; border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; color: var(--muted); background: var(--panel); font: inherit; font-size: 11px; }
+  button:hover, button:focus { border-color: var(--blue); color: var(--text); }
+  footer { margin-top: 30px; color: var(--soft); font-size: 11px; text-align: center; }
+  .muted { color: var(--soft); }
+  @media (max-width: 780px) {
+    .shell { width: min(100% - 22px, 620px); padding-top: 18px; }
+    .hero { grid-template-columns: 1fr; }
+    .hero-copy, .verdict-panel { padding: 24px; }
+    .metrics { grid-template-columns: repeat(2, 1fr); }
+    .split, .confidence-grid { grid-template-columns: 1fr; }
+    .round { grid-template-columns: 1fr; gap: 7px; }
+    .section, .next-step, .source-panel { padding: 20px; }
+  }
+  @media print {
+    :root { color-scheme: light; --bg: #fff; --panel: #fff; --panel-strong: #f3f6f9; --line: #ccd6e0; --text: #142033; --muted: #405269; --soft: #66788d; }
+    body { background: #fff; }
+    .hero-copy, .verdict-panel, .metric, .section, .next-step, .source-panel { box-shadow: none; }
+    .controls, nav { display: none; }
+    details > div { display: block; }
+  }
+</style>
+</head>
+<body>
+<div class="shell">
+  <header class="hero" id="overview">
+    <div class="hero-copy">
+      <!-- SLOT: status, question, lede, and badges -->
+      <p class="eyebrow" data-role="status">CONSENSUS · STATUS</p>
+      <h1>Replace with the council question</h1>
+      <p class="lede">Replace with a short summary of what the council decided and what the reader should do next.</p>
+      <div class="meta">
+        <span class="badge" data-role="mode">mode</span>
+        <span class="badge" data-role="session">session</span>
+        <span class="badge" data-role="rounds">rounds</span>
+      </div>
+    </div>
+    <aside class="verdict-panel" id="verdict">
+      <p class="label">Decision</p>
+      <!-- SLOT: plain-language verdict, grade when applicable, and rationale -->
+      <p class="verdict-answer">Replace with the plain-language verdict.</p>
+      <span class="grade" data-role="grade">Adopt</span>
+      <p class="verdict-note">Replace with the short reason and any provisional or open status.</p>
+    </aside>
+  </header>
+
+  <nav aria-label="Page sections">
+    <a href="#agreements">Agreements</a>
+    <a href="#divergences">Divergences</a>
+    <a href="#evidence">Evidence</a>
+    <a href="#confidence">Confidence</a>
+    <a href="#next-step">Next step</a>
+    <a href="#limits">Limits</a>
+  </nav>
+  <div class="controls" aria-label="Detail controls">
+    <button type="button" onclick="setAll(true)">Expand details</button>
+    <button type="button" onclick="setAll(false)">Collapse details</button>
+  </div>
+
+  <div class="metrics" aria-label="Run snapshot">
+    <!-- SLOT: keep four short metrics; the two confidence roles are required -->
+    <div class="metric"><span class="metric-label">Status</span><strong class="metric-value">Complete</strong></div>
+    <div class="metric"><span class="metric-label">Answer confidence</span><strong class="metric-value" data-role="answer-confidence">Not reported</strong></div>
+    <div class="metric"><span class="metric-label">Diversity confidence</span><strong class="metric-value" data-role="diversity-confidence">Not reported</strong></div>
+    <div class="metric"><span class="metric-label">Independent sources</span><strong class="metric-value">Not reported</strong></div>
+  </div>
+
+  <main>
+    <section class="section" id="agreements">
+      <div class="section-heading"><span class="kicker">01</span><h2>Where the council agrees</h2></div>
+      <p class="section-intro">Show the points that hold across the result. Put the strongest support first.</p>
+      <div class="card-grid">
+        <!-- SLOT: add 3 to 6 insight cards, each with a source label -->
+        <article class="insight-card"><h3>Agreement point</h3><p>Replace with a concise, evidence-based point.</p><span class="source">report.md</span></article>
+        <article class="insight-card"><h3>Agreement point</h3><p>Replace with a concise, evidence-based point.</p><span class="source">state.json</span></article>
+      </div>
+    </section>
+
+    <section class="section" id="divergences">
+      <div class="section-heading"><span class="kicker">02</span><h2>Where the council differs</h2></div>
+      <p class="section-intro">Keep resolved and open disagreements visible. Do not hide a minority position.</p>
+      <!-- SLOT: add one divergence-card for each material disagreement -->
+      <article class="divergence-card">
+        <div class="divergence-head"><h3>Disagreement topic</h3><span class="tag resolved">Resolved</span></div>
+        <p>State the decision question that split the seats.</p>
+        <div class="split">
+          <div class="position"><strong>Position A</strong><span>Strongest case for one side.</span></div>
+          <div class="position"><strong>Position B</strong><span>Strongest case for the other side.</span></div>
+        </div>
+        <p class="resolution"><strong>Resolution:</strong> State the recorded resolution and why it won.</p>
+        <span class="source">round-2-digest.md</span>
+      </article>
+    </section>
+
+    <section class="section" id="evidence">
+      <div class="section-heading"><span class="kicker">03</span><h2>Evidence and seat fidelity</h2></div>
+      <p class="section-intro">Show how the result formed. Use effective provider and model values only when the state records them.</p>
+      <div class="rounds">
+        <!-- SLOT: add one round per recorded round -->
+        <div class="round"><div class="round-number">Round 1</div><p>Replace with the round outcome and convergence state.</p></div>
+      </div>
+      <div class="seat-table-wrap">
+        <table class="seat-table">
+          <thead><tr><th>Seat</th><th>Provider and model</th><th>Result</th><th>Independence note</th></tr></thead>
+          <tbody>
+            <!-- SLOT: add one row per selected, omitted, or unavailable seat -->
+            <tr><td>Not reported</td><td>Not reported</td><td>Not reported</td><td>Seat data was not recorded.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <details>
+        <summary>Source files and run notes</summary>
+        <div>
+          <!-- SLOT: list report path, state path, artifact mode, and material run notes -->
+          <p class="source">report.md</p>
+          <p class="source">state.json</p>
+        </div>
+      </details>
+    </section>
+
+    <section class="section" id="confidence">
+      <div class="section-heading"><span class="kicker">04</span><h2>Confidence</h2></div>
+      <p class="section-intro">Answer confidence asks whether the recommendation is supported. Diversity confidence asks how independent the support is.</p>
+      <div class="confidence-grid">
+        <!-- SLOT: put the recorded value in the text and the matching 0 to 100 percentage in --value -->
+        <article class="confidence-card">
+          <h3>Answer confidence</h3>
+          <div class="confidence-value">Not reported</div>
+          <div class="meter" aria-label="Answer confidence"><span style="--value: 0%"></span></div>
+          <p>Replace with the recorded band and its reason.</p>
+          <span class="source">report.md</span>
+        </article>
+        <article class="confidence-card diversity">
+          <h3>Diversity confidence</h3>
+          <div class="confidence-value">Not reported</div>
+          <div class="meter" aria-label="Diversity confidence"><span style="--value: 0%"></span></div>
+          <p>Replace with the recorded band and the independence caveat.</p>
+          <span class="source">state.json</span>
+        </article>
+      </div>
+    </section>
+
+    <section class="next-step" id="next-step">
+      <div class="next-icon" aria-hidden="true">→</div>
+      <div>
+        <p class="kicker">05 · The one thing to do first</p>
+        <!-- SLOT: keep exactly one data-role next-step element -->
+        <h2 data-role="next-step">Replace with one concrete next action.</h2>
+        <p>Replace with the owner, target, or acceptance condition when the council recorded one.</p>
+      </div>
+    </section>
+
+    <section class="section" id="limits">
+      <div class="section-heading"><span class="kicker">06</span><h2>Limits and open evidence</h2></div>
+      <p class="section-intro">A trustworthy summary states what the council could not establish.</p>
+      <div class="card-grid">
+        <!-- SLOT: add one limit-card per material gap; keep the evidence gap explicit -->
+        <article class="limit-card"><h3>Evidence gap</h3><p>Replace with missing context, omitted seat, malformed output, or open question.</p><span class="source">state.json</span></article>
+      </div>
+      <details>
+        <summary>Raw report boundaries</summary>
+        <div><p>Replace with a short note about what this page leaves in the source files.</p></div>
+      </details>
+    </section>
+  </main>
+
+  <footer>
+    <!-- SLOT: generation date, session id, and source paths -->
+    Generated from the recorded council result · session · source report
+  </footer>
+</div>
+<script>
+  function setAll(open) {
+    document.querySelectorAll('details').forEach(function (item) { item.open = open; });
+  }
+</script>
+</body>
+</html>
