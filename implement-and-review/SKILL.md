@@ -6,7 +6,7 @@ description: >-
 
 # Implement And Review
 
-Implement **one scoped task** with two model tracks that build in parallel and review each other's work, then converge on one integrated, reviewed, tested change. You (the main agent, the Opus seat — model ids live only in `_shared/references/model-roster.md`) are the **orchestrator**: you decide the split, dispatch seats, gate writes, run the fix loops, integrate, and run the final review. You never implement a track yourself — you delegate and coordinate.
+Implement **one scoped task** with two model tracks that build in parallel and review each other's work, then converge on one integrated, reviewed, tested change. You (the main agent — model ids live only in `_shared/references/model-roster.md`) are the **orchestrator**: you decide the split, dispatch seats, gate writes, run the fix loops, integrate, and run the final review. You never implement a track yourself — you delegate and coordinate.
 
 This skill builds **one task**. To break a plan into many tasks and build them all, use **`implement-feature`**, which calls this skill per task. Keep this skill simple and self-contained.
 

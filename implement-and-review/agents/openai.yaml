@@ -3,4 +3,3 @@
 interface:
   display_name: "Implement And Review"
   short_description: "Two-track build (FE/BE) with cross-model review, self-simplify, and a full-review gate"
-  default_prompt: "Use $implement-and-review to build this: an Opus subagent implements the frontend (Kimi reviews) and Codex implements the backend (Opus reviews) in parallel worktrees, then simplify the integrated diff with coding-review-simplify and gate the final code with full-review."

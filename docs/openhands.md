@@ -151,7 +151,7 @@ Two behaviors will trip you up here:
 - **Those env vars are ignored without `--override-with-envs`.** The CLI prints `Environment variable(s) LLM_API_KEY, LLM_MODEL detected but will be ignored` and uses stored settings instead.
 - **`--headless` refuses to start until settings exist** (`Headless mode requires existing settings`) — run `openhands` interactively once, or always pass `--override-with-envs`.
 
-This path bills per token. In this mode OpenHands loads the skills itself from `.agents/skills/`, and all 56 appear in the runtime `<available_skills>` block.
+This path bills per token. In this mode OpenHands loads the skills itself from `.agents/skills/`.
 
 ## Caveats
 
