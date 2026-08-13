@@ -11,8 +11,7 @@ import subprocess
 import sys
 import tempfile
 from pathlib import Path
-from typing import Any, Optional
-
+from typing import Any
 
 ROLE_INSTRUCTIONS = {
     "planner": "Act as a planning specialist. Break work into phases, call out risks, and keep the output actionable.",
@@ -109,7 +108,7 @@ def load_text_file(path: str) -> str:
     return Path(path).expanduser().read_text(encoding="utf-8")
 
 
-def resolve_input_path(path: str, working_dir: Optional[str]) -> str:
+def resolve_input_path(path: str, working_dir: str | None) -> str:
     """Resolve a relative input path against --working-dir, not the process cwd."""
     candidate = Path(path).expanduser()
     if not candidate.is_absolute() and working_dir:
@@ -120,35 +119,36 @@ def resolve_input_path(path: str, working_dir: Optional[str]) -> str:
 def write_json_output_file(path: str, payload: dict[str, Any]) -> str:
     target = Path(path).expanduser()
     target.parent.mkdir(parents=True, exist_ok=True)
-    handle = tempfile.NamedTemporaryFile(
-        "w",
-        encoding="utf-8",
-        dir=target.parent,
-        delete=False,
-    )
-    temp_name = handle.name
+    temp_name = ""
     try:
-        with handle:
+        with tempfile.NamedTemporaryFile(
+            "w",
+            encoding="utf-8",
+            dir=target.parent,
+            delete=False,
+        ) as handle:
+            temp_name = handle.name
             json.dump(payload, handle, indent=2, ensure_ascii=False)
             handle.write("\n")
         os.replace(temp_name, target)
     except BaseException:
         # Never leave an orphaned temp file behind if the write/replace fails.
-        try:
-            os.unlink(temp_name)
-        except OSError:
-            pass
+        if temp_name:
+            try:
+                os.unlink(temp_name)
+            except OSError:
+                pass
         raise
     return str(target)
 
 
-def resolve_model(model: Optional[str]) -> Optional[str]:
+def resolve_model(model: str | None) -> str | None:
     if model is None:
         return DEFAULT_MODEL
     return MODEL_ALIASES.get(model, model)
 
 
-def resolve_effort(model: Optional[str], effort: Optional[str]) -> Optional[str]:
+def resolve_effort(model: str | None, effort: str | None) -> str | None:
     """Adjust the reasoning effort for models that reject some levels.
 
     `model` is the already-resolved model id (see `resolve_model`).
@@ -159,10 +159,10 @@ def resolve_effort(model: Optional[str], effort: Optional[str]) -> Optional[str]
 
 
 def resolve_restrict_tools(
-    role: Optional[str],
+    role: str | None,
     restrict_tools: bool,
     allow_write: bool,
-    sandbox: Optional[str],
+    sandbox: str | None,
     full_auto: bool,
 ) -> bool:
     if restrict_tools:
@@ -172,7 +172,7 @@ def resolve_restrict_tools(
     return bool(role) and role not in WRITE_ROLES
 
 
-def extract_session_id(*streams: str) -> Optional[str]:
+def extract_session_id(*streams: str) -> str | None:
     for stream in streams:
         if not stream:
             continue
@@ -185,10 +185,10 @@ def extract_session_id(*streams: str) -> Optional[str]:
 
 def build_prompt(
     prompt: str,
-    prompt_files: Optional[list[str]],
-    role: Optional[str],
-    session_file: Optional[str],
-    metadata_json: Optional[str],
+    prompt_files: list[str] | None,
+    role: str | None,
+    session_file: str | None,
+    metadata_json: str | None,
 ) -> str:
     sections: list[str] = []
 
@@ -215,11 +215,11 @@ def invoke_fallback(
     runner_script: Path,
     prompt: str,
     timeout: int,
-    working_dir: Optional[str],
-    prompt_files: Optional[list[str]],
-    role: Optional[str],
-    session_file: Optional[str],
-    metadata_json: Optional[str],
+    working_dir: str | None,
+    prompt_files: list[str] | None,
+    role: str | None,
+    session_file: str | None,
+    metadata_json: str | None,
     restrict_tools: bool,
 ) -> dict[str, Any]:
     command = [sys.executable, str(runner_script), "--json", "--disable-fallback"]
@@ -250,6 +250,7 @@ def invoke_fallback(
             text=True,
             timeout=timeout,
             cwd=working_dir,
+            check=False,
         )
     except subprocess.TimeoutExpired as exc:
         return {
@@ -263,7 +264,7 @@ def invoke_fallback(
             "return_code": -1,
             "command": " ".join(shlex.quote(part) for part in command),
         }
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001
         return {
             "success": False,
             "stdout": "",
@@ -302,25 +303,25 @@ def run_codex(*args: Any, **kwargs: Any) -> dict[str, Any]:
 def _run_codex(
     prompt: str,
     timeout: int = 3600,
-    working_dir: Optional[str] = None,
-    model: Optional[str] = None,
-    effort: Optional[str] = None,
-    sandbox: Optional[str] = None,
-    approval_policy: Optional[str] = None,
+    working_dir: str | None = None,
+    model: str | None = None,
+    effort: str | None = None,
+    sandbox: str | None = None,
+    approval_policy: str | None = None,
     skip_git_repo_check: bool = False,
-    prompt_files: Optional[list[str]] = None,
-    role: Optional[str] = None,
-    session_file: Optional[str] = None,
-    metadata_json: Optional[str] = None,
+    prompt_files: list[str] | None = None,
+    role: str | None = None,
+    session_file: str | None = None,
+    metadata_json: str | None = None,
     ephemeral: bool = False,
-    output_schema: Optional[str] = None,
+    output_schema: str | None = None,
     restrict_tools: bool = False,
     allow_write: bool = False,
     full_auto: bool = False,
-    resume: Optional[str] = None,
+    resume: str | None = None,
     resume_last: bool = False,
-    add_dirs: Optional[list[str]] = None,
-    images: Optional[list[str]] = None,
+    add_dirs: list[str] | None = None,
+    images: list[str] | None = None,
     disable_fallback: bool = False,
 ) -> dict[str, Any]:
     resuming = bool(resume or resume_last)
@@ -424,7 +425,7 @@ def _run_codex(
 
     command_display = " ".join(shlex.quote(part) for part in command)
 
-    def read_agent_message() -> Optional[str]:
+    def read_agent_message() -> str | None:
         try:
             text = Path(last_message_path).read_text(encoding="utf-8").strip()
             return text or None
@@ -502,6 +503,7 @@ def _run_codex(
             text=True,
             timeout=timeout,
             cwd=working_dir,
+            check=False,
         )
 
         return {
@@ -539,11 +541,11 @@ def _run_codex(
             "return_code": -2,
             **meta,
         }
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         return {
             "success": False,
             "stdout": "",
-            "stderr": f"Unexpected error: {str(e)}",
+            "stderr": f"Unexpected error: {e!s}",
             "return_code": -3,
             **meta,
         }

@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
-import argparse, json, re
+import argparse
+import json
+import re
 from pathlib import Path
 
 HUNK_RE = re.compile(r"^@@\s+\-(\d+)(?:,(\d+))?\s+\+(\d+)(?:,(\d+))?\s+@@")

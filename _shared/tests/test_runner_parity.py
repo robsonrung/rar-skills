@@ -76,6 +76,7 @@ def run_script(script: Path, *args: str, cwd: str | None = None) -> subprocess.C
             timeout=60,
             cwd=cwd,
             env=env,
+            check=False,
         )
 
 

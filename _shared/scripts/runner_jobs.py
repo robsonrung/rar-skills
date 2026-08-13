@@ -22,13 +22,13 @@ import time
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 JOBS_DIR_PARTS = (".ai-workflow", "runner-jobs")
 LOG_TAIL_LINES = 5
 
 
-def jobs_root(working_dir: Optional[str]) -> Path:
+def jobs_root(working_dir: str | None) -> Path:
     return Path(working_dir or os.getcwd()).joinpath(*JOBS_DIR_PARTS)
 
 
@@ -39,7 +39,7 @@ def write_manifest(job_dir: Path, manifest: dict[str, Any]) -> None:
     )
 
 
-def load_manifest(job_dir: Path) -> Optional[dict[str, Any]]:
+def load_manifest(job_dir: Path) -> dict[str, Any] | None:
     try:
         return json.loads((job_dir / "manifest.json").read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError):
@@ -50,9 +50,9 @@ def launch_background(
     runner_name: str,
     script_path: Path,
     cli_args: list[str],
-    working_dir: Optional[str] = None,
+    working_dir: str | None = None,
     prompt_excerpt: str = "",
-    manifest_extra: Optional[dict[str, Any]] = None,
+    manifest_extra: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Detach a runner invocation into a tracked job and return a launch summary.
 
@@ -117,7 +117,7 @@ def launch_background(
     }
 
 
-def list_jobs(root: Path, runner: Optional[str] = None) -> list[tuple[Path, dict[str, Any]]]:
+def list_jobs(root: Path, runner: str | None = None) -> list[tuple[Path, dict[str, Any]]]:
     if not root.is_dir():
         return []
     jobs = []
@@ -131,7 +131,7 @@ def list_jobs(root: Path, runner: Optional[str] = None) -> list[tuple[Path, dict
     return jobs
 
 
-def resolve_job(root: Path, job_id: Optional[str]) -> tuple[Path, dict[str, Any]]:
+def resolve_job(root: Path, job_id: str | None) -> tuple[Path, dict[str, Any]]:
     if job_id:
         job_dir = root / job_id
         manifest = load_manifest(job_dir)
@@ -180,7 +180,7 @@ def log_tail(manifest: dict[str, Any], lines: int = LOG_TAIL_LINES) -> list[str]
     return [line for line in content.splitlines() if line.strip()][-lines:]
 
 
-def load_result(job_dir: Path, manifest: dict[str, Any]) -> Optional[dict[str, Any]]:
+def load_result(job_dir: Path, manifest: dict[str, Any]) -> dict[str, Any] | None:
     result_file = Path(manifest.get("result_file") or job_dir / "result.json")
     try:
         return json.loads(result_file.read_text(encoding="utf-8"))
@@ -204,7 +204,7 @@ def status_payload(job_dir: Path, manifest: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def cmd_list(root: Path, as_json: bool, runner: Optional[str]) -> int:
+def cmd_list(root: Path, as_json: bool, runner: str | None) -> int:
     jobs = [status_payload(job_dir, manifest) for job_dir, manifest in list_jobs(root, runner)]
     if as_json:
         print(json.dumps(jobs, indent=2, ensure_ascii=False))
@@ -219,7 +219,7 @@ def cmd_list(root: Path, as_json: bool, runner: Optional[str]) -> int:
     return 0
 
 
-def cmd_status(root: Path, job_id: Optional[str], as_json: bool) -> int:
+def cmd_status(root: Path, job_id: str | None, as_json: bool) -> int:
     job_dir, manifest = resolve_job(root, job_id)
     payload = status_payload(job_dir, manifest)
     if as_json:
@@ -237,7 +237,7 @@ def cmd_status(root: Path, job_id: Optional[str], as_json: bool) -> int:
     return 0
 
 
-def cmd_result(root: Path, job_id: Optional[str], as_json: bool) -> int:
+def cmd_result(root: Path, job_id: str | None, as_json: bool) -> int:
     job_dir, manifest = resolve_job(root, job_id)
     status = job_status(job_dir, manifest)
     result = load_result(job_dir, manifest)
@@ -257,7 +257,7 @@ def cmd_result(root: Path, job_id: Optional[str], as_json: bool) -> int:
     return 0 if result.get("success") else 1
 
 
-def cmd_cancel(root: Path, job_id: Optional[str], as_json: bool) -> int:
+def cmd_cancel(root: Path, job_id: str | None, as_json: bool) -> int:
     job_dir, manifest = resolve_job(root, job_id)
     status = job_status(job_dir, manifest)
     name = manifest.get("job_id", job_dir.name)

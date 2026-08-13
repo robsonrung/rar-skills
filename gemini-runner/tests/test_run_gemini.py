@@ -17,7 +17,7 @@ from unittest import mock
 SCRIPTS_DIR = Path(__file__).resolve().parents[1] / "scripts"
 sys.path.insert(0, str(SCRIPTS_DIR))
 
-import run_gemini  # noqa: E402
+import run_gemini
 
 
 class NormalizeEnvelopeTests(unittest.TestCase):
@@ -95,7 +95,7 @@ class JsonFenceTests(unittest.TestCase):
         self.assertTrue(valid)
 
     def test_invalid_json_reported(self):
-        cleaned, valid = run_gemini.strip_json_fences("not json at all")
+        _cleaned, valid = run_gemini.strip_json_fences("not json at all")
         self.assertFalse(valid)
 
 
@@ -110,9 +110,11 @@ class WriteJsonOutputFileTests(unittest.TestCase):
     def test_no_temp_file_left_on_replace_failure(self):
         with tempfile.TemporaryDirectory() as d:
             target = os.path.join(d, "out.json")
-            with mock.patch("run_gemini.os.replace", side_effect=OSError("boom")):
-                with self.assertRaises(OSError):
-                    run_gemini.write_json_output_file(target, {"x": 1})
+            with (
+                mock.patch("run_gemini.os.replace", side_effect=OSError("boom")),
+                self.assertRaises(OSError),
+            ):
+                run_gemini.write_json_output_file(target, {"x": 1})
             leftovers = list(Path(d).iterdir())
             self.assertEqual(leftovers, [], f"temp file leaked: {leftovers}")
 
@@ -148,10 +150,10 @@ class MissingCliEnvelopeTests(unittest.TestCase):
     def test_disable_fallback_reflects_requested_model(self):
         with mock.patch("run_gemini.shutil.which", return_value=None):
             env = run_gemini.run_gemini(
-                prompt="hi", model="gemini-3.6-flash", disable_fallback=True
+                prompt="hi", model="gemini-3.7-flash", disable_fallback=True
             )
         self.assertEqual(env["return_code"], -2)
-        self.assertEqual(env["effective_model"], "gemini-3.6-flash")
+        self.assertEqual(env["effective_model"], "gemini-3.7-flash")
         self.assertIsNone(env["auth_ok"])
         self.assertEqual(env["effective_provider"], "google")
         self.assertEqual(run_gemini.validate_envelope(env), [])
@@ -295,6 +297,7 @@ class CliArgumentTests(unittest.TestCase):
         return subprocess.run(
             [sys.executable, self.SCRIPT, *args],
             capture_output=True, text=True, timeout=30,
+            check=False,
         )
 
     def test_prompt_and_prompt_file_rejected(self):

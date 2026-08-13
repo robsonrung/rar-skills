@@ -54,6 +54,7 @@ import subprocess
 import sys
 import time
 from pathlib import Path
+from typing import NoReturn
 
 SKILL_ROOT = Path(__file__).resolve().parents[1]
 SKILLS_DIR = SKILL_ROOT.parent  # holds codex-runner/, claude-runner/, _shared/, ...
@@ -69,7 +70,7 @@ def err(*msg) -> None:
     print(*msg, file=sys.stderr)
 
 
-def fail(message: str, code: int = 1) -> "NoReturn":  # type: ignore[name-defined]
+def fail(message: str, code: int = 1) -> NoReturn:
     print(json.dumps({"success": False, "error": message}, ensure_ascii=False))
     err(f"error: {message}")
     sys.exit(code)
@@ -77,7 +78,8 @@ def fail(message: str, code: int = 1) -> "NoReturn":  # type: ignore[name-define
 
 def git(args, cwd=None, check=True) -> subprocess.CompletedProcess:
     proc = subprocess.run(
-        ["git", *args], cwd=cwd, capture_output=True, text=True
+        ["git", *args], cwd=cwd, capture_output=True, text=True,
+        check=False,
     )
     if check and proc.returncode != 0:
         fail(f"git {' '.join(args)} failed: {proc.stderr.strip() or proc.stdout.strip()}")
@@ -86,7 +88,8 @@ def git(args, cwd=None, check=True) -> subprocess.CompletedProcess:
 
 def repo_root() -> Path:
     proc = subprocess.run(
-        ["git", "rev-parse", "--show-toplevel"], capture_output=True, text=True
+        ["git", "rev-parse", "--show-toplevel"], capture_output=True, text=True,
+        check=False,
     )
     if proc.returncode != 0:
         fail("not inside a git repository (implement-and-review worktree mode requires git)")
@@ -130,7 +133,7 @@ def fire_runner(name: str, argv: list, working_dir: Path, dry_run: bool) -> dict
     if dry_run:
         err(f"[dry-run] ({working_dir}) " + " ".join(shlex.quote(p) for p in cmd))
         return {"job_id": None, "job_dir": None, "result_file": None, "dry_run": True}
-    proc = subprocess.run(cmd, cwd=str(working_dir), capture_output=True, text=True)
+    proc = subprocess.run(cmd, cwd=str(working_dir), capture_output=True, text=True, check=False)
     out = (proc.stdout or "").strip()
     try:
         summary = json.loads(out)
@@ -169,9 +172,8 @@ def cmd_launch(args) -> int:
 
     # base + cleanliness
     base = args.base or git(["rev-parse", "HEAD"], cwd=root).stdout.strip()
-    if not args.allow_dirty:
-        if git(["status", "--porcelain", "--untracked-files=no"], cwd=root).stdout.strip():
-            fail("working tree has uncommitted (tracked) changes; commit/stash first or pass --allow-dirty")
+    if not args.allow_dirty and git(["status", "--porcelain", "--untracked-files=no"], cwd=root).stdout.strip():
+        fail("working tree has uncommitted (tracked) changes; commit/stash first or pass --allow-dirty")
 
     slice_id = args.slice
     artifact_dir = root / ".ai-workflow" / "impl-review" / args.session_id
@@ -313,6 +315,7 @@ def jobs_query(subcmd: str, job_id: str, working_dir: str) -> dict:
     proc = subprocess.run(
         [sys.executable, str(JOBS_CLI), subcmd, job_id, "--working-dir", working_dir, "--json"],
         capture_output=True, text=True,
+        check=False,
     )
     try:
         return json.loads(proc.stdout.strip() or "{}")
@@ -372,7 +375,7 @@ def cmd_cleanup(args) -> int:
     manifest = load_manifest(args)
     root = Path(manifest["repo_root"])
     removed = []
-    for track, info in manifest.get("tracks", {}).items():
+    for info in manifest.get("tracks", {}).values():
         wt = info.get("worktree")
         if wt:
             if args.dry_run:

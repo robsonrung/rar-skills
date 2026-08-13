@@ -16,15 +16,15 @@ import subprocess
 import sys
 import tempfile
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 # The agy binary can be overridden for non-standard installs / tests.
 AGY_CLI = os.environ.get("AGY_CLI_PATH", "agy")
-# The Gemini seat always runs Gemini 3.6 Flash (High). NOTE: agy uses
+# The Gemini seat always runs Gemini 3.7 Flash (High). NOTE: agy uses
 # whichever model its own settings/model picker is configured with — `--model`
 # here is a metadata label reflected in `effective_model`, not forwarded to
-# the CLI. Configure agy's model picker to Gemini 3.6 Flash (High) to match.
-DEFAULT_MODEL = "gemini-3.6-flash"
+# the CLI. Configure agy's model picker to Gemini 3.7 Flash (High) to match.
+DEFAULT_MODEL = "gemini-3.7-flash"
 
 # Keys every emitted envelope must carry (the shared runner-envelope contract).
 REQUIRED_ENVELOPE_KEYS = (
@@ -128,7 +128,7 @@ def load_text_file(path: str) -> str:
     return Path(path).expanduser().read_text(encoding="utf-8")
 
 
-def resolve_input_path(path: str, working_dir: Optional[str]) -> str:
+def resolve_input_path(path: str, working_dir: str | None) -> str:
     """Resolve a relative prompt/session path against --working-dir, not the process cwd."""
     candidate = Path(path).expanduser()
     if not candidate.is_absolute() and working_dir:
@@ -139,29 +139,30 @@ def resolve_input_path(path: str, working_dir: Optional[str]) -> str:
 def write_json_output_file(path: str, payload: dict[str, Any]) -> str:
     target = Path(path).expanduser()
     target.parent.mkdir(parents=True, exist_ok=True)
-    handle = tempfile.NamedTemporaryFile(
-        "w",
-        encoding="utf-8",
-        dir=target.parent,
-        delete=False,
-    )
-    temp_name = handle.name
+    temp_name = ""
     try:
-        with handle:
+        with tempfile.NamedTemporaryFile(
+            "w",
+            encoding="utf-8",
+            dir=target.parent,
+            delete=False,
+        ) as handle:
+            temp_name = handle.name
             json.dump(payload, handle, indent=2, ensure_ascii=False)
             handle.write("\n")
         os.replace(temp_name, target)
     except BaseException:
         # Never leave an orphaned temp file behind if the write/replace fails.
-        try:
-            os.unlink(temp_name)
-        except OSError:
-            pass
+        if temp_name:
+            try:
+                os.unlink(temp_name)
+            except OSError:
+                pass
         raise
     return str(target)
 
 
-def resolve_restrict_tools(role: Optional[str], restrict_tools: bool, allow_write: bool) -> bool:
+def resolve_restrict_tools(role: str | None, restrict_tools: bool, allow_write: bool) -> bool:
     """Decide whether to apply the read-only overlay.
 
     Precedence (highest first): an explicit ``--restrict-tools`` always wins, then
@@ -240,10 +241,10 @@ def output_format_instruction(output_format: str) -> str:
 
 def build_prompt(
     prompt: str,
-    prompt_files: Optional[list[str]],
-    role: Optional[str],
-    session_file: Optional[str],
-    metadata_json: Optional[str],
+    prompt_files: list[str] | None,
+    role: str | None,
+    session_file: str | None,
+    metadata_json: str | None,
     restrict_tools: bool = False,
 ) -> str:
     sections: list[str] = []
@@ -289,9 +290,10 @@ def runner_supports_flag(runner_script: Path, flag: str) -> bool:
             capture_output=True,
             text=True,
             timeout=20,
+            check=False,
         )
         supported = flag in (completed.stdout + completed.stderr)
-    except Exception:
+    except Exception:  # noqa: BLE001
         supported = False
     _FLAG_SUPPORT_CACHE[key] = supported
     return supported
@@ -301,11 +303,11 @@ def invoke_fallback(
     runner_script: Path,
     prompt: str,
     timeout: int,
-    working_dir: Optional[str],
-    prompt_files: Optional[list[str]],
-    role: Optional[str],
-    session_file: Optional[str],
-    metadata_json: Optional[str],
+    working_dir: str | None,
+    prompt_files: list[str] | None,
+    role: str | None,
+    session_file: str | None,
+    metadata_json: str | None,
     restrict_tools: bool = False,
     allow_write: bool = False,
     output_format: str = "text",
@@ -346,6 +348,7 @@ def invoke_fallback(
             text=True,
             timeout=timeout,
             cwd=working_dir,
+            check=False,
         )
     except subprocess.TimeoutExpired as exc:
         return {
@@ -359,7 +362,7 @@ def invoke_fallback(
             "return_code": -1,
             "command": " ".join(shlex.quote(part) for part in command),
         }
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001
         return {
             "success": False,
             "stdout": "",
@@ -388,7 +391,7 @@ def invoke_fallback(
 
 def _annotate_fallback(
     fallback_result: dict[str, Any],
-    requested_model: Optional[str],
+    requested_model: str | None,
     model: str,
     agy_continue: bool,
     attempted_fallbacks: list[dict[str, Any]],
@@ -418,13 +421,13 @@ def _fallback_attempt_record(script: Path, fallback_result: dict[str, Any]) -> d
 def _run_gemini_impl(
     prompt: str,
     timeout: int = 3600,
-    working_dir: Optional[str] = None,
-    model: Optional[str] = None,
+    working_dir: str | None = None,
+    model: str | None = None,
     output_format: str = "text",
-    prompt_files: Optional[list[str]] = None,
-    role: Optional[str] = None,
-    session_file: Optional[str] = None,
-    metadata_json: Optional[str] = None,
+    prompt_files: list[str] | None = None,
+    role: str | None = None,
+    session_file: str | None = None,
+    metadata_json: str | None = None,
     agy_continue: bool = False,
     restrict_tools: bool = False,
     allow_write: bool = False,
@@ -488,7 +491,7 @@ def _run_gemini_impl(
         )
     format_instruction = output_format_instruction(output_format)
     if format_instruction:
-        final_prompt = "\n\n".join([final_prompt, format_instruction])
+        final_prompt = f"{final_prompt}\n\n{format_instruction}"
 
     cmd = [AGY_CLI]
     if agy_continue:
@@ -525,7 +528,7 @@ def _run_gemini_impl(
             Path(__file__).resolve().parents[2] / "claude-runner" / "scripts" / "run_claude.py",
         ]
         attempted_fallbacks: list[dict[str, Any]] = []
-        last_failure: Optional[dict[str, Any]] = None
+        last_failure: dict[str, Any] | None = None
         for fallback_script in fallback_candidates:
             if not fallback_script.is_file():
                 # Record absent siblings so the attempt log is complete.
@@ -601,6 +604,7 @@ def _run_gemini_impl(
             capture_output=True,
             text=True,
             timeout=subprocess_timeout,
+            check=False,
         )
         result["stdout"] = process.stdout
         result["stderr"] = process.stderr
@@ -647,8 +651,8 @@ def _run_gemini_impl(
         result["return_code"] = -2
         result["effective_runner"] = None
 
-    except Exception as e:
-        result["stderr"] = f"Unexpected error: {str(e)}"
+    except Exception as e:  # noqa: BLE001
+        result["stderr"] = f"Unexpected error: {e!s}"
         result["return_code"] = -3
 
     return result
@@ -657,13 +661,13 @@ def _run_gemini_impl(
 def run_gemini(
     prompt: str,
     timeout: int = 3600,
-    working_dir: Optional[str] = None,
-    model: Optional[str] = None,
+    working_dir: str | None = None,
+    model: str | None = None,
     output_format: str = "text",
-    prompt_files: Optional[list[str]] = None,
-    role: Optional[str] = None,
-    session_file: Optional[str] = None,
-    metadata_json: Optional[str] = None,
+    prompt_files: list[str] | None = None,
+    role: str | None = None,
+    session_file: str | None = None,
+    metadata_json: str | None = None,
     agy_continue: bool = False,
     restrict_tools: bool = False,
     allow_write: bool = False,
@@ -687,8 +691,8 @@ def run_gemini(
         model: Accepted for compatibility; agy uses its configured model from
             settings/model picker. When supplied, the label is reflected in
             ``effective_model``; otherwise ``effective_model`` is the
-            ``gemini-3.6-flash`` seat label (set agy's own picker to
-            Gemini 3.6 Flash (High) to match).
+            ``gemini-3.7-flash`` seat label (set agy's own picker to
+            Gemini 3.7 Flash (High) to match).
         output_format: Compatibility hint - 'text', 'json', or 'stream-json'
             (default: 'text'). Advisory only; for 'json' the wrapper does a
             best-effort fence-strip and sets ``output_json_valid``.

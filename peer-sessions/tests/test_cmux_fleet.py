@@ -8,11 +8,10 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-
 SCRIPTS_DIR = Path(__file__).resolve().parents[1] / "scripts"
 sys.path.insert(0, str(SCRIPTS_DIR))
 
-import cmux_fleet  # noqa: E402
+import cmux_fleet
 
 
 class TeardownPlanTests(unittest.TestCase):

@@ -9,7 +9,7 @@ import subprocess
 import sys
 import tempfile
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 ROLE_INSTRUCTIONS = {
     "planner": "Act as a planning specialist. Break work into phases, call out risks, and keep the output actionable.",
@@ -80,7 +80,7 @@ def load_text_file(path: str) -> str:
     return Path(path).expanduser().read_text(encoding="utf-8")
 
 
-def resolve_input_path(path: str, working_dir: Optional[str]) -> str:
+def resolve_input_path(path: str, working_dir: str | None) -> str:
     """Resolve a relative input path against --working-dir, not the process cwd."""
     candidate = Path(path).expanduser()
     if not candidate.is_absolute() and working_dir:
@@ -91,30 +91,31 @@ def resolve_input_path(path: str, working_dir: Optional[str]) -> str:
 def write_json_output_file(path: str, payload: dict[str, Any]) -> str:
     target = Path(path).expanduser()
     target.parent.mkdir(parents=True, exist_ok=True)
-    handle = tempfile.NamedTemporaryFile(
-        "w",
-        encoding="utf-8",
-        dir=target.parent,
-        delete=False,
-    )
-    temp_name = handle.name
+    temp_name = ""
     try:
-        with handle:
+        with tempfile.NamedTemporaryFile(
+            "w",
+            encoding="utf-8",
+            dir=target.parent,
+            delete=False,
+        ) as handle:
+            temp_name = handle.name
             json.dump(payload, handle, indent=2, ensure_ascii=False)
             handle.write("\n")
         os.replace(temp_name, target)
     except BaseException:
         # Never leave an orphaned temp file behind if the write/replace fails.
-        try:
-            os.unlink(temp_name)
-        except OSError:
-            pass
+        if temp_name:
+            try:
+                os.unlink(temp_name)
+            except OSError:
+                pass
         raise
     return str(target)
 
 
 def resolve_restrict_tools(
-    role: Optional[str], restrict_tools: bool, allow_write: bool
+    role: str | None, restrict_tools: bool, allow_write: bool
 ) -> bool:
     if restrict_tools:
         return True
@@ -125,7 +126,7 @@ def resolve_restrict_tools(
 
 def extract_output_fields(
     stdout: str, output_format: str
-) -> tuple[Optional[str], Optional[str]]:
+) -> tuple[str | None, str | None]:
     """Return (agent_message, session_id) parsed from Claude print-mode stdout."""
     if output_format == "json":
         try:
@@ -188,17 +189,15 @@ def infer_claude_success(return_code: int, stdout: str, output_format: str) -> b
         payload = json.loads(stdout)
     except json.JSONDecodeError:
         return True
-    if isinstance(payload, dict) and payload.get("is_error") is True:
-        return False
-    return True
+    return not (isinstance(payload, dict) and payload.get("is_error") is True)
 
 
 def build_prompt(
     prompt: str,
     prompt_files: list[str],
-    role: Optional[str],
-    session_file: Optional[str],
-    metadata_json: Optional[str],
+    role: str | None,
+    session_file: str | None,
+    metadata_json: str | None,
 ) -> str:
     sections: list[str] = []
     if role:
@@ -222,11 +221,11 @@ def invoke_fallback(
     runner_script: Path,
     prompt: str,
     timeout: int,
-    working_dir: Optional[str],
+    working_dir: str | None,
     prompt_files: list[str],
-    role: Optional[str],
-    session_file: Optional[str],
-    metadata_json: Optional[str],
+    role: str | None,
+    session_file: str | None,
+    metadata_json: str | None,
     restrict_tools: bool,
 ) -> dict[str, Any]:
     command = [sys.executable, str(runner_script), "--json", "--disable-fallback"]
@@ -257,6 +256,7 @@ def invoke_fallback(
             text=True,
             timeout=timeout,
             cwd=working_dir,
+            check=False,
         )
     except subprocess.TimeoutExpired as exc:
         return {
@@ -272,7 +272,7 @@ def invoke_fallback(
             "return_code": -1,
             "command": " ".join(shlex.quote(part) for part in command),
         }
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001
         return {
             "success": False,
             "stdout": "",
@@ -299,7 +299,7 @@ def invoke_fallback(
     return fallback_result
 
 
-def resolve_claude_oauth_token() -> Optional[str]:
+def resolve_claude_oauth_token() -> str | None:
     token = os.environ.get("CLAUDE_CODE_OAUTH_TOKEN")
     if token:
         return token
@@ -320,8 +320,9 @@ def resolve_claude_oauth_token() -> Optional[str]:
             text=True,
             timeout=5,
             env=os.environ.copy(),
+            check=False,
         )
-    except Exception:
+    except Exception:  # noqa: BLE001
         return None
 
     if result.returncode != 0:
@@ -347,20 +348,20 @@ def run_claude(*args: Any, **kwargs: Any) -> dict[str, Any]:
 def _run_claude(
     prompt: str,
     timeout: int = 3600,
-    working_dir: Optional[str] = None,
-    model: Optional[str] = None,
+    working_dir: str | None = None,
+    model: str | None = None,
     safe_mode: bool = True,
-    prompt_files: Optional[list[str]] = None,
-    role: Optional[str] = None,
-    session_file: Optional[str] = None,
-    metadata_json: Optional[str] = None,
+    prompt_files: list[str] | None = None,
+    role: str | None = None,
+    session_file: str | None = None,
+    metadata_json: str | None = None,
     output_format: str = "text",
     bare: bool = False,
     no_session_persistence: bool = False,
     restrict_tools: bool = False,
     allow_write: bool = False,
-    effort: Optional[str] = None,
-    resume: Optional[str] = None,
+    effort: str | None = None,
+    resume: str | None = None,
     continue_last: bool = False,
     disable_fallback: bool = False,
 ) -> dict[str, Any]:
@@ -560,6 +561,7 @@ def _run_claude(
             text=True,
             timeout=timeout,
             env=child_env,
+            check=False,
         )
         result["stdout"] = process.stdout
         result["stderr"] = process.stderr
@@ -589,8 +591,8 @@ def _run_claude(
         if partial_stderr:
             result["stderr"] = f"{result['stderr']}\n{partial_stderr}"
         result["return_code"] = -1
-    except Exception as e:
-        result["stderr"] = f"Unexpected error: {str(e)}"
+    except Exception as e:  # noqa: BLE001
+        result["stderr"] = f"Unexpected error: {e!s}"
         result["return_code"] = -3
 
     return result

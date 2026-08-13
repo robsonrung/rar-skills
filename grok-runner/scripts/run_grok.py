@@ -9,7 +9,7 @@ import subprocess
 import sys
 import tempfile
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 ROLE_INSTRUCTIONS = {
     "planner": "Act as a planning specialist. Break work into phases, call out risks, and keep the output actionable.",
@@ -91,7 +91,7 @@ def load_text_file(path: str) -> str:
     return Path(path).expanduser().read_text(encoding="utf-8")
 
 
-def resolve_input_path(path: str, working_dir: Optional[str]) -> str:
+def resolve_input_path(path: str, working_dir: str | None) -> str:
     """Resolve a relative input path against --working-dir, not the process cwd."""
     candidate = Path(path).expanduser()
     if not candidate.is_absolute() and working_dir:
@@ -102,30 +102,31 @@ def resolve_input_path(path: str, working_dir: Optional[str]) -> str:
 def write_json_output_file(path: str, payload: dict[str, Any]) -> str:
     target = Path(path).expanduser()
     target.parent.mkdir(parents=True, exist_ok=True)
-    handle = tempfile.NamedTemporaryFile(
-        "w",
-        encoding="utf-8",
-        dir=target.parent,
-        delete=False,
-    )
-    temp_name = handle.name
+    temp_name = ""
     try:
-        with handle:
+        with tempfile.NamedTemporaryFile(
+            "w",
+            encoding="utf-8",
+            dir=target.parent,
+            delete=False,
+        ) as handle:
+            temp_name = handle.name
             json.dump(payload, handle, indent=2, ensure_ascii=False)
             handle.write("\n")
         os.replace(temp_name, target)
     except BaseException:
         # Never leave an orphaned temp file behind if the write/replace fails.
-        try:
-            os.unlink(temp_name)
-        except OSError:
-            pass
+        if temp_name:
+            try:
+                os.unlink(temp_name)
+            except OSError:
+                pass
         raise
     return str(target)
 
 
 def resolve_restrict_tools(
-    role: Optional[str], restrict_tools: bool, allow_write: bool
+    role: str | None, restrict_tools: bool, allow_write: bool
 ) -> bool:
     if restrict_tools:
         return True
@@ -134,7 +135,7 @@ def resolve_restrict_tools(
     return bool(role) and role not in WRITE_ROLES
 
 
-def resolve_grok_effort(effort: Optional[str]) -> tuple[Optional[str], bool]:
+def resolve_grok_effort(effort: str | None) -> tuple[str | None, bool]:
     """Return (forwarded_effort, clamped). Grok only accepts low/medium/high."""
     if effort is None:
         return None, False
@@ -143,7 +144,7 @@ def resolve_grok_effort(effort: Optional[str]) -> tuple[Optional[str], bool]:
     return "high", True
 
 
-def extract_native_model_id(payload: dict[str, Any]) -> Optional[str]:
+def extract_native_model_id(payload: dict[str, Any]) -> str | None:
     model_usage = payload.get("modelUsage")
     if isinstance(model_usage, dict) and model_usage:
         return next(iter(model_usage))
@@ -152,7 +153,7 @@ def extract_native_model_id(payload: dict[str, Any]) -> Optional[str]:
 
 def extract_output_fields(
     stdout: str, output_format: str
-) -> tuple[Optional[str], Optional[str], Optional[str], Any]:
+) -> tuple[str | None, str | None, str | None, Any]:
     """Return (agent_message, session_id, native_model_id, structured_output)
     parsed from grok headless stdout.
 
@@ -224,9 +225,7 @@ def infer_grok_success(return_code: int, stdout: str, output_format: str) -> boo
             payload = json.loads(stdout)
         except json.JSONDecodeError:
             return True
-        if isinstance(payload, dict) and payload.get("type") == "error":
-            return False
-        return True
+        return not (isinstance(payload, dict) and payload.get("type") == "error")
     if output_format == "stream-json":
         for line in stdout.splitlines():
             line = line.strip()
@@ -245,9 +244,9 @@ def infer_grok_success(return_code: int, stdout: str, output_format: str) -> boo
 def build_prompt(
     prompt: str,
     prompt_files: list[str],
-    role: Optional[str],
-    session_file: Optional[str],
-    metadata_json: Optional[str],
+    role: str | None,
+    session_file: str | None,
+    metadata_json: str | None,
 ) -> str:
     sections: list[str] = []
     if role:
@@ -278,20 +277,20 @@ def run_grok(*args: Any, **kwargs: Any) -> dict[str, Any]:
 def _run_grok(
     prompt: str,
     timeout: int = 3600,
-    working_dir: Optional[str] = None,
-    model: Optional[str] = None,
-    prompt_files: Optional[list[str]] = None,
-    role: Optional[str] = None,
-    session_file: Optional[str] = None,
-    metadata_json: Optional[str] = None,
+    working_dir: str | None = None,
+    model: str | None = None,
+    prompt_files: list[str] | None = None,
+    role: str | None = None,
+    session_file: str | None = None,
+    metadata_json: str | None = None,
     output_format: str = "text",
     restrict_tools: bool = False,
     allow_write: bool = False,
-    effort: Optional[str] = None,
-    resume: Optional[str] = None,
+    effort: str | None = None,
+    resume: str | None = None,
     continue_last: bool = False,
-    output_schema: Optional[str] = None,
-    max_turns: Optional[int] = None,
+    output_schema: str | None = None,
+    max_turns: int | None = None,
     disable_fallback: bool = False,
 ) -> dict[str, Any]:
     del disable_fallback  # accepted for cross-runner parity; grok-runner never falls back
@@ -425,6 +424,7 @@ def _run_grok(
             capture_output=True,
             text=True,
             timeout=timeout,
+            check=False,
         )
         result["stdout"] = process.stdout
         result["stderr"] = process.stderr
@@ -459,8 +459,8 @@ def _run_grok(
         if partial_stderr:
             result["stderr"] = f"{result['stderr']}\n{partial_stderr}"
         result["return_code"] = -1
-    except Exception as e:
-        result["stderr"] = f"Unexpected error: {str(e)}"
+    except Exception as e:  # noqa: BLE001
+        result["stderr"] = f"Unexpected error: {e!s}"
         result["return_code"] = -3
 
     return result

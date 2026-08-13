@@ -4,12 +4,10 @@
 import sys
 from pathlib import Path
 
-
 QWEN_RUNNER_DIR = Path(__file__).resolve().parents[2] / "qwen-runner" / "scripts"
 sys.path.insert(0, str(QWEN_RUNNER_DIR))
 
-import run_qwen  # noqa: E402
-
+import run_qwen
 
 DEFAULT_MODEL = "google/gemma-4-31b-it"
 

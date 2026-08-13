@@ -7,10 +7,10 @@ import json
 import subprocess
 import sys
 import tempfile
-import tomllib
 import unittest
 from pathlib import Path
 
+import tomllib
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
@@ -124,6 +124,7 @@ class DeliveryLauncherRoutingTests(unittest.TestCase):
                 capture_output=True,
                 text=True,
                 timeout=30,
+                check=False,
             )
             self.assertEqual(completed.returncode, 0, completed.stderr)
             return json.loads(completed.stdout)
@@ -174,6 +175,7 @@ class DeliveryLauncherRoutingTests(unittest.TestCase):
                 capture_output=True,
                 text=True,
                 timeout=30,
+                check=False,
             )
             self.assertNotEqual(completed.returncode, 0)
             self.assertIn("only valid with --fe-seat opus", completed.stderr)

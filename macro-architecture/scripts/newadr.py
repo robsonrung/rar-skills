@@ -10,7 +10,6 @@ import re
 import sys
 from pathlib import Path
 
-
 # Runtime template source. references/adrtemplate.md owns the template text; this
 # script loads and fills it at runtime so the two never drift. The repo-canonical
 # ADR template is architecture-lens/references/adr-template.md — adrtemplate.md
@@ -61,7 +60,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--status", default="proposed", help="ADR status.")
     parser.add_argument(
         "--date",
-        default=dt.date.today().strftime("%Y%m%d"),
+        default=dt.datetime.now().astimezone().strftime("%Y%m%d"),
         help="Date in YYYYMMDD format. Defaults to today.",
     )
     parser.add_argument(

@@ -10,11 +10,10 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-
 SCRIPTS_DIR = Path(__file__).resolve().parents[1] / "scripts"
 sys.path.insert(0, str(SCRIPTS_DIR))
 
-import cmux_council  # noqa: E402
+import cmux_council
 
 
 class SessionIdentityTests(unittest.TestCase):
@@ -182,9 +181,11 @@ class PeerFleetAdoptionTests(unittest.TestCase):
 
 class CmuxInvocationTests(unittest.TestCase):
     def test_missing_cmux_is_reported_as_a_usage_error(self):
-        with mock.patch("cmux_council.subprocess.run", side_effect=FileNotFoundError):
-            with self.assertRaisesRegex(cmux_council.UsageError, "not found"):
-                cmux_council.run_cmux(["cmux", "ping"])
+        with (
+            mock.patch("cmux_council.subprocess.run", side_effect=FileNotFoundError),
+            self.assertRaisesRegex(cmux_council.UsageError, "not found"),
+        ):
+            cmux_council.run_cmux(["cmux", "ping"])
 
     def test_start_runs_each_seat_in_its_new_focused_workspace(self):
         manifest = ManifestTests().manifest()

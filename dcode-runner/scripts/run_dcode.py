@@ -18,7 +18,7 @@ import subprocess
 import sys
 import tempfile
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 # The dcode binary can be overridden for non-standard installs / tests.
 DCODE_CLI = os.environ.get("DCODE_CLI_PATH", "dcode")
@@ -125,7 +125,7 @@ def load_text_file(path: str) -> str:
     return Path(path).expanduser().read_text(encoding="utf-8")
 
 
-def resolve_input_path(path: str, working_dir: Optional[str]) -> str:
+def resolve_input_path(path: str, working_dir: str | None) -> str:
     candidate = Path(path).expanduser()
     if not candidate.is_absolute() and working_dir:
         return str(Path(working_dir).expanduser() / candidate)
@@ -135,28 +135,29 @@ def resolve_input_path(path: str, working_dir: Optional[str]) -> str:
 def write_json_output_file(path: str, payload: dict[str, Any]) -> str:
     target = Path(path).expanduser()
     target.parent.mkdir(parents=True, exist_ok=True)
-    handle = tempfile.NamedTemporaryFile(
-        "w",
-        encoding="utf-8",
-        dir=target.parent,
-        delete=False,
-    )
-    temp_name = handle.name
+    temp_name = ""
     try:
-        with handle:
+        with tempfile.NamedTemporaryFile(
+            "w",
+            encoding="utf-8",
+            dir=target.parent,
+            delete=False,
+        ) as handle:
+            temp_name = handle.name
             json.dump(payload, handle, indent=2, ensure_ascii=False)
             handle.write("\n")
         os.replace(temp_name, target)
     except BaseException:
-        try:
-            os.unlink(temp_name)
-        except OSError:
-            pass
+        if temp_name:
+            try:
+                os.unlink(temp_name)
+            except OSError:
+                pass
         raise
     return str(target)
 
 
-def resolve_restrict_tools(role: Optional[str], restrict_tools: bool, allow_write: bool) -> bool:
+def resolve_restrict_tools(role: str | None, restrict_tools: bool, allow_write: bool) -> bool:
     """Decide whether to apply the read-only overlay.
 
     Precedence (highest first): explicit ``--restrict-tools`` always wins, then
@@ -229,10 +230,10 @@ def output_format_instruction(output_format: str) -> str:
 
 def build_prompt(
     prompt: str,
-    prompt_files: Optional[list[str]],
-    role: Optional[str],
-    session_file: Optional[str],
-    metadata_json: Optional[str],
+    prompt_files: list[str] | None,
+    role: str | None,
+    session_file: str | None,
+    metadata_json: str | None,
     restrict_tools: bool = False,
 ) -> str:
     sections: list[str] = []
@@ -273,9 +274,10 @@ def runner_supports_flag(runner_script: Path, flag: str) -> bool:
             capture_output=True,
             text=True,
             timeout=20,
+            check=False,
         )
         supported = flag in (completed.stdout + completed.stderr)
-    except Exception:
+    except Exception:  # noqa: BLE001
         supported = False
     _FLAG_SUPPORT_CACHE[key] = supported
     return supported
@@ -285,11 +287,11 @@ def invoke_fallback(
     runner_script: Path,
     prompt: str,
     timeout: int,
-    working_dir: Optional[str],
-    prompt_files: Optional[list[str]],
-    role: Optional[str],
-    session_file: Optional[str],
-    metadata_json: Optional[str],
+    working_dir: str | None,
+    prompt_files: list[str] | None,
+    role: str | None,
+    session_file: str | None,
+    metadata_json: str | None,
     restrict_tools: bool = False,
     allow_write: bool = False,
     output_format: str = "text",
@@ -326,6 +328,7 @@ def invoke_fallback(
             text=True,
             timeout=timeout,
             cwd=working_dir,
+            check=False,
         )
     except subprocess.TimeoutExpired as exc:
         return {
@@ -339,7 +342,7 @@ def invoke_fallback(
             "return_code": -1,
             "command": " ".join(shlex.quote(part) for part in command),
         }
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001
         return {
             "success": False,
             "stdout": "",
@@ -368,10 +371,10 @@ def invoke_fallback(
 
 def _annotate_fallback(
     fallback_result: dict[str, Any],
-    requested_model: Optional[str],
+    requested_model: str | None,
     model: str,
     dcode_continue: bool,
-    resume_session: Optional[str],
+    resume_session: str | None,
     attempted_fallbacks: list[dict[str, Any]],
     runner_name: str = DEFAULT_RUNNER,
 ) -> dict[str, Any]:
@@ -406,19 +409,19 @@ def _fallback_attempt_record(script: Path, fallback_result: dict[str, Any]) -> d
 def _run_dcode_impl(
     prompt: str,
     timeout: int = 3600,
-    working_dir: Optional[str] = None,
-    model: Optional[str] = None,
+    working_dir: str | None = None,
+    model: str | None = None,
     output_format: str = "text",
-    prompt_files: Optional[list[str]] = None,
-    role: Optional[str] = None,
-    session_file: Optional[str] = None,
-    metadata_json: Optional[str] = None,
+    prompt_files: list[str] | None = None,
+    role: str | None = None,
+    session_file: str | None = None,
+    metadata_json: str | None = None,
     dcode_continue: bool = False,
-    resume_session: Optional[str] = None,
+    resume_session: str | None = None,
     restrict_tools: bool = False,
     allow_write: bool = False,
     auto_approve: bool = False,
-    max_turns: Optional[int] = None,
+    max_turns: int | None = None,
     disable_fallback: bool = False,
     runner_name: str = DEFAULT_RUNNER,
 ) -> dict:
@@ -476,7 +479,7 @@ def _run_dcode_impl(
         )
     format_instruction = output_format_instruction(output_format)
     if format_instruction:
-        final_prompt = "\n\n".join([final_prompt, format_instruction])
+        final_prompt = f"{final_prompt}\n\n{format_instruction}"
 
     cmd = [DCODE_CLI, "-n", final_prompt, "-q", "--no-stream", "--timeout", str(dcode_inner_timeout)]
     if auto_approve:
@@ -520,7 +523,7 @@ def _run_dcode_impl(
             Path(__file__).resolve().parents[2] / "kimi-runner" / "scripts" / "run_kimi.py",
         ]
         attempted_fallbacks: list[dict[str, Any]] = []
-        last_failure: Optional[dict[str, Any]] = None
+        last_failure: dict[str, Any] | None = None
         for fallback_script in fallback_candidates:
             if not fallback_script.is_file():
                 attempted_fallbacks.append(
@@ -607,6 +610,7 @@ def _run_dcode_impl(
             capture_output=True,
             text=True,
             timeout=subprocess_timeout,
+            check=False,
         )
         result["stdout"] = process.stdout
         result["stderr"] = process.stderr
@@ -654,8 +658,8 @@ def _run_dcode_impl(
         result["return_code"] = -2
         result["effective_runner"] = None
 
-    except Exception as e:
-        result["stderr"] = f"Unexpected error: {str(e)}"
+    except Exception as e:  # noqa: BLE001
+        result["stderr"] = f"Unexpected error: {e!s}"
         result["return_code"] = -3
 
     return result
@@ -664,19 +668,19 @@ def _run_dcode_impl(
 def run_dcode(
     prompt: str,
     timeout: int = 3600,
-    working_dir: Optional[str] = None,
-    model: Optional[str] = None,
+    working_dir: str | None = None,
+    model: str | None = None,
     output_format: str = "text",
-    prompt_files: Optional[list[str]] = None,
-    role: Optional[str] = None,
-    session_file: Optional[str] = None,
-    metadata_json: Optional[str] = None,
+    prompt_files: list[str] | None = None,
+    role: str | None = None,
+    session_file: str | None = None,
+    metadata_json: str | None = None,
     dcode_continue: bool = False,
-    resume_session: Optional[str] = None,
+    resume_session: str | None = None,
     restrict_tools: bool = False,
     allow_write: bool = False,
     auto_approve: bool = False,
-    max_turns: Optional[int] = None,
+    max_turns: int | None = None,
     disable_fallback: bool = False,
     runner_name: str = DEFAULT_RUNNER,
 ) -> dict:
@@ -743,7 +747,7 @@ def run_dcode(
 def main(
     default_model: str = DEFAULT_MODEL,
     runner_name: str = DEFAULT_RUNNER,
-    description: Optional[str] = None,
+    description: str | None = None,
 ) -> None:
     """CLI entry point. Parameterized so sibling runners can delegate."""
     parser = argparse.ArgumentParser(

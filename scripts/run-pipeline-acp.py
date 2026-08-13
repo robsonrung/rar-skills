@@ -110,7 +110,7 @@ def main() -> int:
     finally:
         try:
             agent.close()
-        except Exception as exc:  # closing must not mask a real failure
+        except Exception as exc:  # closing must not mask a real failure  # noqa: BLE001
             print(f"note: ACP shutdown: {exc}", file=sys.stderr)
         if conversation is not None:
             print(f"resume with: --resume {conversation.state.id}")

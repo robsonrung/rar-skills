@@ -13,7 +13,7 @@ from typing import Any
 
 try:
     import tomllib
-except Exception:  # pragma: no cover
+except ImportError:  # pragma: no cover
     tomllib = None
 
 
@@ -30,7 +30,7 @@ def load_toml(path: Path) -> dict[str, Any]:
 def load_json(path: Path) -> dict[str, Any]:
     try:
         return json.loads(path.read_text(encoding="utf-8"))
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001
         return {"_error": str(exc)}
 
 

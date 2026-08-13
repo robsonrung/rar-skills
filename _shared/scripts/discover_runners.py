@@ -36,7 +36,6 @@ import subprocess
 import sys
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from typing import Optional
 
 SCHEMA_VERSION = 1
 
@@ -151,9 +150,9 @@ class SeatProbe:
     execution_path: str
     probe_cli: str
     available: bool
-    version: Optional[str] = None
-    cli_path: Optional[str] = None
-    blocked_reason: Optional[str] = None
+    version: str | None = None
+    cli_path: str | None = None
+    blocked_reason: str | None = None
     depends_on: tuple[str, ...] = field(default_factory=tuple)
     notes: str = ""
     tier: str = "default"
@@ -173,7 +172,7 @@ class SeatProbe:
         }
 
 
-def _probe_version(cli_path: str, spec: SeatSpec, timeout: float) -> Optional[str]:
+def _probe_version(cli_path: str, spec: SeatSpec, timeout: float) -> str | None:
     candidate_arg_lists: tuple[tuple[str, ...], ...] = (spec.version_args, *spec.fallback_version_args)
     for args in candidate_arg_lists:
         try:
@@ -240,7 +239,7 @@ def probe_seat(spec: SeatSpec, native_agent: str, version_timeout: float) -> Sea
     )
 
 
-def filter_specs(seat_filter: Optional[set[str]]) -> tuple[SeatSpec, ...]:
+def filter_specs(seat_filter: set[str] | None) -> tuple[SeatSpec, ...]:
     if not seat_filter:
         # Backup seats are opt-in by name; they never join a default fan-out.
         return tuple(s for s in SEAT_SPECS if s.tier == "default")
@@ -280,7 +279,7 @@ def summarize(probes: list[SeatProbe]) -> dict:
     }
 
 
-def apply_preset_filter(probes: list[SeatProbe], preset: Optional[str]) -> list[SeatProbe]:
+def apply_preset_filter(probes: list[SeatProbe], preset: str | None) -> list[SeatProbe]:
     if preset is None or preset == "off":
         return probes
     if preset == "light":
@@ -337,7 +336,7 @@ def render_md(probes: list[SeatProbe], summary: dict, host: dict) -> str:
     return "\n".join(lines)
 
 
-def main(argv: Optional[list[str]] = None) -> int:
+def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         prog="discover_runners",
         description="Probe the runner CLIs each seat depends on and emit a stable seat-availability envelope.",

@@ -19,18 +19,18 @@ import argparse
 import datetime as _dt
 import json
 import os
-from pathlib import Path
 import shlex
 import subprocess
 import sys
 import textwrap
 import time
 import traceback
+from pathlib import Path
 from typing import Any
 
 try:
     import tomllib
-except Exception:  # pragma: no cover
+except ImportError:  # pragma: no cover
     tomllib = None
 
 
@@ -42,7 +42,7 @@ def now_iso() -> str:
 
 
 def stamp() -> str:
-    return _dt.datetime.now().strftime("%Y%m%d_%H%M%S_%f")
+    return _dt.datetime.now().astimezone().strftime("%Y%m%d_%H%M%S_%f")
 
 
 def safe_name(value: str) -> str:
@@ -104,7 +104,7 @@ def runner_script_tail(raw_path: str, runner: str | None) -> str | None:
     if len(parts) >= 3 and parts[-2] == "scripts":
         return str(Path(*parts[-3:]))
     if runner:
-        stem = runner[: -len("-runner")] if runner.endswith("-runner") else runner
+        stem = runner.removesuffix("-runner")
         return str(Path(f"{stem}-runner") / "scripts" / f"run_{stem}.py")
     return None
 
@@ -369,6 +369,7 @@ def run_runner_role(
             capture_output=True,
             text=True,
             timeout=int(provider_cfg.get("timeout_seconds", 900)) + 30,
+            check=False,
         )
         stdout_path.write_text(completed.stdout or "", encoding="utf-8")
         stderr_path.write_text(completed.stderr or "", encoding="utf-8")
@@ -397,7 +398,7 @@ def run_runner_role(
                 "elapsed_seconds": round(time.time() - started, 3),
             }
         )
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001
         stderr_path.write_text(traceback.format_exc(), encoding="utf-8")
         result.update(
             {
@@ -458,6 +459,7 @@ def run_direct_cli_role(
             capture_output=True,
             timeout=timeout,
             env=os.environ.copy(),
+            check=False,
         )
         stdout_path.write_text(completed.stdout or "", encoding="utf-8")
         stderr_path.write_text(completed.stderr or "", encoding="utf-8")
@@ -469,7 +471,7 @@ def run_direct_cli_role(
                 "elapsed_seconds": round(time.time() - started, 3),
             }
         )
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001
         stderr_path.write_text(traceback.format_exc(), encoding="utf-8")
         result.update(
             {

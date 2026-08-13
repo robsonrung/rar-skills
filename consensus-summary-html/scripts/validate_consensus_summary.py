@@ -10,7 +10,6 @@ import sys
 from html.parser import HTMLParser
 from pathlib import Path
 
-
 REQUIRED_IDS = {
     "overview",
     "verdict",
@@ -144,7 +143,7 @@ def validate(path: Path) -> tuple[list[str], dict[str, object]]:
     try:
         parser.feed(text)
         parser.close()
-    except Exception as exc:  # HTMLParser is permissive, but report parser failures clearly.
+    except Exception as exc:  # HTMLParser is permissive, but report parser failures clearly.  # noqa: BLE001
         errors.append(f"HTML parser failed: {exc}")
 
     if not parser.has_doctype:
@@ -172,17 +171,17 @@ def validate(path: Path) -> tuple[list[str], dict[str, object]]:
         errors.append("missing visible h1 question")
     if "table" not in parser.tags or parser.seat_rows < 1:
         errors.append("seat table must contain at least one body row")
-    if not re.search(r"class=[\"'][^\"']*\bsource(?:-label)?\b", text, re.I):
+    if not re.search(r"class=[\"'][^\"']*\bsource(?:-label)?\b", text, re.IGNORECASE):
         errors.append("missing a source label or source block")
     if parser.external_script:
         errors.append("external script dependency found; keep JavaScript inline")
     if parser.external_stylesheet:
         errors.append("external stylesheet dependency found; keep CSS inline")
-    if not re.search(r"<html\b[^>]*\blang=[\"'][^\"']+[\"']", text, re.I):
+    if not re.search(r"<html\b[^>]*\blang=[\"'][^\"']+[\"']", text, re.IGNORECASE):
         errors.append("html element must declare a language")
-    if not re.search(r"<meta\b[^>]*charset=", text, re.I):
+    if not re.search(r"<meta\b[^>]*charset=", text, re.IGNORECASE):
         errors.append("missing meta charset")
-    if not re.search(r"<meta\b[^>]*name=[\"']viewport[\"']", text, re.I):
+    if not re.search(r"<meta\b[^>]*name=[\"']viewport[\"']", text, re.IGNORECASE):
         errors.append("missing viewport meta")
 
     summary = {

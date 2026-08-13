@@ -4,12 +4,10 @@
 import sys
 from pathlib import Path
 
-
 CLINE_RUNNER_DIR = Path(__file__).resolve().parents[2] / "cline-runner" / "scripts"
 sys.path.insert(0, str(CLINE_RUNNER_DIR))
 
-import run_cline  # noqa: E402
-
+import run_cline
 
 DEFAULT_MODEL = "meta/muse-spark-1.1"
 

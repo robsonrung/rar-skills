@@ -30,7 +30,8 @@ def main() -> int:
         print("usage: validate_explainer.py <file.html> [--template]", file=sys.stderr)
         return 2
     try:
-        html = open(args[0], encoding="utf-8").read()
+        with open(args[0], encoding="utf-8") as handle:
+            html = handle.read()
     except OSError as e:
         print(f"FAIL cannot read file: {e}", file=sys.stderr)
         return 2
@@ -46,7 +47,7 @@ def main() -> int:
             failures += 1
         print(f"{status}  {name}" + (f" — {detail}" if detail and not ok else ""))
 
-    title = re.search(r"<title>(.*?)</title>", html, re.S)
+    title = re.search(r"<title>(.*?)</title>", html, re.DOTALL)
     check("title present", bool(title and title.group(1).strip()))
 
     ext = [
@@ -82,7 +83,7 @@ def main() -> int:
 
     allowed = {"span", "b", "i", "em", "br", "pre"}
     stray = []
-    for pre in re.findall(r"<pre>(.*?)</pre>", html, re.S):
+    for pre in re.findall(r"<pre>(.*?)</pre>", html, re.DOTALL):
         for tag in re.findall(r"</?([a-zA-Z][a-zA-Z0-9]*)", pre):
             if tag.lower() not in allowed:
                 stray.append(tag)

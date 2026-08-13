@@ -9,13 +9,13 @@ from __future__ import annotations
 import argparse
 import datetime as _dt
 import json
-from pathlib import Path
 import sys
+from pathlib import Path
 from typing import Any
 
 try:
     import tomllib
-except Exception:  # pragma: no cover
+except ImportError:  # pragma: no cover
     tomllib = None
 
 
@@ -174,7 +174,7 @@ def main() -> int:
     artifact_dir = Path(args.artifact_dir or skill.get("artifact_dir") or ".codex_workflow/panel")
     try:
         content, source = read_content(args)
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001
         raise SystemExit(str(exc))
     if not content.strip():
         raise SystemExit("Native response content is empty.")
@@ -188,7 +188,7 @@ def main() -> int:
     response_path = artifact_dir / "native_responses" / f"{args.phase}_{args.role}.md"
     try:
         write_text(response_path, content, replace=args.replace, dry_run=args.dry_run)
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001
         raise SystemExit(str(exc))
     summary_update = update_summary(artifact_dir / "panel_summary.json", args.phase, args.role, response_path, args.dry_run)
     result = {

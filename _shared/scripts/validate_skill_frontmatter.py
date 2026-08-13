@@ -72,7 +72,7 @@ def check_frontmatter(failures: list[str], warnings: list[str]) -> int:
         count += 1
         rel = skill_md.relative_to(REPO_ROOT)
         text = skill_md.read_text(encoding="utf-8", errors="replace")
-        m = re.match(r"^---\n(.*?)\n---\n", text, re.S)
+        m = re.match(r"^---\n(.*?)\n---\n", text, re.DOTALL)
         if not m:
             failures.append(f"{rel}: missing YAML frontmatter")
             continue
@@ -86,7 +86,7 @@ def check_frontmatter(failures: list[str], warnings: list[str]) -> int:
                     f"{rel}: frontmatter is not valid YAML ({detail}) — AgentSkills "
                     "hosts drop this skill; quote the value or use a >- block scalar"
                 )
-        name = re.search(r"^name:\s*(.+)$", fm, re.M)
+        name = re.search(r"^name:\s*(.+)$", fm, re.MULTILINE)
         if not name:
             failures.append(f"{rel}: frontmatter has no name:")
         else:
@@ -117,7 +117,7 @@ def check_frontmatter(failures: list[str], warnings: list[str]) -> int:
 def extract_description(fm: str) -> str | None:
     """Return the description value, handling inline and YAML block scalars
     (>, |, >-, |-). Returns None when the key is absent."""
-    m = re.search(r"^description:[ \t]*(.*)$", fm, re.M)
+    m = re.search(r"^description:[ \t]*(.*)$", fm, re.MULTILINE)
     if not m:
         return None
     first = m.group(1).strip()
@@ -164,11 +164,11 @@ def check_invocation_parity(failures: list[str]) -> None:
         if skill_md.parent.name in NOT_A_SKILL:
             continue
         text = skill_md.read_text(encoding="utf-8", errors="replace")
-        m = re.match(r"^---\n(.*?)\n---\n", text, re.S)
+        m = re.match(r"^---\n(.*?)\n---\n", text, re.DOTALL)
         if not m:
             continue  # already reported by check_frontmatter
         manual_claude = bool(
-            re.search(r"^disable-model-invocation:\s*true\s*$", m.group(1), re.M)
+            re.search(r"^disable-model-invocation:\s*true\s*$", m.group(1), re.MULTILINE)
         )
         openai_yaml = skill_md.parent / "agents" / "openai.yaml"
         manual_codex = (
@@ -176,7 +176,7 @@ def check_invocation_parity(failures: list[str]) -> None:
             and re.search(
                 r"^\s*allow_implicit_invocation:\s*false\s*$",
                 openai_yaml.read_text(encoding="utf-8", errors="replace"),
-                re.M,
+                re.MULTILINE,
             )
             is not None
         )

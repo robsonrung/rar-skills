@@ -24,7 +24,6 @@ from collections import Counter
 from pathlib import Path
 from typing import Any
 
-
 SEVERITIES = ("CRITICAL", "HIGH", "MEDIUM", "LOW")
 ANCHORS = (0.0, 0.25, 0.5, 0.75, 1.0)
 # Ordered least to most conservative; merges only ever move rightward.

@@ -14,7 +14,6 @@ import tempfile
 from pathlib import Path
 from typing import Any
 
-
 UUID = re.compile(r"^[0-9A-Fa-f]{8}(?:-[0-9A-Fa-f]{4}){3}-[0-9A-Fa-f]{12}$")
 TERMINAL_STATE_SCHEMA = 1
 TERMINAL_STATE_OWNER = "peer-sessions.cmux_fleet"

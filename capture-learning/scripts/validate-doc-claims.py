@@ -44,6 +44,7 @@ import os
 import re
 import subprocess
 import sys
+from typing import NoReturn
 
 # Tokens containing these are placeholders/examples, not real citations.
 PLACEHOLDER_CHARS = set("<>{}*$")
@@ -59,7 +60,7 @@ SCAFFOLD_RES = (
 )
 
 
-def usage_fail(msg: str) -> "NoReturn":
+def usage_fail(msg: str) -> NoReturn:
     sys.stderr.write(f"validate-doc-claims: {msg}\n")
     sys.exit(2)
 
@@ -72,6 +73,7 @@ def git(args: list[str], cwd: str) -> tuple[int, str]:
             capture_output=True,
             text=True,
             timeout=30,
+            check=False,
         )
         return result.returncode, result.stdout.strip()
     except (OSError, subprocess.TimeoutExpired):
@@ -103,9 +105,7 @@ def is_path_candidate(token: str) -> bool:
         return False  # git refs, not repo paths
     if PLACEHOLDER_CHARS & set(token):
         return False
-    if any(sub in token for sub in PLACEHOLDER_SUBSTRINGS):
-        return False
-    return True
+    return not any(sub in token for sub in PLACEHOLDER_SUBSTRINGS)
 
 
 def is_path_shaped(token: str, base: str) -> bool:
@@ -151,8 +151,7 @@ def mask_code(lines: list[str]) -> list[str]:
 def normalize_path(token: str) -> str:
     token = token.strip().rstrip(".,;")
     token = re.sub(r":\d+(-\d+)?$", "", token)  # strip `:line` / `:a-b` refs
-    if token.startswith("./"):
-        token = token[2:]
+    token = token.removeprefix("./")
     return token
 
 

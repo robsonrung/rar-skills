@@ -11,7 +11,6 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-
 VALID_STATUSES = {"done", "blocked", "failed"}
 REQUIRED_REPLY_KEYS = {"peer", "status", "summary", "evidence", "next_step", "created_at", "authority_claim"}
 

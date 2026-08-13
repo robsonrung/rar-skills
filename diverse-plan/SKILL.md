@@ -48,7 +48,7 @@ python3 .agents/skills/_shared/scripts/discover_runners.py probe \
 (From this source repo, drop the `.agents/skills/` prefix.) Pass `--native-agent yes` only on a host that exposes the native `Agent` tool (Claude Code); otherwise `no`, and use the `claude-runner` fallbacks in the table.
 
 **Fallback rules:**
-- A seat marked `unavailable` → reassign its task to the next-best **available** model (e.g. no Kimi → smallest-change branch goes to Sonnet or GLM; no GLM → robust branch goes to Codex; no Grok → the 4th branch falls back to Gemini 3.6 Flash (`gemini-runner --role planner`); no Codex → data/security lenses + synthesis go to Opus).
+- A seat marked `unavailable` → reassign its task to the next-best **available** model (e.g. no Kimi → smallest-change branch goes to Sonnet or GLM; no GLM → robust branch goes to Codex; no Grok → the 4th branch falls back to Gemini 3.7 Flash (`gemini-runner --role planner`); no Codex → data/security lenses + synthesis go to Opus).
 - Never fabricate a seat or silently borrow another provider — every runner call passes `--disable-fallback`.
 - **Branch quorum: proceed only with ≥2 distinct branch models.** Below that, stop and report which prerequisites are missing rather than running a thin panel.
 - If two branches end up on the same model (after fallback), label them and note the reduced model diversity in the output.
@@ -132,7 +132,7 @@ Write a file only if the user asks.
 - **Self-contained.** Never call `models-consensus` — in any mode (poll, debate, personas). This skill owns its own loop.
 - **Multi-model by construction.** Branches run on distinct models via the runners (≥2 quorum); lenses and synthesis run on the model the routing table assigns. `--disable-fallback` on every runner; never substitute a provider silently.
 - **Blind branches, same brief.** Only the premise line differs across branches.
-- **Best model per task, but don't overspend.** Opus for architectural synthesis and deep design lenses, the default Codex seat for execution completeness, GPT 5.3 Codex for focused correctness/security lenses, Sonnet 5 for clean-code/tests, Kimi K3 / GLM 5.2 / Grok 4.5 (Gemini 3.6 Flash as its fallback) for the branch seats. Run only the lenses the change touches.
+- **Best model per task, but don't overspend.** Opus for architectural synthesis and deep design lenses, the default Codex seat for execution completeness, GPT 5.3 Codex for focused correctness/security lenses, Sonnet 5 for clean-code/tests, Kimi K3 / GLM 5.2 / Grok 4.5 (Gemini 3.7 Flash as its fallback) for the branch seats. Run only the lenses the change touches.
 - **One completeness round max.**
 - **Read `agent_message` from `--output-file`,** never raw stdout (Kimi appends a resume hint; Codex emits a transcript).
 - **This produces a plan, not code.** Hand the plan off to your implementation flow.

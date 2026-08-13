@@ -125,7 +125,7 @@ python3 .agents/skills/gemini-runner/scripts/run_gemini.py \
   --prompt-file .ai-workflow/consensus/{session_id}-round-{n}-gemini.md \
   --timeout 900 \
   --role synthesizer \
-  --model gemini-3.6-flash \
+  --model gemini-3.7-flash \
   --json \
   --output-format json \
   --disable-fallback \
@@ -133,7 +133,7 @@ python3 .agents/skills/gemini-runner/scripts/run_gemini.py \
   --metadata-json '{"session":"{session_id}","round":{n},"seat":"gemini","stance":"balanced_synthesis"}'
 ```
 
-The consensus Gemini seat does architecture/synthesis reasoning, so it runs **Gemini 3.6 Flash (High)** (`--model` is a metadata label — set agy's own model picker to match). Do not depend on speculative Gemini-only flags such as `--thinking-budget` or a read-only convenience mode.
+The consensus Gemini seat does architecture/synthesis reasoning, so it runs **Gemini 3.7 Flash (High)** (`--model` is a metadata label — set agy's own model picker to match). Do not depend on speculative Gemini-only flags such as `--thinking-budget` or a read-only convenience mode.
 
 ### Grok
 

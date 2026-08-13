@@ -12,7 +12,6 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-
 PEER_ID = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 
 

@@ -5,11 +5,7 @@ Run: python3 -m unittest discover -s dcode-runner/tests -p 'test_*.py'
   or python3 dcode-runner/tests/test_run_dcode.py
 """
 
-import json
-import os
-import subprocess
 import sys
-import tempfile
 import unittest
 from pathlib import Path
 from unittest import mock
@@ -17,7 +13,7 @@ from unittest import mock
 SCRIPTS_DIR = Path(__file__).resolve().parents[1] / "scripts"
 sys.path.insert(0, str(SCRIPTS_DIR))
 
-import run_dcode  # noqa: E402
+import run_dcode
 
 
 class NormalizeEnvelopeTests(unittest.TestCase):
@@ -100,7 +96,7 @@ class StripJsonFencesTests(unittest.TestCase):
         self.assertEqual(cleaned, '{"b": 2}')
 
     def test_non_json_reports_invalid(self):
-        cleaned, ok = run_dcode.strip_json_fences("not json at all")
+        _cleaned, ok = run_dcode.strip_json_fences("not json at all")
         self.assertFalse(ok)
 
 

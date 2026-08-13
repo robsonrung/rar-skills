@@ -13,7 +13,6 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-
 DEFAULT_MODEL = None  # None = whatever `cline auth` already configured locally
 DEFAULT_RUNNER = "cline"
 DEFAULT_OUTPUT_FORMAT = "stream-json"
@@ -102,24 +101,25 @@ def load_text_file(path: str) -> str:
 def write_json_output_file(path: str, payload: dict[str, Any]) -> str:
     target = Path(path).expanduser()
     target.parent.mkdir(parents=True, exist_ok=True)
-    handle = tempfile.NamedTemporaryFile(
-        "w",
-        encoding="utf-8",
-        dir=target.parent,
-        delete=False,
-    )
-    temp_name = handle.name
+    temp_name = ""
     try:
-        with handle:
+        with tempfile.NamedTemporaryFile(
+            "w",
+            encoding="utf-8",
+            dir=target.parent,
+            delete=False,
+        ) as handle:
+            temp_name = handle.name
             json.dump(payload, handle, indent=2, ensure_ascii=False)
             handle.write("\n")
         os.replace(temp_name, target)
     except BaseException:
         # Never leave an orphaned temp file behind if the write/replace fails.
-        try:
-            os.unlink(temp_name)
-        except OSError:
-            pass
+        if temp_name:
+            try:
+                os.unlink(temp_name)
+            except OSError:
+                pass
         raise
     return str(target)
 
@@ -201,6 +201,7 @@ def lookup_session_id(cline_bin: str, cwd: str, since_iso: str, extra_env: dict[
             text=True,
             timeout=10,
             env=extra_env,
+            check=False,
         )
         if proc.returncode != 0:
             return None
@@ -450,6 +451,7 @@ def _run_cline(
             capture_output=True,
             text=True,
             timeout=timeout if timeout > 0 else None,
+            check=False,
         )
         result["stdout"] = process.stdout
         result["stderr"] = process.stderr
@@ -509,7 +511,7 @@ def _run_cline(
         # cline never ran, so the user's provider config was not touched.
         result.pop("provider_config_mutated", None)
 
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001
         result["stderr"] = f"Unexpected error: {exc}"
         result["return_code"] = -3
 

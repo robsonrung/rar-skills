@@ -16,7 +16,6 @@ import re
 import subprocess
 from pathlib import Path
 
-
 CODE_EXTENSIONS = {
     ".rb", ".py", ".js", ".jsx", ".ts", ".tsx", ".go", ".rs",
     ".java", ".swift", ".kt", ".c", ".cc", ".cpp", ".cs", ".php",
@@ -26,17 +25,17 @@ CODE_EXTENSIONS = {
 SIGNAL_PATTERNS = {
     "migrations": re.compile(
         r"db/migrate/|schema\.(rb|sql)|/migrations?/|alembic|flyway|liquibase",
-        re.I,
+        re.IGNORECASE,
     ),
     "frontend": re.compile(
         r"\.(tsx|jsx|vue|svelte|css|scss|html|erb|haml)$|/components?/|stimulus|turbo",
-        re.I,
+        re.IGNORECASE,
     ),
     "api": re.compile(
         r"/(routes?|controllers?|api|serializers?|graphql)/|\.proto$|openapi|swagger",
-        re.I,
+        re.IGNORECASE,
     ),
-    "swift-ios": re.compile(r"\.(swift|kt|pbxproj|xcconfig|entitlements)$", re.I),
+    "swift-ios": re.compile(r"\.(swift|kt|pbxproj|xcconfig|entitlements)$", re.IGNORECASE),
     # Silent-pass surface: CI/gating, coverage, and test-double infrastructure.
     # These changes can go green while the thing they guard is red, so they are
     # never lite-eligible and always draw the adversarial false-pass brief.
@@ -45,13 +44,13 @@ SIGNAL_PATTERNS = {
         r"buildkite|(^|/)ci/|codecov|\.coveragerc|(^|/)coverage\.[^/]+$|"
         r"(^|/)__mocks__/|(^|/)mocks?/|conftest\.py|jest\.config|vitest\.config|"
         r"karma\.conf|pytest\.ini|\.pre-commit-config|(^|/)dangerfile",
-        re.I,
+        re.IGNORECASE,
     ),
 }
 
 TEST_PATTERN = re.compile(
     r"(^|/)(tests?|spec|__tests__)/|(^|/)[^/]+[._-](test|spec)\.[^/]+$",
-    re.I,
+    re.IGNORECASE,
 )
 
 

@@ -15,9 +15,9 @@ import shlex
 import subprocess
 import sys
 import tempfile
+from collections.abc import Sequence
 from pathlib import Path
-from typing import Any, Sequence
-
+from typing import Any
 
 SESSION_PREFIX = "consensus-"
 SAFE_TOKEN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.:-]*$")
