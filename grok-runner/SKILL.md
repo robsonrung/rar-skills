@@ -1,6 +1,6 @@
 ---
 name: grok-runner
-description: Execute prompts using Grok CLI in headless print mode as the xAI seat (Grok 4.5). Use when users explicitly request Grok execution, when a multi-model workflow needs an xAI seat for provider diversity, or when a cross-runner workflow selects Grok as the preferred model.
+description: Execute prompts using Grok CLI in headless print mode as the xAI seat (Grok 4.6). Use when users explicitly request Grok execution, when a multi-model workflow needs an xAI seat for provider diversity, or when a cross-runner workflow selects Grok as the preferred model.
 ---
 
 # Grok Runner
@@ -22,7 +22,7 @@ This skill invokes the local `grok` CLI from the current machine. Prompt text, p
 The required key contract is shared — see `../_shared/references/runner-common.md`. Grok-specific envelope extensions:
 - `agent_message` — the clean final answer. With `--output-format json` it is the payload's `text` field; with `stream-json` it is the concatenated `text` events; with `text` it is the trimmed stdout.
 - `session_id` — the Grok session id (available with `json`/`stream-json` output), usable for `--resume <id>` follow-ups.
-- `native_model_id` — the model that actually answered, harvested from grok's `modelUsage` (e.g. `grok-4.5-build`); also feeds `effective_model`.
+- `native_model_id` — the model that actually answered, harvested from grok's `modelUsage` (e.g. `grok-4.6-build`); also feeds `effective_model`.
 - `reasoning_effort_forwarded` / `effort_clamped` — what `--effort` value was actually sent to grok, and whether the shared `xhigh`/`max` tiers were clamped to grok's `high`.
 - `structured_output` — the schema-validated object grok returns when `--output-schema` is used.
 
@@ -42,7 +42,7 @@ Use `--working-dir` when the prompt depends on package-local files or generated 
 | `--working-dir`, `-w` | Working directory (passed as subprocess cwd and grok `--cwd`) | Current dir |
 | `--json`, `-j` | Wrap runner output in a JSON envelope | False |
 | `--prompt-file` | Read prompt content from a file; may be repeated | None |
-| `--model`, `-m` | Grok model id | CLI default (`grok-4.5`) |
+| `--model`, `-m` | Grok model id | CLI default (`grok-4.6`) |
 | `--output-format`, `-o` | Headless output format `text`, `json`, or `stream-json`; forwarded to grok as `plain`/`json`/`streaming-json` | `text` |
 | `--restrict-tools` | Use Grok plan mode (read-only) | True for analysis roles |
 | `--allow-write` | Opt an analysis role out of the default plan mode | False |

@@ -519,7 +519,7 @@ Examples:
         "-m",
         type=str,
         default=None,
-        help="Grok model id (default: the grok CLI's default model, grok-4.5)",
+        help="Grok model id (default: the grok CLI's default model, grok-4.6)",
     )
     parser.add_argument(
         "--output-format",

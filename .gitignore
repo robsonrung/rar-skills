@@ -4,3 +4,4 @@ __pycache__/
 /.ai-workflow
 /.qwen
 /.rar-skills/config.local.yaml
+/.audits
