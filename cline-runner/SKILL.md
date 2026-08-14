@@ -11,17 +11,23 @@ Roles, the output-envelope key contract, presenting-results rules, the backgroun
 
 ## Default Model
 
-None forced. Cline uses whichever `provider/model` the local `cline auth` last configured (inspect with `cline config` interactively, or `cat ~/.cline/data/settings/providers.json`). Pass `--model provider/model-id` to pick a specific model for a run — e.g. `--model anthropic/claude-sonnet-5`, `--model openai/gpt-5.1`, `--model zai/glm-5.2`. Pass `--provider` to select an authenticated provider id (`cline`, `cline-pass`, or whatever `cline auth` set up) independently of the model string.
+None forced. Cline uses whichever `provider/model` the local `cline auth` last configured (inspect with `cline config` interactively, or `cat ~/.cline/data/settings/providers.json`). Pass `--model provider/model-id` to pick a specific model for a run — e.g. `--model anthropic/claude-sonnet-5`, `--model openai/gpt-5.1`. Pass `--provider` to select an authenticated provider id (`cline`, `cline-pass`, `openrouter`, or whatever `cline auth` set up) independently of the model string.
+
+**Model ids are catalog-specific per provider.** The vendor prefix in `vendor/model` is each provider's own catalog slug, and providers disagree: OpenRouter lists Z.AI's GLM as `z-ai/glm-5.2`, while the cline gateway lists the same model as `zai/glm-5.2`. An id from the wrong catalog fails the run with a native model-not-found error. Headless runs route through cline's persisted `lastUsedProvider` unless `--provider` overrides it — pick the id that matches the provider that will actually serve the run. Seat shims can pass `main()` a `default_model_by_provider` map to automate this.
 
 ## Security Model
 
-This skill invokes the local Cline CLI from the current machine. Prompt text, prompt files, session files, metadata, and any files Cline reads or writes during the run may be sent to the configured provider. Cline's native `--auto-approve false` is a **real enforcement boundary**, not a prompt overlay: with it set, tool calls fail cleanly with an explicit approval error instead of running (verified — the model receives `"Tool approval requires an interactive session, but this session is non-interactive."` and continues without ever touching the filesystem). Analysis roles (every role except `implementer`) default to `--auto-approve false`; pass `--allow-write` to opt out, or `--restrict-tools` to force it without a role.
+This skill invokes the local Cline CLI from the current machine. Prompt text, prompt files, session files, metadata, and any files Cline reads or writes during the run may be sent to the configured provider. The wrapper exposes three tool modes (reported on the envelope as `tool_mode`):
+
+- **`act`** — full toolset, auto-approved. The default with no role, for the `implementer` role, and with `--allow-write`.
+- **`plan`** — Cline plan mode with tools auto-approved (`--plan --auto-approve true`): the **read-only analysis boundary** and the default for analysis roles (every role except `implementer`), also forced by `--restrict-tools`. Plan mode's toolset has no file-editing tool, and write actions (including shell redirection and file-creating commands) are blocked at the policy layer, while file reads, search, and read-only commands run headlessly (verified: a plan-mode seat asked to create files reported the edit tool absent and the writes blocked, and the target directory stayed empty). This is a real enforcement boundary, not a prompt overlay — and unlike the old `--auto-approve false` default, the seat can actually read code to verify claims.
+- **`no_tools`** — native `--auto-approve false`, forced by `--no-tools`: every tool call (including reads) fails cleanly with an explicit approval error instead of running (verified — the model receives `"Tool approval requires an interactive session, but this session is non-interactive."` and continues without touching the filesystem). Use for clean-room seats that must answer from the prompt alone. Overrides `--restrict-tools`.
 
 **`--model` mutates the user's persisted Cline config.** Passing `--model` (even an invalid one) rewrites the selected provider's `model` field in `~/.cline/data/settings/providers.json` as a side effect — the *next interactive* `cline` session on this machine will pick up whatever model this runner last requested. For automated/scripted runs where that persistence is unwanted, pass `--data-dir <path>` to isolate state into a scratch directory instead of touching `~/.cline` (note: a fresh data dir has no authenticated providers, so auth must be provisioned there). The wrapper cannot auto-isolate without breaking auth, so when a run forwards `--model` without `--data-dir` it sets `provider_config_mutated: true` on the envelope to make the side effect visible.
 
 ## Output Envelope
 
-The required key contract is shared — see `../_shared/references/runner-common.md`. Cline-specific extensions: `agent_message` (the final answer text, extracted from the terminal `run_result` event, or trimmed stdout in `text` mode), `finish_reason` (Cline's native `completed`/`error`/etc.), `native_model_id`/`native_provider` (the model that actually answered, read back from the stream — useful when `--model` was omitted), `native_return_code` (the raw process exit code before return-code normalization), `thinking` (the reasoning-effort level forwarded, when set), `provider_config_mutated` (true when `--model` was forwarded without `--data-dir` — see Security Model), and `session_id` (recovered best-effort from `cline history`, not from the stream itself; can be null under concurrent use — see Gotchas).
+The required key contract is shared — see `../_shared/references/runner-common.md`. Cline-specific extensions: `agent_message` (the final answer text, extracted from the terminal `run_result` event, or trimmed stdout in `text` mode), `finish_reason` (Cline's native `completed`/`error`/etc.), `native_model_id`/`native_provider` (the model that actually answered, read back from the stream — useful when `--model` was omitted), `native_return_code` (the raw process exit code before return-code normalization), `tool_mode` (`act`/`plan`/`no_tools` — see Security Model; `restrict_tools` stays as the boolean `tool_mode != "act"` for backward compatibility), `thinking` (the reasoning-effort level forwarded, when set), `provider_config_mutated` (true when `--model` was forwarded without `--data-dir` — see Security Model), and `session_id` (recovered best-effort from `cline history`, not from the stream itself; can be null under concurrent use — see Gotchas).
 
 With `--output-file` set, the `--json` stdout pointer is `{success, return_code, output_file, runner, effective_runner, effective_provider, fallback_from, status}` so an orchestrator can see which seat answered without opening the file.
 
@@ -50,8 +56,9 @@ Paths in the examples use the installed `.agents/skills/` layout. When running f
 | `--data-dir` | Isolated local state directory (native `--data-dir`) — use for automated runs to avoid mutating `~/.cline` | None |
 | `--config` | Configuration directory (native `--config`) | None |
 | `--system` | Override the default Cline system prompt (native `--system`) | None |
-| `--restrict-tools` | Force native `--auto-approve false` | `True` for analysis roles |
-| `--allow-write` | Opt an analysis role out of the `--auto-approve false` restriction | `False` |
+| `--restrict-tools` | Force read-only plan mode (native `--plan`, tools auto-approved) | `True` for analysis roles |
+| `--no-tools` | Force native `--auto-approve false`: every tool call fails, seat answers from the prompt alone | `False` |
+| `--allow-write` | Opt an analysis role out of the read-only plan-mode default | `False` |
 | `--background` | Run as a tracked background job and return a job id immediately | `False` |
 | `--role` | Apply a role overlay | None |
 | `--session-file` | Append prior workflow context from a file | None |
@@ -62,7 +69,7 @@ Paths in the examples use the installed `.agents/skills/` layout. When running f
 
 ## Roles
 
-The role list and the analysis-seat read-only default are shared — see `../_shared/references/runner-common.md`. For Cline, analysis roles default to native `--auto-approve false`, a real enforcement boundary (see Security Model); pass `--allow-write` to opt out.
+The role list and the analysis-seat read-only default are shared — see `../_shared/references/runner-common.md`. For Cline, analysis roles default to read-only plan mode, a real enforcement boundary (see Security Model); pass `--allow-write` to opt out, or `--no-tools` to block tools entirely.
 
 ## Background Jobs
 
@@ -85,7 +92,7 @@ python3 .agents/skills/cline-runner/scripts/run_cline.py "Run this in CI" --mode
 
 ## Behavior
 
-1. Runs `cline <prompt> --cwd <dir> --auto-approve <bool>` directly for non-interactive execution. Relative `--prompt-file`/`--session-file`/`--output-schema` paths resolve against `--working-dir` (not the process cwd), with `~` expanded.
+1. Runs `cline <prompt> --cwd <dir> --auto-approve <bool>` directly for non-interactive execution, appending native `--plan` in the read-only `plan` tool mode. Relative `--prompt-file`/`--session-file`/`--output-schema` paths resolve against `--working-dir` (not the process cwd), with `~` expanded.
 2. Defaults to native `--json` (NDJSON event stream) so callers can consume streaming output; the wrapper parses the terminal `run_result` line for the final text, `finishReason`, and resolved model.
 3. Returns a wrapper envelope with `success`, `stdout`, `stderr`, `return_code`, `runner`, `effective_runner`.
 4. Keeps native Cline output in `stdout`; the wrapper `--json` flag only controls the outer envelope.
@@ -106,7 +113,8 @@ python3 .agents/skills/cline-runner/scripts/run_cline.py "Run this in CI" --mode
 
 - **`--model` persists globally.** See Security Model — every `--model` invocation rewrites `~/.cline/data/settings/providers.json` for the requested provider, including on a failed run with an invalid model string. Use `--data-dir` for automated runs to avoid surprising the user's next interactive `cline` session.
 - **No session id in the stream.** Cline's `--json` output never includes a `sessionId`/`session_id` field (the `agentId`/`taskId` in `hook_event` lines are different, per-run identifiers, not the resumable session id). The wrapper cross-references `cline history --json` by cwd + start time; this is best-effort and can miss under heavy concurrent use of the same working directory.
-- **`--auto-approve false` fails tool calls, it doesn't skip them.** The model sees an explicit approval error and keeps reasoning — expect it to explain what it couldn't do rather than silently omitting the attempt. This is a real boundary (verified: no hang, no silent bypass), stronger than the prompt-only overlays other runners rely on.
+- **Model ids don't transfer between providers.** `z-ai/glm-5.2` (OpenRouter) and `zai/glm-5.2` (cline gateway) are the same model under different catalog slugs; the wrong one fails the run with a native model-not-found error against the serving provider. Check `lastUsedProvider` in `~/.cline/data/settings/providers.json` when a "valid" id mysteriously fails.
+- **`--no-tools` fails tool calls, it doesn't skip them.** The model sees an explicit approval error and keeps reasoning — expect it to explain what it couldn't do rather than silently omitting the attempt. This is a real boundary (verified: no hang, no silent bypass). The injected constraint text tells the seat tool calls will fail so it answers from the prompt instead of burning its retry budget hunting for a working tool path — keep prompts for `--no-tools` runs self-contained.
 - **`--output-schema` is prompt-enforced**, not validated by a native Cline schema flag.
 - Cline's non-JSON native error lines (e.g. `hook dispatch failed: ...`) can appear on stderr even for a run whose `agent_message` and `finishReason` are otherwise fine — treat `success`/`finish_reason` as authoritative over stray stderr noise.
 

@@ -81,7 +81,7 @@ Each model seat is backed by a local CLI. Install only the ones whose seats you 
 | `codex` | Codex (`gpt-5.6-sol`) | `codex-runner` | `codex` CLI authenticated |
 | `agy` (Antigravity CLI) | Gemini / Google | `gemini-runner` | `agy` authenticated; model selected via `/model` or `~/.gemini/antigravity-cli/settings.json` |
 | `grok` | Grok (`grok-4.6` — Grok 4.6) | `grok-runner` | `grok` CLI logged in (`grok login`, grok.com account) |
-| `cline` | Kimi (`moonshotai/kimi-k3`), GLM (`zai/glm-5.2`), Qwen (`qwen/qwen3.8-max`), Muse (`meta/muse-spark-1.1`), Gemma, and Minimax | `kimi-runner`, `glm-runner`, `qwen-runner`, `muse-runner`, `gemma-runner`, `minimax-runner` | Cline provider authenticated via `cline auth`; Muse access is limited to users in the United States |
+| `cline` | Kimi (`moonshotai/kimi-k3`), GLM (`z-ai/glm-5.2` on OpenRouter / `zai/glm-5.2` on the cline gateway), Qwen (`qwen/qwen3.8-max`), Muse (`meta/muse-spark-1.1`), Gemma, and Minimax | `kimi-runner`, `glm-runner`, `qwen-runner`, `muse-runner`, `gemma-runner`, `minimax-runner` | Cline provider authenticated via `cline auth`; Muse access is limited to users in the United States |
 | `opencode` (optional) | OpenCode | `opencode-runner` | Its own auth; no bundled wrapper — runs through the host approval flow |
 
 > The Kimi, GLM, Qwen, and Muse runners are thin shims over `cline-runner`. Gemma and Minimax reuse the Qwen shim with their own model IDs. All six seats execute through `cline`.
@@ -94,7 +94,7 @@ Every CLI seat is an external model call — it sends prompt text, prompt files,
 - **OpenAI / Codex** — for `codex`.
 - **Google** — for `agy` (Gemini).
 - **xAI** — for `grok` (Grok 4.5 seat).
-- **Cline-backed seats** — Kimi (`moonshotai/kimi-k3`), GLM (`zai/glm-5.2`), Qwen (`qwen/qwen3.8-max`), Muse (`meta/muse-spark-1.1`), Gemma (`google/gemma-4-31b-it`), and Minimax (`minimax/minimax-m2.7`). Authenticate a Cline provider via `cline auth` that can resolve each model ID. OpenRouter limits Muse access to users in the United States.
+- **Cline-backed seats** — Kimi (`moonshotai/kimi-k3`), GLM (`z-ai/glm-5.2` on OpenRouter / `zai/glm-5.2` on the cline gateway — the shim picks the id matching the serving provider), Qwen (`qwen/qwen3.8-max`), Muse (`meta/muse-spark-1.1`), Gemma (`google/gemma-4-31b-it`), and Minimax (`minimax/minimax-m2.7`). Authenticate a Cline provider via `cline auth` that can resolve each model ID. OpenRouter limits Muse access to users in the United States.
 
 ### 4. Environment variables
 

@@ -1,28 +1,33 @@
 ---
 name: glm-runner
-description: Execute prompts as the GLM seat through Cline CLI headless mode, with the model actually forwarded (zai/glm-5.2). Use when users explicitly request GLM execution, when a workflow needs a GLM-labelled seat, or when a cross-runner workflow selects GLM as a complementary provider.
+description: Execute prompts as the GLM seat through Cline CLI headless mode, with a real Z.AI GLM model actually forwarded (z-ai/glm-5.2 on OpenRouter, zai/glm-5.2 on the cline gateway — the shim picks the id matching the serving provider). Use when users explicitly request GLM execution, when a workflow needs a GLM-labelled seat, or when a cross-runner workflow selects GLM as a complementary provider.
 ---
 
 # GLM Runner
 
-Execute prompts as the GLM seat through the shared `cline-runner` implementation. Unlike the previous dcode-backed version of this skill, the GLM identity is a **real forwarded model** — `--model zai/glm-5.2` is passed straight through to `cline`, not just a label on an unrelated seat.
+Execute prompts as the GLM seat through the shared `cline-runner` implementation. Unlike the previous dcode-backed version of this skill, the GLM identity is a **real forwarded model** — a genuine Z.AI GLM id is passed straight through to `cline` as `--model`, not just a label on an unrelated seat.
 
 ## Default Model
 
-- `zai/glm-5.2` — forwarded to `cline` as `--model zai/glm-5.2` on every run. Override with `--model` to point the GLM seat at a different Z.AI model id `cline` recognizes.
+Cline providers do not share one model-id namespace for Z.AI, so the shim resolves the default per the provider that will actually serve the run (an explicit `--provider` flag first, else cline's persisted `lastUsedProvider`):
+
+- `z-ai/glm-5.2` when the serving provider is `openrouter` (OpenRouter's catalog uses the hyphenated org slug; verified live — `zai/glm-5.2` does not exist there)
+- `zai/glm-5.2` for the `cline` / `cline-pass` gateway and any unrecognized provider (the gateway's own slug)
+
+Override with `--model` to pin an exact id yourself — then no resolution happens and the id must match the serving provider's catalog.
 
 ## Prerequisites
 
 - `cline` CLI installed and in `PATH` (`npm install -g cline`)
-- A Cline provider authenticated via `cline auth` that can resolve `zai/glm-5.2` (verified against the `cline-pass` gateway; other providers may need their own GLM entitlement)
+- A Cline provider authenticated via `cline auth` that carries a GLM model (verified live against OpenRouter with `z-ai/glm-5.2`; the `cline-pass` gateway resolves `zai/glm-5.2`)
 
 ## Security Model
 
-This skill delegates to `cline-runner`, so it has the same execution and data sharing model as the Cline wrapper — see `../cline-runner/SKILL.md`. Notably: `--model` mutates the authenticated provider's persisted default model in `~/.cline/data/settings/providers.json`; pass `--data-dir` for automated runs where that side effect is unwanted. Analysis roles (every role except `implementer`) default to native `--auto-approve false`, a real enforcement boundary — tool calls fail cleanly instead of running. Pass `--allow-write` to opt out.
+This skill delegates to `cline-runner`, so it has the same execution and data sharing model as the Cline wrapper — see `../cline-runner/SKILL.md`. Notably: `--model` mutates the authenticated provider's persisted default model in `~/.cline/data/settings/providers.json`; pass `--data-dir` for automated runs where that side effect is unwanted. Analysis roles (every role except `implementer`) default to read-only plan mode, a real enforcement boundary — file reads and search run headlessly while write actions are unavailable. Pass `--allow-write` to opt out, or `--no-tools` to block tools entirely.
 
 ## Shared Wrapper Reference
 
-Supported options, roles, the `--json` output envelope key contract, return codes, and gotchas are identical to the shared wrapper — read [`_shared/references/runner-common.md`](../_shared/references/runner-common.md) for the shared flags, envelope keys, return codes, and the seat-fidelity rule. The envelope is produced by `cline-runner/scripts/run_cline.py` with `runner=glm`, `effective_runner=cline`, `effective_provider=zai` (inferred from the `zai/...` model id).
+Supported options, roles, the `--json` output envelope key contract, return codes, and gotchas are identical to the shared wrapper — read [`_shared/references/runner-common.md`](../_shared/references/runner-common.md) for the shared flags, envelope keys, return codes, and the seat-fidelity rule. The envelope is produced by `cline-runner/scripts/run_cline.py` with `runner=glm`, `effective_runner=cline`, and `effective_provider` inferred from the forwarded model id's vendor prefix — `z-ai` on OpenRouter runs, `zai` on gateway runs (same vendor, per-catalog slugs).
 
 ## Usage
 
@@ -43,6 +48,6 @@ python3 .agents/skills/glm-runner/scripts/run_glm.py "Run this in CI" --data-dir
 ## Behavior
 
 1. Delegates to the shared `cline-runner` implementation with runner identity set to `glm` (the envelope reports `runner=glm`, `effective_runner=cline`).
-2. Forwards `zai/glm-5.2` as the native `--model` on every call, so the GLM seat is the model that actually answers, not just a label.
+2. Forwards a real Z.AI GLM id as the native `--model` on every call (`z-ai/glm-5.2` or `zai/glm-5.2`, matched to the serving provider — see Default Model), so the GLM seat is the model that actually answers, not just a label.
 3. Never falls back to another provider. Missing CLI or auth failures block the GLM seat explicitly (`status: seat_unavailable`, `return_code -2`) — this is **seat fidelity**, the same invariant every runner upholds: never substitute another model's answer for the GLM seat.
 4. Preserves the shared wrapper envelope so councils can compare GLM output with other runners consistently.

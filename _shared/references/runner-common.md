@@ -52,7 +52,7 @@ Supported roles:
 - `challenger`
 - `researcher`
 
-Every role except `implementer` is an analysis seat and defaults to read-only mode. The exact enforcement is runner specific: Claude planning mode, Codex read-only sandbox, Cline native `--auto-approve false`, or a prompt-level overlay. Pass `--allow-write` when an analysis role legitimately needs to write.
+Every role except `implementer` is an analysis seat and defaults to read-only mode. The exact enforcement is runner specific: Claude planning mode, Codex read-only sandbox, Cline plan mode (read-only toolset with reads auto-approved; `--no-tools` forces a full tool block via `--auto-approve false`), or a prompt-level overlay. Pass `--allow-write` when an analysis role legitimately needs to write.
 
 ## Presenting results
 
@@ -70,7 +70,7 @@ Runner skills launch CLI seats headless with auto-approve flags — the guard pu
 
 - **Claude Code** — `~/.claude/settings.json`, `PreToolUse` hook with matcher `Bash` running the script (exit 2 blocks). Merge into any existing `hooks` object, never overwrite.
 - **Codex CLI** — `~/.codex/hooks.json`, same `PreToolUse`/`Bash` shape. Gotcha: Codex pins hook-entry trust by hash — after editing the hook ENTRY (not the patterns file), re-trust via `/hooks` in Codex or it silently skips the guard.
-- **Cline-backed seats (cline, kimi, glm, qwen, muse, gemma, minimax)** — no user-global PreToolUse hook system as of 2026-08; their floor is native `--auto-approve false` for restricted runs. Note the gap rather than pretending coverage.
+- **Cline-backed seats (cline, kimi, glm, qwen, muse, gemma, minimax)** — no user-global PreToolUse hook system as of 2026-08; their floor is native plan mode (no file-editing tool, write actions policy-blocked) for restricted runs, or `--auto-approve false` under `--no-tools`. Note the gap rather than pretending coverage.
 
 Use absolute paths in configs (`~` expansion is inconsistent across hosts). After ANY pattern change run `test-guard.sh` (must end `failed: 0`). Known false-positive class: a harmless command whose argument text contains a dangerous-looking string can be blocked — put the text in a file and reference it.
 

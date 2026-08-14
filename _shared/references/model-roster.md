@@ -22,7 +22,7 @@ request, never a self-claim).
 | gemini | `gemini-runner` (`agy` CLI) | — | `gemini-3.7-flash` | Cross-file consistency lens. The probe checks `agy`, not a `gemini` binary. |
 | grok | `grok-runner` (`grok` CLI) | — | `grok-4.6` | xAI seat; execution-path verification. |
 | kimi | `kimi-runner` → `cline` CLI | — | `moonshotai/kimi-k3` | Single K3 id — no `-code`/`-thinking` variants. Long-horizon coding, 1M context. |
-| glm | `glm-runner` → `cline` CLI | — | `zai/glm-5.2` | Edge-case lens; outsider stance default. |
+| glm | `glm-runner` → `cline` CLI | — | `z-ai/glm-5.2` (OpenRouter) / `zai/glm-5.2` (cline gateway) | Edge-case lens; outsider stance default. Same model, per-catalog slugs — the shim picks the id matching the serving provider; do not pin one by hand. |
 | qwen | `qwen-runner` → `cline` CLI | — | `qwen/qwen3.8-max` | Backup seat. Qwen3.8 Max, 1M context in the OpenRouter catalog. |
 | muse | `muse-runner` → `cline` CLI | — | `meta/muse-spark-1.1` | Backup seat. 1M context; OpenRouter limits access to users in the United States. |
 | gemma | `gemma-runner` → `cline` CLI | — | `google/gemma-4-31b-it` | Backup seat. |

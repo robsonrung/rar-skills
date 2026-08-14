@@ -103,7 +103,7 @@ SEAT_SPECS: tuple[SeatSpec, ...] = (
         execution_path="glm_runner_via_cline",
         probe_cli="cline",
         depends_on=("cline",),
-        notes="cline-backed shim; forwards --model zai/glm-5.2 to `cline`, requires a Cline provider authenticated via `cline auth`.",
+        notes="cline-backed shim; forwards the provider-matched GLM id to `cline` (z-ai/glm-5.2 on OpenRouter, zai/glm-5.2 on the cline gateway), requires a Cline provider authenticated via `cline auth`.",
     ),
     # Backup seats. Not part of the default council rosters — probed so skills
     # that name them explicitly (`--seat qwen`) resolve instead of exiting 2.

@@ -18,7 +18,7 @@ Execute prompts as the Kimi seat through the shared `cline-runner` implementatio
 
 ## Security Model
 
-This skill delegates to `cline-runner`, so it has the same execution and data sharing model as the Cline wrapper — see `../cline-runner/SKILL.md`. Notably: `--model` mutates the authenticated provider's persisted default model in `~/.cline/data/settings/providers.json`; pass `--data-dir` for automated runs where that side effect is unwanted. Analysis roles (every role except `implementer`) default to native `--auto-approve false`, a real enforcement boundary — tool calls fail cleanly instead of running. Pass `--allow-write` to opt out.
+This skill delegates to `cline-runner`, so it has the same execution and data sharing model as the Cline wrapper — see `../cline-runner/SKILL.md`. Notably: `--model` mutates the authenticated provider's persisted default model in `~/.cline/data/settings/providers.json`; pass `--data-dir` for automated runs where that side effect is unwanted. Analysis roles (every role except `implementer`) default to read-only plan mode, a real enforcement boundary — file reads and search run headlessly while write actions are unavailable. Pass `--allow-write` to opt out, or `--no-tools` to block tools entirely.
 
 ## Shared Wrapper Reference
 

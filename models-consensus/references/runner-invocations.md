@@ -184,7 +184,7 @@ python3 .agents/skills/glm-runner/scripts/run_glm.py \
   --metadata-json '{"session":"{session_id}","round":{n},"seat":"glm","stance":"pragmatic_engineering"}'
 ```
 
-`glm-runner` delegates to `cline-runner` and forwards a **real** GLM model — `--model zai/glm-5.2` is passed straight through to `cline` (it is the default, so no `--model` is needed), which resolves it via the authenticated Cline provider (`runner=glm`, `effective_runner=cline`, `effective_provider=z-ai`). `--output-schema` is accepted but **prompt-enforced** (not natively validated), so the brief's trailing `Return ONLY JSON …` line is what actually holds the shape.
+`glm-runner` delegates to `cline-runner` and forwards a **real** GLM model — omit `--model` and the shim resolves the id per the serving provider, because Z.AI's slug differs by catalog: `z-ai/glm-5.2` on OpenRouter, `zai/glm-5.2` on the cline gateway (`runner=glm`, `effective_runner=cline`, `effective_provider=z-ai` or `zai` accordingly). Never pin a GLM id by hand in council commands — the wrong catalog's slug fails the seat with a native model-not-found error. `--output-schema` is accepted but **prompt-enforced** (not natively validated), so the brief's trailing `Return ONLY JSON …` line is what actually holds the shape.
 
 ---
 
@@ -192,7 +192,7 @@ python3 .agents/skills/glm-runner/scripts/run_glm.py \
 
 The command shapes above are written for `debate` (stance overlay + `--role` + a per-round stance in `--metadata-json`). In `mode: poll` the same commands apply with these differences — see [poll-protocol.md](poll-protocol.md):
 
-- **No `--role`, no stance.** Poll seats answer the raw prompt; pass `--restrict-tools` and no role at all under the default `no_tools` profile. Drop `stance` from `--metadata-json` and keep `{"session":…,"round":…,"seat":…}` (plus `"sample":n` when self-paired).
+- **No `--role`, no stance.** Poll seats answer the raw prompt; under the default `no_tools` profile pass `--restrict-tools` (for cline-backed seats — kimi, glm, qwen, muse, gemma, minimax — pass `--no-tools` instead, since their `--restrict-tools` now means read-only plan mode rather than a full tool block) and no role at all. Drop `stance` from `--metadata-json` and keep `{"session":…,"round":…,"seat":…}` (plus `"sample":n` when self-paired).
 - **Schemas.** Point `--output-schema` at the poll schema for the stage: `schemas/opening-answer.schema.json` (Phase 1), `schemas/disagreement-round.schema.json` (Phase 3), `schemas/judge.schema.json` (Phase 4 judges), `schemas/organizer-analysis.schema.json` (organizer), `schemas/synthesis.schema.json` (synthesizer). Full mapping: [operations.md#response-schema-validation](operations.md#response-schema-validation).
 - **Native validation.** `--output-schema` is natively validated by **Codex and Grok** (`grok-runner` forwards it to grok's own `--json-schema` and forces JSON output for the run). Cline-backed seats accept the flag but enforce it by prompt; Gemini and the Claude seats have no schema flag and rely on the brief's trailing `Return ONLY JSON …` line.
 - **Timeout.** `--timeout 600` is ample for a single answering pass; keep 900 for debate rounds that carry a digest.
@@ -212,7 +212,7 @@ Do not use `--bare` for Claude runner seats when relying on Claude OAuth or keyc
 
 ### GLM / cline transport rule
 
-`glm-runner` delegates to `cline-runner` and forwards a **real** GLM model: `--model zai/glm-5.2` is passed straight through to `cline`, so the seat genuinely runs GLM (not a relabeled other model). It requires the `cline` CLI (`npm install -g cline`) and a Cline provider authenticated via `cline auth` that can resolve `zai/glm-5.2`. Passing `--model` mutates that provider's persisted default in `~/.cline/data/settings/providers.json`; pass `--data-dir` for automated runs to isolate the side effect. Treat the GLM seat as a single seat; do not pair it with another cline-backed seat under a different label and call it diversity.
+`glm-runner` delegates to `cline-runner` and forwards a **real** GLM model, resolving the id per the serving provider (`z-ai/glm-5.2` on OpenRouter, `zai/glm-5.2` on the cline gateway — same model, per-catalog slugs), so the seat genuinely runs GLM (not a relabeled other model). It requires the `cline` CLI (`npm install -g cline`) and a Cline provider authenticated via `cline auth` that carries a GLM model. Passing `--model` mutates that provider's persisted default in `~/.cline/data/settings/providers.json`; pass `--data-dir` for automated runs to isolate the side effect. Treat the GLM seat as a single seat; do not pair it with another cline-backed seat under a different label and call it diversity.
 
 ---
 

@@ -136,12 +136,72 @@ def normalize_prompt_files(prompt_files: list[str] | None, working_dir: str | No
     return [resolve_input_path(path, working_dir) for path in (prompt_files or [])]
 
 
-def resolve_restrict_tools(role: str | None, restrict_tools: bool, allow_write: bool) -> bool:
+# Tool modes, from most to least capable:
+# - "act": full toolset, auto-approved (write roles, --allow-write, or no role).
+# - "plan": Cline plan mode with tools auto-approved — the read-only analysis
+#   boundary. Plan mode's toolset has no file-editing tool and blocks write
+#   actions (including shell redirection) at the policy layer, while file
+#   reads, search, and read-only commands still run headlessly.
+# - "no_tools": --auto-approve false. Every tool call fails at the approval
+#   layer, so the seat must answer from the prompt alone.
+TOOL_MODE_ACT = "act"
+TOOL_MODE_PLAN = "plan"
+TOOL_MODE_NO_TOOLS = "no_tools"
+
+
+def resolve_tool_mode(
+    role: str | None,
+    restrict_tools: bool,
+    no_tools: bool,
+    allow_write: bool,
+) -> str:
+    if no_tools:
+        return TOOL_MODE_NO_TOOLS
     if restrict_tools:
-        return True
+        return TOOL_MODE_PLAN
     if allow_write:
-        return False
-    return bool(role) and role not in WRITE_ROLES
+        return TOOL_MODE_ACT
+    if role and role not in WRITE_ROLES:
+        return TOOL_MODE_PLAN
+    return TOOL_MODE_ACT
+
+
+def read_last_used_provider(data_dir: str | None = None, config_dir: str | None = None) -> str | None:
+    """Best-effort read of cline's persisted lastUsedProvider, honoring the
+    same state-directory overrides the CLI itself uses. Headless runs route
+    through this provider unless --provider overrides it."""
+    if data_dir:
+        base = Path(data_dir).expanduser()
+    elif config_dir:
+        base = Path(config_dir).expanduser() / "data"
+    else:
+        base = Path.home() / ".cline" / "data"
+    try:
+        payload = json.loads((base / "settings" / "providers.json").read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+    provider = payload.get("lastUsedProvider") if isinstance(payload, dict) else None
+    return provider if isinstance(provider, str) and provider else None
+
+
+def resolve_default_model(
+    default_model: str | None,
+    default_model_by_provider: dict[str, str] | None,
+    provider: str | None,
+    data_dir: str | None,
+    config_dir: str | None,
+) -> str | None:
+    """Pick the seat's default model id for the provider that will serve the
+    run. Cline providers do not share one model-id namespace (OpenRouter lists
+    GLM as z-ai/glm-5.2; the cline gateway uses zai/glm-5.2), so seat shims
+    can pass a per-provider map instead of a single id. "*" is the map's
+    fallback entry for unrecognized providers."""
+    if not default_model_by_provider:
+        return default_model
+    effective = provider or read_last_used_provider(data_dir, config_dir)
+    if effective and effective in default_model_by_provider:
+        return default_model_by_provider[effective]
+    return default_model_by_provider.get("*", default_model)
 
 
 def load_runner_jobs():
@@ -230,18 +290,31 @@ def build_prompt(
     session_file: str | None,
     metadata_json: str | None,
     output_schema: str | None,
-    restrict_tools: bool,
+    tool_mode: str,
 ) -> str:
     sections: list[str] = []
 
     if role:
         sections.append(f"Role: {role}\n{ROLE_INSTRUCTIONS.get(role, '')}".strip())
 
-    if restrict_tools:
+    # The constraint text must match what the mode actually enforces: a seat
+    # told "read-only" while reads are blocked burns its retry budget hunting
+    # for a working read path and aborts.
+    if tool_mode == TOOL_MODE_PLAN:
         sections.append(
             "Execution constraint:\n"
-            "Stay in read-only analysis mode. Do not edit files, create commits, "
-            "or take write actions unless the prompt explicitly overrides this."
+            "You are running in plan mode. Read-only tools (file reading, search, "
+            "read-only commands) are available and pre-approved — use them to verify "
+            "claims against the actual code. File edits and other write actions are "
+            "not available in this mode; do not attempt them."
+        )
+    elif tool_mode == TOOL_MODE_NO_TOOLS:
+        sections.append(
+            "Execution constraint:\n"
+            "No tools are approved in this session: every tool call fails with an "
+            "approval error, including file reads. Do not attempt any tool call or "
+            "retry alternate tools. Answer using only the material already in this "
+            "prompt."
         )
 
     if metadata_json:
@@ -291,6 +364,7 @@ def _run_cline(
     metadata_json: str | None = None,
     output_schema: str | None = None,
     restrict_tools: bool = False,
+    no_tools: bool = False,
     allow_write: bool = False,
     thinking: str | None = None,
     session_id: str | None = None,
@@ -317,7 +391,7 @@ def _run_cline(
     session_file = resolve_input_path(session_file, working_dir) if session_file else session_file
     output_schema = resolve_input_path(output_schema, working_dir) if output_schema else output_schema
     cwd = working_dir or os.getcwd()
-    restrict_tools = resolve_restrict_tools(role, restrict_tools, allow_write)
+    tool_mode = resolve_tool_mode(role, restrict_tools, no_tools, allow_write)
 
     def error(stderr: str, return_code: int) -> dict[str, Any]:
         return {
@@ -352,16 +426,18 @@ def _run_cline(
         session_file=session_file,
         metadata_json=metadata_json,
         output_schema=output_schema,
-        restrict_tools=restrict_tools,
+        tool_mode=tool_mode,
     )
 
     if not final_prompt.strip():
         return error("Provide a prompt argument or at least one --prompt-file", -3)
 
-    # `--auto-approve false` is a genuine enforcement boundary for Cline (tool
-    # calls fail cleanly with an error instead of hanging on a nonexistent
-    # TTY), unlike the prompt-only overlays other runners fall back to.
-    auto_approve = not restrict_tools
+    # Both restricted modes are genuine enforcement boundaries, not prompt
+    # overlays: plan mode ships a toolset with no file-editing tool and blocks
+    # write actions at the policy layer (reads stay auto-approved so headless
+    # analysis can verify code), while `--auto-approve false` makes every tool
+    # call fail cleanly instead of hanging on a nonexistent TTY.
+    auto_approve = tool_mode != TOOL_MODE_NO_TOOLS
 
     command = [
         "cline",
@@ -371,6 +447,9 @@ def _run_cline(
         "--auto-approve",
         "true" if auto_approve else "false",
     ]
+
+    if tool_mode == TOOL_MODE_PLAN:
+        command.append("--plan")
 
     if output_format == "stream-json":
         command.append("--json")
@@ -423,7 +502,8 @@ def _run_cline(
         "effective_runner": DEFAULT_RUNNER,
         "role": role,
         "session_file": session_file,
-        "restrict_tools": restrict_tools,
+        "restrict_tools": tool_mode != TOOL_MODE_ACT,
+        "tool_mode": tool_mode,
         "session_id": session_id,
         "agent_message": None,
     }
@@ -565,7 +645,8 @@ Examples:
         type=str,
         default=None,
         help="Cline model id in `provider/model` form (e.g. anthropic/claude-sonnet-5, "
-        "openai/gpt-5.1, zai/glm-5.2). Omit to use whatever `cline auth` already configured locally.",
+        "openai/gpt-5.1). Ids are catalog-specific per provider — OpenRouter lists GLM as "
+        "z-ai/glm-5.2 while the cline gateway uses zai/glm-5.2. Omit to use the runner default.",
     )
     parser.add_argument(
         "--provider",
@@ -625,13 +706,20 @@ Examples:
     parser.add_argument(
         "--restrict-tools",
         action="store_true",
-        help="Force native --auto-approve false (default for analysis roles): tool calls fail cleanly "
-        "instead of running, a real enforcement boundary rather than a prompt overlay",
+        help="Run in Cline plan mode (default for analysis roles): file reads, search, and "
+        "read-only commands run headlessly, while file edits and write actions are unavailable "
+        "— a real enforcement boundary rather than a prompt overlay",
+    )
+    parser.add_argument(
+        "--no-tools",
+        action="store_true",
+        help="Force native --auto-approve false: every tool call fails at the approval layer, "
+        "so the seat answers from the prompt alone. Strongest isolation; overrides --restrict-tools.",
     )
     parser.add_argument(
         "--allow-write",
         action="store_true",
-        help="Opt an analysis role out of the default --auto-approve false restriction",
+        help="Opt an analysis role out of the read-only plan-mode default",
     )
     parser.add_argument(
         "--background",
@@ -702,12 +790,21 @@ def main(
     default_model: str | None = DEFAULT_MODEL,
     runner_name: str = DEFAULT_RUNNER,
     description: str | None = None,
+    default_model_by_provider: dict[str, str] | None = None,
 ) -> None:
     parser = build_parser(
         default_model=default_model,
         description=description or "Execute prompts using Cline CLI in headless mode.",
     )
     args = parser.parse_args()
+
+    resolved_model = args.model or resolve_default_model(
+        default_model,
+        default_model_by_provider,
+        provider=args.provider,
+        data_dir=args.data_dir,
+        config_dir=args.config_dir,
+    )
 
     if args.background:
         jobs = load_runner_jobs()
@@ -725,7 +822,7 @@ def main(
                 sys.argv[1:],
                 working_dir=args.working_dir,
                 prompt_excerpt=prompt_source,
-                manifest_extra={"role": args.role, "model": args.model or default_model},
+                manifest_extra={"role": args.role, "model": resolved_model},
             )
         except ValueError as exc:
             parser.error(str(exc))
@@ -736,7 +833,7 @@ def main(
         prompt=args.prompt,
         timeout=args.timeout,
         working_dir=args.working_dir,
-        model=args.model or default_model,
+        model=resolved_model,
         provider=args.provider,
         output_format=args.output_format,
         prompt_files=args.prompt_file,
@@ -745,6 +842,7 @@ def main(
         metadata_json=args.metadata_json,
         output_schema=args.output_schema,
         restrict_tools=args.restrict_tools,
+        no_tools=args.no_tools,
         allow_write=args.allow_write,
         thinking=args.thinking,
         session_id=args.session_id,
