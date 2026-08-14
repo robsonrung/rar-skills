@@ -19,6 +19,10 @@ Per-checkout, user-local preferences for multi-model skills (councils, roundtabl
 | `work_engine_preferences` | implement-and-review, implement-feature, ship | Ordered harness+model candidates with `mode: off\|prefer\|require` and `skip_if_equivalent_to_host`. |
 | `runner_base_path` | any skill invoking runner scripts from another checkout | Overrides the default repo-root-relative runner script location. |
 
+## Cline lanes
+
+Concurrent Cline lanes deliberately do **not** live in this YAML. The built-in `kimi` and `glm` lanes require no environment variable or `.rar-skills` directory: authenticate their isolated state under `~/.cline/lanes/kimi` and `~/.cline/lanes/glm`, then pass `--lane kimi` / `--lane glm`. For a custom lane, pass its JSON directly with `--lane-file`; it contains absolute local state paths and pool limits but never credentials. Use `cline-runner/references/cline-lanes.example.json` as the schema.
+
 ## Reading it
 
 Skills should treat parsing failures as "no config" (log one line, continue with defaults) and must state in their output when a config value changed seat selection, so the user can see why a seat was skipped.

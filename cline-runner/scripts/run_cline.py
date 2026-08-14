@@ -13,6 +13,21 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+_SHARED_SCRIPTS = Path(__file__).resolve().parents[2] / "_shared" / "scripts"
+if str(_SHARED_SCRIPTS) not in sys.path:
+    sys.path.insert(0, str(_SHARED_SCRIPTS))
+
+from output_contract import validate_output_contract
+
+from cline_lanes import (
+    ClineLane,
+    LaneCapacityError,
+    LaneConfigError,
+    acquire_lane_slot,
+    apply_lane,
+    load_lane,
+)
+
 DEFAULT_MODEL = None  # None = whatever `cline auth` already configured locally
 DEFAULT_RUNNER = "cline"
 DEFAULT_OUTPUT_FORMAT = "stream-json"
@@ -326,17 +341,20 @@ def build_prompt(
             f"{load_text_file(session_file)}"
         )
 
-    if output_schema:
-        sections.append(
-            "Return valid JSON matching this schema exactly:\n"
-            f"{load_text_file(output_schema)}"
-        )
-
     if prompt_files:
         sections.extend(load_text_file(path) for path in prompt_files)
 
     if prompt:
         sections.append(prompt)
+
+    # Keep the contract last so task material cannot accidentally supersede
+    # the required final-answer shape.
+    if output_schema:
+        sections.append(
+            "Output contract: return exactly one JSON value matching this schema. "
+            "Do not use Markdown fences, prose, progress updates, or append a second JSON value.\n"
+            f"{load_text_file(output_schema)}"
+        )
 
     return "\n\n".join(section for section in sections if section.strip())
 
@@ -378,6 +396,9 @@ def _run_cline(
     safe: bool = False,
     bare: bool = False,
     runner_name: str = DEFAULT_RUNNER,
+    lane: ClineLane | None = None,
+    lane_error: str | None = None,
+    lane_wait_timeout: float = 30,
 ) -> dict[str, Any]:
     del disable_fallback
     del no_session_persistence
@@ -405,6 +426,11 @@ def _run_cline(
             "runner": runner_name,
             "effective_runner": DEFAULT_RUNNER,
         }
+
+    if lane_error:
+        lane_result = error(lane_error, -3)
+        lane_result["status"] = "lane_unavailable"
+        return lane_result
 
     if working_dir and not Path(working_dir).is_dir():
         return error(f"Working directory does not exist: {working_dir}", -3)
@@ -508,6 +534,16 @@ def _run_cline(
         "agent_message": None,
     }
 
+    if lane:
+        result.update(
+            {
+                "lane": lane.name,
+                "credential_pool": lane.credential_pool,
+                "lane_max_concurrency": lane.max_concurrency,
+                "state_isolated": True,
+            }
+        )
+
     if thinking:
         result["thinking"] = thinking
 
@@ -525,20 +561,36 @@ def _run_cline(
     run_started_at = datetime.now(timezone.utc).isoformat()
 
     try:
-        process = subprocess.run(
-            command,
-            cwd=cwd,
-            capture_output=True,
-            text=True,
-            timeout=timeout if timeout > 0 else None,
-            check=False,
-        )
+        if lane:
+            with acquire_lane_slot(lane, lane_wait_timeout) as slot:
+                result["lane_slot"] = slot
+                process = subprocess.run(
+                    command,
+                    cwd=cwd,
+                    capture_output=True,
+                    text=True,
+                    timeout=timeout if timeout > 0 else None,
+                    check=False,
+                )
+        else:
+            process = subprocess.run(
+                command,
+                cwd=cwd,
+                capture_output=True,
+                text=True,
+                timeout=timeout if timeout > 0 else None,
+                check=False,
+            )
         result["stdout"] = process.stdout
         result["stderr"] = process.stderr
         # Any nonzero native exit normalizes to -3; the raw code stays in
         # native_return_code so the wrapper's -1/-2/-3 codes are unambiguous.
         result["return_code"] = 0 if process.returncode == 0 else -3
         result["native_return_code"] = process.returncode
+        # A native process that exited cleanly exercised authentication even
+        # if its final answer subsequently fails our output contract.
+        if process.returncode == 0:
+            result["auth_ok"] = True
 
         run_result, agent_message, native_model_id, native_provider = inspect_native_stream(process.stdout)
         if run_result is not None:
@@ -561,6 +613,26 @@ def _run_cline(
         elif result["success"] and output_format == "text":
             result["agent_message"] = process.stdout.strip() or None
 
+        # Cline has no native JSON-schema switch. A schema prompt alone is
+        # advisory, so turn it into a hard postcondition before a council can
+        # count this response as a vote. This also rejects concatenated JSON
+        # and prose wrapped around an otherwise valid object.
+        if result["success"] and output_schema:
+            contract = validate_output_contract(result["agent_message"], output_schema)
+            result["output_json_valid"] = contract.error_kind not in {
+                "missing_output",
+                "invalid_json",
+            }
+            result["schema_valid"] = contract.valid
+            if contract.valid:
+                result["structured_output"] = contract.value
+                result["agent_message"] = json.dumps(contract.value, ensure_ascii=False)
+            else:
+                result["success"] = False
+                result["return_code"] = -3
+                result["status"] = "malformed_output"
+                result["output_contract_error"] = contract.error
+
         if native_model_id:
             result["native_model_id"] = native_model_id
         if native_provider:
@@ -575,6 +647,11 @@ def _run_cline(
             )
             if found_session_id:
                 result["session_id"] = found_session_id
+
+    except LaneCapacityError as exc:
+        result["stderr"] = str(exc)
+        result["return_code"] = -3
+        result["status"] = "lane_unavailable"
 
     except subprocess.TimeoutExpired as exc:
         result["stderr"] = f"Timeout expired after {timeout} seconds"
@@ -690,6 +767,25 @@ Examples:
         "wrapper never mutates the interactive user's ~/.cline config (see Gotchas).",
     )
     parser.add_argument(
+        "--lane",
+        type=str,
+        default=None,
+        help="Named isolated Cline lane. "
+        "Built-in kimi/glm lanes need no configuration; a lane fixes provider, model, and data-dir for a safe concurrent run.",
+    )
+    parser.add_argument(
+        "--lane-file",
+        type=str,
+        default=None,
+        help="Optional local JSON lane configuration for custom lanes; built-in kimi/glm lanes need no file.",
+    )
+    parser.add_argument(
+        "--lane-wait-timeout",
+        type=float,
+        default=30,
+        help="Seconds to wait for a credential-pool slot when using --lane (default: 30).",
+    )
+    parser.add_argument(
         "--config",
         type=str,
         default=None,
@@ -749,7 +845,7 @@ Examples:
         "--output-schema",
         type=str,
         default=None,
-        help="Append a JSON Schema file to the prompt as an output contract (prompt-enforced, not natively validated)",
+        help="Append a JSON Schema output contract and locally reject a final answer that is not exactly one schema-valid JSON value",
     )
     parser.add_argument(
         "--ephemeral",
@@ -798,15 +894,41 @@ def main(
     )
     args = parser.parse_args()
 
-    resolved_model = args.model or resolve_default_model(
-        default_model,
-        default_model_by_provider,
-        provider=args.provider,
-        data_dir=args.data_dir,
-        config_dir=args.config_dir,
-    )
+    lane = None
+    lane_error = None
+    resolved_provider = args.provider
+    resolved_data_dir = args.data_dir
+    if args.lane:
+        try:
+            lane = load_lane(args.lane, args.lane_file)
+            # Built-in lanes infer their provider from their isolated Cline
+            # state. Resolve a provider-specific default (notably GLM's
+            # catalog slug) before the lane checks that final model.
+            candidate_model = args.model or resolve_default_model(
+                default_model,
+                default_model_by_provider,
+                provider=lane.provider,
+                data_dir=lane.data_dir,
+                config_dir=args.config_dir,
+            )
+            resolved_provider, resolved_model, resolved_data_dir = apply_lane(
+                lane, args.provider, candidate_model, args.data_dir
+            )
+        except LaneConfigError as exc:
+            lane_error = str(exc)
+            resolved_model = args.model or default_model
+    else:
+        resolved_model = args.model or resolve_default_model(
+            default_model,
+            default_model_by_provider,
+            provider=args.provider,
+            data_dir=args.data_dir,
+            config_dir=args.config_dir,
+        )
 
     if args.background:
+        if lane_error:
+            parser.error(f"--lane: {lane_error}")
         jobs = load_runner_jobs()
         if jobs is None:
             parser.error(
@@ -822,7 +944,12 @@ def main(
                 sys.argv[1:],
                 working_dir=args.working_dir,
                 prompt_excerpt=prompt_source,
-                manifest_extra={"role": args.role, "model": resolved_model},
+                manifest_extra={
+                    "role": args.role,
+                    "model": resolved_model,
+                    "lane": lane.name if lane else None,
+                    "credential_pool": lane.credential_pool if lane else None,
+                },
             )
         except ValueError as exc:
             parser.error(str(exc))
@@ -834,7 +961,7 @@ def main(
         timeout=args.timeout,
         working_dir=args.working_dir,
         model=resolved_model,
-        provider=args.provider,
+        provider=resolved_provider,
         output_format=args.output_format,
         prompt_files=args.prompt_file,
         role=args.role,
@@ -847,7 +974,7 @@ def main(
         thinking=args.thinking,
         session_id=args.session_id,
         worktree=args.worktree,
-        data_dir=args.data_dir,
+        data_dir=resolved_data_dir,
         config_dir=args.config_dir,
         system_prompt=args.system_prompt,
         disable_fallback=args.disable_fallback,
@@ -856,6 +983,9 @@ def main(
         safe=args.safe,
         bare=args.bare,
         runner_name=runner_name,
+        lane=lane,
+        lane_error=lane_error,
+        lane_wait_timeout=args.lane_wait_timeout,
     )
 
     output_file = None

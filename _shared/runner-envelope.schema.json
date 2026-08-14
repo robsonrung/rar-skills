@@ -147,9 +147,11 @@
     },
     "status": {
       "type": "string",
-      "description": "Failure classification when relevant: seat_unavailable (return_code -2), timeout (return_code -1), or auth_failed (detected authentication failure; forces success=false).",
+      "description": "Failure classification when relevant: seat_unavailable (return_code -2), lane_unavailable (an isolated Cline lane is missing, invalid, or at capacity), malformed_output (the native call finished but the requested output contract failed), timeout (return_code -1), or auth_failed (detected authentication failure; forces success=false).",
       "enum": [
         "seat_unavailable",
+        "lane_unavailable",
+        "malformed_output",
         "timeout",
         "auth_failed"
       ]
@@ -167,7 +169,15 @@
     },
     "output_json_valid": {
       "type": "boolean",
-      "description": "gemini-runner with --output-format json: whether the fence-stripped agent_message parsed as JSON."
+      "description": "When an output contract is requested, whether the final answer parsed as exactly one JSON value before schema validation."
+    },
+    "schema_valid": {
+      "type": "boolean",
+      "description": "When --output-schema is supplied, whether the final JSON value passed the requested local output contract. A false value means the response must not count as a workflow vote."
+    },
+    "output_contract_error": {
+      "type": "string",
+      "description": "Human-readable reason a requested output contract failed (missing output, invalid JSON, or schema mismatch)."
     },
     "finish_reason": {
       "type": [

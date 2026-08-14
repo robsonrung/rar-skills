@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "lanes": {
+    "kimi": {
+      "provider": "openrouter",
+      "model": "moonshotai/kimi-k3",
+      "data_dir": "/Users/you/.agents/cline-lanes/kimi",
+      "credential_pool": "openrouter-primary",
+      "max_concurrency": 2
+    },
+    "glm": {
+      "provider": "openrouter",
+      "model": "z-ai/glm-5.2",
+      "data_dir": "/Users/you/.agents/cline-lanes/glm",
+      "credential_pool": "openrouter-primary",
+      "max_concurrency": 2
+    }
+  }
+}

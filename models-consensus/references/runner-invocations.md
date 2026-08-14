@@ -116,7 +116,7 @@ python3 .agents/skills/codex-runner/scripts/run_codex.py \
 
 The Codex seat runs `codex-runner`'s default model (the roster's `codex` seat) — omit `--model` rather than pinning an id. `codex-runner` supports `--effort none|minimal|low|medium|high|xhigh`; use `high` for adversarial or research-heavy rounds, mirroring the native Codex seat guidance.
 
-`--output-schema` is natively validated by Codex; for rounds after the first, swap in `schemas/later-round-response.schema.json`. Cline-backed seats accept the same flag (prompt-enforced, not natively validated). Gemini and Claude seats have no schema flag — for them the brief's trailing `Return ONLY JSON …` line holds the shape (see [operations.md#response-schema-validation](operations.md#response-schema-validation)).
+`--output-schema` is natively validated by Codex; for rounds after the first, swap in `schemas/later-round-response.schema.json`. Cline-backed seats receive the schema in their prompt **and are locally post-validated**: only exactly one JSON value that matches the schema is a successful vote. Gemini and Claude seats have no schema flag — for them the brief's trailing `Return ONLY JSON …` line holds the shape (see [operations.md#response-schema-validation](operations.md#response-schema-validation)).
 
 ### Gemini
 
@@ -162,13 +162,14 @@ python3 .agents/skills/kimi-runner/scripts/run_kimi.py \
   --output-format stream-json \
   --json \
   --no-session-persistence \
+  --lane kimi \
   --restrict-tools \
   --disable-fallback \
   --output-file .ai-workflow/consensus/{session_id}-round-{n}-kimi-output.json \
   --metadata-json '{"session":"{session_id}","round":{n},"seat":"kimi","stance":"pragmatic_engineering"}'
 ```
 
-`kimi-runner` forwards its default Moonshot model through `cline` — omit `--model` rather than pinning the id here.
+`kimi-runner` forwards its default Moonshot model through `cline` — omit `--model` rather than pinning the id here. For parallel Kimi/GLM rounds, authenticate the built-in isolated states once (`cline auth --data-dir ~/.cline/lanes/kimi` and `cline auth --data-dir ~/.cline/lanes/glm`) and pass `--lane kimi` / `--lane glm`; no environment variable or `.rar-skills` configuration is required. Without lanes, launch the two seats serially because they may share Cline provider state.
 
 ### GLM
 
@@ -177,6 +178,7 @@ python3 .agents/skills/glm-runner/scripts/run_glm.py \
   --prompt-file .ai-workflow/consensus/{session_id}-round-{n}-glm.md \
   --timeout 900 \
   --role implementer \
+  --lane glm \
   --json \
   --restrict-tools \
   --disable-fallback \
@@ -184,7 +186,7 @@ python3 .agents/skills/glm-runner/scripts/run_glm.py \
   --metadata-json '{"session":"{session_id}","round":{n},"seat":"glm","stance":"pragmatic_engineering"}'
 ```
 
-`glm-runner` delegates to `cline-runner` and forwards a **real** GLM model — omit `--model` and the shim resolves the id per the serving provider, because Z.AI's slug differs by catalog: `z-ai/glm-5.2` on OpenRouter, `zai/glm-5.2` on the cline gateway (`runner=glm`, `effective_runner=cline`, `effective_provider=z-ai` or `zai` accordingly). Never pin a GLM id by hand in council commands — the wrong catalog's slug fails the seat with a native model-not-found error. `--output-schema` is accepted but **prompt-enforced** (not natively validated), so the brief's trailing `Return ONLY JSON …` line is what actually holds the shape.
+`glm-runner` delegates to `cline-runner` and forwards a **real** GLM model — omit `--model` and the shim resolves the id per the serving provider, because Z.AI's slug differs by catalog: `z-ai/glm-5.2` on OpenRouter, `zai/glm-5.2` on the cline gateway (`runner=glm`, `effective_runner=cline`, `effective_provider=z-ai` or `zai` accordingly). Never pin a GLM id by hand in council commands — the wrong catalog's slug fails the seat with a native model-not-found error. `--output-schema` is prompt-guided and then locally enforced; a response outside the contract returns `status: malformed_output` and cannot be counted as a GLM vote.
 
 ---
 
@@ -194,7 +196,7 @@ The command shapes above are written for `debate` (stance overlay + `--role` + a
 
 - **No `--role`, no stance.** Poll seats answer the raw prompt; under the default `no_tools` profile pass `--restrict-tools` (for cline-backed seats — kimi, glm, qwen, muse, gemma, minimax — pass `--no-tools` instead, since their `--restrict-tools` now means read-only plan mode rather than a full tool block) and no role at all. Drop `stance` from `--metadata-json` and keep `{"session":…,"round":…,"seat":…}` (plus `"sample":n` when self-paired).
 - **Schemas.** Point `--output-schema` at the poll schema for the stage: `schemas/opening-answer.schema.json` (Phase 1), `schemas/disagreement-round.schema.json` (Phase 3), `schemas/judge.schema.json` (Phase 4 judges), `schemas/organizer-analysis.schema.json` (organizer), `schemas/synthesis.schema.json` (synthesizer). Full mapping: [operations.md#response-schema-validation](operations.md#response-schema-validation).
-- **Native validation.** `--output-schema` is natively validated by **Codex and Grok** (`grok-runner` forwards it to grok's own `--json-schema` and forces JSON output for the run). Cline-backed seats accept the flag but enforce it by prompt; Gemini and the Claude seats have no schema flag and rely on the brief's trailing `Return ONLY JSON …` line.
+- **Validation receipt.** `--output-schema` is natively constrained by **Codex and Grok** (`grok-runner` forwards it to grok's own `--json-schema` and forces JSON output for the run). Grok and Cline-backed seats also validate the final answer locally, so an exit code of zero is insufficient: a vote requires exactly one schema-valid JSON value. Gemini and the Claude seats have no schema flag and rely on the brief's trailing `Return ONLY JSON …` line.
 - **Timeout.** `--timeout 600` is ample for a single answering pass; keep 900 for debate rounds that carry a digest.
 - **Artifact paths.** Write one brief per phase and point every `--prompt-file` at it; per-seat outputs follow the artifact policy naming (`{session_id}-round-{n}-{seat}-output.json`).
 - **Self-pairing.** Launch duplicates with distinct labels (`"seat":"opus#1"`) and distinct `--output-file`s, vary the brief with a `SAMPLE: n` line, and mark `is_duplicate: true` in the seat table.

@@ -11,6 +11,12 @@ import tempfile
 from pathlib import Path
 from typing import Any
 
+_SHARED_SCRIPTS = Path(__file__).resolve().parents[2] / "_shared" / "scripts"
+if str(_SHARED_SCRIPTS) not in sys.path:
+    sys.path.insert(0, str(_SHARED_SCRIPTS))
+
+from output_contract import validate_output_contract, validate_value
+
 ROLE_INSTRUCTIONS = {
     "planner": "Act as a planning specialist. Break work into phases, call out risks, and keep the output actionable.",
     "codereviewer": "Act as a rigorous code reviewer. Prioritize correctness, regressions, missing tests, and concrete evidence.",
@@ -347,6 +353,13 @@ def _run_grok(
             "Continue from the current conversation state. Pick the next "
             "highest-value step and follow through until the task is resolved."
         )
+    if schema_text is not None:
+        final_prompt = (
+            f"{final_prompt}\n\n"
+            "Output contract: return exactly one JSON value matching the supplied "
+            "schema. Do not add Markdown fences, commentary, progress updates, or "
+            "a second JSON value."
+        )
 
     cmd = ["grok"]
 
@@ -444,6 +457,32 @@ def _run_grok(
         result["native_model_id"] = native_model_id
         if structured_output is not None:
             result["structured_output"] = structured_output
+
+        # `--json-schema` is a useful native constraint, but the outer Grok
+        # envelope can still contain progress text or an implementation can
+        # regress. Verify the final result locally before exposing it as a
+        # schema-valid council vote.
+        if process.returncode == 0:
+            result["auth_ok"] = True
+        if output_schema and result["success"]:
+            contract = (
+                validate_value(structured_output, schema_path)
+                if structured_output is not None
+                else validate_output_contract(agent_message, schema_path)
+            )
+            result["output_json_valid"] = contract.error_kind not in {
+                "missing_output",
+                "invalid_json",
+            }
+            result["schema_valid"] = contract.valid
+            if contract.valid:
+                result["structured_output"] = contract.value
+                result["agent_message"] = json.dumps(contract.value, ensure_ascii=False)
+            else:
+                result["success"] = False
+                result["return_code"] = -3
+                result["status"] = "malformed_output"
+                result["output_contract_error"] = contract.error
     except subprocess.TimeoutExpired as e:
         result["stderr"] = f"Timeout expired after {timeout} seconds"
         result["stdout"] = (

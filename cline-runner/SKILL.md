@@ -25,6 +25,12 @@ This skill invokes the local Cline CLI from the current machine. Prompt text, pr
 
 **`--model` mutates the user's persisted Cline config.** Passing `--model` (even an invalid one) rewrites the selected provider's `model` field in `~/.cline/data/settings/providers.json` as a side effect — the *next interactive* `cline` session on this machine will pick up whatever model this runner last requested. For automated/scripted runs where that persistence is unwanted, pass `--data-dir <path>` to isolate state into a scratch directory instead of touching `~/.cline` (note: a fresh data dir has no authenticated providers, so auth must be provisioned there). The wrapper cannot auto-isolate without breaking auth, so when a run forwards `--model` without `--data-dir` it sets `provider_config_mutated: true` on the envelope to make the side effect visible.
 
+## Concurrent Cline lanes
+
+Kimi and GLM can run concurrently through Cline **only** with separate authenticated state directories. The built-in lanes need no environment variable or repository-local configuration: provision `~/.cline/lanes/kimi` and `~/.cline/lanes/glm` once, then pass `--lane kimi` / `--lane glm`. The runner reads the selected provider from that lane's own Cline state and resolves its normal seat default (including GLM's provider-specific catalog id). A lane fixes provider/model/state and holds a bounded file-lock slot for the native call, avoiding both Cline's `lastUsedProvider` race and global model mutation.
+
+Provision the built-ins with `cline auth --data-dir ~/.cline/lanes/kimi` and `cline auth --data-dir ~/.cline/lanes/glm`. A lane with missing provider state fails explicitly as `status: lane_unavailable`; it never falls back to the shared `~/.cline` state. Built-ins that select the same provider share a two-slot credential pool, so the Kimi/GLM pair can run in parallel but the runner cannot fan out without bound. `--lane-file` remains available for custom names, nonstandard state paths, or a stricter `credential_pool`/rate limit; the JSON contains paths and pool names, never keys. Lanes are opt-in for backward compatibility: runs without `--lane` retain the existing behavior and must not be launched in parallel when they share Cline state.
+
 ## Output Envelope
 
 The required key contract is shared — see `../_shared/references/runner-common.md`. Cline-specific extensions: `agent_message` (the final answer text, extracted from the terminal `run_result` event, or trimmed stdout in `text` mode), `finish_reason` (Cline's native `completed`/`error`/etc.), `native_model_id`/`native_provider` (the model that actually answered, read back from the stream — useful when `--model` was omitted), `native_return_code` (the raw process exit code before return-code normalization), `tool_mode` (`act`/`plan`/`no_tools` — see Security Model; `restrict_tools` stays as the boolean `tool_mode != "act"` for backward compatibility), `thinking` (the reasoning-effort level forwarded, when set), `provider_config_mutated` (true when `--model` was forwarded without `--data-dir` — see Security Model), and `session_id` (recovered best-effort from `cline history`, not from the stream itself; can be null under concurrent use — see Gotchas).
@@ -54,6 +60,9 @@ Paths in the examples use the installed `.agents/skills/` layout. When running f
 | `--session` | Resume a specific Cline session by id (native `--id`) | None |
 | `--worktree` | Auto-create a detached git worktree under `~/.cline/worktrees/` and run there (native `--worktree`) | `False` |
 | `--data-dir` | Isolated local state directory (native `--data-dir`) — use for automated runs to avoid mutating `~/.cline` | None |
+| `--lane` | Named isolated lane, fixing provider/model/state and acquiring a bounded credential-pool slot | None |
+| `--lane-file` | Optional local JSON override for custom lanes; built-in `kimi`/`glm` lanes need no file | None |
+| `--lane-wait-timeout` | Seconds to wait for a lane credential-pool slot | `30` |
 | `--config` | Configuration directory (native `--config`) | None |
 | `--system` | Override the default Cline system prompt (native `--system`) | None |
 | `--restrict-tools` | Force read-only plan mode (native `--plan`, tools auto-approved) | `True` for analysis roles |
@@ -63,7 +72,7 @@ Paths in the examples use the installed `.agents/skills/` layout. When running f
 | `--role` | Apply a role overlay | None |
 | `--session-file` | Append prior workflow context from a file | None |
 | `--metadata-json` | JSON string to embed as execution metadata | None |
-| `--output-schema` | Path to a JSON Schema file for the final response shape (prompt-enforced) | None |
+| `--output-schema` | Path to a JSON Schema final-response contract; the prompt instructs Cline and the wrapper rejects non-JSON, concatenated JSON, and schema-invalid terminal answers | None |
 | `--ephemeral`, `--no-session-persistence`, `--safe`, `--bare`, `--disable-fallback` | Accepted for cross-runner parity; no effect on Cline CLI | `False` |
 | `--output-file` | Write the wrapper JSON result to this file atomically | None |
 
@@ -88,6 +97,8 @@ python3 .agents/skills/cline-runner/scripts/run_cline.py --prompt-file /tmp/revi
 python3 .agents/skills/cline-runner/scripts/run_cline.py "Implement the accepted fix" --role implementer --model openai/gpt-5.1
 python3 .agents/skills/cline-runner/scripts/run_cline.py "Resume and continue" --session 1782865158637_s2n62
 python3 .agents/skills/cline-runner/scripts/run_cline.py "Run this in CI" --model zai/glm-5.2 --data-dir /tmp/cline-ci-state
+python3 .agents/skills/kimi-runner/scripts/run_kimi.py "Review this change" --lane kimi
+python3 .agents/skills/glm-runner/scripts/run_glm.py "Review this change" --lane glm
 ```
 
 ## Behavior
@@ -99,6 +110,8 @@ python3 .agents/skills/cline-runner/scripts/run_cline.py "Run this in CI" --mode
 5. Never falls back to another provider. Missing CLI or auth failures block the seat explicitly.
 6. Trusts the process exit code for `success`, but overrides to failure if the stream's `finishReason` disagrees (e.g. a native agent error reported with an unexpectedly clean exit), so `success` is never self-contradictory with `finish_reason`.
 7. `session_id` is recovered with a best-effort `cline history --json` lookup by working directory and start time immediately after the run, since Cline's own stream never reports one.
+8. A lane records `lane`, `credential_pool`, `lane_max_concurrency`, `lane_slot`, and `state_isolated: true` on its envelope. The provider/model receipt from Cline remains authoritative for independence accounting.
+9. With `--output-schema`, parses exactly one terminal JSON value (a single JSON code fence is accepted), validates the repository's supported Draft-7 subset locally, then emits the canonical JSON in `agent_message` and `structured_output`. Invalid output returns `success: false`, `status: malformed_output`, and `output_contract_error`.
 
 ## Return Codes
 
@@ -112,10 +125,11 @@ python3 .agents/skills/cline-runner/scripts/run_cline.py "Run this in CI" --mode
 ## Gotchas
 
 - **`--model` persists globally.** See Security Model — every `--model` invocation rewrites `~/.cline/data/settings/providers.json` for the requested provider, including on a failed run with an invalid model string. Use `--data-dir` for automated runs to avoid surprising the user's next interactive `cline` session.
+- **Do not share an unisolated Cline state.** Parallel Kimi/GLM calls without lanes can race on provider/model selection. Configure separate, authenticated lane state directories and an appropriate pool limit before parallelizing them.
 - **No session id in the stream.** Cline's `--json` output never includes a `sessionId`/`session_id` field (the `agentId`/`taskId` in `hook_event` lines are different, per-run identifiers, not the resumable session id). The wrapper cross-references `cline history --json` by cwd + start time; this is best-effort and can miss under heavy concurrent use of the same working directory.
 - **Model ids don't transfer between providers.** `z-ai/glm-5.2` (OpenRouter) and `zai/glm-5.2` (cline gateway) are the same model under different catalog slugs; the wrong one fails the run with a native model-not-found error against the serving provider. Check `lastUsedProvider` in `~/.cline/data/settings/providers.json` when a "valid" id mysteriously fails.
 - **`--no-tools` fails tool calls, it doesn't skip them.** The model sees an explicit approval error and keeps reasoning — expect it to explain what it couldn't do rather than silently omitting the attempt. This is a real boundary (verified: no hang, no silent bypass). The injected constraint text tells the seat tool calls will fail so it answers from the prompt instead of burning its retry budget hunting for a working tool path — keep prompts for `--no-tools` runs self-contained.
-- **`--output-schema` is prompt-enforced**, not validated by a native Cline schema flag.
+- **`--output-schema` has two layers.** Cline receives the schema as a prompt because it has no native schema switch; afterward this wrapper validates the final terminal response locally. The model's native exit code alone never makes a schema-invalid answer successful.
 - Cline's non-JSON native error lines (e.g. `hook dispatch failed: ...`) can appear on stderr even for a run whose `agent_message` and `finishReason` are otherwise fine — treat `success`/`finish_reason` as authoritative over stray stderr noise.
 
 ## Prerequisites

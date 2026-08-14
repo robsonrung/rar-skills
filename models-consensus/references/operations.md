@@ -114,7 +114,7 @@ Validate every model output before accepting it into the digest/analysis. Output
 | `later-round-response.schema.json` | `debate` | Rounds 2..N — each seat's rebuttal/refinement after the anonymized digest |
 | — | `personas` | No JSON schemas: advisors, reviewers, and the chairman return prose in the fixed section structure of [personas.md](personas.md) |
 
-Pass the matching schema via `--output-schema` to seats that accept it — Codex and Grok validate it natively (`grok-runner` forwards it to grok's own `--json-schema`); Cline-backed seats accept the flag but enforce it by prompt. Gemini and Claude seats have no schema flag; for them (and as a backstop for everyone) the brief's trailing `Return ONLY JSON …` line holds the shape, and the moderator validates against the field lists below.
+Pass the matching schema via `--output-schema` to seats that accept it — Codex and Grok constrain it natively (`grok-runner` forwards it to grok's own `--json-schema`), while Cline-backed seats receive it in the prompt. Grok and Cline-backed runners then provide the same local receipt: their final answer must be exactly one JSON value matching the schema or the envelope is `success: false`, `status: malformed_output`. Gemini and Claude seats have no schema flag; for them (and as a backstop for everyone) the brief's trailing `Return ONLY JSON …` line holds the shape, and the moderator validates against the field lists below.
 
 **`poll` required fields** (top level, per schema): opening answer — `answer`, `key_points`, `assumptions`, `confidence` (plus `sources_used` / `failed_lookups` under a research profile); organizer analysis — `consensus`, `contradictions`, `partial_coverage`, `unique_insights`, `blind_spots`, `material_gaps`; gap-repair — `item_responses`, `confidence`; judge — `verdicts`; synthesis — `consensus_answer`, `attribution_map`, `confidence_rationale`, `confidence`.
 
@@ -136,7 +136,7 @@ Pass the matching schema via `--output-schema` to seats that accept it — Codex
 - `confidence`
 
 **Validation behavior (the `malformed_output` path):**
-- If a response is missing required fields, retry once with a compact schema reminder prepended to the prompt.
+- If a response is not exactly one schema-valid JSON value (including missing fields, extra fields, prose, fences, or concatenated JSON), retry once with a compact schema reminder prepended to the prompt.
 - If the retry also fails, mark the seat as `malformed_output`, exclude it from the digest, and degrade gracefully.
 - Do not fabricate missing fields from the seat's partial output.
 

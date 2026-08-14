@@ -24,7 +24,7 @@ The required key contract is shared — see `../_shared/references/runner-common
 - `session_id` — the Grok session id (available with `json`/`stream-json` output), usable for `--resume <id>` follow-ups.
 - `native_model_id` — the model that actually answered, harvested from grok's `modelUsage` (e.g. `grok-4.6-build`); also feeds `effective_model`.
 - `reasoning_effort_forwarded` / `effort_clamped` — what `--effort` value was actually sent to grok, and whether the shared `xhigh`/`max` tiers were clamped to grok's `high`.
-- `structured_output` — the schema-validated object grok returns when `--output-schema` is used.
+- `structured_output` — the final schema-valid object when `--output-schema` is used. The wrapper checks it locally after Grok's native constraint.
 
 ## Usage
 
@@ -47,7 +47,7 @@ Use `--working-dir` when the prompt depends on package-local files or generated 
 | `--restrict-tools` | Use Grok plan mode (read-only) | True for analysis roles |
 | `--allow-write` | Opt an analysis role out of the default plan mode | False |
 | `--effort`, `-e` | Reasoning effort `low`, `medium`, `high`, `xhigh`, `max`; grok accepts low/medium/high, so `xhigh`/`max` clamp to `high` (recorded via `effort_clamped`) | CLI default (`high`) |
-| `--output-schema FILE` | JSON Schema file forwarded to grok `--json-schema` for **native** structured-output enforcement; forces `--output-format json` | None |
+| `--output-schema FILE` | JSON Schema forwarded to grok `--json-schema`, then checked locally; forces `--output-format json` and rejects a non-schema-valid final answer | None |
 | `--max-turns N` | Maximum agent turns for the headless run | CLI default |
 | `--role` | Apply a role overlay | None |
 | `--resume SESSION_ID` | Natively resume a Grok session by id | None |
@@ -93,7 +93,7 @@ python3 .agents/skills/grok-runner/scripts/run_grok.py "Investigate the flaky te
 1. Maps `--restrict-tools` to Grok `--permission-mode plan`; analysis roles get this by default.
 2. Translates the shared output-format enum to grok's: `text` -> `plain`, `json` -> `json`, `stream-json` -> `streaming-json`, always passed explicitly. With json output the native payload stays in `stdout`; the wrapper extracts `agent_message`, `session_id`, `native_model_id`, and `structured_output` into the envelope.
 3. Maps `--effort` to grok `--reasoning-effort`, clamping `xhigh`/`max` to `high` (envelope records `effort`, `reasoning_effort_forwarded`, `effort_clamped`).
-4. `--output-schema FILE` reads the schema file and forwards its contents inline as grok `--json-schema`, so enforcement is native to the model, and forces json output (grok implies it). Very large schemas could approach argv limits; keep schemas file-sized, not megabytes.
+4. `--output-schema FILE` reads the schema file and forwards its contents inline as grok `--json-schema`, then independently verifies the returned final answer locally. A native exit code of zero alone is insufficient: the answer must be exactly one JSON value matching the schema. On failure the envelope has `success: false`, `status: malformed_output`, and `output_contract_error`. Very large schemas could approach argv limits; keep schemas file-sized, not megabytes.
 5. Resolves relative `--prompt-file`/`--session-file`/`--output-schema` paths against `--working-dir` (not the process cwd), with `~` expanded; the working dir is also forwarded as grok `--cwd`.
 6. Never falls back to another runner. A missing CLI blocks the seat explicitly (`status: seat_unavailable`, `return_code -2`) — **seat fidelity**: never substitute another model's answer for the Grok seat.
 
