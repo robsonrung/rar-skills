@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "verify-changes/checks-schema.json",
+  "title": "verify-changes result",
+  "type": "object",
+  "required": ["repo", "commandSurface", "checks"],
+  "additionalProperties": false,
+  "properties": {
+    "repo": {
+      "type": "string",
+      "description": "Repository identifier: remote slug when available, else the absolute worktree path."
+    },
+    "commandSurface": {
+      "type": "object",
+      "required": ["buildSystems", "source"],
+      "additionalProperties": false,
+      "properties": {
+        "buildSystems": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Every build system detected, e.g. [\"node\", \"make\"]."
+        },
+        "packageManager": {
+          "type": "string",
+          "description": "Detected package manager and version when applicable, e.g. \"pnpm@9\"."
+        },
+        "source": {
+          "enum": ["scripts", "makefile", "ci", "reconstructed", "mixed"],
+          "description": "Where the commands came from; \"mixed\" when rungs differ, with per-check detail in each command."
+        }
+      }
+    },
+    "workspacesScoped": {
+      "type": "object",
+      "required": ["supported"],
+      "additionalProperties": false,
+      "properties": {
+        "supported": { "type": "boolean" },
+        "mechanism": { "type": "string", "description": "e.g. \"nx affected\", \"pnpm --filter\"" },
+        "workspaces": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "checks": {
+      "type": "array",
+      "description": "Each check in execution order. A rung the repo lacks appears as not-applicable; a rung deliberately not run appears as skipped with a note. Absent entries are a broken report.",
+      "items": { "$ref": "#/$defs/check" }
+    },
+    "evidenceDir": {
+      "type": "string",
+      "description": "Temp directory holding full captured output per check."
+    },
+    "treeClean": {
+      "type": "boolean",
+      "description": "git status --porcelain empty after the run, ignoring build artifacts the repo's own commands produce."
+    }
+  },
+  "$defs": {
+    "check": {
+      "type": "object",
+      "required": ["command", "result"],
+      "additionalProperties": false,
+      "properties": {
+        "command": { "type": "string" },
+        "cwd": { "type": "string", "description": "Directory the command ran in, repo-relative." },
+        "result": { "enum": ["pass", "fail", "skipped", "not-applicable", "timeout"] },
+        "exitCode": { "type": "integer" },
+        "durationMs": { "type": "integer", "minimum": 0 },
+        "outputTail": { "type": "string", "description": "The decisive output, quoted verbatim; full capture lives in evidenceDir." },
+        "note": { "type": "string", "description": "Required for skipped and not-applicable results: why." }
+      }
+    }
+  }
+}

@@ -48,3 +48,14 @@ A repo-wide restructuring pass. Goal: one workflow, the fewest user-called skill
 ## Deferred names still reserved
 
 watch-pr, feedback-sweep, refresh-learnings, product-strategy, metric-optimize, product-pulse, launch-copy, recording-feedback.
+
+---
+
+# Successor record — gated review port (2026-08-14)
+
+Methodology ported from a private review-orchestrator service and fully generalized; no upstream-specific vocabulary retained. Both skills were checked against the surviving set for routing collisions before landing; de-confliction lives in each skill's own `description:`.
+
+| New skill | Nearest existing triggers | De-confliction |
+|---|---|---|
+| review-gate | full-review (PR/diff review, verdicts), code-review (standards/spec axes), design-gate / security-gate (gate family, pre-implementation), models-consensus (multi-seat fan-out, deliberation-only) | Description states full-review is the deep human-facing review (bughunt, security audit, ultrareview); review-gate is the merge gate — declared coverage contract with honesty accounting, persona fan-out with an adversarial refutation pass, and a machine-consumable result JSON an automated follow-up run can consume. The gate family's other members run before implementation; review-gate gates the finished diff. It never publishes to the code host. |
+| verify-changes | tdd (owns the implementation loop), diagnose (fixes failures), browser-smoke (browser leg), harness `run` (launches the app), full-review Phase 4 (verifies findings, not repo gates) | Description scopes to deterministic execution of the repo's own discovered checks with captured evidence — it never fixes (failures route to diagnose), never judges code, and never launches the app interactively. Named as review-gate's pipeline verification phase, mirroring how browser-smoke names ship. |

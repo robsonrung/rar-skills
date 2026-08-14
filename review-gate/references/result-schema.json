@@ -1,0 +1,170 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "review-gate/result-schema.json",
+  "title": "review-gate result",
+  "type": "object",
+  "required": ["verdict", "verdictReason", "summary", "prQuality", "scope", "coverage", "checks", "findings"],
+  "additionalProperties": false,
+  "properties": {
+    "verdict": { "enum": ["approve", "request-changes"] },
+    "verdictReason": {
+      "type": "string",
+      "description": "One line completing \"Verdict: Request Changes — …\". States why, not what."
+    },
+    "summary": {
+      "type": "string",
+      "description": "The spec in one line, what was verified and how, and what could not be assessed."
+    },
+    "prQuality": {
+      "type": "object",
+      "required": ["rating", "notes"],
+      "additionalProperties": false,
+      "properties": {
+        "rating": { "enum": ["excellent", "good", "needs-work", "poor"] },
+        "notes": {
+          "type": "string",
+          "description": "Spec-vs-implementation assessment plus the scope-creep callout: style churn, drive-by renames, and changes serving no line of the spec."
+        }
+      }
+    },
+    "scope": {
+      "type": "object",
+      "description": "The scope contract, declared before fan-out.",
+      "required": ["claim", "methodology", "agents", "filesIncluded", "filesExcluded", "spotCheck"],
+      "additionalProperties": false,
+      "properties": {
+        "claim": { "type": "string", "description": "One or two sentences: what the PR claims to do." },
+        "methodology": {
+          "type": "string",
+          "description": "How the review establishes whether it does: personas, seats, checks planned, whether a preview exists. Record \"single-model degraded\" here when fewer than 3 external seats were available."
+        },
+        "agents": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["persona", "seat", "executionPath", "status", "scope"],
+            "additionalProperties": false,
+            "properties": {
+              "persona": { "type": "string", "description": "e.g. \"Correctness auditor\"" },
+              "seat": { "type": "string", "description": "Seat id from runner discovery, or \"native\"" },
+              "executionPath": { "type": "string", "description": "Effective transport, e.g. \"codex-runner --effort high\" or \"Agent model:opus\"" },
+              "status": { "enum": ["ok", "degraded-to-fallback", "failed"] },
+              "scope": { "type": "string", "description": "What it covered, e.g. \"all changed handlers and their tests\"" }
+            }
+          }
+        },
+        "filesIncluded": { "$ref": "#/$defs/scopedFiles" },
+        "filesExcluded": { "$ref": "#/$defs/scopedFiles" },
+        "spotCheck": {
+          "type": "object",
+          "required": ["files", "sampling"],
+          "additionalProperties": false,
+          "properties": {
+            "files": { "$ref": "#/$defs/scopedFiles" },
+            "sampling": { "type": "string", "description": "Declared sampling: size and how instances were chosen." }
+          }
+        }
+      }
+    },
+    "coverage": {
+      "type": "array",
+      "description": "Every will-review and spot-check file with its outcome. A declared file missing here is a broken contract.",
+      "items": {
+        "type": "object",
+        "required": ["path", "outcome"],
+        "additionalProperties": false,
+        "properties": {
+          "path": { "type": "string" },
+          "outcome": { "enum": ["clean", "finding", "spot-checked", "skipped"] },
+          "note": { "type": "string", "description": "Required when outcome is skipped: what forced the skip." }
+        }
+      }
+    },
+    "checks": {
+      "type": "array",
+      "description": "Each check actually run, embedded verbatim from verify-changes when it ran. Item shape owned by verify-changes/references/checks-schema.json.",
+      "items": {
+        "$comment": "Structurally identical to the check item in verify-changes/references/checks-schema.json — that file is the owning definition.",
+        "type": "object",
+        "required": ["command", "result"],
+        "additionalProperties": false,
+        "properties": {
+          "command": { "type": "string" },
+          "cwd": { "type": "string" },
+          "result": { "enum": ["pass", "fail", "skipped", "not-applicable", "timeout"] },
+          "exitCode": { "type": "integer" },
+          "durationMs": { "type": "integer", "minimum": 0 },
+          "outputTail": { "type": "string" },
+          "note": { "type": "string" }
+        }
+      }
+    },
+    "previewVerification": {
+      "type": "object",
+      "required": ["attempted", "result"],
+      "additionalProperties": false,
+      "properties": {
+        "attempted": { "type": "boolean" },
+        "url": { "type": "string" },
+        "steps": { "type": "array", "items": { "type": "string" }, "description": "Flows exercised, in order." },
+        "result": { "enum": ["pass", "fail", "skipped"] },
+        "notes": { "type": "string", "description": "What was observed — or why the preview was skipped." }
+      }
+    },
+    "findings": {
+      "type": "array",
+      "description": "Anchored defects that survived the adversarial verifier. Empty is a valid result.",
+      "items": {
+        "type": "object",
+        "required": ["findingId", "path", "line", "severity", "confidence", "title", "body", "agent"],
+        "additionalProperties": false,
+        "properties": {
+          "findingId": { "type": "string", "description": "Stable within this run, e.g. \"f-1\"" },
+          "path": { "type": "string", "description": "Repo-relative path, on a line the diff touches" },
+          "line": { "type": "integer", "minimum": 1 },
+          "endLine": { "type": "integer", "minimum": 1 },
+          "severity": { "$ref": "#/$defs/severity" },
+          "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+          "title": { "type": "string", "description": "One specific line naming the defect" },
+          "body": { "type": "string", "description": "Actionable verbatim: what's wrong, where, why it matters, what done looks like" },
+          "agent": { "type": "string", "description": "The persona that raised it" }
+        }
+      }
+    },
+    "comments": {
+      "type": "array",
+      "description": "Observations with no single-line anchor: cross-file issues, PR-wide concerns.",
+      "items": {
+        "type": "object",
+        "required": ["commentId", "severity", "confidence", "title", "body"],
+        "additionalProperties": false,
+        "properties": {
+          "commentId": { "type": "string", "description": "Stable within this run, e.g. \"c-1\"" },
+          "severity": { "$ref": "#/$defs/severity" },
+          "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+          "title": { "type": "string" },
+          "body": { "type": "string", "description": "Names the files involved." },
+          "agent": { "type": "string" }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "severity": {
+      "enum": ["P0", "P1", "P2", "P3"],
+      "description": "P0 breaks production or leaks data; P1 must be fixed before merge; P2 should be fixed but does not block; P3 is minor and concrete."
+    },
+    "scopedFiles": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["path"],
+        "additionalProperties": false,
+        "properties": {
+          "path": { "type": "string", "description": "A file, or a directory/change-group above ~100 files." },
+          "note": { "type": "string", "description": "Why excluded, or what the group contains." }
+        }
+      }
+    }
+  }
+}

@@ -102,6 +102,18 @@
       "concept": "the ledger, not the transcript / the model never decides the retry / three exits / crash-resume test",
       "must_contain": ["the ledger, not the transcript", "the model never decides the retry", "three exits", "crash-resume test", "already decided"],
       "must_not_contain": []
+    },
+    {
+      "file": "review-gate/SKILL.md",
+      "concept": "scope contract with honesty accounting / precision over volume / checks are facts",
+      "must_contain": ["scope contract", "broken contract", "precision over volume", "never claim a check ran that didn't"],
+      "must_not_contain": []
+    },
+    {
+      "file": "verify-changes/SKILL.md",
+      "concept": "captured evidence, not narrative",
+      "must_contain": ["only captured command results count as evidence"],
+      "must_not_contain": []
     }
   ],
   "canon": [

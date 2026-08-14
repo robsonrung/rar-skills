@@ -92,6 +92,9 @@ agent sees one consistent token across the whole library:
 | Prove resumption by killing the run mid-flight | **crash-resume test** | recovery test, resilience test |
 | Entity-anchored vs corpus-anchored retrieval | **local search** / **global search** | k-hop query, thematic query, whole-graph search |
 | A conflicting fact is recorded, not resolved away | **flag, never overwrite** | latest wins, reconcile conflicts, dedupe contradictions |
+| Declared review coverage is a promise, and its accounting | **scope contract** (silently skipping is a **broken contract**) | review plan, coverage list, best-effort review |
+| A wrong finding costs more than a missed nit | **precision over volume** | high signal, low noise, quality over quantity |
+| Verification is captured, not narrated | **only captured command results count as evidence** (and: **never claim a check ran that didn't**) | tests pass (as prose), verified manually |
 
 Two pairs in this table are deliberately close; keep them apart rather than
 collapsing them into one word:

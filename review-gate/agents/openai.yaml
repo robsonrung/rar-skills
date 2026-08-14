@@ -1,0 +1,4 @@
+interface:
+  display_name: "Review Gate"
+  short_description: "Gated PR review: declared coverage, persona fan-out, machine verdict"
+  default_prompt: "Use $review-gate to gate this PR or branch. Declares a will-review/spot-check/won't-review scope contract, fans out reviewer personas across multi-model seats with an adversarial refutation pass, runs the repo's own checks, and returns a schema-validated approve/request-changes verdict."
