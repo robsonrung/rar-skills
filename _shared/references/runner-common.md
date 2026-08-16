@@ -1,6 +1,6 @@
 # Runner Common Reference
 
-Canonical, agent-facing rules shared by every runner skill: `claude-runner`, `codex-runner`, `gemini-runner`, `grok-runner`, `qwen-runner`, `cline-runner`, `pi-runner`, `dcode-runner`, plus the Pi-backed `kimi` and `glm` shims and the Cline-backed `qwen`, `muse`, `gemma`, and `minimax` shims. Each runner's SKILL.md points here for these shared blocks and keeps inline only its genuine deltas. Seat → model ids live in [model-roster.md](model-roster.md); seat availability comes from `_shared/scripts/discover_runners.py`.
+Canonical, agent-facing rules shared by every runner skill: `claude-runner`, `codex-runner`, `gemini-runner`, `grok-runner`, `qwen-runner`, `cline-runner`, `pi-runner`, `dcode-runner`, plus the Pi-backed `kimi`, `glm`, `qwen`, and `gemma` shims and the Cline-backed `muse` and `minimax` shims. Each runner's SKILL.md points here for these shared blocks and keeps inline only its genuine deltas. Seat → model ids live in [model-roster.md](model-roster.md); seat availability comes from `_shared/scripts/discover_runners.py`.
 
 ## Seat fidelity
 
@@ -19,7 +19,7 @@ This is the one place the fallback split is defined; nothing else restates it.
 | `codex` | falls back → `claude` |
 | `gemini` | falls back → `qwen`, `kimi`, `codex`, `claude` (in that order) |
 | `dcode` | falls back → `claude`, `codex`, `qwen`, `kimi` (in that order) |
-| `grok`, `qwen`, `cline`, `pi`, `kimi`, `glm`, `muse`, `gemma`, `minimax` | **block-and-report** — never substitutes |
+| `grok`, `cline`, `pi`, `kimi`, `glm`, `qwen`, `gemma`, `muse`, `minimax` | **block-and-report** — never substitutes |
 
 A fallback is always labeled (`fallback_from`, `fallback_reason`), and every fallback chain passes `--disable-fallback` to the runner it delegates to so chains cannot loop. Either way the seat's identity is never faked.
 
@@ -70,8 +70,8 @@ Runner skills launch CLI seats headless with auto-approve flags — the guard pu
 
 - **Claude Code** — `~/.claude/settings.json`, `PreToolUse` hook with matcher `Bash` running the script (exit 2 blocks). Merge into any existing `hooks` object, never overwrite.
 - **Codex CLI** — `~/.codex/hooks.json`, same `PreToolUse`/`Bash` shape. Gotcha: Codex pins hook-entry trust by hash — after editing the hook ENTRY (not the patterns file), re-trust via `/hooks` in Codex or it silently skips the guard.
-- **Cline-backed seats (cline, qwen, muse, gemma, minimax)** — no user-global PreToolUse hook system as of 2026-08; their floor is native plan mode (no file-editing tool, write actions policy-blocked) for restricted runs, or `--auto-approve false` under `--no-tools`. Note the gap rather than pretending coverage.
-- **Pi-backed seats (pi, kimi, glm)** — no PreToolUse hook system; their floor is the wrapper's tool modes (`--restrict-tools` enables only the file-reading tool; `--no-tools` disables all tools natively). Note the gap rather than pretending coverage.
+- **Cline-backed seats (cline, muse, minimax)** — no user-global PreToolUse hook system as of 2026-08; their floor is native plan mode (no file-editing tool, write actions policy-blocked) for restricted runs, or `--auto-approve false` under `--no-tools`. Note the gap rather than pretending coverage.
+- **Pi-backed seats (pi, kimi, glm, qwen, gemma)** — no PreToolUse hook system; their floor is the wrapper's tool modes (`--restrict-tools` enables only the file-reading tool; `--no-tools` disables all tools natively). Note the gap rather than pretending coverage.
 
 Use absolute paths in configs (`~` expansion is inconsistent across hosts). After ANY pattern change run `test-guard.sh` (must end `failed: 0`). Known false-positive class: a harmless command whose argument text contains a dangerous-looking string can be blocked — put the text in a file and reference it.
 

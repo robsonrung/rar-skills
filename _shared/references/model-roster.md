@@ -23,9 +23,9 @@ request, never a self-claim).
 | grok | `grok-runner` (`grok` CLI) | — | `grok-4.6` | xAI seat; execution-path verification. |
 | kimi | `kimi-runner` → `pi` CLI (OpenRouter) | — | `moonshotai/kimi-k3` | Single K3 id — no `-code`/`-thinking` variants. Long-horizon coding, 1M context. Served via OpenRouter (`OPENROUTER_API_KEY`). |
 | glm | `glm-runner` → `pi` CLI (OpenRouter) | — | `z-ai/glm-5.2` | Edge-case lens; outsider stance default. Served via OpenRouter (`OPENROUTER_API_KEY`) — the old cline-gateway slug `zai/glm-5.2` is retired. |
-| qwen | `qwen-runner` → `cline` CLI | — | `qwen/qwen3.8-max` | Backup seat. Qwen3.8 Max, 1M context in the OpenRouter catalog. |
+| qwen | `qwen-runner` → `pi` CLI (OpenRouter) | — | `qwen/qwen3.8-27b` | Backup seat. Qwen3.8 Max, 1M context. Served via OpenRouter (`OPENROUTER_API_KEY`). |
 | muse | `muse-runner` → `cline` CLI | — | `meta/muse-spark-1.1` | Backup seat. 1M context; OpenRouter limits access to users in the United States. |
-| gemma | `gemma-runner` → `cline` CLI | — | `google/gemma-4-31b-it` | Backup seat. |
+| gemma | `gemma-runner` → `pi` CLI (OpenRouter) | — | `google/gemma-4-31b-it` | Backup seat. Served via OpenRouter (`OPENROUTER_API_KEY`). |
 | minimax | `minimax-runner` → `cline` CLI | — | `minimax/minimax-m2.7` | Backup seat. |
 
 Seat availability is probed by `_shared/scripts/discover_runners.py` — always

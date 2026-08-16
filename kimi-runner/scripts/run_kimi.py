@@ -18,7 +18,7 @@ from pathlib import Path
 PI_RUNNER_DIR = Path(__file__).resolve().parents[2] / "pi-runner" / "scripts"
 sys.path.insert(0, str(PI_RUNNER_DIR))
 
-import run_pi
+import run_pi  # pyright: ignore[reportMissingImports] - sys.path is set at runtime above
 
 DEFAULT_MODEL = "moonshotai/kimi-k3"
 

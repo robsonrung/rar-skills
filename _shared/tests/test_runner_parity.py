@@ -101,10 +101,10 @@ class MissingCliEnvelopeParityTests(unittest.TestCase):
                 )
                 self.assertEqual(env["runner"], name)
                 if name == "qwen":
-                    self.assertEqual(env["effective_runner"], "cline")
-                    self.assertEqual(env["effective_model"], "qwen/qwen3.8-max")
+                    self.assertEqual(env["effective_runner"], "pi")
+                    self.assertEqual(env["effective_model"], "qwen/qwen3.8-27b")
                     self.assertEqual(env["effective_provider"], "qwen")
-                    self.assertIn("Cline CLI not found", env["stderr"])
+                    self.assertIn("Pi CLI not found", env["stderr"])
                 if name == "kimi":
                     self.assertEqual(env["effective_runner"], "pi")
                     self.assertEqual(env["effective_model"], "moonshotai/kimi-k3")

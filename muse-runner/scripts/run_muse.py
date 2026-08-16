@@ -7,7 +7,7 @@ from pathlib import Path
 CLINE_RUNNER_DIR = Path(__file__).resolve().parents[2] / "cline-runner" / "scripts"
 sys.path.insert(0, str(CLINE_RUNNER_DIR))
 
-import run_cline
+import run_cline  # pyright: ignore[reportMissingImports] - sys.path is set at runtime above
 
 DEFAULT_MODEL = "meta/muse-spark-1.1"
 

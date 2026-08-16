@@ -109,10 +109,10 @@ SEAT_SPECS: tuple[SeatSpec, ...] = (
     # that name them explicitly (`--seat qwen`) resolve instead of exiting 2.
     SeatSpec(
         seat="qwen",
-        execution_path="qwen_runner_via_cline",
-        probe_cli="cline",
-        depends_on=("cline",),
-        notes="Backup seat. cline-backed shim; forwards --model qwen/qwen3.8-max to `cline` and requires an authenticated provider that resolves it.",
+        execution_path="qwen_runner_via_pi",
+        probe_cli="pi",
+        depends_on=("pi",),
+        notes="Backup seat. pi-backed shim; pins --provider openrouter --model qwen/qwen3.8-27b (Qwen3.8 Max) per invocation, requires OPENROUTER_API_KEY (or an OpenRouter credential in Pi's auth store).",
         tier="backup",
     ),
     SeatSpec(
@@ -125,10 +125,10 @@ SEAT_SPECS: tuple[SeatSpec, ...] = (
     ),
     SeatSpec(
         seat="gemma",
-        execution_path="gemma_runner_via_cline",
-        probe_cli="cline",
-        depends_on=("cline",),
-        notes="Backup seat. cline-backed shim; forwards --model google/gemma-4-31b-it to `cline`.",
+        execution_path="gemma_runner_via_pi",
+        probe_cli="pi",
+        depends_on=("pi",),
+        notes="Backup seat. pi-backed shim; pins --provider openrouter --model google/gemma-4-31b-it per invocation, requires OPENROUTER_API_KEY (or an OpenRouter credential in Pi's auth store).",
         tier="backup",
     ),
     SeatSpec(

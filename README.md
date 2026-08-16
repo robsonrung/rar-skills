@@ -81,11 +81,11 @@ Each model seat is backed by a local CLI. Install only the ones whose seats you 
 | `codex` | Codex (`gpt-5.6-sol`) | `codex-runner` | `codex` CLI authenticated |
 | `agy` (Antigravity CLI) | Gemini / Google | `gemini-runner` | `agy` authenticated; model selected via `/model` or `~/.gemini/antigravity-cli/settings.json` |
 | `grok` | Grok (`grok-4.6` — Grok 4.6) | `grok-runner` | `grok` CLI logged in (`grok login`, grok.com account) |
-| `pi` | Kimi (`moonshotai/kimi-k3`) and GLM (`z-ai/glm-5.2`), both served via OpenRouter | `pi-runner`, `kimi-runner`, `glm-runner` | `pi` CLI (`npm install -g @mariozechner/pi-coding-agent`) + `OPENROUTER_API_KEY` |
-| `cline` | Qwen (`qwen/qwen3.8-max`), Muse (`meta/muse-spark-1.1`), Gemma, and Minimax | `qwen-runner`, `muse-runner`, `gemma-runner`, `minimax-runner` | Cline provider authenticated via `cline auth`; Muse access is limited to users in the United States |
+| `pi` | Kimi (`moonshotai/kimi-k3`), GLM (`z-ai/glm-5.2`), Qwen (`qwen/qwen3.8-27b`), and Gemma (`google/gemma-4-31b-it`), all served via OpenRouter | `pi-runner`, `kimi-runner`, `glm-runner`, `qwen-runner`, `gemma-runner` | `pi` CLI (`npm install -g @mariozechner/pi-coding-agent`) + `OPENROUTER_API_KEY` |
+| `cline` | Muse (`meta/muse-spark-1.1`) and Minimax | `muse-runner`, `minimax-runner` | Cline provider authenticated via `cline auth`; Muse access is limited to users in the United States |
 | `opencode` (optional) | OpenCode | `opencode-runner` | Its own auth; no bundled wrapper — runs through the host approval flow |
 
-> The Kimi and GLM runners are thin shims over `pi-runner` (provider and model pinned per invocation — no shared provider state). The Qwen and Muse runners are thin shims over `cline-runner`; Gemma and Minimax reuse the Qwen shim with their own model IDs.
+> The Kimi, GLM, Qwen, and Gemma runners are thin shims over `pi-runner` (provider and model pinned per invocation — no shared provider state). The Muse and Minimax runners are thin shims over `cline-runner` with their own model IDs.
 
 ### 3. Cloud / provider configuration
 
@@ -95,8 +95,8 @@ Every CLI seat is an external model call — it sends prompt text, prompt files,
 - **OpenAI / Codex** — for `codex`.
 - **Google** — for `agy` (Gemini).
 - **xAI** — for `grok` (Grok 4.5 seat).
-- **Pi-backed seats (OpenRouter)** — Kimi (`moonshotai/kimi-k3`) and GLM (`z-ai/glm-5.2`), pinned per invocation through the `pi` CLI. One credential: `OPENROUTER_API_KEY`. Note both seats share the OpenRouter dependency, so an outage or key problem drops them together.
-- **Cline-backed seats** — Qwen (`qwen/qwen3.8-max`), Muse (`meta/muse-spark-1.1`), Gemma (`google/gemma-4-31b-it`), and Minimax (`minimax/minimax-m2.7`). Authenticate a Cline provider via `cline auth` that can resolve each model ID. OpenRouter limits Muse access to users in the United States.
+- **Pi-backed seats (OpenRouter)** — Kimi (`moonshotai/kimi-k3`), GLM (`z-ai/glm-5.2`), Qwen (`qwen/qwen3.8-27b`), and Gemma (`google/gemma-4-31b-it`), pinned per invocation through the `pi` CLI. One credential: `OPENROUTER_API_KEY`. Note these seats share the OpenRouter dependency, so an outage or key problem drops them together.
+- **Cline-backed seats** — Muse (`meta/muse-spark-1.1`) and Minimax (`minimax/minimax-m2.7`). Authenticate a Cline provider via `cline auth` that can resolve each model ID. OpenRouter limits Muse access to users in the United States.
 
 ### 4. Environment variables
 

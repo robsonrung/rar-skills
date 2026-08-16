@@ -1,38 +1,32 @@
 #!/usr/bin/env python3
-"""Execute prompts as the Qwen seat through Cline CLI headless mode.
+"""Execute prompts as the Qwen seat through the Pi CLI on OpenRouter.
 
-The wrapper delegates to the shared ``cline-runner`` implementation and
-forwards ``qwen/qwen3.8-max`` on every default run. The envelope reports
-``runner=qwen`` and ``effective_runner=cline``.
+Previously this wrapper delegated to the shared `cline-runner`, which resolved
+the model through Cline's mutable provider state. It now delegates to the
+shared `pi-runner` implementation, which pins `--provider openrouter --model
+qwen/qwen3.8-27b` per invocation — the Qwen3.8 Max seat (1M-token context)
+served via OpenRouter with credentials from `OPENROUTER_API_KEY`. The
+envelope reports `runner=qwen`, `effective_runner=pi`,
+`effective_provider=qwen`.
 
-Gemma and Minimax keep importing this module with their own model and runner
-identity, so all three seats share the same Cline transport contract.
+Gemma and Minimax remain Cline-backed; they delegate to `cline-runner`
+directly with their own model and runner identity.
 """
 
 import sys
 from pathlib import Path
 
-CLINE_RUNNER_DIR = Path(__file__).resolve().parents[2] / "cline-runner" / "scripts"
-sys.path.insert(0, str(CLINE_RUNNER_DIR))
+PI_RUNNER_DIR = Path(__file__).resolve().parents[2] / "pi-runner" / "scripts"
+sys.path.insert(0, str(PI_RUNNER_DIR))
 
-import run_cline
+import run_pi  # pyright: ignore[reportMissingImports] - sys.path is set at runtime above
 
-DEFAULT_MODEL = "qwen/qwen3.8-max"
-
-
-def main(
-    default_model: str = DEFAULT_MODEL,
-    runner_name: str = "qwen",
-    description: str | None = None,
-) -> None:
-    """Expose the shared entry point for the Gemma and Minimax shims."""
-    run_cline.main(
-        default_model=default_model,
-        runner_name=runner_name,
-        description=description
-        or f"Execute prompts as the {runner_name} seat through Cline CLI headless mode.",
-    )
+DEFAULT_MODEL = "qwen/qwen3.8-27b"
 
 
 if __name__ == "__main__":
-    main()
+    run_pi.main(
+        default_model=DEFAULT_MODEL,
+        runner_name="qwen",
+        description="Execute prompts as the Qwen seat through the Pi CLI on OpenRouter.",
+    )

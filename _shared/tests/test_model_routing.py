@@ -77,15 +77,14 @@ class SkillRoutingContractTests(unittest.TestCase):
         self.assertIn("In `quality` and `research`, default to the Opus seat", protocol)
         self.assertIn("In `budget`, use the Codex seat", protocol)
 
-    def test_qwen_uses_cline_with_qwen38_max(self):
+    def test_qwen_uses_pi_with_qwen38_max(self):
         roster = self.read("_shared/references/model-roster.md")
         discovery = self.read("_shared/scripts/discover_runners.py")
         runner = self.read("qwen-runner/scripts/run_qwen.py")
-        self.assertIn("qwen/qwen3.8-max", roster)
-        self.assertIn('execution_path="qwen_runner_via_cline"', discovery)
-        self.assertIn('probe_cli="cline"', discovery)
-        self.assertIn('DEFAULT_MODEL = "qwen/qwen3.8-max"', runner)
-        self.assertIn("import run_cline", runner)
+        self.assertIn("qwen/qwen3.8-27b", roster)
+        self.assertIn('execution_path="qwen_runner_via_pi"', discovery)
+        self.assertIn('DEFAULT_MODEL = "qwen/qwen3.8-27b"', runner)
+        self.assertIn("import run_pi", runner)
 
     def test_muse_uses_cline_with_muse_spark(self):
         roster = self.read("_shared/references/model-roster.md")
