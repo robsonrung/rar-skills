@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-"""Cross-runner parity tests for the five wrapper scripts (claude, codex,
-gemini, grok, cline).
+"""Cross-runner parity tests for the wrapper scripts (claude, codex, gemini,
+grok, cline, pi) and the seat shims built on them (muse, qwen, kimi, glm).
 
 Locks in the family-wide contract so the per-script copies cannot drift:
 
@@ -38,6 +38,9 @@ RUNNER_SCRIPTS = {
     "cline": REPO_ROOT / "cline-runner" / "scripts" / "run_cline.py",
     "muse": REPO_ROOT / "muse-runner" / "scripts" / "run_muse.py",
     "qwen": REPO_ROOT / "qwen-runner" / "scripts" / "run_qwen.py",
+    "pi": REPO_ROOT / "pi-runner" / "scripts" / "run_pi.py",
+    "kimi": REPO_ROOT / "kimi-runner" / "scripts" / "run_kimi.py",
+    "glm": REPO_ROOT / "glm-runner" / "scripts" / "run_glm.py",
 }
 
 REQUIRED_KEYS = (
@@ -102,6 +105,16 @@ class MissingCliEnvelopeParityTests(unittest.TestCase):
                     self.assertEqual(env["effective_model"], "qwen/qwen3.8-max")
                     self.assertEqual(env["effective_provider"], "qwen")
                     self.assertIn("Cline CLI not found", env["stderr"])
+                if name == "kimi":
+                    self.assertEqual(env["effective_runner"], "pi")
+                    self.assertEqual(env["effective_model"], "moonshotai/kimi-k3")
+                    self.assertEqual(env["effective_provider"], "moonshotai")
+                    self.assertIn("Pi CLI not found", env["stderr"])
+                if name == "glm":
+                    self.assertEqual(env["effective_runner"], "pi")
+                    self.assertEqual(env["effective_model"], "z-ai/glm-5.2")
+                    self.assertEqual(env["effective_provider"], "z-ai")
+                    self.assertIn("Pi CLI not found", env["stderr"])
 
 
 class OutputFilePointerParityTests(unittest.TestCase):

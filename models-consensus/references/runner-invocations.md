@@ -116,7 +116,7 @@ python3 .agents/skills/codex-runner/scripts/run_codex.py \
 
 The Codex seat runs `codex-runner`'s default model (the roster's `codex` seat) — omit `--model` rather than pinning an id. `codex-runner` supports `--effort none|minimal|low|medium|high|xhigh`; use `high` for adversarial or research-heavy rounds, mirroring the native Codex seat guidance.
 
-`--output-schema` is natively validated by Codex; for rounds after the first, swap in `schemas/later-round-response.schema.json`. Cline-backed seats receive the schema in their prompt **and are locally post-validated**: only exactly one JSON value that matches the schema is a successful vote. Gemini and Claude seats have no schema flag — for them the brief's trailing `Return ONLY JSON …` line holds the shape (see [operations.md#response-schema-validation](operations.md#response-schema-validation)).
+`--output-schema` is natively validated by Codex; for rounds after the first, swap in `schemas/later-round-response.schema.json`. Pi-backed and Cline-backed seats receive the schema in their prompt **and are locally post-validated**: only exactly one JSON value that matches the schema is a successful vote. Gemini and Claude seats have no schema flag — for them the brief's trailing `Return ONLY JSON …` line holds the shape (see [operations.md#response-schema-validation](operations.md#response-schema-validation)).
 
 ### Gemini
 
@@ -162,14 +162,13 @@ python3 .agents/skills/kimi-runner/scripts/run_kimi.py \
   --output-format stream-json \
   --json \
   --no-session-persistence \
-  --lane kimi \
   --restrict-tools \
   --disable-fallback \
   --output-file .ai-workflow/consensus/{session_id}-round-{n}-kimi-output.json \
   --metadata-json '{"session":"{session_id}","round":{n},"seat":"kimi","stance":"pragmatic_engineering"}'
 ```
 
-`kimi-runner` forwards its default Moonshot model through `cline` — omit `--model` rather than pinning the id here. For parallel Kimi/GLM rounds, authenticate the built-in isolated states once (`cline auth --data-dir ~/.cline/lanes/kimi` and `cline auth --data-dir ~/.cline/lanes/glm`) and pass `--lane kimi` / `--lane glm`; no environment variable or `.rar-skills` configuration is required. Without lanes, launch the two seats serially because they may share Cline provider state.
+`kimi-runner` pins its default Moonshot model per invocation through `pi` on OpenRouter — omit `--model` rather than pinning the id here. The only credential is `OPENROUTER_API_KEY`; there is no lane provisioning, no shared provider state, and Kimi/GLM rounds launch in parallel safely.
 
 ### GLM
 
@@ -178,15 +177,15 @@ python3 .agents/skills/glm-runner/scripts/run_glm.py \
   --prompt-file .ai-workflow/consensus/{session_id}-round-{n}-glm.md \
   --timeout 900 \
   --role implementer \
-  --lane glm \
   --json \
+  --no-session-persistence \
   --restrict-tools \
   --disable-fallback \
   --output-file .ai-workflow/consensus/{session_id}-round-{n}-glm-output.json \
   --metadata-json '{"session":"{session_id}","round":{n},"seat":"glm","stance":"pragmatic_engineering"}'
 ```
 
-`glm-runner` delegates to `cline-runner` and forwards a **real** GLM model — omit `--model` and the shim resolves the id per the serving provider, because Z.AI's slug differs by catalog: `z-ai/glm-5.2` on OpenRouter, `zai/glm-5.2` on the cline gateway (`runner=glm`, `effective_runner=cline`, `effective_provider=z-ai` or `zai` accordingly). Never pin a GLM id by hand in council commands — the wrong catalog's slug fails the seat with a native model-not-found error. `--output-schema` is prompt-guided and then locally enforced; a response outside the contract returns `status: malformed_output` and cannot be counted as a GLM vote.
+`glm-runner` delegates to `pi-runner` and pins a **real** GLM model per invocation — `--provider openrouter --model z-ai/glm-5.2` (`runner=glm`, `effective_runner=pi`, `effective_provider=z-ai`). Omit `--model`; the old cline-gateway slug `zai/glm-5.2` is retired along with the per-catalog resolution. `--output-schema` is prompt-guided and then locally enforced; a response outside the contract returns `status: malformed_output` and cannot be counted as a GLM vote.
 
 ---
 
@@ -194,9 +193,9 @@ python3 .agents/skills/glm-runner/scripts/run_glm.py \
 
 The command shapes above are written for `debate` (stance overlay + `--role` + a per-round stance in `--metadata-json`). In `mode: poll` the same commands apply with these differences — see [poll-protocol.md](poll-protocol.md):
 
-- **No `--role`, no stance.** Poll seats answer the raw prompt; under the default `no_tools` profile pass `--restrict-tools` (for cline-backed seats — kimi, glm, qwen, muse, gemma, minimax — pass `--no-tools` instead, since their `--restrict-tools` now means read-only plan mode rather than a full tool block) and no role at all. Drop `stance` from `--metadata-json` and keep `{"session":…,"round":…,"seat":…}` (plus `"sample":n` when self-paired).
+- **No `--role`, no stance.** Poll seats answer the raw prompt; under the default `no_tools` profile pass `--restrict-tools` (for pi-backed seats — kimi, glm — and cline-backed seats — qwen, muse, gemma, minimax — pass `--no-tools` instead, since their `--restrict-tools` means read-only analysis mode rather than a full tool block) and no role at all. Drop `stance` from `--metadata-json` and keep `{"session":…,"round":…,"seat":…}` (plus `"sample":n` when self-paired).
 - **Schemas.** Point `--output-schema` at the poll schema for the stage: `schemas/opening-answer.schema.json` (Phase 1), `schemas/disagreement-round.schema.json` (Phase 3), `schemas/judge.schema.json` (Phase 4 judges), `schemas/organizer-analysis.schema.json` (organizer), `schemas/synthesis.schema.json` (synthesizer). Full mapping: [operations.md#response-schema-validation](operations.md#response-schema-validation).
-- **Validation receipt.** `--output-schema` is natively constrained by **Codex and Grok** (`grok-runner` forwards it to grok's own `--json-schema` and forces JSON output for the run). Grok and Cline-backed seats also validate the final answer locally, so an exit code of zero is insufficient: a vote requires exactly one schema-valid JSON value. Gemini and the Claude seats have no schema flag and rely on the brief's trailing `Return ONLY JSON …` line.
+- **Validation receipt.** `--output-schema` is natively constrained by **Codex and Grok** (`grok-runner` forwards it to grok's own `--json-schema` and forces JSON output for the run). Grok, Pi-backed, and Cline-backed seats also validate the final answer locally, so an exit code of zero is insufficient: a vote requires exactly one schema-valid JSON value. Gemini and the Claude seats have no schema flag and rely on the brief's trailing `Return ONLY JSON …` line.
 - **Timeout.** `--timeout 600` is ample for a single answering pass; keep 900 for debate rounds that carry a digest.
 - **Artifact paths.** Write one brief per phase and point every `--prompt-file` at it; per-seat outputs follow the artifact policy naming (`{session_id}-round-{n}-{seat}-output.json`).
 - **Self-pairing.** Launch duplicates with distinct labels (`"seat":"opus#1"`) and distinct `--output-file`s, vary the brief with a `SAMPLE: n` line, and mark `is_duplicate: true` in the seat table.
@@ -212,9 +211,9 @@ Always pass `--disable-fallback` to runner-backed seats. Councils must fail a se
 
 Do not use `--bare` for Claude runner seats when relying on Claude OAuth or keychain-backed login. Claude's own help states that `--bare` disables OAuth and keychain auth, so a logged-in terminal can still fail with `Not logged in` in headless mode if `--bare` is passed. Only use `--bare` when `ANTHROPIC_API_KEY` or an explicit `apiKeyHelper`-based configuration is the intended auth path.
 
-### GLM / cline transport rule
+### Kimi / GLM transport rule (Pi on OpenRouter)
 
-`glm-runner` delegates to `cline-runner` and forwards a **real** GLM model, resolving the id per the serving provider (`z-ai/glm-5.2` on OpenRouter, `zai/glm-5.2` on the cline gateway — same model, per-catalog slugs), so the seat genuinely runs GLM (not a relabeled other model). It requires the `cline` CLI (`npm install -g cline`) and a Cline provider authenticated via `cline auth` that carries a GLM model. Passing `--model` mutates that provider's persisted default in `~/.cline/data/settings/providers.json`; pass `--data-dir` for automated runs to isolate the side effect. Treat the GLM seat as a single seat; do not pair it with another cline-backed seat under a different label and call it diversity.
+`kimi-runner` and `glm-runner` delegate to `pi-runner` and pin their real models per invocation (`moonshotai/kimi-k3`, `z-ai/glm-5.2`, both `--provider openrouter`), so each seat genuinely runs its named model — there is no mutable provider state that can silently reroute it. They require the `pi` CLI (`npm install -g @mariozechner/pi-coding-agent`) and `OPENROUTER_API_KEY`. Note the correlated dependency: both seats share one serving gateway and one key, so an OpenRouter outage or key problem drops them together — account for that in diversity confidence, and treat each as a single seat (model-lineage diversity still holds: Moonshot and Z.AI are distinct labs, but do not pair either with another OpenRouter-served seat under a different label and call it transport diversity).
 
 ---
 

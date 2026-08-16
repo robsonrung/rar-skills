@@ -18,8 +18,8 @@ Which models to use?
 [ ] Codex (native on a Codex host, else codex-runner)
 [ ] Gemini (gemini-runner / agy)
 [ ] Grok (grok-runner)
-[ ] Kimi (kimi-runner / cline)
-[ ] GLM (glm-runner / cline)
+[ ] Kimi (kimi-runner / pi)
+[ ] GLM (glm-runner / pi)
 ```
 
 If the probe also reports backup seats from the roster (`qwen`, `gemma`, `minimax`) or the secondary `codex-code` seat as available, append them as options in the same list — the rule is one option per available roster seat, no exceptions.

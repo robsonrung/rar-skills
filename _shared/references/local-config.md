@@ -21,7 +21,7 @@ Per-checkout, user-local preferences for multi-model skills (councils, roundtabl
 
 ## Cline lanes
 
-Concurrent Cline lanes deliberately do **not** live in this YAML. The built-in `kimi` and `glm` lanes require no environment variable or `.rar-skills` directory: authenticate their isolated state under `~/.cline/lanes/kimi` and `~/.cline/lanes/glm`, then pass `--lane kimi` / `--lane glm`. For a custom lane, pass its JSON directly with `--lane-file`; it contains absolute local state paths and pool limits but never credentials. Use `cline-runner/references/cline-lanes.example.json` as the schema.
+Concurrent Cline lanes deliberately do **not** live in this YAML. The built-in `kimi` and `glm` lane names remain provisionable for direct `cline-runner` use (authenticate isolated state under `~/.cline/lanes/<name>`, then pass `--lane <name>`), though the Kimi and GLM seat shims themselves now route through `pi-runner` on OpenRouter and need no lanes. For a custom lane, pass its JSON directly with `--lane-file`; it contains absolute local state paths and pool limits but never credentials. Use `cline-runner/references/cline-lanes.example.json` as the schema.
 
 ## Reading it
 

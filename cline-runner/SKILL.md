@@ -27,9 +27,9 @@ This skill invokes the local Cline CLI from the current machine. Prompt text, pr
 
 ## Concurrent Cline lanes
 
-Kimi and GLM can run concurrently through Cline **only** with separate authenticated state directories. The built-in lanes need no environment variable or repository-local configuration: provision `~/.cline/lanes/kimi` and `~/.cline/lanes/glm` once, then pass `--lane kimi` / `--lane glm`. The runner reads the selected provider from that lane's own Cline state and resolves its normal seat default (including GLM's provider-specific catalog id). A lane fixes provider/model/state and holds a bounded file-lock slot for the native call, avoiding both Cline's `lastUsedProvider` race and global model mutation.
+Two Cline-backed runs can execute concurrently **only** with separate authenticated state directories — a lane fixes provider/model/state and holds a bounded file-lock slot for the native call, avoiding both Cline's `lastUsedProvider` race and global model mutation. The built-in `kimi` and `glm` lane names remain provisionable (`cline auth --data-dir ~/.cline/lanes/kimi`, then `--lane kimi`) for anyone driving `cline` directly, but note the **Kimi and GLM seat shims no longer route through Cline** — they pin their models through `pi-runner` on OpenRouter and need no lanes.
 
-Provision the built-ins with `cline auth --data-dir ~/.cline/lanes/kimi` and `cline auth --data-dir ~/.cline/lanes/glm`. A lane with missing provider state fails explicitly as `status: lane_unavailable`; it never falls back to the shared `~/.cline` state. Built-ins that select the same provider share a two-slot credential pool, so the Kimi/GLM pair can run in parallel but the runner cannot fan out without bound. `--lane-file` remains available for custom names, nonstandard state paths, or a stricter `credential_pool`/rate limit; the JSON contains paths and pool names, never keys. Lanes are opt-in for backward compatibility: runs without `--lane` retain the existing behavior and must not be launched in parallel when they share Cline state.
+A lane with missing provider state fails explicitly as `status: lane_unavailable`; it never falls back to the shared `~/.cline` state. Built-ins that select the same provider share a two-slot credential pool, so a lane pair can run in parallel but the runner cannot fan out without bound. `--lane-file` remains available for custom names, nonstandard state paths, or a stricter `credential_pool`/rate limit; the JSON contains paths and pool names, never keys. Lanes are opt-in for backward compatibility: runs without `--lane` retain the existing behavior and must not be launched in parallel when they share Cline state.
 
 ## Output Envelope
 
@@ -97,8 +97,7 @@ python3 .agents/skills/cline-runner/scripts/run_cline.py --prompt-file /tmp/revi
 python3 .agents/skills/cline-runner/scripts/run_cline.py "Implement the accepted fix" --role implementer --model openai/gpt-5.1
 python3 .agents/skills/cline-runner/scripts/run_cline.py "Resume and continue" --session 1782865158637_s2n62
 python3 .agents/skills/cline-runner/scripts/run_cline.py "Run this in CI" --model zai/glm-5.2 --data-dir /tmp/cline-ci-state
-python3 .agents/skills/kimi-runner/scripts/run_kimi.py "Review this change" --lane kimi
-python3 .agents/skills/glm-runner/scripts/run_glm.py "Review this change" --lane glm
+python3 .agents/skills/qwen-runner/scripts/run_qwen.py "Review this change" --restrict-tools --json
 ```
 
 ## Behavior

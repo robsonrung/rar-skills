@@ -29,7 +29,7 @@ An additive delegated run that sends a review or judgment brief through a differ
 The minimum count of independent seats a multi-model skill needs before its output claims full strength (`discover_runners.py` emits advisory light/quality quorum signals). Below quorum, skills proceed under a declared degraded posture.
 
 ### Effective runner
-The transport that actually executed (envelope key `effective_runner`) — e.g. the Kimi seat currently executes via the `cline` CLI while keeping seat identity `kimi`.
+The transport that actually executed (envelope key `effective_runner`) — e.g. the Kimi seat currently executes via the `pi` CLI while keeping seat identity `kimi`.
 
 ## Skills and conventions
 

@@ -21,8 +21,8 @@ request, never a self-claim).
 | codex-code | `codex-runner` (`codex` CLI) | alias `codex` | `gpt-5.3-codex` | Code-specialized secondary OpenAI seat (agentic coding, regression, security review). Used by `diverse-plan` and `full-review`; same CLI, distinct model. |
 | gemini | `gemini-runner` (`agy` CLI) | — | `gemini-3.7-flash` | Cross-file consistency lens. The probe checks `agy`, not a `gemini` binary. |
 | grok | `grok-runner` (`grok` CLI) | — | `grok-4.6` | xAI seat; execution-path verification. |
-| kimi | `kimi-runner` → `cline` CLI | — | `moonshotai/kimi-k3` | Single K3 id — no `-code`/`-thinking` variants. Long-horizon coding, 1M context. |
-| glm | `glm-runner` → `cline` CLI | — | `z-ai/glm-5.2` (OpenRouter) / `zai/glm-5.2` (cline gateway) | Edge-case lens; outsider stance default. Same model, per-catalog slugs — the shim picks the id matching the serving provider; do not pin one by hand. |
+| kimi | `kimi-runner` → `pi` CLI (OpenRouter) | — | `moonshotai/kimi-k3` | Single K3 id — no `-code`/`-thinking` variants. Long-horizon coding, 1M context. Served via OpenRouter (`OPENROUTER_API_KEY`). |
+| glm | `glm-runner` → `pi` CLI (OpenRouter) | — | `z-ai/glm-5.2` | Edge-case lens; outsider stance default. Served via OpenRouter (`OPENROUTER_API_KEY`) — the old cline-gateway slug `zai/glm-5.2` is retired. |
 | qwen | `qwen-runner` → `cline` CLI | — | `qwen/qwen3.8-max` | Backup seat. Qwen3.8 Max, 1M context in the OpenRouter catalog. |
 | muse | `muse-runner` → `cline` CLI | — | `meta/muse-spark-1.1` | Backup seat. 1M context; OpenRouter limits access to users in the United States. |
 | gemma | `gemma-runner` → `cline` CLI | — | `google/gemma-4-31b-it` | Backup seat. |

@@ -93,17 +93,17 @@ SEAT_SPECS: tuple[SeatSpec, ...] = (
     ),
     SeatSpec(
         seat="kimi",
-        execution_path="kimi_runner_via_cline",
-        probe_cli="cline",
-        depends_on=("cline",),
-        notes="cline-backed shim; forwards --model moonshotai/kimi-k3 (Kimi K3) to `cline`, requires a Cline provider authenticated via `cline auth`.",
+        execution_path="kimi_runner_via_pi",
+        probe_cli="pi",
+        depends_on=("pi",),
+        notes="pi-backed shim; pins --provider openrouter --model moonshotai/kimi-k3 (Kimi K3) per invocation, requires OPENROUTER_API_KEY (or an OpenRouter credential in Pi's auth store).",
     ),
     SeatSpec(
         seat="glm",
-        execution_path="glm_runner_via_cline",
-        probe_cli="cline",
-        depends_on=("cline",),
-        notes="cline-backed shim; forwards the provider-matched GLM id to `cline` (z-ai/glm-5.2 on OpenRouter, zai/glm-5.2 on the cline gateway), requires a Cline provider authenticated via `cline auth`.",
+        execution_path="glm_runner_via_pi",
+        probe_cli="pi",
+        depends_on=("pi",),
+        notes="pi-backed shim; pins --provider openrouter --model z-ai/glm-5.2 per invocation, requires OPENROUTER_API_KEY (or an OpenRouter credential in Pi's auth store).",
     ),
     # Backup seats. Not part of the default council rosters — probed so skills
     # that name them explicitly (`--seat qwen`) resolve instead of exiting 2.
