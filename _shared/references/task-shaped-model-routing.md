@@ -15,7 +15,10 @@ programming language.
    review when its narrower code specialization is useful.
 4. Use Sonnet for maintainability and test quality, Gemini for wide cross file
    consistency, Grok for execution paths, GLM for failure and boundary cases,
-   and Kimi for pragmatic long horizon feasibility.
+   Kimi for pragmatic long horizon feasibility, Qwen for coding-first
+   feasibility and long-horizon agentic workflow judgment, Gemma for cheap
+   broad sweeps and multilingual or document-grounded checks, and Muse for
+   agent orchestration, tool use, and computer-use design.
 5. Keep heterogeneous opening panels heterogeneous. Task shaped routing governs
    organizer, synthesizer, judge, implementer, and specialist assignments; it
    does not replace independent opening seats with copies of one preferred

@@ -112,7 +112,7 @@ SEAT_SPECS: tuple[SeatSpec, ...] = (
         execution_path="qwen_runner_via_pi",
         probe_cli="pi",
         depends_on=("pi",),
-        notes="Backup seat. pi-backed shim; pins --provider openrouter --model qwen/qwen3.8-27b (Qwen3.8 Max) per invocation, requires OPENROUTER_API_KEY (or an OpenRouter credential in Pi's auth store).",
+        notes="Backup seat. pi-backed shim; pins --provider openrouter --model qwen/qwen3.8-2.4t-a95b (Qwen3.8 27B, the open-weight VLM of the Qwen3.8 Max family) per invocation, requires OPENROUTER_API_KEY (or an OpenRouter credential in Pi's auth store).",
         tier="backup",
     ),
     SeatSpec(

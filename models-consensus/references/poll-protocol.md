@@ -15,7 +15,7 @@ The pipeline is shaped by where multi-model gains actually come from: the **synt
 
 ## Seats
 
-Seven default seats — opus, sonnet, codex, gemini, grok, kimi, glm — launched by each seat's preferred path for the current host (native where available, runner otherwise). Seat → model ids, transports, and CLI dependencies: `_shared/references/model-roster.md`; commands: [runner-invocations.md](runner-invocations.md). Poll seats take **no `--role` and no stance** — they answer the raw prompt.
+Seven core seats — opus, sonnet, codex, gemini, grok, kimi, glm — plus three optional roster seats — `qwen`, `gemma`, `muse` — that the preflight probe also checks. The optional seats join the fan-out only when the probe reports them available **and** the seat selection includes them: "Core seats only" excludes them, "All available" includes them, and a manual pick names them. They never join a fan-out silently (the probe keeps them `tier: backup`, so a bare probe without `--seat` flags cannot enlarge one). All seats launch by each seat's preferred path for the current host (native where available, runner otherwise). Seat → model ids, transports, and CLI dependencies: `_shared/references/model-roster.md`; commands: [runner-invocations.md](runner-invocations.md). Poll seats take **no `--role` and no stance** — they answer the raw prompt.
 
 **Quorum:** ≥ 3 seats. Below 3 distinct seats, first try self-pairing (below); if still short, degrade the whole run to `personas` mode on the strongest available model per SKILL.md.
 
@@ -26,7 +26,7 @@ Seven default seats — opus, sonnet, codex, gemini, grok, kimi, glm — launche
 ## Presets
 
 - `quality` (default) — all available distinct seats, strongest organizer/synthesizer, two judges.
-- `budget` — ~3 cheap seats (e.g. glm + gemini + kimi) + organizer + synthesizer; lighter synthesizer acceptable; note the lower confidence band. A cheap diverse panel can rival a single frontier model at materially lower cost.
+- `budget` — ~3 cheap seats (e.g. glm + gemini + kimi; `gemma` and `qwen` are the two cheapest roster seats and are natural budget picks) + organizer + synthesizer; lighter synthesizer acceptable; note the lower confidence band. A cheap diverse panel can rival a single frontier model at materially lower cost.
 - `research` — the `quality` panel + the `research_read_only` tool profile; require each seat to report `sources_used[]` and `failed_lookups[]`.
 
 Record the run config (preset, tool profile, organizer/synthesizer/judge models) and the seat table in state before Phase 1. In `--auto`, the preset defaults to `quality` without asking.
@@ -132,7 +132,7 @@ Judge invocations: Opus judge as a fresh native `Agent` (`model: "opus"`, `mode:
 
 ## Call budget and resumability
 
-Full `quality` panel: 7 seats + 1 organizer + up to 7 gap-repair calls + 2 judges + 1 synthesizer = up to **18 model calls**. Every phase boundary and round increment is written to state BEFORE launching (run-state contract), so a crashed run resumes at the next uncompleted phase instead of re-polling.
+Call budget: **2N + 4 model calls** for N active seats (N fan-out + 1 organizer + up to N gap-repair calls + 2 judges + 1 synthesizer) — 18 for the 7-seat core panel, 24 when all three optional seats join. Every phase boundary and round increment is written to state BEFORE launching (run-state contract), so a crashed run resumes at the next uncompleted phase instead of re-polling.
 
 ## Degrade gracefully (poll-specific)
 

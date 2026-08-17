@@ -45,10 +45,8 @@ SKILL_NAME_RE = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
 # transport delegates and seats dropped from the council lineup.
 NON_SEAT_RUNNERS = {
     "dcode-runner",     # manual-only runner; no council seat (see _shared/references/model-roster.md)
-    "gemma-runner",     # dropped from council lineup
     "minimax-runner",   # dropped from council lineup
     "opencode-runner",  # not part of the seat catalog
-    "qwen-runner",      # dropped from council lineup
 }
 
 BANNED_NAME_PREFIXES = ("ce-",)

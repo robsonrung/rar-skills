@@ -81,9 +81,9 @@ class SkillRoutingContractTests(unittest.TestCase):
         roster = self.read("_shared/references/model-roster.md")
         discovery = self.read("_shared/scripts/discover_runners.py")
         runner = self.read("qwen-runner/scripts/run_qwen.py")
-        self.assertIn("qwen/qwen3.8-27b", roster)
+        self.assertIn("qwen/qwen3.8-2.4t-a95b", roster)
         self.assertIn('execution_path="qwen_runner_via_pi"', discovery)
-        self.assertIn('DEFAULT_MODEL = "qwen/qwen3.8-27b"', runner)
+        self.assertIn('DEFAULT_MODEL = "qwen/qwen3.8-2.4t-a95b"', runner)
         self.assertIn("import run_pi", runner)
 
     def test_muse_uses_cline_with_muse_spark(self):

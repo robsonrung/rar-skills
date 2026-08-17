@@ -1,6 +1,6 @@
 ---
 name: models-consensus
-description: Run a multi-model council in one of three modes — poll (default; blind fan-out to every available seat, five-dimension analysis, one gated gap-repair round, two judges, a synthesizer), debate (stance-driven rebuttals with anonymized moderator digests and a convergence verdict), or personas (one model wearing five thinking lenses — Contrarian, First Principles, Expansionist, Outsider, Executor — with anonymized peer review and a chairman). Seats span the runner roster (Claude, Codex, Gemini, Grok, Kimi, GLM). Use when the user wants consensus, a second opinion, to poll the models, a roundtable, multi-model validation, multiple AI perspectives, or says "council this", "run the council", "pressure-test this", "war room this", "stress-test this", "debate this", or asks "should I X or Y" with real stakes. Deliberation only — it answers, validates, and decides; it never implements and produces no code. Do NOT use for factual lookups or creation tasks; multi-model implementation PLANNING belongs to diverse-plan.
+description: Run a multi-model council in one of three modes — poll (default; blind fan-out to every available seat, five-dimension analysis, one gated gap-repair round, two judges, a synthesizer), debate (stance-driven rebuttals with anonymized moderator digests and a convergence verdict), or personas (one model wearing five thinking lenses — Contrarian, First Principles, Expansionist, Outsider, Executor — with anonymized peer review and a chairman). Seats span the runner roster (Claude, Codex, Gemini, Grok, Kimi, GLM, Qwen, Gemma, Muse). Use when the user wants consensus, to poll the models, a roundtable, multi-model validation, or says "council this", "run the council", "pressure-test this", "war room this", "stress-test this", "debate this", or asks "should I X or Y" with real stakes. Deliberation only — it answers, validates, and decides; it never implements and produces no code. Do NOT use for factual lookups or creation tasks; multi-model implementation PLANNING belongs to diverse-plan.
 ---
 
 # Models Consensus
@@ -49,6 +49,7 @@ For `transport: headless`, use the existing probe and headless smoke workflow be
 python3 .agents/skills/_shared/scripts/discover_runners.py probe \
   --native-agent yes \
   --seat opus --seat sonnet --seat codex --seat gemini --seat grok --seat kimi --seat glm \
+  --seat qwen --seat gemma --seat muse \
   --format json
 ```
 
@@ -56,7 +57,7 @@ Pass `--native-agent yes` only when the host exposes the native `Agent` tool; fr
 
 ### 2. Artifact mode and run state
 
-Artifact mode is `persisted` when `.ai-workflow/consensus/` is writable, else `inline` ([references/operations.md#artifact-policy](references/operations.md#artifact-policy)). Every mode adopts `_shared/references/run-state-contract.md`: state at `.ai-workflow/consensus/{session_id}.json`, loop counters in `attempts`, bounds in `ceilings`, decisions in `gates`. A full `poll` run is up to 18 model calls and MUST be resumable: increment the round/phase counter in state BEFORE launching it, never after. On startup with existing state and `status != complete`, resume per [references/operations.md#crash-recovery-and-state-resumption](references/operations.md#crash-recovery-and-state-resumption).
+Artifact mode is `persisted` when `.ai-workflow/consensus/` is writable, else `inline` ([references/operations.md#artifact-policy](references/operations.md#artifact-policy)). Every mode adopts `_shared/references/run-state-contract.md`: state at `.ai-workflow/consensus/{session_id}.json`, loop counters in `attempts`, bounds in `ceilings`, decisions in `gates`. A full `poll` run is 2N + 4 model calls for N active seats (18 for the 7-seat core panel, 24 when all three optional seats join) and MUST be resumable: increment the round/phase counter in state BEFORE launching it, never after. On startup with existing state and `status != complete`, resume per [references/operations.md#crash-recovery-and-state-resumption](references/operations.md#crash-recovery-and-state-resumption).
 
 ### 3. Seat table
 

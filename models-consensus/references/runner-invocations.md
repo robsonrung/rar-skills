@@ -187,6 +187,57 @@ python3 .agents/skills/glm-runner/scripts/run_glm.py \
 
 `glm-runner` delegates to `pi-runner` and pins a **real** GLM model per invocation — `--provider openrouter --model z-ai/glm-5.2` (`runner=glm`, `effective_runner=pi`, `effective_provider=z-ai`). Omit `--model`; the old cline-gateway slug `zai/glm-5.2` is retired along with the per-catalog resolution. `--output-schema` is prompt-guided and then locally enforced; a response outside the contract returns `status: malformed_output` and cannot be counted as a GLM vote.
 
+### Qwen
+
+```bash
+python3 .agents/skills/qwen-runner/scripts/run_qwen.py \
+  --prompt-file .ai-workflow/consensus/{session_id}-round-{n}-qwen.md \
+  --timeout 900 \
+  --role implementer \
+  --json \
+  --no-session-persistence \
+  --restrict-tools \
+  --disable-fallback \
+  --output-file .ai-workflow/consensus/{session_id}-round-{n}-qwen-output.json \
+  --metadata-json '{"session":"{session_id}","round":{n},"seat":"qwen","stance":"pragmatic_engineering"}'
+```
+
+`qwen-runner` delegates to `pi-runner` and pins `--provider openrouter --model qwen/qwen3.8-2.4t-a95b` per invocation (`runner=qwen`, `effective_runner=pi`, `effective_provider=qwen`) — omit `--model`. The seat is Qwen3.8 27B, the dense open-weight VLM of the Qwen3.8 Max family: the council's coding-first, long-horizon agentic-feasibility voice. Shares the OpenRouter transport and key with Kimi, GLM, and Gemma ([Kimi / GLM / Qwen / Gemma transport rule](#kimi--glm--qwen--gemma-transport-rule-pi-on-openrouter)).
+
+### Gemma
+
+```bash
+python3 .agents/skills/gemma-runner/scripts/run_gemma.py \
+  --prompt-file .ai-workflow/consensus/{session_id}-round-{n}-gemma.md \
+  --timeout 900 \
+  --role implementer \
+  --json \
+  --no-session-persistence \
+  --restrict-tools \
+  --disable-fallback \
+  --output-file .ai-workflow/consensus/{session_id}-round-{n}-gemma-output.json \
+  --metadata-json '{"session":"{session_id}","round":{n},"seat":"gemma","stance":"supportive_with_integrity"}'
+```
+
+`gemma-runner` delegates to `pi-runner` and pins `--provider openrouter --model google/gemma-4-31b-it` per invocation — omit `--model`. The seat is Gemma 4 31B (Google DeepMind, 140+ languages, multimodal, LiveCodeBench v6 80) — the cheapest roster seat and the council's grounded, mid-tier, multilingual voice. Shares the OpenRouter transport and key with Kimi, GLM, and Qwen.
+
+### Muse
+
+```bash
+python3 .agents/skills/muse-runner/scripts/run_muse.py \
+  --prompt-file .ai-workflow/consensus/{session_id}-round-{n}-muse.md \
+  --timeout 900 \
+  --role implementer \
+  --json \
+  --no-session-persistence \
+  --restrict-tools \
+  --disable-fallback \
+  --output-file .ai-workflow/consensus/{session_id}-round-{n}-muse-output.json \
+  --metadata-json '{"session":"{session_id}","round":{n},"seat":"muse","stance":"pragmatic_engineering"}'
+```
+
+`muse-runner` delegates to `cline-runner` and forwards `meta/muse-spark-1.1` on every run — omit `--model`. The seat is Meta's multimodal agentic-reasoning model (1M context): the council's agent-orchestration, tool-use, and computer-use design voice. OpenRouter limits the model to users in the United States — the smoke test blocks the seat elsewhere. It is a Cline-backed seat: if another Cline-backed seat (minimax) runs in the same council, isolate each with its own `--data-dir` or `--lane` — Cline-backed seats that share state must not launch in parallel.
+
 ---
 
 ## Poll-Mode Deltas
@@ -211,9 +262,9 @@ Always pass `--disable-fallback` to runner-backed seats. Councils must fail a se
 
 Do not use `--bare` for Claude runner seats when relying on Claude OAuth or keychain-backed login. Claude's own help states that `--bare` disables OAuth and keychain auth, so a logged-in terminal can still fail with `Not logged in` in headless mode if `--bare` is passed. Only use `--bare` when `ANTHROPIC_API_KEY` or an explicit `apiKeyHelper`-based configuration is the intended auth path.
 
-### Kimi / GLM transport rule (Pi on OpenRouter)
+### Kimi / GLM / Qwen / Gemma transport rule (Pi on OpenRouter)
 
-`kimi-runner` and `glm-runner` delegate to `pi-runner` and pin their real models per invocation (`moonshotai/kimi-k3`, `z-ai/glm-5.2`, both `--provider openrouter`), so each seat genuinely runs its named model — there is no mutable provider state that can silently reroute it. They require the `pi` CLI (`npm install -g @mariozechner/pi-coding-agent`) and `OPENROUTER_API_KEY`. Note the correlated dependency: both seats share one serving gateway and one key, so an OpenRouter outage or key problem drops them together — account for that in diversity confidence, and treat each as a single seat (model-lineage diversity still holds: Moonshot and Z.AI are distinct labs, but do not pair either with another OpenRouter-served seat under a different label and call it transport diversity).
+`kimi-runner`, `glm-runner`, `qwen-runner`, and `gemma-runner` delegate to `pi-runner` and pin their real models per invocation (`moonshotai/kimi-k3`, `z-ai/glm-5.2`, `qwen/qwen3.8-2.4t-a95b`, `google/gemma-4-31b-it`, all `--provider openrouter`), so each seat genuinely runs its named model — there is no mutable provider state that can silently reroute it. They require the `pi` CLI (`npm install -g @mariozechner/pi-coding-agent`) and `OPENROUTER_API_KEY`. Note the correlated dependency: all four seats share one serving gateway and one key, so an OpenRouter outage or key problem drops them together — account for that in diversity confidence, and treat each as a single seat (model-lineage diversity still holds: Moonshot, Z.AI, Qwen, and Google are distinct labs, but do not pair any of them with another OpenRouter-served seat under a different label and call it transport diversity).
 
 ---
 

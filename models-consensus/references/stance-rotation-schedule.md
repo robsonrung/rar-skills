@@ -15,6 +15,11 @@ Each model starts in its natural role:
 | Grok | `pragmatic_engineering` | `implementer` |
 | Kimi | `pragmatic_engineering` | `implementer` |
 | GLM | `pragmatic_engineering` | `implementer` |
+| Qwen | `pragmatic_engineering` | `implementer` |
+| Gemma | `supportive_with_integrity` | `planner` |
+| Muse | `pragmatic_engineering` | `implementer` |
+
+The three optional seats appear in the tables above only when the probe reports them available and the selection includes them. Their stances follow their strengths: **Qwen** (coding-first, strong SWE-bench/CoWorkBench agentic scores) brings a long-horizon, execution-feasibility read; **Gemma** — a mid-tier, multilingual model lineage — brings a grounded, evidence-checked affirmative position least shaped by frontier-consensus training; **Muse** (an agentic-orchestration model) reads execution plans for agent, tooling, and computer-use realism.
 
 The Runner Role column above is the canonical stance-to-runner-role mapping (`supportive_with_integrity` -> `planner` or `implementer`, `critical_with_responsibility` -> `codereviewer` or `adversarial`, `balanced_synthesis` -> `synthesizer`, `devils_advocate` -> `challenger`, `pragmatic_engineering` -> `implementer`, `outsider_fresh_eyes` -> `reviewer` with no repo context). For `blocked_on_context` investigation rounds, use the `researcher` runner role.
 
@@ -33,6 +38,9 @@ Each seat adopts a stance that challenges its Round 1 position:
 | Grok | `devils_advocate` | Pressure the leading option with execution-grounded objections |
 | Kimi | `balanced_synthesis` | Evaluate tradeoffs beyond implementation details |
 | GLM | `balanced_synthesis` | Evaluate own pragmatism against alternatives |
+| Qwen | `balanced_synthesis` | Evaluate tradeoffs beyond coding feasibility |
+| Gemma | `critical_with_responsibility` | Stress-test the supportive position with evidence-checked objections |
+| Muse | `devils_advocate` | Pressure the leading option with agent/tooling execution objections |
 
 ## Round 3: Convergence / Integration
 
@@ -47,6 +55,9 @@ Final round focuses on integration or decisive critique:
 | Grok | `pragmatic_engineering` | Reality-check the converged path's concrete execution steps |
 | Kimi | `critical_with_responsibility` | Identify last-mile risks in the leading option |
 | GLM | `critical_with_responsibility` | Flag overlooked practical blockers |
+| Qwen | `critical_with_responsibility` | Identify last-mile coding and deployment risks in the leading option |
+| Gemma | `balanced_synthesis` | Reconcile findings and recommend direction |
+| Muse | `pragmatic_engineering` | Reality-check the converged path's concrete agent and tooling steps |
 
 ## Fallback Rules
 

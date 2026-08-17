@@ -23,9 +23,9 @@ request, never a self-claim).
 | grok | `grok-runner` (`grok` CLI) | — | `grok-4.6` | xAI seat; execution-path verification. |
 | kimi | `kimi-runner` → `pi` CLI (OpenRouter) | — | `moonshotai/kimi-k3` | Single K3 id — no `-code`/`-thinking` variants. Long-horizon coding, 1M context. Served via OpenRouter (`OPENROUTER_API_KEY`). |
 | glm | `glm-runner` → `pi` CLI (OpenRouter) | — | `z-ai/glm-5.2` | Edge-case lens; outsider stance default. Served via OpenRouter (`OPENROUTER_API_KEY`) — the old cline-gateway slug `zai/glm-5.2` is retired. |
-| qwen | `qwen-runner` → `pi` CLI (OpenRouter) | — | `qwen/qwen3.8-27b` | Backup seat. Qwen3.8 Max, 1M context. Served via OpenRouter (`OPENROUTER_API_KEY`). |
-| muse | `muse-runner` → `cline` CLI | — | `meta/muse-spark-1.1` | Backup seat. 1M context; OpenRouter limits access to users in the United States. |
-| gemma | `gemma-runner` → `pi` CLI (OpenRouter) | — | `google/gemma-4-31b-it` | Backup seat. Served via OpenRouter (`OPENROUTER_API_KEY`). |
+| qwen | `qwen-runner` → `pi` CLI (OpenRouter) | — | `qwen/qwen3.8-2.4t-a95b` | Council seat (optional tier). Qwen3.8 27B — the dense open-weight VLM of the Qwen3.8 Max family, 256K context; coding- and long-horizon-agentic-strong (SWE-bench Pro 61.7, CoWorkBench 70.7). Served via OpenRouter (`OPENROUTER_API_KEY`). |
+| muse | `muse-runner` → `cline` CLI | — | `meta/muse-spark-1.1` | Council seat (optional tier). Meta multimodal agentic-reasoning model, 1M context — agent-orchestration, tool-use, and computer-use lens. OpenRouter limits access to users in the United States. |
+| gemma | `gemma-runner` → `pi` CLI (OpenRouter) | — | `google/gemma-4-31b-it` | Council seat (optional tier). Cheapest roster seat ($0.10/$0.34 per 1M on OpenRouter); Google DeepMind dense 31B multimodal, 140+ languages, LiveCodeBench v6 80. Served via OpenRouter (`OPENROUTER_API_KEY`). |
 | minimax | `minimax-runner` → `cline` CLI | — | `minimax/minimax-m2.7` | Backup seat. |
 
 Seat availability is probed by `_shared/scripts/discover_runners.py` — always

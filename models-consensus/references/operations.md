@@ -20,9 +20,12 @@ Which models to use?
 [ ] Grok (grok-runner)
 [ ] Kimi (kimi-runner / pi)
 [ ] GLM (glm-runner / pi)
+[ ] Qwen (qwen-runner / pi)
+[ ] Gemma (gemma-runner / pi)
+[ ] Muse (muse-runner / cline)
 ```
 
-If the probe also reports backup seats from the roster (`qwen`, `gemma`, `minimax`) or the secondary `codex-code` seat as available, append them as options in the same list — the rule is one option per available roster seat, no exceptions.
+If the probe also reports backup seats from the roster (`qwen`, `gemma`, `muse`, `minimax`) or the secondary `codex-code` seat as available, append them as options in the same list — the rule is one option per available roster seat, no exceptions. The three lines above appear only when the probe reports that seat available; omit unavailable ones.
 
 **Small single-choice menu** (when the host tool cannot multi-select):
 1. `All available (Recommended)`
