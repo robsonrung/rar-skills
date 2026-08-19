@@ -20,7 +20,7 @@ One user-called skill per step. `ship` runs the whole pipeline; each step is als
 
 Full narrative, design principles, and conventions: [docs/workflow.md](docs/workflow.md). Visual map: `workflow.html`. How a feature moves through the relay: [docs/pipeline.html](docs/pipeline.html).
 
-Supporting casts: **design lenses** (`architecture-lens`, `macro-architecture`, `domain-driven-design`, `software-design-philosophy`, `design-patterns`, `data-systems-coding-lens`, `agent-architecture-lens`, `react-performance`) are routed by `design-gate` rather than chosen by hand; **`models-consensus`** answers contested questions with a multi-model council (modes `poll` / `debate` / `personas`) and is what the autonomous phases escalate to instead of asking the user; **`fable-mindset`** governs turn-level posture; the **`*-runner`** family provides the model seats.
+Supporting casts: **design lenses** (`architecture-lens`, `macro-architecture`, `domain-driven-design`, `software-design-philosophy`, `design-patterns`, `data-systems-coding-lens`, `distributed-systems-patterns`, `agent-architecture-lens`, `react-performance`) are routed by `design-gate` rather than chosen by hand; **`models-consensus`** answers contested questions with a multi-model council (modes `poll` / `debate` / `personas`) and is what the autonomous phases escalate to instead of asking the user; **`fable-mindset`** governs turn-level posture; the **`*-runner`** family provides the model seats.
 
 ## Quickstart
 

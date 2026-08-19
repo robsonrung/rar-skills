@@ -9,8 +9,8 @@
     },
     {
       "file": "software-design-philosophy/SKILL.md",
-      "concept": "conceptual integrity / change ownership / smallest coherent shape (the Brooks lens, merged in from design-integrity)",
-      "must_contain": ["conceptual integrity", "change ownership", "smallest coherent shape"],
+      "concept": "conceptual integrity / change ownership / smallest coherent shape / design it twice / stay strategic / decide what matters",
+      "must_contain": ["conceptual integrity", "change ownership", "smallest coherent shape", "design it twice", "stay strategic", "decide what matters", "reader, not writer"],
       "must_not_contain": []
     },
     {
@@ -114,6 +114,12 @@
       "concept": "captured evidence, not narrative",
       "must_contain": ["only captured command results count as evidence"],
       "must_not_contain": []
+    },
+    {
+      "file": "distributed-systems-patterns/SKILL.md",
+      "concept": "coscheduled pair / container API / readiness, not liveness / need a master",
+      "must_contain": ["coscheduled pair", "container API", "readiness, not liveness", "need a master"],
+      "must_not_contain": []
     }
   ],
   "canon": [
@@ -155,7 +161,15 @@
     { "concept": "prove resumption by killing the run mid-flight", "leitwort": "crash-resume test", "drift_terms": ["recovery test", "resilience test"] },
     { "concept": "delegated work crosses as a file reference, never as pasted content", "leitwort": "hand off the path, not the payload", "drift_terms": ["pass the context along", "include the full output"] },
     { "concept": "an orchestrator that routes and integrates but never absorbs its workers' working set", "leitwort": "thin conductor", "drift_terms": [] },
-    { "concept": "prove a handoff doc stands alone by giving it to a context that saw nothing else", "leitwort": "fresh-reader test", "drift_terms": [] }
+    { "concept": "prove a handoff doc stands alone by giving it to a context that saw nothing else", "leitwort": "fresh-reader test", "drift_terms": [] },
+    { "concept": "single-node helper must share a machine and the namespaces the pattern needs", "leitwort": "coscheduled pair", "drift_terms": ["sidecar on another host", "loosely coupled containers"] },
+    { "concept": "reusable container's env vars, ports, files, and signals as a versioned contract", "leitwort": "container API", "drift_terms": ["container contract", "image parameters"] },
+    { "concept": "balancer membership is not the same as process restart", "leitwort": "readiness, not liveness", "drift_terms": [] },
+    { "concept": "prove a singleton is not enough before electing an owner", "leitwort": "need a master", "drift_terms": ["leader election required", "master election required"] },
+    { "concept": "sketch two or three meaningfully different designs before coding a consequential interface", "leitwort": "design it twice", "drift_terms": [] },
+    { "concept": "when changing existing code, do not tack on a special case that makes the design worse", "leitwort": "stay strategic", "drift_terms": ["just add a special case"] },
+    { "concept": "name the few things this situation depends on and emphasize only those", "leitwort": "decide what matters", "drift_terms": [] },
+    { "concept": "complexity is judged by the next person to change the code, not by its author", "leitwort": "reader, not writer", "drift_terms": [] }
   ],
   "filler_verbs": ["carefully", "thoroughly", "make sure", "be sure to", "as appropriate", "as needed", "properly"]
 }

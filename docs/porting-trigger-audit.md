@@ -59,3 +59,23 @@ Methodology ported from a private review-orchestrator service and fully generali
 |---|---|---|
 | review-gate | full-review (PR/diff review, verdicts), code-review (standards/spec axes), design-gate / security-gate (gate family, pre-implementation), models-consensus (multi-seat fan-out, deliberation-only) | Description states full-review is the deep human-facing review (bughunt, security audit, ultrareview); review-gate is the merge gate — declared coverage contract with honesty accounting, persona fan-out with an adversarial refutation pass, and a machine-consumable result JSON an automated follow-up run can consume. The gate family's other members run before implementation; review-gate gates the finished diff. It never publishes to the code host. |
 | verify-changes | tdd (owns the implementation loop), diagnose (fixes failures), browser-smoke (browser leg), harness `run` (launches the app), full-review Phase 4 (verifies findings, not repo gates) | Description scopes to deterministic execution of the repo's own discovered checks with captured evidence — it never fixes (failures route to diagnose), never judges code, and never launches the app interactively. Named as review-gate's pipeline verification phase, mirroring how browser-smoke names ship. |
+
+---
+
+# Successor record — distributed-systems-patterns (2026-08-18)
+
+Book-grounded design lens from Burns, *Designing Distributed Systems*. Checked against the surviving set for routing collisions before landing; de-confliction lives in the skill's own `description:`.
+
+| New skill | Nearest existing triggers | De-confliction |
+|---|---|---|
+| distributed-systems-patterns | macro-architecture (style / decomposition), event-driven-microservices (adopt Kafka/streams as SSoT), data-systems-coding-lens (retries / migrations / idempotent writes), design-patterns (GoF), agent-architecture-lens (LLM control flow) | Description scopes to *naming and reviewing Burns container/multi-node topologies* — sidecar, ambassador, adapter, replica, shard, scatter/gather, FaaS fit, ownership election, work queues, coordinated batch. It names all four nearest lenses: macro-architecture picks monolith vs microservices; event-driven-microservices decides whether streams are the source of truth; data-systems-coding-lens implements retries and migrations at the code level; design-patterns is in-process GoF. A "should this be many services" ask without container/replica/shard/queue/election language stays on macro-architecture. |
+
+---
+
+# Successor record — software-design-philosophy full-book pass (2026-08-18)
+
+Material revision of the existing Ousterhout lens against *A Philosophy of Software Design*, 2nd ed. (Kindle ASIN B09B8LFKQL). Not a new trigger surface: same skill name, expanded routes (`design` / `improve` / `review`) so the lens can develop and maintain, not only review. Design-gate invocation stays read-only.
+
+| Change | Nearest existing triggers | De-confliction |
+|---|---|---|
+| software-design-philosophy (full 2nd ed.) | clean-code (local smell refactor), tdd (red-green), architecture-lens (connascence / layers), design-patterns (GoF), coding-review-simplify (post-impl tidy) | Description now fronts develop/improve/maintain but still negative-triggers local cleanup (`clean-code`), the test loop (`tdd`), GoF (`design-patterns`), and code-level coupling (`architecture-lens`). New body covers the chapters the old lens skipped (comments 12–15, modifying 16, consistency 17, obvious 18, trends 19, performance 20, decide what matters 21) via progressive-disclosure references. |

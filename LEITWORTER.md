@@ -95,6 +95,14 @@ agent sees one consistent token across the whole library:
 | Declared review coverage is a promise, and its accounting | **scope contract** (silently skipping is a **broken contract**) | review plan, coverage list, best-effort review |
 | A wrong finding costs more than a missed nit | **precision over volume** | high signal, low noise, quality over quantity |
 | Verification is captured, not narrated | **only captured command results count as evidence** (and: **never claim a check ran that didn't**) | tests pass (as prose), verified manually |
+| Single-node helper must share a machine + namespace | **coscheduled pair** | sidecar on another host, loosely coupled containers, helper service |
+| Reusable container's env/ports/files/signals | **container API** | container contract, image parameters, sidecar knobs |
+| Balancer membership vs process restart | **readiness, not liveness** | health check (unqualified), ready probe, live probe |
+| Prove a singleton is not enough before electing | **need a master** | do we need leader election, master election required |
+| Sketch two meaningfully different designs before coding | **design it twice** | consider alternatives, compare options first |
+| Existing-code change must fit or improve the design | **stay strategic** | just add a special case, tactical patch |
+| Name and emphasize only the few load-bearing things | **decide what matters** | prioritize, focus on what's important |
+| Complexity is judged by the next changer, not the author | **reader, not writer** | simple to me, obvious to the author |
 
 Two pairs in this table are deliberately close; keep them apart rather than
 collapsing them into one word:

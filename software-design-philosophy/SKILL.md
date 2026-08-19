@@ -1,136 +1,140 @@
 ---
 name: software-design-philosophy
-description: >-
-  Review code and designs to minimize long-term complexity, combining Ousterhout's deep-modules framework with Brooks' conceptual-integrity lens. Use when designing a module, class, or API; deciding where a boundary goes; judging whether an interface is too complex; weighing strategic vs tactical effort; shaping a design before code; comparing design alternatives or trade-offs; running a design review of an architecture, API surface, data model, module boundary, UI flow, or feature shape; reviewing code for design (not bug) quality; or when the user mentions deep modules, shallow modules, information hiding, complexity, pulling complexity down, conceptual integrity, change ownership, system shape, design review, Brooks, or The Design of Design. Read-only: it reports findings and recommends a shape, it does not implement. Distinct from clean-code (local refactoring moves), design-patterns (whether a specific GoF pattern fits), and architecture-lens (layer placement, connascence/trade-offs).
+description: >
+  Reduce long-term complexity in an app or codebase using Ousterhout's
+  Philosophy of Software Design (2nd ed.) — deep modules, information hiding,
+  strategic investment, comments as design, and deciding what matters — with
+  Brooks' conceptual integrity. Use when designing, improving, or maintaining
+  modules, APIs, or codebases; when code works but is expensive to change;
+  when choosing a boundary, writing comments first, renaming for precision,
+  adding a feature into existing design, or reviewing design quality; or when
+  the user says deep modules, shallow modules, tactical tornado, design it
+  twice, pull complexity down, information leakage, or decide what matters.
+  Distinct from clean-code (local smell refactoring), tdd (the red-green loop),
+  design-patterns (GoF), and architecture-lens (connascence and layer
+  placement). Under design-gate this skill is read-only.
 ---
 
 # A Philosophy of Software Design
 
-A design lens with two anchors: **reducing complexity** (Ousterhout) — the thing that, accumulated over time, makes software hard to understand and risky to change — and **conceptual integrity** (Brooks) — whether what you built is still *one* idea. Use it while designing new modules, while reviewing a diff or a plan for design quality, or when deciding how to draw a boundary. It complements bug-finding review; it asks a different question: *will this be cheap or expensive to live with?*
+Grounded in Ousterhout, *A Philosophy of Software Design*, 2nd ed. (all 22 chapters plus the official principle and red-flag summaries). Brooks' **conceptual integrity** stays as the second anchor.
 
-This lens is **read-only**. It reports findings by name and recommends a shape; it does not implement the change and does not run tests. Applying a fix is a separate request.
+Complexity is anything about structure that makes software hard to understand or modify. It is incremental. The job is to keep the system cheap to change.
 
-## The one thing this is about: complexity
+## Outcome
 
-Complexity is anything about a system's structure that makes it hard to understand or modify. It is **incremental** — it accrues one small "this'll do" at a time, and no single change feels like the culprit. That is why discipline matters more than heroics.
+- **Result:** a named design (or a named fix) that lowers complexity, plus the next move.
+- **Next consumer:** the user, or `design-gate` / an implementation skill after they accept the shape.
+- **Done:** the route's required fields are filled; every finding uses an official red-flag or principle name; rejected alternatives are named; if this turn edited code, the project's checks that you ran are reported (or you say you could not run them).
+- **Intent:** stop two failures — shipping working code that is expensive to live with, and treating a local cleanup (`clean-code`) as if it were a module-boundary decision.
 
-Recognize complexity by its three symptoms:
+State these **leitwörter** by name as you act, not only in headings:
 
-1. **Change amplification** — a conceptually simple change forces edits in many places.
-2. **Cognitive load** — how much a developer must hold in their head to make a change safely. More lines is not worse if it lowers what you must understand; fewer lines is not better if it raises it.
-3. **Unknown unknowns** — it is not obvious *what* code must change, or *what* knowledge is needed to change it safely. This is the worst symptom: you cannot fix what you cannot see.
+- **strategic** — invest a little design now so the next change is cheaper. The opposite is **tactical** ("just make it work") and the **tactical tornado** (the person who ships fastest by leaving a mess).
+- **deep module** — a simple interface hiding a lot of functionality. Cost is the interface; benefit is what it hides. A **shallow module** costs about as much to learn as to inline.
+- **information leakage** — one design decision reflected in two or more modules. That *is* a **change ownership** failure; give the decision one owner.
+- **design it twice** — for any consequential interface, sketch two or three *meaningfully different* shapes before coding.
+- **stay strategic** — when modifying existing code, do not tack on a special case that makes the design worse. Fit the change, or improve the design.
+- **decide what matters** — name the few things this situation depends on, minimize that set, and emphasize only those.
+- **reader, not writer** — complexity is judged by the next person to change the code. If it is simple only to you, it is complex.
+- **conceptual integrity** / **smallest coherent shape** — one model, no larger than the problem.
 
-Complexity has two root causes, and most red flags below trace back to one of them:
+Modelled sentence: *"This is **tactical** — a special case on a **shallow module**. **Design it twice** keeps **conceptual integrity**; the cost is one extra hour now vs **information leakage** later."*
 
-- **Dependencies** — code that cannot be understood or changed in isolation. Good design doesn't eliminate dependencies (impossible); it makes them few, simple, and obvious.
-- **Obscurity** — important information that is not apparent: a misleading name, an undocumented invariant, a convention you only learn by breaking it.
+A second modelled sentence, from the official extract: *"`backspace(cursor)` is a **false abstraction** — the UI still has to know which characters vanish. One `delete(start, end)` has **leverage**; the special methods do not."*
 
-## Core stance
+## Classify the job
 
-1. **Working code is not enough.** The goal is a system that stays cheap to change. Be **strategic**, not **tactical**: a tactical mindset ("just make the feature work") buys speed today and pays compound interest in complexity. Invest a steady ~10–20% of effort in design and cleanup continuously — not a big upfront design phase, and not a someday-rewrite. Watch for the *tactical tornado*: the developer who ships fastest by leaving a mess for everyone else.
-2. **Make modules deep.** A module is anything with an interface and an implementation — a function, class, or service. Its *cost* is the complexity of its interface; its *benefit* is the functionality it provides. A **deep** module hides a lot of functionality behind a simple interface (best benefit-to-cost ratio). A **shallow** module's interface is complex relative to what little it does — it adds more complexity (what you must learn to use it) than it removes. Many tiny classes/methods ("classitis") is shallow by construction.
-3. **Information hiding is the primary technique for depth.** Each module should encapsulate a few design decisions — a data structure, a file format, an algorithm — behind its interface, so callers neither know nor depend on them. The opposite, **information leakage**, is the most important red flag: a design decision reflected in two or more modules so they must change together. Leakage through a *back door* (a shared file format, an assumed ordering) is the most dangerous because it is invisible.
-4. **Pull complexity downward.** When complexity is unavoidable, it is better for the *module* to absorb it than for its *users* to. One implementer suffers once; every caller suffers forever. A simple interface is worth a more complicated implementation. (But don't over-pull: don't bake in a policy the module can't actually decide correctly.)
-5. **Define errors out of existence.** Exceptions are a leading source of complexity because they create rarely-tested code paths. The best handler is one you don't need: redesign semantics so the error case is *normal* (e.g. "delete a range" instead of erroring on an empty range; "unset returns the default" instead of throwing on a missing key). Then **mask** exceptions low in the stack, **aggregate** handling so many errors flow to one place, and **crash** for truly unrecoverable cases rather than threading recovery everywhere.
-6. **Design it twice.** For any consequential interface or module, sketch two or three *meaningfully different* designs and compare them on interface simplicity, generality, and the symptoms above. The cost is small; picking the better of two designs is one of the highest-leverage habits available, even for experts.
-7. **Make code obvious.** Obvious code is read at full speed with correct assumptions and no backtracking. Nonobvious code is a red flag. Achieve obviousness with precise names, consistency, judicious white space, and comments that capture intent. Things that erode it: event-driven control flow, generics/inheritance hiding behavior, and anything that violates a reader's reasonable expectations.
+Pick one route and stay on it:
 
-## Conceptual integrity — the Brooks lens
+| Route | Signal |
+|---|---|
+| `design` | New module, API, or feature shape; "how should this be structured" |
+| `improve` | Existing code that works; add a feature, rename, deepen, pull complexity down |
+| `review` | Diff, plan, or PR; design-gate; "is this too complex" |
 
-Complexity asks *how much* a reader must understand. **Conceptual integrity** asks whether what they understand is **one thing**. Brooks (*The Design of Design*, *The Mythical Man-Month*) treats it as the first property of a good design: a design has conceptual integrity when it presents **one clear model, consistent vocabulary, coherent boundaries, and predictable interfaces** — so someone who learns one part can correctly predict the rest. Two half-models cost more than either model applied whole.
+If the user asked only for a local tidy (rename, extract, flatten) with no boundary question, stop and say this is `clean-code`. If they asked for red-green tests, stop — that is `tdd`.
 
-Three checks carry this lens, and **you name the check as you apply it** — stating which check you are invoking, and what it costs, is what makes a trade-off legible:
+**Authority.** `review` and any `design-gate` invocation are read-only: findings only, no edits, no test runs. `design` and `improve` may edit the files in the user's request (or the files a named finding requires). They do not authorize drive-by refactors of unrelated modules.
 
-1. **conceptual integrity** — is there a single central concept, and do the names match it? Does every edge case follow the same model, or does one branch quietly run on a second model?
-2. **change ownership** — a change wants to live in exactly one place. When it doesn't, you are looking at the **information leakage** red flag below from the design side: one decision is reflected in two or more modules that must now move together. Diagnose it as leakage and give the decision a single owning module; do not treat it as a separate finding.
-3. **smallest coherent shape** — the scope check. Is the design no larger than the problem requires? A coherent design that is bigger than the problem still costs more than it earns, and a smaller design that splits the model is not a design at all. Take the smallest shape that keeps one model intact.
+## Evidence
 
-Modelled sentence — produce sentences of this kind: *"Option B keeps **conceptual integrity** but at the cost of **change ownership** — the pricing rule would then live in two modules that have to move together."*
+Inspect the live code or the stated design. Do not invent a module.
 
-Where the design is consequential, say the central idea in one sentence before judging it. If you cannot state the idea in a sentence, that is the finding.
+Read budget: enough to name the abstraction, the *informal* interface (everything a caller must know — not just the signature), and one red flag or principle. Stop when another file would not change the decision.
 
-**Gotcha:** Do not confuse consistency with conceptual integrity — repeating an old mistake consistently is still a design problem. Use the codebase's strongest local patterns as exemplars, except when the pattern is itself what the change is fixing.
+Ask **reader, not writer**: would a second developer need a fact that is not in the interface? That fact is either leakage or obscurity.
 
-## When designing new code (apply, in order)
+If there is no repo, use the user's constraints. Mark those `assumed`.
 
-1. **State the abstraction first.** What simplified view does this module offer — what does the caller get to *not* know? If you can't say it in a sentence, the boundary is wrong.
-2. **Design the interface twice**, then pull complexity down so the interface is simpler than the implementation.
-3. **Prefer somewhat general-purpose interfaces.** A slightly general interface ("insert text at a position") is usually both simpler and deeper than a special-purpose one ("handle the backspace key"). Don't over-generalize into speculative configurability — aim for the interface that serves today's needs without encoding today's *specific* caller.
-4. **Keep each layer at a distinct abstraction.** Adjacent layers that share an abstraction signal a missing or misplaced boundary. Two specific smells:
-   - **Pass-through method** — does nothing but forward to another method with the same signature. It adds interface, hides no decision, and couples two classes. Remove it: let the caller talk to the deeper module, combine the layers, or give the method real responsibility.
-   - **Pass-through variable** — a parameter threaded through many methods that don't use it just to reach a deep one. Eliminate via a shared context object rather than the long thread.
-5. **Better together or better apart?** Combine two pieces when they share information, when combining *simplifies the interface*, or when it removes duplication; separate them when they're genuinely independent and combining would force a reader to understand both at once. Method length is not itself a smell — split a method only when the pieces are independent, each is simpler in isolation, and the split doesn't create conjoined methods you must read together to understand either.
-6. **Comment as you design — the comment is part of the design.** If a method's interface comment is long or has to enumerate special cases, the interface is too complex (the **hard-to-describe** red flag). Writing the comment first surfaces that early.
-7. **Make the obvious call the correct one.** Misuse-resistance is part of depth: a module whose interface requires callers to know a hidden helper, a call order, or a sibling-argument convention has leaked a design decision it should own. Run the footgun test — "does the obvious call, made without the tribal knowledge, break behavior?" — and move the invariant into the seam (safe default, narrower type, or an explicitly-named dangerous path). The concrete review checklist lives in `architecture-lens`'s rubric ("pit of success"); this principle is why it matters — one implementer absorbs the constraint once, or every caller trips on it forever.
+## Routes
 
-## When reviewing for design quality
+**`design`** — state the abstraction in one sentence (what the caller gets to *not* know). Then **design it twice**. Functionality matches today's needs; the interface does not — it is *somewhat general*. Over-specialization is the usual source of extra complexity: do not put `backspace`/`deleteKey`/`deleteSelection` on the text module. Answer the three questions in `references/principles.md` before coding. Pull complexity down; define errors out of existence; write the interface comment *before* the body so a caller need not read the implementation. Read `references/principles.md`, then `references/comments-and-names.md`.
 
-1. Establish the diff/design under review and, for each module touched, name the abstraction it's *supposed* to present.
-2. Walk the **Red flags** checklist below; collect findings with `file:line`, the flag's name, *which root cause* (dependency or obscurity) it stems from, and the fix.
-3. Run the three conceptual-integrity checks — **conceptual integrity**, **change ownership**, **smallest coherent shape** — and name each one as you apply it.
-4. Order findings by leverage (a leaked decision across modules beats a single vague name). Give a one-line verdict.
-5. If a category is clean, say "clean" — don't invent findings.
+**`improve`** — **stay strategic**. Design is never finished: the first cut is usually wrong, and implementation is how you find that. If the change is a special case that fights the design, fix the design (or say why you will not). Keep comments next to the code they describe; check the diff for comment drift. Read `references/modifying.md`. Load `references/comments-and-names.md` when names or comments are the work. Load `references/trends-and-performance.md` only when the question is a trend (TDD, patterns, inheritance) or a hot path.
 
-## Red flags
+**`review`** — walk the official red flags in `references/red-flags.md`. Name each finding. Then run the three Brooks checks. If a category is clean, write `clean`.
 
-Each is a *warning that something may be too complex*. Name the flag, then propose the structural fix. Full descriptions and worked fixes are in `references/red-flags.md` — read it before a thorough review.
-
-- **Shallow module** — interface complexity is high relative to functionality; the module costs about as much to learn as to inline.
-- **Information leakage** — a design decision is baked into two+ modules that must now change together.
-- **Temporal decomposition** — structure mirrors the *order operations run in* (read, then process, then write) instead of grouping by the knowledge each piece hides; a classic leakage generator.
-- **Overexposure** — using a common case forces the caller to learn rarely-used options.
-- **Pass-through method / pass-through variable** — forwarding without adding value; threading an unused parameter.
-- **Repetition** — the same snippet recurs because no module owns it.
-- **Special-general mixture** — special-purpose code embedded in general-purpose code (or vice versa), so neither is clean.
-- **Conjoined methods** — two methods so entangled you must read both to understand either.
-- **Comment repeats code** — a comment that restates what the code already says, adding no information that isn't obvious.
-- **Implementation detail in interface comment** — interface docs leak how it works, not just what it does, coupling callers to internals.
-- **Vague name / hard to pick a name** — a name like `data`/`obj`/`tmp`, or a struggle to name something, usually means the underlying entity is muddled.
-- **Hard to describe** — the interface comment is long or full of caveats; the interface is doing too much.
-- **Nonobvious code** — a reader can't quickly tell what it does or why; the meaning isn't on the surface.
-
-## Evaluating "best practices" through this lens
-
-Judge any trend, pattern, or rule by one test: *does it reduce complexity here, or add it?*
-
-- **Inheritance** — implementation inheritance creates dependencies up the hierarchy; prefer composition unless the "is-a" is real and stable.
-- **Design patterns** — valuable when they fit, complexity when forced; not every problem needs one.
-- **TDD / agile** — good for incremental progress, but bias toward feature-completion can crowd out design; deliberately reserve design moments.
-- **Getters/setters, micro-classes, tiny methods** — often shallow; don't add interface that hides no decision.
-- **Performance** — usually simpler code is also faster; measure before complicating, and when you must optimize, design around the few critical paths rather than scattering micro-optimizations.
+Load `references/chapter-map.md` only when you need to route a question to a specific chapter.
 
 ## Output contract
 
-For a standalone review, lead with findings ordered by leverage:
+Standalone `design` or `improve`:
 
+```text
+## Philosophy of Software Design
+Route: design | improve
+Abstraction: <one sentence>
+Principles: <which of the 16 you used>
+Red flags: <name or clean>
+Strategic vs tactical: <one line>
+What we rejected: <one alternative and its cost>
+Next move: <one action>
 ```
-## Design review (Philosophy of Software Design lens)
 
+If you edited code, add: files touched, **behavior-preserving** or the exact behavior change, checks run.
+
+Standalone `review`:
+
+```text
+## Design review (Philosophy of Software Design)
 ### Findings
 - [file:line] <red-flag name> (<dependency|obscurity>) — <what's complex>. Fix: <structural change>.
-
 ### Conceptual integrity
-<which of conceptual integrity / change ownership / smallest coherent shape holds, and which doesn't>
-
+<which of conceptual integrity / change ownership / smallest coherent shape holds>
 ### Verdict
-<one line: is this strategic or tactical, and the top 1–2 things to address>
+<one line>
 ```
 
-When run as a **reviewer** — under `design-gate`, or any time a caller asks for a proceed-or-revise verdict — return exactly:
+When run as a **reviewer** under `design-gate`:
 
-1. `verdict`: `proceed` or `revise`.
-2. `conceptual_integrity_check`: whether the design still has one coherent model, naming which of the three checks (**conceptual integrity** / **change ownership** / **smallest coherent shape**) fails if any.
-3. `blocking_findings`: load-bearing findings requiring plan changes (empty when `proceed`).
-4. `advisory_findings`: non-blocking observations worth carrying into implementation.
-5. `required_changes`: numbered plan amendments (only when `revise`).
+1. `verdict`: `proceed` or `revise`
+2. `conceptual_integrity_check`
+3. `blocking_findings`
+4. `advisory_findings`
+5. `required_changes`
 
-Reviewer mode stays read-only: no edits, no test runs — findings and required changes only.
-
-For new-design work, state the design's central idea in one sentence, then the module's abstraction, why the interface is simple, what complexity you pulled downward, and which errors you defined out of existence.
+`revise` when a leaked decision, a shallow public interface on a new module, or a tactical special-case that will have to be undone is load-bearing. Cosmetic naming is advisory.
 
 ## Gotchas
 
-1. Do not turn a small bug fix into a design exercise — match effort to stakes.
-2. Do not preserve an existing pattern blindly when the broken model *is* the request.
-3. Do not confuse consistency with conceptual integrity — repeating an old mistake consistently is still a design problem.
-4. Do not invent findings to fill a category; "clean" is a valid result for any lens.
+1. Do not turn a one-line bug fix into a design exercise. Match effort to stakes.
+2. Do not preserve an existing pattern when the broken model *is* the request.
+3. Do not confuse consistency with conceptual integrity — repeating a mistake consistently is still a defect.
+4. Do not invent findings to fill a category. `clean` is valid.
+5. Do not quote or reconstruct source text from the book this skill distills.
+6. **Depth before length** (ch. 9.8). After a few dozen lines, shortening a function rarely helps the system. More tiny functions means more interfaces and **conjoined methods**. Do not replace an **earned comment** with a ten-word method name. Small classes that leak one format are usually *too many* classes — merge them.
+7. Do not hide a design decision in a commit message. Comments belong in the code.
+8. `private` plus a getter is not information hiding. If callers must know the field exists, it is in the interface.
+9. Lots of documentation is often a **hard to describe** flag, not a virtue. Simplify the design.
+
+## References
+
+Load only the file the current step names:
+
+- `references/principles.md` — the 16 official principles as operational checks
+- `references/red-flags.md` — official red-flag catalog and fixes
+- `references/comments-and-names.md` — comments (ch. 12–15) and names (ch. 14)
+- `references/modifying.md` — existing code, consistency, obviousness, what matters (ch. 16–18, 21)
+- `references/trends-and-performance.md` — trends and performance (ch. 19–20)
+- `references/chapter-map.md` — chapter → file, when a question does not fit a route

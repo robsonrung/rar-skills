@@ -68,7 +68,7 @@ Ask:
 
 ### Distributed Behavior
 
-Use this when there is more than one process, worker, region, database, queue, cache, or external system.
+Use this when there is more than one process, worker, region, database, queue, cache, or external system. Topology — which Burns pattern the processes form (sidecar, shard, scatter/gather, election vs singleton, work queue) — is `distributed-systems-patterns`. This section is the code-level failure modes of those choices.
 
 Check ordering assumptions, stale reads, read after write needs, leader election, leases, clock dependence, consistency level, transaction boundaries, and reconciliation.
 
