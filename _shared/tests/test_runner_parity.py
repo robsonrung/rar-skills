@@ -112,7 +112,7 @@ class MissingCliEnvelopeParityTests(unittest.TestCase):
                     self.assertIn("Pi CLI not found", env["stderr"])
                 if name == "glm":
                     self.assertEqual(env["effective_runner"], "pi")
-                    self.assertEqual(env["effective_model"], "z-ai/glm-5.2")
+                    self.assertEqual(env["effective_model"], "z-ai/glm-5.3-flash")
                     self.assertEqual(env["effective_provider"], "z-ai")
                     self.assertIn("Pi CLI not found", env["stderr"])
 

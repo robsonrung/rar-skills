@@ -103,7 +103,7 @@ SEAT_SPECS: tuple[SeatSpec, ...] = (
         execution_path="glm_runner_via_pi",
         probe_cli="pi",
         depends_on=("pi",),
-        notes="pi-backed shim; pins --provider openrouter --model z-ai/glm-5.2 per invocation, requires OPENROUTER_API_KEY (or an OpenRouter credential in Pi's auth store).",
+        notes="pi-backed shim; pins --provider openrouter --model z-ai/glm-5.3-flash per invocation, requires OPENROUTER_API_KEY (or an OpenRouter credential in Pi's auth store).",
     ),
     # Backup seats. Not part of the default council rosters — probed so skills
     # that name them explicitly (`--seat qwen`) resolve instead of exiting 2.

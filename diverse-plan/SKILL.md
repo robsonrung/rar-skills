@@ -21,7 +21,7 @@ Read `_shared/references/task-shaped-model-routing.md` before changing these ass
 |---|---|---|---|
 | Branch: **smallest viable change** | Kimi K3 | `kimi-runner --role planner` | pragmatic, code-native, strong long-horizon coding judgment |
 | Branch: **cleanest design** | Opus seat | native `Agent` `model:"opus"` `mode:"plan"` (else `claude-runner --model opus --role planner --effort high`) | ambiguous architecture and boundary judgment |
-| Branch: **most robust** | GLM 5.2 | `glm-runner --role planner` | edge cases, long-context / backend reasoning, failure modes |
+| Branch: **most robust** | GLM 5.3 Flash | `glm-runner --role planner` | edge cases, long-context / backend reasoning, failure modes |
 | Branch: **different boundary/placement** (optional 4th) | Grok 4.5 | `grok-runner --role planner --effort high` | independent lineage (xAI), deep execution-grounded agentic reasoning, token-efficient |
 | Lens: **architecture / module complexity** | Opus seat | native `Agent` running `architecture-lens` / `software-design-philosophy` | structural judgment and reconciliation |
 | Lens: **data-systems** (state, async, migrations, retries) | GPT 5.3 Codex | `codex-runner --model gpt-5.3-codex --role codereviewer --effort high` | correctness & concurrency rigor, regression analysis |
@@ -30,7 +30,7 @@ Read `_shared/references/task-shaped-model-routing.md` before changing these ass
 | **Synthesis & enrichment** | Opus seat | native `Agent` `model:"opus"` `mode:"plan"` (else `claude-runner --model opus --role synthesizer --effort high`) | reconcile competing architectural judgment before execution |
 | **Execution completeness critic** | Codex seat | `codex-runner --role adversarial --effort high` | check the chosen plan against explicit scope, acceptance, commands, and verification |
 
-GLM 5.2 anchors the **most robust** branch (edge cases / long context) and is also the spare diversity seat — use it as a fallback branch model or an extra critique angle when another seat is missing.
+GLM 5.3 Flash anchors the **most robust** branch (edge cases / long context) and is also the spare diversity seat — use it as a fallback branch model or an extra critique angle when another seat is missing.
 
 **Model ids live in `_shared/references/model-roster.md`, not here.** The names above are *seats*; the roster maps each seat to the id that currently serves it. Invocations are alias-first where the CLI supports an alias (`claude-runner --model opus|sonnet`, the native `Agent` tool's `model:` field); otherwise a runner with no `--model` flag uses its roster-backed default. The one explicit id below is `--model gpt-5.3-codex` (see the roster) — it selects the code-specialized secondary Codex seat, a *different seat* on the same CLI, rather than re-pinning the default Codex seat used for synthesis.
 
@@ -132,7 +132,7 @@ Write a file only if the user asks.
 - **Self-contained.** Never call `models-consensus` — in any mode (poll, debate, personas). This skill owns its own loop.
 - **Multi-model by construction.** Branches run on distinct models via the runners (≥2 quorum); lenses and synthesis run on the model the routing table assigns. `--disable-fallback` on every runner; never substitute a provider silently.
 - **Blind branches, same brief.** Only the premise line differs across branches.
-- **Best model per task, but don't overspend.** Opus for architectural synthesis and deep design lenses, the default Codex seat for execution completeness, GPT 5.3 Codex for focused correctness/security lenses, Sonnet 5 for clean-code/tests, Kimi K3 / GLM 5.2 / Grok 4.5 (Gemini 3.7 Flash as its fallback) for the branch seats. Run only the lenses the change touches.
+- **Best model per task, but don't overspend.** Opus for architectural synthesis and deep design lenses, the default Codex seat for execution completeness, GPT 5.3 Codex for focused correctness/security lenses, Sonnet 5 for clean-code/tests, Kimi K3 / GLM 5.3 Flash / Grok 4.5 (Gemini 3.7 Flash as its fallback) for the branch seats. Run only the lenses the change touches.
 - **One completeness round max.**
 - **Read `agent_message` from `--output-file`,** never raw stdout (Kimi appends a resume hint; Codex emits a transcript).
 - **This produces a plan, not code.** Hand the plan off to your implementation flow.

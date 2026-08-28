@@ -53,8 +53,10 @@ BANNED_NAME_PREFIXES = ("ce-",)
 
 # _shared/SKILL.md is a marker, not a skill: it stops AgentSkills hosts from
 # pinning every file under _shared/references/ into the system prompt as an
-# always-on legacy skill. Its name is intentionally not AgentSkills-valid so
-# hosts skip loading it. See _shared/SKILL.md.
+# always-on legacy skill. It is exempt from the name==directory rule (it is
+# named `shared`, in the underscore-prefixed dir every skill references by
+# path) and carries disable-model-invocation so no host lists it as callable.
+# See _shared/SKILL.md.
 NOT_A_SKILL = {"_shared"}
 
 # AgentSkills hosts truncate descriptions at this length, cutting off the

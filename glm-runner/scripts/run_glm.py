@@ -3,9 +3,9 @@
 
 Previously this wrapper delegated to the shared `cline-runner` and carried a
 per-provider model-id map because Cline providers did not share one Z.AI
-namespace (`z-ai/glm-5.2` on OpenRouter vs `zai/glm-5.2` on the cline
+namespace (`z-ai/glm-5.3-flash` on OpenRouter vs `zai/glm-5.3-flash` on the cline
 gateway). It now delegates to the shared `pi-runner` implementation, which
-pins `--provider openrouter --model z-ai/glm-5.2` per invocation, so the
+pins `--provider openrouter --model z-ai/glm-5.3-flash` per invocation, so the
 single OpenRouter id is the only one left. Credentials come from
 `OPENROUTER_API_KEY`. The envelope reports `runner=glm`,
 `effective_runner=pi`, `effective_provider=z-ai`.
@@ -19,7 +19,7 @@ sys.path.insert(0, str(PI_RUNNER_DIR))
 
 import run_pi  # pyright: ignore[reportMissingImports] - sys.path is set at runtime above
 
-DEFAULT_MODEL = "z-ai/glm-5.2"
+DEFAULT_MODEL = "z-ai/glm-5.3-flash"
 
 
 if __name__ == "__main__":

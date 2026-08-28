@@ -50,7 +50,7 @@ PROVIDER_BY_RUNNER = {
 
 
 def infer_provider_from_model(model_id: str | None) -> str | None:
-    # OpenRouter model ids are `vendor/model` (e.g. z-ai/glm-5.2,
+    # OpenRouter model ids are `vendor/model` (e.g. z-ai/glm-5.3-flash,
     # moonshotai/kimi-k3) — the prefix is the real vendor. The stream's own
     # `provider` field is the serving gateway (openrouter), not the vendor, so
     # it is intentionally not used for effective_provider.
@@ -624,7 +624,7 @@ Examples:
         type=str,
         default=None,
         help="Model id in `vendor/model` form as listed by the serving provider's catalog "
-        "(e.g. moonshotai/kimi-k3, z-ai/glm-5.2 on OpenRouter). Ids absent from Pi's bundled "
+        "(e.g. moonshotai/kimi-k3, z-ai/glm-5.3-flash on OpenRouter). Ids absent from Pi's bundled "
         "catalog are passed through to the provider unchanged. Omit to use the runner default.",
     )
     parser.add_argument(

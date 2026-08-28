@@ -1,15 +1,15 @@
 ---
 name: glm-runner
-description: Execute prompts as the GLM seat through the Pi CLI on OpenRouter, with Z.AI's GLM 5.2 pinned per invocation (z-ai/glm-5.2). Use when users explicitly request GLM execution, when a workflow needs a GLM-labelled seat, or when a cross-runner workflow selects GLM as a complementary provider.
+description: Execute prompts as the GLM seat through the Pi CLI on OpenRouter, with Z.AI's GLM 5.3 Flash pinned per invocation (z-ai/glm-5.3-flash). Use when users explicitly request GLM execution, when a workflow needs a GLM-labelled seat, or when a cross-runner workflow selects GLM as a complementary provider.
 ---
 
 # GLM Runner
 
-Execute prompts as the GLM seat through the shared `pi-runner` implementation. This replaces the previous Cline-backed shim — `--provider openrouter --model z-ai/glm-5.2` is pinned on every invocation, so the per-provider model-id map (`z-ai/glm-5.2` on OpenRouter vs `zai/glm-5.2` on the cline gateway) is gone along with the mutable provider state that made it necessary.
+Execute prompts as the GLM seat through the shared `pi-runner` implementation. This replaces the previous Cline-backed shim — `--provider openrouter --model z-ai/glm-5.3-flash` is pinned on every invocation, so the per-provider model-id map (`z-ai/glm-5.3-flash` on OpenRouter vs `zai/glm-5.3-flash` on the cline gateway) is gone along with the mutable provider state that made it necessary.
 
 ## Default Model
 
-- `z-ai/glm-5.2` — Z.AI's **GLM 5.2**, pinned as `--provider openrouter --model z-ai/glm-5.2` on every run. This is the single remaining id for the seat; override with `--model` to point the GLM seat at a different OpenRouter model id.
+- `z-ai/glm-5.3-flash` — Z.AI's **GLM 5.3 Flash**, pinned as `--provider openrouter --model z-ai/glm-5.3-flash` on every run. This is the single remaining id for the seat; override with `--model` to point the GLM seat at a different OpenRouter model id.
 
 ## Prerequisites
 
@@ -42,7 +42,7 @@ python3 .agents/skills/glm-runner/scripts/run_glm.py "Answer from the brief only
 ## Behavior
 
 1. Delegates to the shared `pi-runner` implementation with runner identity set to `glm` (the envelope reports `runner=glm`, `effective_runner=pi`).
-2. Pins `--provider openrouter --model z-ai/glm-5.2` on every call, so the GLM seat is the model that actually answers — there is no mutable provider state that can silently reroute it.
+2. Pins `--provider openrouter --model z-ai/glm-5.3-flash` on every call, so the GLM seat is the model that actually answers — there is no mutable provider state that can silently reroute it.
 3. Never falls back to another provider. A missing CLI blocks the seat explicitly (`status: seat_unavailable`, `return_code -2`); missing credentials report `status: auth_missing` with `auth_ok: false` — this is **seat fidelity**, the same invariant every runner upholds: never substitute another model's answer for the GLM seat.
 4. Preserves the shared wrapper envelope so councils can compare GLM output with other runners consistently.
 

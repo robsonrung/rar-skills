@@ -47,7 +47,7 @@ PROVIDER_BY_RUNNER = {
 
 
 def infer_provider_from_model(model_id: str | None) -> str | None:
-    # Cline model ids are `vendor/model` (e.g. zai/glm-5.2, moonshotai/kimi-k3,
+    # Cline model ids are `vendor/model` (e.g. zai/glm-5.3-flash, moonshotai/kimi-k3,
     # anthropic/claude-sonnet-5) — the prefix is the real vendor. The stream's own
     # `model.provider` field is the *account* (cline, cline-pass), not the vendor, so
     # it is intentionally not used for effective_provider.
@@ -208,7 +208,7 @@ def resolve_default_model(
 ) -> str | None:
     """Pick the seat's default model id for the provider that will serve the
     run. Cline providers do not share one model-id namespace (OpenRouter lists
-    GLM as z-ai/glm-5.2; the cline gateway uses zai/glm-5.2), so seat shims
+    GLM as z-ai/glm-5.3-flash; the cline gateway uses zai/glm-5.3-flash), so seat shims
     can pass a per-provider map instead of a single id. "*" is the map's
     fallback entry for unrecognized providers."""
     if not default_model_by_provider:
@@ -723,7 +723,7 @@ Examples:
         default=None,
         help="Cline model id in `provider/model` form (e.g. anthropic/claude-sonnet-5, "
         "openai/gpt-5.1). Ids are catalog-specific per provider — OpenRouter lists GLM as "
-        "z-ai/glm-5.2 while the cline gateway uses zai/glm-5.2. Omit to use the runner default.",
+        "z-ai/glm-5.3-flash while the cline gateway uses zai/glm-5.3-flash. Omit to use the runner default.",
     )
     parser.add_argument(
         "--provider",

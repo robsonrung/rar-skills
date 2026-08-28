@@ -185,7 +185,7 @@ python3 .agents/skills/glm-runner/scripts/run_glm.py \
   --metadata-json '{"session":"{session_id}","round":{n},"seat":"glm","stance":"pragmatic_engineering"}'
 ```
 
-`glm-runner` delegates to `pi-runner` and pins a **real** GLM model per invocation — `--provider openrouter --model z-ai/glm-5.2` (`runner=glm`, `effective_runner=pi`, `effective_provider=z-ai`). Omit `--model`; the old cline-gateway slug `zai/glm-5.2` is retired along with the per-catalog resolution. `--output-schema` is prompt-guided and then locally enforced; a response outside the contract returns `status: malformed_output` and cannot be counted as a GLM vote.
+`glm-runner` delegates to `pi-runner` and pins a **real** GLM model per invocation — `--provider openrouter --model z-ai/glm-5.3-flash` (`runner=glm`, `effective_runner=pi`, `effective_provider=z-ai`). Omit `--model`; the old cline-gateway slug `zai/glm-5.3-flash` is retired along with the per-catalog resolution. `--output-schema` is prompt-guided and then locally enforced; a response outside the contract returns `status: malformed_output` and cannot be counted as a GLM vote.
 
 ### Qwen
 
@@ -264,7 +264,7 @@ Do not use `--bare` for Claude runner seats when relying on Claude OAuth or keyc
 
 ### Kimi / GLM / Qwen / Gemma transport rule (Pi on OpenRouter)
 
-`kimi-runner`, `glm-runner`, `qwen-runner`, and `gemma-runner` delegate to `pi-runner` and pin their real models per invocation (`moonshotai/kimi-k3`, `z-ai/glm-5.2`, `qwen/qwen3.8-2.4t-a95b`, `google/gemma-4-31b-it`, all `--provider openrouter`), so each seat genuinely runs its named model — there is no mutable provider state that can silently reroute it. They require the `pi` CLI (`npm install -g @mariozechner/pi-coding-agent`) and `OPENROUTER_API_KEY`. Note the correlated dependency: all four seats share one serving gateway and one key, so an OpenRouter outage or key problem drops them together — account for that in diversity confidence, and treat each as a single seat (model-lineage diversity still holds: Moonshot, Z.AI, Qwen, and Google are distinct labs, but do not pair any of them with another OpenRouter-served seat under a different label and call it transport diversity).
+`kimi-runner`, `glm-runner`, `qwen-runner`, and `gemma-runner` delegate to `pi-runner` and pin their real models per invocation (`moonshotai/kimi-k3`, `z-ai/glm-5.3-flash`, `qwen/qwen3.8-2.4t-a95b`, `google/gemma-4-31b-it`, all `--provider openrouter`), so each seat genuinely runs its named model — there is no mutable provider state that can silently reroute it. They require the `pi` CLI (`npm install -g @mariozechner/pi-coding-agent`) and `OPENROUTER_API_KEY`. Note the correlated dependency: all four seats share one serving gateway and one key, so an OpenRouter outage or key problem drops them together — account for that in diversity confidence, and treat each as a single seat (model-lineage diversity still holds: Moonshot, Z.AI, Qwen, and Google are distinct labs, but do not pair any of them with another OpenRouter-served seat under a different label and call it transport diversity).
 
 ---
 

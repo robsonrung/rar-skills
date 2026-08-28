@@ -10,7 +10,7 @@
     },
     "glm": {
       "provider": "openrouter",
-      "model": "z-ai/glm-5.2",
+      "model": "z-ai/glm-5.3-flash",
       "data_dir": "/Users/you/.agents/cline-lanes/glm",
       "credential_pool": "openrouter-primary",
       "max_concurrency": 2

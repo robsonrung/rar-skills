@@ -40,9 +40,9 @@ python3 .agents/skills/pi-runner/scripts/run_pi.py "your prompt here" --model mo
 ## Examples
 
 ```bash
-python3 .agents/skills/pi-runner/scripts/run_pi.py "Summarize this module" --model z-ai/glm-5.2
+python3 .agents/skills/pi-runner/scripts/run_pi.py "Summarize this module" --model z-ai/glm-5.3-flash
 python3 .agents/skills/pi-runner/scripts/run_pi.py --prompt-file /tmp/review.md --role codereviewer --model moonshotai/kimi-k3
-python3 .agents/skills/pi-runner/scripts/run_pi.py "Answer from the brief only" --no-tools --json --model z-ai/glm-5.2
+python3 .agents/skills/pi-runner/scripts/run_pi.py "Answer from the brief only" --no-tools --json --model z-ai/glm-5.3-flash
 ```
 
 ## Gotchas
