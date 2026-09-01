@@ -22,7 +22,7 @@ The authoritative description of how these skills compose. `ship` is the conduct
                                                 │                                browser-smoke
 ```
 
-**Step 0 — Frame.** Optional; skip when the request is concrete. `brainstorm` digs into the motivation before the mechanism, expands the solution space, and closes with a BUILD / DEFER / REDUCE SCOPE / REJECT verdict. Its panel mode fans divergence and cross-critique out to real model seats. `prototype` settles a design unknown that only running code can answer, then throws the code away.
+**Step 0 — Frame.** Optional; skip when the request is concrete. `brainstorm` digs into the motivation before the mechanism, expands the solution space, and closes with a BUILD / DEFER / REDUCE SCOPE / REJECT verdict. Its panel mode fans divergence and cross-critique out to real model seats. `to-prototype` settles a design unknown that only running code can answer, then throws the code away.
 
 **Step 1 — Specify.** `interview` grounds itself in `CONCEPTS.md`, `docs/adr/`, and the code *before* asking anything, then grills the angles that change what gets built — actors and permissions, edge cases, scope boundaries, data lifecycle, migration and rollback — runs the `security-gate` threat-model-lite checklist, and names the test seams. Exit test: every question the autonomous phases would have to ask is answered, recorded as an assumption with a default, or descoped. `to-spec` then synthesizes the PRD without a second interview.
 

@@ -120,6 +120,12 @@
       "concept": "coscheduled pair / container API / readiness, not liveness / need a master",
       "must_contain": ["coscheduled pair", "container API", "readiness, not liveness", "need a master"],
       "must_not_contain": []
+    },
+    {
+      "file": "to-prototype/SKILL.md",
+      "concept": "prototype code never graduates",
+      "must_contain": ["prototype code never graduates"],
+      "must_not_contain": []
     }
   ],
   "canon": [
@@ -169,7 +175,8 @@
     { "concept": "sketch two or three meaningfully different designs before coding a consequential interface", "leitwort": "design it twice", "drift_terms": [] },
     { "concept": "when changing existing code, do not tack on a special case that makes the design worse", "leitwort": "stay strategic", "drift_terms": ["just add a special case"] },
     { "concept": "name the few things this situation depends on and emphasize only those", "leitwort": "decide what matters", "drift_terms": [] },
-    { "concept": "complexity is judged by the next person to change the code, not by its author", "leitwort": "reader, not writer", "drift_terms": [] }
+    { "concept": "complexity is judged by the next person to change the code, not by its author", "leitwort": "reader, not writer", "drift_terms": [] },
+    { "concept": "throwaway spike code is discarded, never promoted to production", "leitwort": "prototype code never graduates", "drift_terms": ["promote the prototype", "harden the spike"] }
   ],
   "filler_verbs": ["carefully", "thoroughly", "make sure", "be sure to", "as appropriate", "as needed", "properly"]
 }

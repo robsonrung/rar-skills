@@ -150,7 +150,7 @@ python3 .agents/skills/grok-runner/scripts/run_grok.py \
   --metadata-json '{"session":"{session_id}","round":{n},"seat":"grok","stance":"pragmatic_engineering"}'
 ```
 
-The Grok seat runs **Grok 4.5** (the `grok` CLI default) at reasoning-effort high — an independent xAI lineage whose strength is execution-grounded, agentic reasoning, which is why its scheduled stances are `pragmatic_engineering`/`devils_advocate` rather than synthesis. Auth smoke test: `grok -p "Reply with the single word: ready" --output-format json` — a nonzero exit or `{"type":"error",...}` payload blocks the seat. Pass `--restrict-tools` explicitly when overriding the role to `implementer` for a stance: consensus seats never write, and only the `implementer` role escapes the read-only default.
+The Grok seat runs **Grok 4.6** (the `grok` CLI default) at reasoning-effort high — an independent xAI lineage whose strength is execution-grounded, agentic reasoning, which is why its scheduled stances are `pragmatic_engineering`/`devils_advocate` rather than synthesis. Auth smoke test: `grok -p "Reply with the single word: ready" --output-format json` — a nonzero exit or `{"type":"error",...}` payload blocks the seat. Pass `--restrict-tools` explicitly when overriding the role to `implementer` for a stance: consensus seats never write, and only the `implementer` role escapes the read-only default.
 
 ### Kimi
 
@@ -202,7 +202,7 @@ python3 .agents/skills/qwen-runner/scripts/run_qwen.py \
   --metadata-json '{"session":"{session_id}","round":{n},"seat":"qwen","stance":"pragmatic_engineering"}'
 ```
 
-`qwen-runner` delegates to `pi-runner` and pins `--provider openrouter --model qwen/qwen3.8-2.4t-a95b` per invocation (`runner=qwen`, `effective_runner=pi`, `effective_provider=qwen`) — omit `--model`. The seat is Qwen3.8 27B, the dense open-weight VLM of the Qwen3.8 Max family: the council's coding-first, long-horizon agentic-feasibility voice. Shares the OpenRouter transport and key with Kimi, GLM, and Gemma ([Kimi / GLM / Qwen / Gemma transport rule](#kimi--glm--qwen--gemma-transport-rule-pi-on-openrouter)).
+`qwen-runner` delegates to `pi-runner` and pins `--provider openrouter --model qwen/qwen3.8-max` per invocation (`runner=qwen`, `effective_runner=pi`, `effective_provider=qwen`) — omit `--model`. The seat is Qwen3.8 Max, the dense open-weight VLM of the Qwen3.8 Max family: the council's coding-first, long-horizon agentic-feasibility voice. Shares the OpenRouter transport and key with Kimi, GLM, and Gemma ([Kimi / GLM / Qwen / Gemma transport rule](#kimi--glm--qwen--gemma-transport-rule-pi-on-openrouter)).
 
 ### Gemma
 
@@ -264,7 +264,7 @@ Do not use `--bare` for Claude runner seats when relying on Claude OAuth or keyc
 
 ### Kimi / GLM / Qwen / Gemma transport rule (Pi on OpenRouter)
 
-`kimi-runner`, `glm-runner`, `qwen-runner`, and `gemma-runner` delegate to `pi-runner` and pin their real models per invocation (`moonshotai/kimi-k3`, `z-ai/glm-5.3-flash`, `qwen/qwen3.8-2.4t-a95b`, `google/gemma-4-31b-it`, all `--provider openrouter`), so each seat genuinely runs its named model — there is no mutable provider state that can silently reroute it. They require the `pi` CLI (`npm install -g @mariozechner/pi-coding-agent`) and `OPENROUTER_API_KEY`. Note the correlated dependency: all four seats share one serving gateway and one key, so an OpenRouter outage or key problem drops them together — account for that in diversity confidence, and treat each as a single seat (model-lineage diversity still holds: Moonshot, Z.AI, Qwen, and Google are distinct labs, but do not pair any of them with another OpenRouter-served seat under a different label and call it transport diversity).
+`kimi-runner`, `glm-runner`, `qwen-runner`, and `gemma-runner` delegate to `pi-runner` and pin their real models per invocation (`moonshotai/kimi-k3`, `z-ai/glm-5.3-flash`, `qwen/qwen3.8-max`, `google/gemma-4-31b-it`, all `--provider openrouter`), so each seat genuinely runs its named model — there is no mutable provider state that can silently reroute it. They require the `pi` CLI (`npm install -g @mariozechner/pi-coding-agent`) and `OPENROUTER_API_KEY`. Note the correlated dependency: all four seats share one serving gateway and one key, so an OpenRouter outage or key problem drops them together — account for that in diversity confidence, and treat each as a single seat (model-lineage diversity still holds: Moonshot, Z.AI, Qwen, and Google are distinct labs, but do not pair any of them with another OpenRouter-served seat under a different label and call it transport diversity).
 
 ---
 

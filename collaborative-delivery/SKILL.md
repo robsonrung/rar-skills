@@ -63,7 +63,7 @@ Do not combine unrelated tasks. Do not bypass red, green, refactor for productio
 
 ## Required outputs
 
-Read `references/output_contract.md` before writing any phase artifact or interpreting `panel_summary.json` statuses. It defines the per-phase presence audit, the full panel-status semantics, and external transcript handling.
+Read `references/output_contract.md` before writing any phase artifact or interpreting `panel_summary.json` statuses. Read `references/workflow_contract.md` before copying this skill to another repo or changing its routing, roles, or shared-script dependencies — it states the portability rules the skill must keep. It defines the per-phase presence audit, the full panel-status semantics, and external transcript handling.
 
 Create these files under `.codex_workflow/delivery` unless the user asks for another path:
 

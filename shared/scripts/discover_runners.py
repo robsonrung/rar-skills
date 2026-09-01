@@ -89,7 +89,7 @@ SEAT_SPECS: tuple[SeatSpec, ...] = (
         seat="grok",
         execution_path="grok_runner",
         probe_cli="grok",
-        notes="xAI Grok CLI (Grok 4.5); no fallback chain — the seat blocks-and-reports when `grok` is missing.",
+        notes="xAI Grok CLI (Grok 4.6); no fallback chain — the seat blocks-and-reports when `grok` is missing.",
     ),
     SeatSpec(
         seat="kimi",
@@ -112,7 +112,7 @@ SEAT_SPECS: tuple[SeatSpec, ...] = (
         execution_path="qwen_runner_via_pi",
         probe_cli="pi",
         depends_on=("pi",),
-        notes="Backup seat. pi-backed shim; pins --provider openrouter --model qwen/qwen3.8-2.4t-a95b (Qwen3.8 27B, the open-weight VLM of the Qwen3.8 Max family) per invocation, requires OPENROUTER_API_KEY (or an OpenRouter credential in Pi's auth store).",
+        notes="Backup seat. pi-backed shim; pins --provider openrouter --model qwen/qwen3.8-max (Qwen3.8 Max, the open-weight VLM of the Qwen3.8 Max family) per invocation, requires OPENROUTER_API_KEY (or an OpenRouter credential in Pi's auth store).",
         tier="backup",
     ),
     SeatSpec(

@@ -61,7 +61,7 @@ Paths in the examples use the installed `.agents/skills/` layout. When running f
 | `--worktree` | Auto-create a detached git worktree under `~/.cline/worktrees/` and run there (native `--worktree`) | `False` |
 | `--data-dir` | Isolated local state directory (native `--data-dir`) — use for automated runs to avoid mutating `~/.cline` | None |
 | `--lane` | Named isolated lane, fixing provider/model/state and acquiring a bounded credential-pool slot | None |
-| `--lane-file` | Optional local JSON override for custom lanes; built-in `kimi`/`glm` lanes need no file | None |
+| `--lane-file` | Optional local JSON override for custom lanes (shape: `references/cline-lanes.example.json`); built-in `kimi`/`glm` lanes need no file | None |
 | `--lane-wait-timeout` | Seconds to wait for a lane credential-pool slot | `30` |
 | `--config` | Configuration directory (native `--config`) | None |
 | `--system` | Override the default Cline system prompt (native `--system`) | None |

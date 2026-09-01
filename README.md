@@ -8,7 +8,7 @@ One user-called skill per step. `ship` runs the whole pipeline; each step is als
 
 | Step | Skill | What it does |
 |---|---|---|
-| 0. Frame | `brainstorm` · `prototype` | Sharpen a fuzzy idea to a BUILD/DEFER/REDUCE-SCOPE/REJECT verdict; spike a design unknown only running code can settle. |
+| 0. Frame | `brainstorm` · `to-prototype` | Sharpen a fuzzy idea to a BUILD/DEFER/REDUCE-SCOPE/REJECT verdict; spike a design unknown only running code can settle. |
 | 1. Specify | `interview` → `to-spec` | Grill the idea against the code, the glossary, and past decisions until spec-ready; then synthesize the PRD (security decisions and test seams included). |
 | 2. Plan | `to-tasks` | Cut tracer-bullet vertical slices, each with a machine-checkable acceptance contract and design/security gate flags. **The last human gate.** |
 | 3. Design gate | `coding-design-plan` → `design-gate` | Shape the plan, then run only the design lenses the slice's flags select, as parallel read-only reviewers. |
@@ -81,7 +81,7 @@ Each model seat is backed by a local CLI. Install only the ones whose seats you 
 | `codex` | Codex (`gpt-5.6-sol`) | `codex-runner` | `codex` CLI authenticated |
 | `agy` (Antigravity CLI) | Gemini / Google | `gemini-runner` | `agy` authenticated; model selected via `/model` or `~/.gemini/antigravity-cli/settings.json` |
 | `grok` | Grok (`grok-4.6` — Grok 4.6) | `grok-runner` | `grok` CLI logged in (`grok login`, grok.com account) |
-| `pi` | Kimi (`moonshotai/kimi-k3`), GLM (`z-ai/glm-5.3-flash`), Qwen (`qwen/qwen3.8-2.4t-a95b`), and Gemma (`google/gemma-4-31b-it`), all served via OpenRouter | `pi-runner`, `kimi-runner`, `glm-runner`, `qwen-runner`, `gemma-runner` | `pi` CLI (`npm install -g @mariozechner/pi-coding-agent`) + `OPENROUTER_API_KEY` |
+| `pi` | Kimi (`moonshotai/kimi-k3`), GLM (`z-ai/glm-5.3-flash`), Qwen (`qwen/qwen3.8-max`), and Gemma (`google/gemma-4-31b-it`), all served via OpenRouter | `pi-runner`, `kimi-runner`, `glm-runner`, `qwen-runner`, `gemma-runner` | `pi` CLI (`npm install -g @mariozechner/pi-coding-agent`) + `OPENROUTER_API_KEY` |
 | `cline` | Muse (`meta/muse-spark-1.1`) and Minimax | `muse-runner`, `minimax-runner` | Cline provider authenticated via `cline auth`; Muse access is limited to users in the United States |
 | `opencode` (optional) | OpenCode | `opencode-runner` | Its own auth; no bundled wrapper — runs through the host approval flow |
 
@@ -94,8 +94,8 @@ Every CLI seat is an external model call — it sends prompt text, prompt files,
 - **Anthropic** — for `claude` (and the native Opus/Sonnet seats running inside Claude Code).
 - **OpenAI / Codex** — for `codex`.
 - **Google** — for `agy` (Gemini).
-- **xAI** — for `grok` (Grok 4.5 seat).
-- **Pi-backed seats (OpenRouter)** — Kimi (`moonshotai/kimi-k3`), GLM (`z-ai/glm-5.3-flash`), Qwen (`qwen/qwen3.8-2.4t-a95b`), and Gemma (`google/gemma-4-31b-it`), pinned per invocation through the `pi` CLI. One credential: `OPENROUTER_API_KEY`. Note these seats share the OpenRouter dependency, so an outage or key problem drops them together.
+- **xAI** — for `grok` (Grok 4.6 seat).
+- **Pi-backed seats (OpenRouter)** — Kimi (`moonshotai/kimi-k3`), GLM (`z-ai/glm-5.3-flash`), Qwen (`qwen/qwen3.8-max`), and Gemma (`google/gemma-4-31b-it`), pinned per invocation through the `pi` CLI. One credential: `OPENROUTER_API_KEY`. Note these seats share the OpenRouter dependency, so an outage or key problem drops them together.
 - **Cline-backed seats** — Muse (`meta/muse-spark-1.1`) and Minimax (`minimax/minimax-m2.7`). Authenticate a Cline provider via `cline auth` that can resolve each model ID. OpenRouter limits Muse access to users in the United States.
 
 ### 4. Environment variables
@@ -107,7 +107,7 @@ Every CLI seat is an external model call — it sends prompt text, prompt files,
 
 ### 5. External skills
 
-None are required. The pipeline is self-contained — the five steps that used to depend on external installs are now in-repo: `tdd`, `interview` (the requirements interview), `prototype`, `diagnose`, and `session-handoff`.
+None are required. The pipeline is self-contained — the five steps that used to depend on external installs are now in-repo: `tdd`, `interview` (the requirements interview), `to-prototype`, `diagnose`, and `session-handoff`.
 
 Two optional integrations are used when present and skipped when not: a code-review plugin (the `/review` builtin or an equivalent) and, in `ship` phase 5, driving the real app — handled here by `browser-smoke` for web-facing changes, or the host's run-the-app check otherwise.
 

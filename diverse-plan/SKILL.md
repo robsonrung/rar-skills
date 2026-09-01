@@ -22,7 +22,7 @@ Read `shared/references/task-shaped-model-routing.md` before changing these assi
 | Branch: **smallest viable change** | Kimi K3 | `kimi-runner --role planner` | pragmatic, code-native, strong long-horizon coding judgment |
 | Branch: **cleanest design** | Opus seat | native `Agent` `model:"opus"` `mode:"plan"` (else `claude-runner --model opus --role planner --effort high`) | ambiguous architecture and boundary judgment |
 | Branch: **most robust** | GLM 5.3 Flash | `glm-runner --role planner` | edge cases, long-context / backend reasoning, failure modes |
-| Branch: **different boundary/placement** (optional 4th) | Grok 4.5 | `grok-runner --role planner --effort high` | independent lineage (xAI), deep execution-grounded agentic reasoning, token-efficient |
+| Branch: **different boundary/placement** (optional 4th) | Grok 4.6 | `grok-runner --role planner --effort high` | independent lineage (xAI), deep execution-grounded agentic reasoning, token-efficient |
 | Lens: **architecture / module complexity** | Opus seat | native `Agent` running `architecture-lens` / `software-design-philosophy` | structural judgment and reconciliation |
 | Lens: **data-systems** (state, async, migrations, retries) | GPT 5.3 Codex | `codex-runner --model gpt-5.3-codex --role codereviewer --effort high` | correctness & concurrency rigor, regression analysis |
 | Lens: **security** (auth, input, secrets, untrusted data) | GPT 5.3 Codex | `codex-runner --model gpt-5.3-codex --role adversarial --effort high` | best code-focused adversarial/security reviewer |
@@ -132,7 +132,7 @@ Write a file only if the user asks.
 - **Self-contained.** Never call `models-consensus` — in any mode (poll, debate, personas). This skill owns its own loop.
 - **Multi-model by construction.** Branches run on distinct models via the runners (≥2 quorum); lenses and synthesis run on the model the routing table assigns. `--disable-fallback` on every runner; never substitute a provider silently.
 - **Blind branches, same brief.** Only the premise line differs across branches.
-- **Best model per task, but don't overspend.** Opus for architectural synthesis and deep design lenses, the default Codex seat for execution completeness, GPT 5.3 Codex for focused correctness/security lenses, Sonnet 5 for clean-code/tests, Kimi K3 / GLM 5.3 Flash / Grok 4.5 (Gemini 3.7 Flash as its fallback) for the branch seats. Run only the lenses the change touches.
+- **Best model per task, but don't overspend.** Opus for architectural synthesis and deep design lenses, the default Codex seat for execution completeness, GPT 5.3 Codex for focused correctness/security lenses, Sonnet 5 for clean-code/tests, Kimi K3 / GLM 5.3 Flash / Grok 4.6 (Gemini 3.7 Flash as its fallback) for the branch seats. Run only the lenses the change touches.
 - **One completeness round max.**
 - **Read `agent_message` from `--output-file`,** never raw stdout (Kimi appends a resume hint; Codex emits a transcript).
 - **This produces a plan, not code.** Hand the plan off to your implementation flow.

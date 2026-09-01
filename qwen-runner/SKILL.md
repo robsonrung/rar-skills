@@ -1,15 +1,15 @@
 ---
 name: qwen-runner
-description: Execute prompts as the Qwen seat through the Pi CLI on OpenRouter, with Qwen3.8 27B pinned per invocation (qwen/qwen3.8-2.4t-a95b, 256K-token context, the open-weight VLM of the Qwen3.8 Max family). Use when users explicitly request Qwen execution, when a workflow needs an independent Qwen seat, or when a cross-runner workflow wants a Qwen-backed perspective without leaving the current workspace.
+description: Execute prompts as the Qwen seat through the Pi CLI on OpenRouter, with Qwen3.8 Max pinned per invocation (qwen/qwen3.8-max, 256K-token context, the open-weight VLM of the Qwen3.8 Max family). Use when users explicitly request Qwen execution, when a workflow needs an independent Qwen seat, or when a cross-runner workflow wants a Qwen-backed perspective without leaving the current workspace.
 ---
 
 # Qwen Runner
 
-Execute prompts as the Qwen seat through the shared `pi-runner` implementation. This replaces the previous Cline-backed shim — `--provider openrouter --model qwen/qwen3.8-2.4t-a95b` is pinned on every invocation, so the seat no longer depends on whichever provider Cline's mutable state happens to point at; the model that answers is always the forwarded Qwen model, served via OpenRouter.
+Execute prompts as the Qwen seat through the shared `pi-runner` implementation. This replaces the previous Cline-backed shim — `--provider openrouter --model qwen/qwen3.8-max` is pinned on every invocation, so the seat no longer depends on whichever provider Cline's mutable state happens to point at; the model that answers is always the forwarded Qwen model, served via OpenRouter.
 
 ## Default Model
 
-- `qwen/qwen3.8-2.4t-a95b` — **Qwen3.8 27B** (256K-token context in the OpenRouter catalog; the dense open-weight VLM of the Qwen3.8 Max family — the 1M flagship is a separate `qwen/qwen3.8-max` id), pinned as `--provider openrouter --model qwen/qwen3.8-2.4t-a95b` on every run. Override with `--model` to point the Qwen seat at a different OpenRouter model id.
+- `qwen/qwen3.8-max` — **Qwen3.8 Max** (256K-token context in the OpenRouter catalog; the dense open-weight VLM of the Qwen3.8 Max family — the 1M flagship is a separate `qwen/qwen3.8-max` id), pinned as `--provider openrouter --model qwen/qwen3.8-max` on every run. Override with `--model` to point the Qwen seat at a different OpenRouter model id.
 
 ## Prerequisites
 
@@ -45,7 +45,7 @@ python3 .agents/skills/qwen-runner/scripts/run_qwen.py "Answer from the brief on
 ## Behavior
 
 1. Delegates to the shared `pi-runner` implementation with runner identity set to `qwen` (the envelope reports `runner=qwen`, `effective_runner=pi`).
-2. Pins `--provider openrouter --model qwen/qwen3.8-2.4t-a95b` on every call, so the Qwen seat is the model that actually answers — there is no mutable provider state that can silently reroute it.
+2. Pins `--provider openrouter --model qwen/qwen3.8-max` on every call, so the Qwen seat is the model that actually answers — there is no mutable provider state that can silently reroute it.
 3. Never falls back to another provider. A missing CLI blocks the seat explicitly (`status: seat_unavailable`, `return_code -2`); missing credentials report `status: auth_missing` with `auth_ok: false` — this is **seat fidelity**, the same invariant every runner upholds: never substitute another model's answer for the Qwen seat.
 4. Preserves the shared wrapper envelope so councils can compare Qwen output with other runners consistently.
 

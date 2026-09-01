@@ -43,7 +43,7 @@ With no subagent tool on the host, run the station inline — but still write it
 
 | Phase | Mode | Runs in | Invoke |
 |---|---|---|---|
-| 0. Frame | interactive, optional | main | `brainstorm` (fuzzy idea — panel mode for high-stakes multi-model discovery); `prototype` (design unknown only running code can settle) |
+| 0. Frame | interactive, optional | main | `brainstorm` (fuzzy idea — panel mode for high-stakes multi-model discovery); `to-prototype` (design unknown only running code can settle) |
 | 1. Specify | interactive | main (+ delegated grounding) | a read-only worker grounds the request in the glossary, the ADRs, and the code → `01-grounding.report.md`; then `interview` inline against that report, then `to-spec`. High-stakes or contested: run both in panel mode. The `interview` runs the `security-gate` spec-time checklist and names the test seams; `to-spec` records them as the PRD's Security Decisions and Testing Decisions, so phase 2 can lift both. |
 | 2. Plan | interactive — last human gate | main | `to-tasks` (panel mode when the delivery needs per-task test plans and architecture mapping). Its Slice Contract carries `acceptance` + `gates` natively. User approves the breakdown. |
 | 3. Design gate | autonomous, per task | subagent | `coding-design-plan`, then `design-gate` with the slice's lens flags |

@@ -24,7 +24,7 @@ Use this skill before coding when the implementation shape matters. The goal is 
 When the plan still carries a real unknown, pick the move by the risk it retires:
 
 1. When integration risk outweighs design risk, plan a **tracer bullet** — a thin end-to-end slice through the real layers that ships and grows.
-2. When the production shape itself is unclear, route the learning through the `prototype` skill — a throwaway that answers one question and is discarded, never hardened into production by accident.
+2. When the production shape itself is unclear, route the learning through the `to-prototype` skill — a throwaway that answers one question and is discarded, never hardened into production by accident.
 3. Estimate by decomposing into observable deliverables and naming the uncertainty explicitly, not by padding.
 
 ## Test Scenarios

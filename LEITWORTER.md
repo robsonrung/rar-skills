@@ -103,6 +103,7 @@ agent sees one consistent token across the whole library:
 | Existing-code change must fit or improve the design | **stay strategic** | just add a special case, tactical patch |
 | Name and emphasize only the few load-bearing things | **decide what matters** | prioritize, focus on what's important |
 | Complexity is judged by the next changer, not the author | **reader, not writer** | simple to me, obvious to the author |
+| Throwaway spike code is discarded, never promoted | **prototype code never graduates** | promote the prototype, harden the spike, keep the spike |
 
 Two pairs in this table are deliberately close; keep them apart rather than
 collapsing them into one word:
