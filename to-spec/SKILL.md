@@ -84,14 +84,14 @@ Any further notes about the feature.
 
 By default this skill is a single-model synthesis. **Panel mode** is opt-in: turn it on when the user asks for a multi-model PRD, or when the feature's domain, interface, and backend contracts are consequential enough to be worth independent seats. It replaces the *drafting* of the PRD with a real multi-seat panel. Everything else above still holds — the autonomy-contract framing, the seam sketch, the no-file-paths rule, the Security Decisions section, and tracker publication.
 
-Read `../_shared/collaborative-panel-runner.md` before running any panel phase — it holds the routing contract, the flags, the status taxonomy, and the completion gate.
+Read `../shared/collaborative-panel-runner.md` before running any panel phase — it holds the routing contract, the flags, the status taxonomy, and the completion gate.
 
 **Phases.** Run all seven in order:
 
 `repo_read` → `product_definition` → `domain_definition` → `interface_definition` → `backend_definition` → `risk_review` → `convergence`
 
 ```bash
-python3 _shared/scripts/panel_round.py \
+python3 shared/scripts/panel_round.py \
   --phase repo_read \
   --routing to-spec/assets/panel-routing.toml \
   --goal "the feature being specified" \
@@ -102,7 +102,7 @@ python3 _shared/scripts/panel_round.py \
 
 `repo_read` comes first for a reason: map existing patterns before inventing new ones. Look for similar routes, components, services, use cases, repositories, tests, permissions, validators, migration patterns, and error handling. The resulting PRD must be **constrained by the repository, not only by ideal product design**.
 
-**Read gate.** Read `../_shared/references/engineering-rules.md` before the `domain_definition` and `backend_definition` phases, so those contracts follow the spec-driven, domain-driven design, clean architecture, and test-driven development rules. This is a gate, not a suggestion: the domain and backend contracts are the two artifacts downstream tasks cannot renegotiate.
+**Read gate.** Read `../shared/references/engineering-rules.md` before the `domain_definition` and `backend_definition` phases, so those contracts follow the spec-driven, domain-driven design, clean architecture, and test-driven development rules. This is a gate, not a suggestion: the domain and backend contracts are the two artifacts downstream tasks cannot renegotiate.
 
 **Roles.** The seat behind each role is editable in `assets/panel-routing.toml`:
 
@@ -133,10 +133,10 @@ A specialist role that is not relevant to the current spec still participates an
 5. `decision_log.md` — decisions plus preserved disagreements; record dissent rather than hiding it.
 6. `panel_summary.json` — written by the runner; the participation record.
 
-This list is mirrored in `assets/panel-routing.toml` `required_outputs`, the machine-read source consumed by `_shared/scripts/validate_artifacts.py`. Before finalizing:
+This list is mirrored in `assets/panel-routing.toml` `required_outputs`, the machine-read source consumed by `shared/scripts/validate_artifacts.py`. Before finalizing:
 
 ```bash
-python3 _shared/scripts/validate_artifacts.py \
+python3 shared/scripts/validate_artifacts.py \
   --routing to-spec/assets/panel-routing.toml \
   --artifact-dir .codex_workflow/spec
 ```

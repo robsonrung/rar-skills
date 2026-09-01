@@ -10,7 +10,7 @@ import unittest
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(REPO_ROOT / "_shared" / "scripts"))
+sys.path.insert(0, str(REPO_ROOT / "shared" / "scripts"))
 
 from output_contract import validate_output_contract, validate_value  # noqa: E402
 

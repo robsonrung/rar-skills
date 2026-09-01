@@ -1,6 +1,6 @@
 # Runner Common Reference
 
-Canonical, agent-facing rules shared by every runner skill: `claude-runner`, `codex-runner`, `gemini-runner`, `grok-runner`, `qwen-runner`, `cline-runner`, `pi-runner`, `dcode-runner`, plus the Pi-backed `kimi`, `glm`, `qwen`, and `gemma` shims and the Cline-backed `muse` and `minimax` shims. Each runner's SKILL.md points here for these shared blocks and keeps inline only its genuine deltas. Seat → model ids live in [model-roster.md](model-roster.md); seat availability comes from `_shared/scripts/discover_runners.py`.
+Canonical, agent-facing rules shared by every runner skill: `claude-runner`, `codex-runner`, `gemini-runner`, `grok-runner`, `qwen-runner`, `cline-runner`, `pi-runner`, `dcode-runner`, plus the Pi-backed `kimi`, `glm`, `qwen`, and `gemma` shims and the Cline-backed `muse` and `minimax` shims. Each runner's SKILL.md points here for these shared blocks and keeps inline only its genuine deltas. Seat → model ids live in [model-roster.md](model-roster.md); seat availability comes from `shared/scripts/discover_runners.py`.
 
 ## Seat fidelity
 
@@ -25,7 +25,7 @@ A fallback is always labeled (`fallback_from`, `fallback_reason`), and every fal
 
 ## Output envelope (required keys)
 
-All `--json` responses conform to `_shared/runner-envelope.schema.json` (bundled in this repo; installed at `.agents/skills/_shared/runner-envelope.schema.json`).
+All `--json` responses conform to `shared/runner-envelope.schema.json` (bundled in this repo; installed at `.agents/skills/shared/runner-envelope.schema.json`).
 
 Required top-level keys, always emitted on every exit path:
 
@@ -64,7 +64,7 @@ Every role except `implementer` is an analysis seat and defaults to read-only mo
 
 ## Guardrails (opt-in command guard)
 
-Runner skills launch CLI seats headless with auto-approve flags — the guard puts a floor under that. `_shared/hooks/` ships a denylist of catastrophic commands (`dangerous-patterns.txt`), a shared PreToolUse guard script (`deny-dangerous.sh`), and its test suite (`test-guard.sh`). The guard blocks only irreversible damage (rm on /|~, raw-disk writes, sudo rm, fork bombs, curl|sh, remote-history rewrites, gh repo delete, token exfil); recoverable commands stay allowed. It is a seatbelt against accidents, not a sandbox against a malicious agent — keep sandboxing and permission modes on regardless.
+Runner skills launch CLI seats headless with auto-approve flags — the guard puts a floor under that. `shared/hooks/` ships a denylist of catastrophic commands (`dangerous-patterns.txt`), a shared PreToolUse guard script (`deny-dangerous.sh`), and its test suite (`test-guard.sh`). The guard blocks only irreversible damage (rm on /|~, raw-disk writes, sudo rm, fork bombs, curl|sh, remote-history rewrites, gh repo delete, token exfil); recoverable commands stay allowed. It is a seatbelt against accidents, not a sandbox against a malicious agent — keep sandboxing and permission modes on regardless.
 
 **Install is opt-in and user-driven; no skill ever wires it automatically.** Copy the two files to `~/.agents/hooks/` (or point configs at the repo checkout) and register the script per CLI:
 
@@ -80,10 +80,10 @@ Use absolute paths in configs (`~` expansion is inconsistent across hosts). Afte
 `--background` detaches the run as a tracked job under `<working-dir>/.ai-workflow/runner-jobs/<job-id>/` and immediately prints `{success, job_id, pid, job_dir, ...}`. Manage jobs with the shared CLI (used by every runner skill):
 
 ```bash
-python3 .agents/skills/_shared/scripts/runner_jobs.py list [--runner <name>]
-python3 .agents/skills/_shared/scripts/runner_jobs.py status [job-id]
-python3 .agents/skills/_shared/scripts/runner_jobs.py result [job-id]
-python3 .agents/skills/_shared/scripts/runner_jobs.py cancel [job-id]
+python3 .agents/skills/shared/scripts/runner_jobs.py list [--runner <name>]
+python3 .agents/skills/shared/scripts/runner_jobs.py status [job-id]
+python3 .agents/skills/shared/scripts/runner_jobs.py result [job-id]
+python3 .agents/skills/shared/scripts/runner_jobs.py cancel [job-id]
 ```
 
 `job-id` defaults to the most recent job. All subcommands accept `--working-dir` and `--json`. `status` reports `running`, `completed`, `failed`, `cancelled`, or `died` plus a log tail; `result` prints the stored `agent_message` (or the full envelope with `--json`) and the session id for follow-up resumes; `cancel` terminates the job's process group.

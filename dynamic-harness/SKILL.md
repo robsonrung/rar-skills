@@ -139,7 +139,7 @@ A loop-until-done workflow needs **three exits**, not one: the stop condition wh
 
 ## Synthesis Rules
 
-1. Keep a compact ledger of agents, assignments, status, evidence, changed paths, and verdicts. In context is enough for a quick or standard workflow that fits in one window and costs little to repeat. Write it to a durable run state (`_shared/references/run-state-contract.md`) whenever the run must survive a crash or compaction, exceeds one context window, dispatches beyond a single batch, or will be audited afterwards — there, progress lives in **the ledger, not the transcript**, because a harness that loses its ledger re-dispatches work it already paid for.
+1. Keep a compact ledger of agents, assignments, status, evidence, changed paths, and verdicts. In context is enough for a quick or standard workflow that fits in one window and costs little to repeat. Write it to a durable run state (`shared/references/run-state-contract.md`) whenever the run must survive a crash or compaction, exceeds one context window, dispatches beyond a single batch, or will be audited afterwards — there, progress lives in **the ledger, not the transcript**, because a harness that loses its ledger re-dispatches work it already paid for.
 2. Never accept a worker output only because it is confident. Require evidence.
 3. Mark every important claim as verified, refuted, or unresolved.
 4. Prefer pairwise comparison for ranking large qualitative sets.
@@ -183,7 +183,7 @@ A skill file cannot open a Codex UI thread. If the host exposes a thread-creatio
 
 ### Handoff contract
 
-The brief, report, and envelope shapes are `_shared/references/handoff-contract.md` — read it before writing the first handoff, and follow its rule: **hand off the path, not the payload**. A manager that pastes a worker's output into the next worker's brief has re-absorbed the context delegation just bought.
+The brief, report, and envelope shapes are `shared/references/handoff-contract.md` — read it before writing the first handoff, and follow its rule: **hand off the path, not the payload**. A manager that pastes a worker's output into the next worker's brief has re-absorbed the context delegation just bought.
 
 Manager mode binds it to the mission layout:
 
@@ -193,7 +193,7 @@ Manager mode binds it to the mission layout:
 
 ### Ledger versus run state
 
-The Markdown ledger is for humans and is **write-only from the machine's side** — nothing reads it back, so it cannot drive a resume. Keep it (update it after each meaningful event: preflight, workstream start, thread created or handoff written or subagent spawned, worker completed, decision, files changed, verification, final integration; link to reports instead of pasting logs), and write a `run-state.json` beside it in the same mission directory per `_shared/references/run-state-contract.md`.
+The Markdown ledger is for humans and is **write-only from the machine's side** — nothing reads it back, so it cannot drive a resume. Keep it (update it after each meaningful event: preflight, workstream start, thread created or handoff written or subagent spawned, worker completed, decision, files changed, verification, final integration; link to reports instead of pasting logs), and write a `run-state.json` beside it in the same mission directory per `shared/references/run-state-contract.md`.
 
 - `status`, `phase`, and `steps` mirror the workstream table, so a resumed mission reconstructs what completed from the file rather than from the manager's memory.
 - `ceilings.max_workers` bounds concurrent workers, `ceilings.max_dispatched` the total spawned. A manager with no worker ceiling is the shape that spawns until something else stops it.

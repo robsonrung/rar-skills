@@ -1,6 +1,6 @@
 # Panel routing for `collaborative-delivery` (panel gates are mandatory here).
 #
-# Model ids come from `_shared/references/model-roster.md` — update the roster
+# Model ids come from `shared/references/model-roster.md` — update the roster
 # first, then this file.
 
 [skill]

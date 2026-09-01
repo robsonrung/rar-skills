@@ -1,6 +1,6 @@
 # Seat Invocations
 
-Exact launch patterns for the implement-and-review seats. Seat → model ids (and the alias-first policy: prefer `--model opus` over a pinned id) live in `_shared/references/model-roster.md`. Paths assume the installed `.agents/skills/` layout; from the source repo, drop the `.agents/skills/` prefix. `<id>` = session id, `<base>` = the commit recorded at preflight, `<wt-fe>` / `<wt-be>` = the frontend/backend worktree paths (see [worktree-and-integration.md](worktree-and-integration.md)).
+Exact launch patterns for the implement-and-review seats. Seat → model ids (and the alias-first policy: prefer `--model opus` over a pinned id) live in `shared/references/model-roster.md`. Paths assume the installed `.agents/skills/` layout; from the source repo, drop the `.agents/skills/` prefix. `<id>` = session id, `<base>` = the commit recorded at preflight, `<wt-fe>` / `<wt-be>` = the frontend/backend worktree paths (see [worktree-and-integration.md](worktree-and-integration.md)).
 
 ## Table of Contents
 
@@ -202,8 +202,8 @@ unchanged-behavior boundary. An implementer never reviews its own work.
 - **`--output-file`:** `Read` the JSON and take `agent_message`.
 - **`--background`:** each runner prints `{job_id,...}`; collect with the shared jobs CLI:
   ```bash
-  python3 .agents/skills/_shared/scripts/runner_jobs.py status <job-id>
-  python3 .agents/skills/_shared/scripts/runner_jobs.py result <job-id> --json   # agent_message + session_id
+  python3 .agents/skills/shared/scripts/runner_jobs.py status <job-id>
+  python3 .agents/skills/shared/scripts/runner_jobs.py result <job-id> --json   # agent_message + session_id
   ```
 - **Subagents:** the `Agent`/`SendMessage` final message returns to the orchestrator directly — require the compact/JSON shape so it stays small.
 - **Envelope:** runners return `success`, `return_code`, `effective_runner`, `effective_model`, `auth_ok`, `agent_message`, and `session_id` when available. Any `success=false` / `return_code!=0` is a blocked seat (`-2` = CLI not found) — degrade, never substitute.

@@ -6,7 +6,7 @@ Operational detail for models-consensus: startup selection templates, interactiv
 
 Question templates for preflight step 0 (seat selection). Ask via the Interactive Questions protocol; prefer one multi-select question over a series of yes/no prompts. Skipped entirely under `--auto`.
 
-**The picker must list every roster seat the probe reports as a candidate.** A seat missing from the picker can never be chosen, so build the option list from the probe output against `_shared/references/model-roster.md` — never from a hand-remembered subset. Use seat names, not pinned model ids.
+**The picker must list every roster seat the probe reports as a candidate.** A seat missing from the picker can never be chosen, so build the option list from the probe output against `shared/references/model-roster.md` — never from a hand-remembered subset. Use seat names, not pinned model ids.
 
 **Multi-select template** (preferred; include `All available (Recommended)` plus every detected candidate seat, omitting only seats absent from `candidate_seats`):
 
@@ -80,7 +80,7 @@ Multi-model councils can be expensive. Enforce cost transparency before launchin
 
 Council state is resumable — **the ledger, not the transcript**. Treat `.ai-workflow/consensus/{session_id}.json` as the source of truth for progress.
 
-State follows `_shared/references/run-state-contract.md`; council-specific keys (stances, seat outputs, digests, convergence, independence accounting) sit alongside the contract's own. `status` takes exactly the contract's values: `running`, `awaiting_human`, `complete`, `failed`, `ceiling_hit`, `cancelled` — the resume test below is a lookup against that set, not an inference.
+State follows `shared/references/run-state-contract.md`; council-specific keys (stances, seat outputs, digests, convergence, independence accounting) sit alongside the contract's own. `status` takes exactly the contract's values: `running`, `awaiting_human`, `complete`, `failed`, `ceiling_hit`, `cancelled` — the resume test below is a lookup against that set, not an inference.
 
 **Resume handshake:**
 - At preflight, check if `state_path` exists and `status != complete`.
@@ -271,7 +271,7 @@ The moderator waits, but never indefinitely.
 - Once at least 3 independent providers have completed **and** the major disagreements are clear, stop waiting — unless a straggler could change the decision materially.
 - After the cutoff: close native seats you no longer need and **kill unfinished runner processes**. Never leave orphaned background work behind.
 - Record every cut-off seat as `unavailable` with the reason (`timeout_cutoff`), and lower confidence one band exactly as for any missing seat — a cut seat is a missing seat, not a silent omission.
-- On resume, terminate any runner PIDs or background jobs recorded from the prior session before launching new seats (see [Crash Recovery and State Resumption](#crash-recovery-and-state-resumption)); background runner jobs are managed with `_shared/scripts/runner_jobs.py` (`status` / `result` / `cancel`).
+- On resume, terminate any runner PIDs or background jobs recorded from the prior session before launching new seats (see [Crash Recovery and State Resumption](#crash-recovery-and-state-resumption)); background runner jobs are managed with `shared/scripts/runner_jobs.py` (`status` / `result` / `cancel`).
 
 ## Handoff After Approval Rules
 

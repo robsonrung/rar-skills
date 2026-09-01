@@ -33,7 +33,7 @@ lives in their own SKILL.md "Panel mode" section.
 
 Each panel-capable skill owns its routing file (see the table above); the default
 model mapping is editable there. Model ids come from
-`_shared/references/model-roster.md` — when a provider ships a new model, update
+`shared/references/model-roster.md` — when a provider ships a new model, update
 the roster and the routing files that name it.
 
 Do not hardcode model choices in the workflow. Use the role names the calling
@@ -43,11 +43,11 @@ use the Opus seat for synthesis and the Codex seat for structured challenge,
 while explicit task planning and delivery may reverse those anchors. Other seats
 such as Gemini and Kimi remain assigned to specialist roles.
 
-Read `_shared/references/task-shaped-model-routing.md` before changing a model
+Read `shared/references/task-shaped-model-routing.md` before changing a model
 assignment. It defines the shared task categories, prompt shape, effort policy,
 and evaluation contract.
 
-Every configured phase must run through `_shared/scripts/panel_round.py` unless the
+Every configured phase must run through `shared/scripts/panel_round.py` unless the
 user explicitly disables model collaboration. A phase is complete only when every
 required role has status `ok` or `native_response_recorded` in `panel_summary.json`.
 A generated native prompt is not participation; the native Codex response must be
@@ -66,7 +66,7 @@ adversarial, or backend + synthesis) are stated in the calling skill's own steps
 
 ## Local panel runner
 
-The three panel scripts are shared, not per-skill: they live in `_shared/scripts/`
+The three panel scripts are shared, not per-skill: they live in `shared/scripts/`
 and are pointed at a skill's routing file with `--routing`. External roles run
 through the repo-local runner skills with fallback disabled, so a missing model
 cannot be silently replaced by another provider. Native Codex roles stay native,
@@ -77,7 +77,7 @@ Run one panel phase (replace `<phase>`, `<routing-file>`, `<artifact-dir>`, and
 goal/context with the calling skill's values):
 
 ```bash
-python3 _shared/scripts/panel_round.py \
+python3 shared/scripts/panel_round.py \
   --phase <phase> \
   --routing <routing-file> \
   --goal "describe the current goal" \
@@ -131,7 +131,7 @@ For each native role, read the generated prompt in `<artifact-dir>/prompts/`, pr
 the native response, then record it:
 
 ```bash
-python3 _shared/scripts/record_native_response.py \
+python3 shared/scripts/record_native_response.py \
   --phase <phase> \
   --routing <routing-file> \
   --role <native-role> \
@@ -166,7 +166,7 @@ A generated native prompt or handoff file is never enough by itself.
 Before finalizing, run:
 
 ```bash
-python3 _shared/scripts/validate_artifacts.py \
+python3 shared/scripts/validate_artifacts.py \
   --routing <routing-file> \
   --artifact-dir <artifact-dir>
 ```
@@ -177,7 +177,7 @@ honestly. For a partial in-progress run, `validate_artifacts.py` accepts
 
 ## Engineering rules
 
-`_shared/references/engineering-rules.md` holds the spec-driven development,
+`shared/references/engineering-rules.md` holds the spec-driven development,
 domain-driven design, clean architecture, and test-driven development rules the
 panel phases apply. It is one shared copy; the skills that gate a phase on it say
 so in their own steps.

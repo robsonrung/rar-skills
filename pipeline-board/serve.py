@@ -3,7 +3,7 @@
 
 Serves a static board (index.html) plus /api/runs, which scans the target
 repo's .ai-workflow/ tree for run-state.json files (the run-state contract,
-_shared/references/run-state-contract.md) and returns them as JSON. Read-only:
+shared/references/run-state-contract.md) and returns them as JSON. Read-only:
 never writes to the target repo.
 
 Usage:

@@ -4,7 +4,7 @@
 # Denylist: dangerous-patterns.txt next to this script (one ERE regex per line);
 # override the location with RAR_GUARD_PATTERNS.
 #
-# Wiring (see _shared/references/runner-common.md, "Guardrails"):
+# Wiring (see shared/references/runner-common.md, "Guardrails"):
 #   Claude Code  ~/.claude/settings.json  PreToolUse (matcher Bash) -> this script
 #   Codex        ~/.codex/hooks.json      PreToolUse (matcher Bash) -> this script
 #

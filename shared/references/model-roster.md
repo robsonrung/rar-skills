@@ -28,7 +28,7 @@ request, never a self-claim).
 | gemma | `gemma-runner` → `pi` CLI (OpenRouter) | — | `google/gemma-4-31b-it` | Council seat (optional tier). Cheapest roster seat ($0.10/$0.34 per 1M on OpenRouter); Google DeepMind dense 31B multimodal, 140+ languages, LiveCodeBench v6 80. Served via OpenRouter (`OPENROUTER_API_KEY`). |
 | minimax | `minimax-runner` → `cline` CLI | — | `minimax/minimax-m2.7` | Backup seat. |
 
-Seat availability is probed by `_shared/scripts/discover_runners.py` — always
+Seat availability is probed by `shared/scripts/discover_runners.py` — always
 probe; never assume a CLI exists. Quorum floors: light = 2, quality = 3
 distinct available seats (the probe's `summary.light_quorum_met` /
 `quality_quorum_met` are advisory; multi-seat skills stop below 3 distinct

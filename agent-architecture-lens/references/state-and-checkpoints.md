@@ -34,7 +34,7 @@ The ordering rule that matters: for a step with an external side effect, the rec
 ## Storage
 
 - **In memory** — tests and short runs only. It is not a checkpoint if the process owns it.
-- **A file on disk** — sufficient for single-machine runs, and readable by a human debugging a stuck run. This is what the skills in this repo use; see `_shared/references/run-state-contract.md`.
+- **A file on disk** — sufficient for single-machine runs, and readable by a human debugging a stuck run. This is what the skills in this repo use; see `shared/references/run-state-contract.md`.
 - **A database** — when runs are concurrent, distributed, or queried. Slower per write, but the trace is queryable, which is what an audit window actually needs.
 
 ## Lifecycle

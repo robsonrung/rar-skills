@@ -7,7 +7,7 @@ description: Execute prompts using Codex CLI in non-interactive exec mode. Use w
 
 Execute prompts via Codex CLI `exec` mode with role overlays, native session resume, background jobs, and continuation support.
 
-Roles, the output-envelope key contract, presenting-results rules, the background-jobs CLI, and the **seat fidelity** invariant are shared across runners — see `../_shared/references/runner-common.md`. Only this runner's deltas are inline below.
+Roles, the output-envelope key contract, presenting-results rules, the background-jobs CLI, and the **seat fidelity** invariant are shared across runners — see `../shared/references/runner-common.md`. Only this runner's deltas are inline below.
 
 ## Runtime Compatibility
 
@@ -26,7 +26,7 @@ This skill invokes the local Codex CLI from the current machine. Prompt text, pr
 
 ## Output Envelope
 
-The required key contract is shared — see `../_shared/references/runner-common.md`. Envelopes also include execution metadata (command, working directory, role, sandbox, and related fields). Codex-specific extensions:
+The required key contract is shared — see `../shared/references/runner-common.md`. Envelopes also include execution metadata (command, working directory, role, sandbox, and related fields). Codex-specific extensions:
 - `agent_message` — the clean final answer from Codex (captured via `--output-last-message`), free of the activity transcript in `stdout`.
 - `session_id` — the Codex session id when detectable, so the run can be continued with `--resume <id>` (or reopened interactively with `codex resume <id>`).
 
@@ -75,7 +75,7 @@ When `--json` and `--output-file` are combined, stdout becomes a compact pointer
 
 ## Roles
 
-The role list and the analysis-seat read-only default are shared — see `../_shared/references/runner-common.md`. For Codex, analysis roles default to the Codex read-only sandbox; pass `--allow-write` (or an explicit `--sandbox`/`--full-auto`) to opt out.
+The role list and the analysis-seat read-only default are shared — see `../shared/references/runner-common.md`. For Codex, analysis roles default to the Codex read-only sandbox; pass `--allow-write` (or an explicit `--sandbox`/`--full-auto`) to opt out.
 
 ## Session Continuation
 
@@ -98,11 +98,11 @@ python3 .agents/skills/codex-runner/scripts/run_codex.py "Review the staged diff
 
 ## Background Jobs
 
-`--background` runs as a tracked job (job dir holds the manifest, log, and final envelope as `result.json`); manage it with the shared jobs CLI (`list --runner codex` / `status` / `result` / `cancel`) — see `../_shared/references/runner-common.md`.
+`--background` runs as a tracked job (job dir holds the manifest, log, and final envelope as `result.json`); manage it with the shared jobs CLI (`list --runner codex` / `status` / `result` / `cancel`) — see `../shared/references/runner-common.md`.
 
 ## Presenting Results
 
-Shared rules (prefer `agent_message`, severity-ordered findings, evidence boundaries, never auto-apply, **seat fidelity** on failure) live in `../_shared/references/runner-common.md`. Codex-specific additions:
+Shared rules (prefer `agent_message`, severity-ordered findings, evidence boundaries, never auto-apply, **seat fidelity** on failure) live in `../shared/references/runner-common.md`. Codex-specific additions:
 
 - If Codex made edits, say so explicitly and list the touched files.
 - Fallback applies only when the Codex CLI is missing, and it is always labeled via `fallback_from`/`fallback_reason`.

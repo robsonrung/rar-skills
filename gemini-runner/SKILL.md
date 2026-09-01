@@ -7,7 +7,7 @@ description: Execute prompts using Antigravity CLI (`agy`) headless print mode f
 
 Execute prompts via Antigravity CLI (`agy`) headless print mode with role overlays and continuation support.
 
-Roles, the output-envelope key contract, presenting-results rules, the background-jobs CLI, and the **seat fidelity** invariant are shared across runners — see `../_shared/references/runner-common.md`. Only this runner's deltas (including its extended envelope keys and `auth_ok` semantics) are inline below.
+Roles, the output-envelope key contract, presenting-results rules, the background-jobs CLI, and the **seat fidelity** invariant are shared across runners — see `../shared/references/runner-common.md`. Only this runner's deltas (including its extended envelope keys and `auth_ok` semantics) are inline below.
 
 ## Runtime Compatibility
 When `agy` is missing and fallback is disabled (or all fallbacks are unavailable), the envelope carries `status: seat_unavailable` and `return_code` -2; council orchestrators must treat that seat as absent. When a fallback runner does produce the output, unavailable fallback seats attempted before it are listed in `fallback_attempts` on the returned envelope.
@@ -29,7 +29,7 @@ Precedence when both overlay flags are passed: an explicit `--restrict-tools` al
 
 ## Output Envelope
 
-The required key contract is shared — see `../_shared/references/runner-common.md`. Every exit path (success, timeout, input error, missing CLI, fallback) is normalized — the same keys are present whether the wrapper is invoked via the CLI or imported and called programmatically. `agent_message` holds the trimmed `agy` print-mode response; `agy` exposes no session id, so `session_id` stays null.
+The required key contract is shared — see `../shared/references/runner-common.md`. Every exit path (success, timeout, input error, missing CLI, fallback) is normalized — the same keys are present whether the wrapper is invoked via the CLI or imported and called programmatically. `agent_message` holds the trimmed `agy` print-mode response; `agy` exposes no session id, so `session_id` stays null.
 
 Gemini-specific extended keys that may appear:
 - `status` — set to `seat_unavailable` (`-2`), `timeout` (`-1`), or `auth_failed` when relevant.
@@ -76,15 +76,15 @@ Paths in the examples use the installed `.agents/skills/` layout. When running f
 
 ## Roles
 
-The role list and the analysis-seat read-only default are shared — see `../_shared/references/runner-common.md`. For Gemini, analysis roles default to a read-only prompt overlay (a soft constraint, not a sandbox — see Security Model); pass `--allow-write` to opt out.
+The role list and the analysis-seat read-only default are shared — see `../shared/references/runner-common.md`. For Gemini, analysis roles default to a read-only prompt overlay (a soft constraint, not a sandbox — see Security Model); pass `--allow-write` to opt out.
 
 ## Background Jobs
 
-`--background` runs as a tracked job; manage it with the shared jobs CLI (`list`/`status`/`result`/`cancel`) — see `../_shared/references/runner-common.md`. `--background` requires the shared jobs module `_shared/scripts/runner_jobs.py`. It ships in this source repo; if a slimmed install lacks `_shared/`, `--background` exits with a clear error and the foreground modes are unaffected. (The shared launcher strips `--background`/`--json`/`--output-file` from the re-invoked argv, so the detached child runs in the foreground without recursing.)
+`--background` runs as a tracked job; manage it with the shared jobs CLI (`list`/`status`/`result`/`cancel`) — see `../shared/references/runner-common.md`. `--background` requires the shared jobs module `shared/scripts/runner_jobs.py`. It ships in this source repo; if a slimmed install lacks `shared/`, `--background` exits with a clear error and the foreground modes are unaffected. (The shared launcher strips `--background`/`--json`/`--output-file` from the re-invoked argv, so the detached child runs in the foreground without recursing.)
 
 ## Presenting Results
 
-Shared rules (prefer `agent_message`, severity-ordered findings, evidence boundaries, never auto-apply, **seat fidelity** on failure — fallback runs labeled via `fallback_from`/`fallback_reason`) live in `../_shared/references/runner-common.md`.
+Shared rules (prefer `agent_message`, severity-ordered findings, evidence boundaries, never auto-apply, **seat fidelity** on failure — fallback runs labeled via `fallback_from`/`fallback_reason`) live in `../shared/references/runner-common.md`.
 
 ## Examples
 

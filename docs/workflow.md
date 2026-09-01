@@ -9,7 +9,7 @@ The authoritative description of how these skills compose. `ship` is the conduct
 3. **The contract is the boundary.** A task marked `ready-for-agent` carries a machine-checkable acceptance contract and its gate flags — everything needed to finish it unattended.
 4. **Vertical slices.** The unit of work cuts through every layer, is demoable alone, and ships with commands that prove it.
 5. **One user-called skill per step.** Choosing among ten design lenses is itself a mid-flight question; `design-gate` turns that choice into a table lookup.
-6. **Hand off the path, not the payload.** The conductor is thin: every phase that does not need the user runs in its own subagent, and what crosses between phases is a markdown report on disk plus a short envelope — never a pasted body. Contract in `_shared/references/handoff-contract.md`, per-station binding in `ship/references/station-dispatch.md`. This is what keeps a run's reasoning recoverable after a compaction, and the conductor's context flat across a seven-station run.
+6. **Hand off the path, not the payload.** The conductor is thin: every phase that does not need the user runs in its own subagent, and what crosses between phases is a markdown report on disk plus a short envelope — never a pasted body. Contract in `shared/references/handoff-contract.md`, per-station binding in `ship/references/station-dispatch.md`. This is what keeps a run's reasoning recoverable after a compaction, and the conductor's context flat across a seven-station run.
 
 ## The seven steps
 
@@ -55,5 +55,5 @@ After the step-2 gate, a contested or irreversible decision escalates:
 
 - **Leitwörter.** Distinctive phrases an agent repeats while acting (`smallest reversible move`, `connascence`, `observable behavior`, `act or assess`). Registered in `leitworter.json`, guarded by `scripts/check_leitworter.py` — deleting one from its owning skill fails the build. See `LEITWORTER.md`.
 - **New skills need an audit row.** `docs/porting-trigger-audit.md` records the trigger-collision check; a skill may not land without one.
-- **Model ids live in one file.** `_shared/references/model-roster.md`. Skills name seats, not versions.
+- **Model ids live in one file.** `shared/references/model-roster.md`. Skills name seats, not versions.
 - **Entry points are user-invocable only.** Skills no other skill calls mid-workflow carry `disable-model-invocation: true`.

@@ -15,7 +15,7 @@ Self-contained: this skill runs its own loop and never calls the council skill (
 ## Best model for each task
 
 Assign work to the model best suited to it. This is the default routing; fall back per the rules below when a seat is missing.
-Read `_shared/references/task-shaped-model-routing.md` before changing these assignments.
+Read `shared/references/task-shaped-model-routing.md` before changing these assignments.
 
 | Task | Model (seat) | How to launch | Why this model |
 |---|---|---|---|
@@ -32,14 +32,14 @@ Read `_shared/references/task-shaped-model-routing.md` before changing these ass
 
 GLM 5.3 Flash anchors the **most robust** branch (edge cases / long context) and is also the spare diversity seat — use it as a fallback branch model or an extra critique angle when another seat is missing.
 
-**Model ids live in `_shared/references/model-roster.md`, not here.** The names above are *seats*; the roster maps each seat to the id that currently serves it. Invocations are alias-first where the CLI supports an alias (`claude-runner --model opus|sonnet`, the native `Agent` tool's `model:` field); otherwise a runner with no `--model` flag uses its roster-backed default. The one explicit id below is `--model gpt-5.3-codex` (see the roster) — it selects the code-specialized secondary Codex seat, a *different seat* on the same CLI, rather than re-pinning the default Codex seat used for synthesis.
+**Model ids live in `shared/references/model-roster.md`, not here.** The names above are *seats*; the roster maps each seat to the id that currently serves it. Invocations are alias-first where the CLI supports an alias (`claude-runner --model opus|sonnet`, the native `Agent` tool's `model:` field); otherwise a runner with no `--model` flag uses its roster-backed default. The one explicit id below is `--model gpt-5.3-codex` (see the roster) — it selects the code-specialized secondary Codex seat, a *different seat* on the same CLI, rather than re-pinning the default Codex seat used for synthesis.
 
 ## Step 0 — Preflight (probe seats once)
 
 Run the shared probe and use its envelope as the seat table — do not re-probe `PATH` inline:
 
 ```bash
-python3 .agents/skills/_shared/scripts/discover_runners.py probe \
+python3 .agents/skills/shared/scripts/discover_runners.py probe \
   --native-agent yes \
   --seat opus --seat sonnet --seat codex --seat gemini --seat grok --seat kimi --seat glm \
   --format md

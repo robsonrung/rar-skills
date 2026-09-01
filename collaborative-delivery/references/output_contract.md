@@ -2,14 +2,14 @@
 
 Required artifacts
 
-See the "Required outputs" list in SKILL.md and `[skill].required_outputs` in `assets/routing.toml`, which is what `_shared/scripts/validate_artifacts.py` enforces. Primary output: `execution_log.md`. Artifact directory: `.codex_workflow/delivery`.
+See the "Required outputs" list in SKILL.md and `[skill].required_outputs` in `assets/routing.toml`, which is what `shared/scripts/validate_artifacts.py` enforces. Primary output: `execution_log.md`. Artifact directory: `.codex_workflow/delivery`.
 
 Portability and workflow principles
 
 This skill is the unit of portability. It must be usable when copied by itself into any agent skills location (for example `.agents/skills`).
 
 1. Keep the skill focused on one job.
-2. Keep this skill's routing, contracts, and references inside the skill folder; the panel scripts are the one shared dependency, in `_shared/scripts/`.
+2. Keep this skill's routing, contracts, and references inside the skill folder; the panel scripts are the one shared dependency, in `shared/scripts/`.
 3. Treat any top level repository agent profile as optional optimization, never as a required dependency.
 4. Use roles in instructions and routing. Keep model names in editable config values only.
 5. Run independent role rounds before reconciliation.
@@ -39,7 +39,7 @@ Panel status rules
 
 Native response helper
 
-Use `_shared/scripts/record_native_response.py` after a native Codex role has produced its response. The helper writes the response to `native_responses/<phase>_<role>.md`, refuses to overwrite existing non-empty responses unless `--replace` is passed, and updates the matching `panel_summary.json` result when that phase run exists.
+Use `shared/scripts/record_native_response.py` after a native Codex role has produced its response. The helper writes the response to `native_responses/<phase>_<role>.md`, refuses to overwrite existing non-empty responses unless `--replace` is passed, and updates the matching `panel_summary.json` result when that phase run exists.
 
 External transcript handling
 

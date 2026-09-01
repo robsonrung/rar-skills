@@ -26,7 +26,7 @@ Put personal defaults in `~/.codex/config.toml`. Put repository specific limits 
 
 The repository is already designed around bounded delegation. The pipeline keeps the conductor small and moves noninteractive phases into subagents with file based handoffs. [Workflow](workflow.md)
 
-The repository supports an optional, gitignored `.rar-skills/config.local.yaml` for external runner seats, quorum, and work engine preferences. When present, keep that file as the source for its runner based model routing. Do not copy its model IDs into role files. [Local configuration](../_shared/references/local-config.md) [Model roster](../_shared/references/model-roster.md)
+The repository supports an optional, gitignored `.rar-skills/config.local.yaml` for external runner seats, quorum, and work engine preferences. When present, keep that file as the source for its runner based model routing. Do not copy its model IDs into role files. [Local configuration](../shared/references/local-config.md) [Model roster](../shared/references/model-roster.md)
 
 There is no tracked `.codex/` configuration layer in this repository now. The root `docs/` directory holds architecture and workflow documentation. `docs/solutions/` is reserved for one solved problem per learning record. This document therefore belongs in `docs/`, not in `docs/solutions/`. [Documentation store convention](solutions/README.md)
 

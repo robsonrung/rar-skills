@@ -75,7 +75,7 @@ def get_skill_root() -> Path:
 
 
 def get_collection_root() -> Path:
-    """The skill-collection root. This script lives in `_shared/scripts/`."""
+    """The skill-collection root. This script lives in `shared/scripts/`."""
     return Path(__file__).resolve().parents[2]
 
 
@@ -123,7 +123,7 @@ def resolve_runner_script(
     2. that path's `<runner>/scripts/run_<x>.py` tail under `$RUNNER_BASE_PATH`
     3. `.agents/skills/<runner>/scripts/run_<x>.py` (the default install layout)
     4. the collection-root sibling `<runner>/scripts/run_<x>.py`, resolved
-       relative to this script's own `_shared/..` (a source checkout)
+       relative to this script's own `shared/..` (a source checkout)
     """
     candidates: list[Path] = []
     if raw_path:

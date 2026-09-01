@@ -59,7 +59,7 @@ class SeatSpec:
 
 
 # Seat → probe table and the single source for seat availability. Model ids for
-# each seat live in _shared/references/model-roster.md. Keep in sync with
+# each seat live in shared/references/model-roster.md. Keep in sync with
 # full-review SKILL.md Phase 3 and models-consensus SKILL.md preflight.
 SEAT_SPECS: tuple[SeatSpec, ...] = (
     SeatSpec(

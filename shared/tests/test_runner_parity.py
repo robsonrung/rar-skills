@@ -17,7 +17,7 @@ Locks in the family-wide contract so the per-script copies cannot drift:
 All tests run offline: PATH is stripped so no real CLI is ever found, and
 --disable-fallback keeps the claude/codex/gemini chains from routing.
 
-Run: python3 _shared/tests/test_runner_parity.py
+Run: python3 shared/tests/test_runner_parity.py
 """
 
 import json

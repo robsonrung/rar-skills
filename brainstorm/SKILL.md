@@ -53,7 +53,7 @@ Only after exploring broadly should you start converging:
 
 By default this skill is a single-model dialogue. **Panel mode** is opt-in: turn it on when the user asks for multi-model brainstorming, or when the idea is ambiguous enough that one model's solution space is the binding constraint. It replaces the *generation* inside Phase 2 and Phase 3 with a real multi-seat panel — it does not replace the dialogue with the user, and it does not replace the Phase 4 verdict.
 
-Read `../_shared/collaborative-panel-runner.md` before running any panel phase — it holds the routing contract, the flags, the status taxonomy, and the completion gate.
+Read `../shared/collaborative-panel-runner.md` before running any panel phase — it holds the routing contract, the flags, the status taxonomy, and the completion gate.
 
 **Mapping.** Two panel phases back the interactive spine:
 
@@ -65,7 +65,7 @@ Read `../_shared/collaborative-panel-runner.md` before running any panel phase �
 Run each one, replacing the goal and context with the current idea:
 
 ```bash
-python3 _shared/scripts/panel_round.py \
+python3 shared/scripts/panel_round.py \
   --phase divergence \
   --routing brainstorm/assets/panel-routing.toml \
   --goal "the neutral problem statement from Phase 1" \
@@ -94,19 +94,19 @@ A specialist role that is not relevant to the current idea still participates an
 4. `decision_log.md` — decisions plus preserved disagreements.
 5. `panel_summary.json` — written by the runner; the participation record.
 
-This list is mirrored in `assets/panel-routing.toml` `required_outputs`, the machine-read source consumed by `_shared/scripts/validate_artifacts.py`.
+This list is mirrored in `assets/panel-routing.toml` `required_outputs`, the machine-read source consumed by `shared/scripts/validate_artifacts.py`.
 
 **Honesty rules.** A phase is complete only when every required role reached `ok` or `native_response_recorded`. `dry_run` is not participation — it only checks the command shape. `fallback_used` means independence was lost, so do not report that seat as the configured model. A generated native prompt is never enough by itself: the native response must be recorded. If the user accepts a gap, report it as an accepted exception, never as a complete panel.
 
 Before finalizing:
 
 ```bash
-python3 _shared/scripts/validate_artifacts.py \
+python3 shared/scripts/validate_artifacts.py \
   --routing brainstorm/assets/panel-routing.toml \
   --artifact-dir .codex_workflow/brainstorm
 ```
 
-Panel mode does not write production code and does not create implementation tasks. Implementation detail stays as feasibility notes. The `feasibility` role may consult `../_shared/references/engineering-rules.md` when judging implementation risk.
+Panel mode does not write production code and does not create implementation tasks. Implementation detail stays as feasibility notes. The `feasibility` role may consult `../shared/references/engineering-rules.md` when judging implementation risk.
 
 ## Rules Throughout
 

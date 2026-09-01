@@ -7,7 +7,7 @@ description: Execute prompts using Claude CLI in headless print mode from the cu
 
 Execute prompts via Claude CLI `-p` mode with role overlays and continuation support.
 
-Roles, the output-envelope key contract, presenting-results rules, the background-jobs CLI, and the **seat fidelity** invariant are shared across runners — see `../_shared/references/runner-common.md`. Only this runner's deltas are inline below.
+Roles, the output-envelope key contract, presenting-results rules, the background-jobs CLI, and the **seat fidelity** invariant are shared across runners — see `../shared/references/runner-common.md`. Only this runner's deltas are inline below.
 
 ## Runtime Compatibility
 Fallback: codex-runner only (invoked with `--disable-fallback`; the chain does not continue to qwen, kimi, or gemini).
@@ -27,7 +27,7 @@ This skill invokes the local Claude CLI from the current machine. Prompt text, p
 
 ## Output Envelope
 
-The required key contract is shared — see `../_shared/references/runner-common.md`. Claude-specific envelope extensions:
+The required key contract is shared — see `../shared/references/runner-common.md`. Claude-specific envelope extensions:
 - `agent_message` — the clean final answer. With `--output-format json`/`stream-json` it is parsed from the result event; with `text` it is the trimmed stdout.
 - `session_id` — the Claude session id (available with `--output-format json`/`stream-json`), usable for `--resume <id>` follow-ups.
 
@@ -47,7 +47,7 @@ Use `--working-dir` when the prompt depends on package-local files or generated 
 | `--working-dir`, `-w` | Working directory | Current dir |
 | `--json`, `-j` | Wrap runner output in a JSON envelope | False |
 | `--prompt-file` | Read prompt content from a file; may be repeated | None |
-| `--model`, `-m` | Claude model alias (`opus`, `sonnet`) — preferred — or a full model id. Pinned ids live in [`_shared/references/model-roster.md`](../_shared/references/model-roster.md); pass an alias so the seat tracks the roster. | CLI default |
+| `--model`, `-m` | Claude model alias (`opus`, `sonnet`) — preferred — or a full model id. Pinned ids live in [`shared/references/model-roster.md`](../shared/references/model-roster.md); pass an alias so the seat tracks the roster. | CLI default |
 | `--output-format`, `-o` | Claude print-mode output format: `text`, `json`, or `stream-json` | `text` |
 | `--safe` | Informational no-op; permission checks are always enabled whether or not the flag is passed | True |
 | `--bare` | Use Claude bare mode for faster startup and fewer implicit context sources | False |
@@ -66,7 +66,7 @@ Use `--working-dir` when the prompt depends on package-local files or generated 
 
 ## Roles
 
-The role list and the analysis-seat read-only default are shared — see `../_shared/references/runner-common.md`. For Claude, analysis roles default to Claude planning mode (`--permission-mode plan`); pass `--allow-write` to opt out.
+The role list and the analysis-seat read-only default are shared — see `../shared/references/runner-common.md`. For Claude, analysis roles default to Claude planning mode (`--permission-mode plan`); pass `--allow-write` to opt out.
 
 ## Session Continuation
 
@@ -75,11 +75,11 @@ The role list and the analysis-seat read-only default are shared — see `../_sh
 
 ## Background Jobs
 
-`--background` runs as a tracked job; manage it with the shared jobs CLI (`list --runner claude` / `status` / `result` / `cancel`) — see `../_shared/references/runner-common.md`.
+`--background` runs as a tracked job; manage it with the shared jobs CLI (`list --runner claude` / `status` / `result` / `cancel`) — see `../shared/references/runner-common.md`.
 
 ## Presenting Results
 
-Shared rules (prefer `agent_message`, severity-ordered findings, evidence boundaries, never auto-apply, **seat fidelity** on failure) live in `../_shared/references/runner-common.md`.
+Shared rules (prefer `agent_message`, severity-ordered findings, evidence boundaries, never auto-apply, **seat fidelity** on failure) live in `../shared/references/runner-common.md`.
 
 ## Examples
 

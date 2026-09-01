@@ -4,9 +4,9 @@ Consensus-specific configuration: where runner scripts live, which seats count a
 
 ## Seat → model mapping (not here)
 
-The seat roster — every seat id, its transport, its requested alias, its current pinned model id, and the CLI it depends on — lives in **`_shared/references/model-roster.md`**, the single source of truth. Read it before building the seat table; never inline pinned model ids here, in SKILL.md, or in a command. When a provider ships a new model, the roster (and the runner script default it names) is the only place that changes.
+The seat roster — every seat id, its transport, its requested alias, its current pinned model id, and the CLI it depends on — lives in **`shared/references/model-roster.md`**, the single source of truth. Read it before building the seat table; never inline pinned model ids here, in SKILL.md, or in a command. When a provider ships a new model, the roster (and the runner script default it names) is the only place that changes.
 
-Availability is never assumed: `_shared/scripts/discover_runners.py probe` reports `available`, `cli_path`, `version`, `blocked_reason`, and `depends_on` per seat, and that envelope *is* the seat table. A seat whose CLI is missing, whose credentials are absent, or whose cheap headless smoke test fails is a **blocker**, not a soft warning — drop the seat, lower confidence, say so. Per-seat auth and transport rules (Claude's `--bare` caveat, the `agy` model picker, `grok login`, the OpenRouter-served `pi` transport for Kimi, GLM, Qwen, and Gemma, the shared `cline` provider for Muse and Minimax, and the mandatory `--disable-fallback`) live in [runner-invocations.md](runner-invocations.md).
+Availability is never assumed: `shared/scripts/discover_runners.py probe` reports `available`, `cli_path`, `version`, `blocked_reason`, and `depends_on` per seat, and that envelope *is* the seat table. A seat whose CLI is missing, whose credentials are absent, or whose cheap headless smoke test fails is a **blocker**, not a soft warning — drop the seat, lower confidence, say so. Per-seat auth and transport rules (Claude's `--bare` caveat, the `agy` model picker, `grok login`, the OpenRouter-served `pi` transport for Kimi, GLM, Qwen, and Gemma, the shared `cline` provider for Muse and Minimax, and the mandatory `--disable-fallback`) live in [runner-invocations.md](runner-invocations.md).
 
 For `transport: cmux`, the process launching the council must be allowed to use the cmux socket. Verify this with `cmux ping`; do not change socket access mode to make a run work. The interactive transport records workspace and surface IDs plus JSON artifact paths in council state. Its details live in [cmux-transport.md](cmux-transport.md).
 
@@ -49,6 +49,6 @@ In this repo, `.ai-workflow/` is guaranteed writable, so runs default to `persis
 
 ## Local Overrides
 
-Optional repo-local settings are read per `_shared/references/local-config.md`. The keys that affect this skill:
+Optional repo-local settings are read per `shared/references/local-config.md`. The keys that affect this skill:
 
 - `seats.preferred` / `seats.excluded` — seat ids to favor or never launch (ids per `discover_runners.py`). An excluded seat never appears in the startup picker and never counts toward quorum.

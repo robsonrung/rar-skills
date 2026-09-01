@@ -32,7 +32,7 @@ npx skills@latest add robsonrung/rar-skills
 npx skills@latest add robsonrung/rar-skills --skill '*'
 ```
 
-Skills install under `.agents/skills/` in the target repo. The runner scripts and shared assets (`_shared/`) are expected at `.agents/skills/_shared/...` once installed.
+Skills install under `.agents/skills/` in the target repo. The runner scripts and shared assets (`shared/`) are expected at `.agents/skills/shared/...` once installed.
 
 To install straight from a local checkout (symlinks by default, so edits here flow through):
 
@@ -62,13 +62,13 @@ python3 pipeline-board/serve.py /path/to/your-project
 
 Most skills here are **pure-prompt** (the design lenses, reviews, and planning skills — e.g. `design-gate`, `architecture-lens`, `clean-code`, `tdd`, `coding-design-plan`). They need nothing beyond Claude Code itself, and the pipeline is self-contained: every skill `ship` invokes lives in this collection.
 
-The prerequisites below apply to the **multi-model and runner skills** — `models-consensus`, `diverse-plan`, `implement-and-review`, `implement-feature`, `full-review`, `collaborative-delivery`, the panel modes of `brainstorm` / `to-spec` / `to-tasks`, and the `*-runner` skills they drive. You only need the pieces for the seats you actually want; these skills run on a **quorum** (typically ≥3 seats) and degrade gracefully when a CLI is missing — they report the absent seat rather than faking it (*seat fidelity*). Seat → model ids live in one place: [`_shared/references/model-roster.md`](_shared/references/model-roster.md).
+The prerequisites below apply to the **multi-model and runner skills** — `models-consensus`, `diverse-plan`, `implement-and-review`, `implement-feature`, `full-review`, `collaborative-delivery`, the panel modes of `brainstorm` / `to-spec` / `to-tasks`, and the `*-runner` skills they drive. You only need the pieces for the seats you actually want; these skills run on a **quorum** (typically ≥3 seats) and degrade gracefully when a CLI is missing — they report the absent seat rather than faking it (*seat fidelity*). Seat → model ids live in one place: [`shared/references/model-roster.md`](shared/references/model-roster.md).
 
 ### 1. Runtime
 
 | Requirement | Why |
 |-------------|-----|
-| **Python 3** (`python3` in `PATH`) | All runner wrappers, the shared background-jobs CLI (`_shared/scripts/runner_jobs.py`), `ui-ux-pro-max`, and the leitwörter check are Python 3 scripts. |
+| **Python 3** (`python3` in `PATH`) | All runner wrappers, the shared background-jobs CLI (`shared/scripts/runner_jobs.py`), `ui-ux-pro-max`, and the leitwörter check are Python 3 scripts. |
 | **Claude Code** | Host for every skill; provides the native `Agent` subagent used for Opus/Sonnet seats without a CLI fallback. |
 
 ### 2. Installed CLIs we rely on
@@ -115,13 +115,13 @@ If a referenced skill is absent, the calling skill notes it and continues with t
 
 ### 6. Command guard (optional, recommended)
 
-Runner skills launch CLI seats headless with auto-approve flags. `_shared/hooks/` ships an opt-in guard that blocks catastrophic commands (rm on `/`/`~`, raw-disk writes, fork bombs, `curl | sh`, remote-history rewrites, `gh repo delete`, token exfiltration) before any seat runs them, while leaving recoverable commands alone. Install is manual — no skill ever wires it for you:
+Runner skills launch CLI seats headless with auto-approve flags. `shared/hooks/` ships an opt-in guard that blocks catastrophic commands (rm on `/`/`~`, raw-disk writes, fork bombs, `curl | sh`, remote-history rewrites, `gh repo delete`, token exfiltration) before any seat runs them, while leaving recoverable commands alone. Install is manual — no skill ever wires it for you:
 
 ```bash
-mkdir -p ~/.agents/hooks && cp _shared/hooks/deny-dangerous.sh _shared/hooks/dangerous-patterns.txt ~/.agents/hooks/
+mkdir -p ~/.agents/hooks && cp shared/hooks/deny-dangerous.sh shared/hooks/dangerous-patterns.txt ~/.agents/hooks/
 ```
 
-Then register `~/.agents/hooks/deny-dangerous.sh` as a `PreToolUse` (matcher `Bash`) hook in each CLI that supports hooks — wiring details and per-CLI gotchas are in [`_shared/references/runner-common.md`](_shared/references/runner-common.md) under "Guardrails". After editing the patterns file, run `~/.agents/hooks/test-guard.sh` (copy it too) — it must end `failed: 0`.
+Then register `~/.agents/hooks/deny-dangerous.sh` as a `PreToolUse` (matcher `Bash`) hook in each CLI that supports hooks — wiring details and per-CLI gotchas are in [`shared/references/runner-common.md`](shared/references/runner-common.md) under "Guardrails". After editing the patterns file, run `~/.agents/hooks/test-guard.sh` (copy it too) — it must end `failed: 0`.
 
 ## License
 

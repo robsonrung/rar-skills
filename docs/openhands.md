@@ -28,7 +28,7 @@ This writes **both** skill layouts, because under CLI-only mode the CLI — not 
 - `.agents/skills/` — read by OpenHands' own agent and by the Codex CLI.
 - `.claude/skills/` — read by the Claude Code CLI.
 
-Each skill is linked individually and `_shared/` ships alongside them, matching the `.agents/skills/_shared/...` convention the skills already document. Use `--layout agents` or `--layout claude` to write just one.
+Each skill is linked individually and `shared/` ships alongside them, matching the `.agents/skills/shared/...` convention the skills already document. Use `--layout agents` or `--layout claude` to write just one.
 
 > Do not shortcut this by symlinking the `skills` directory itself. Claude Code does not follow a symlinked skills root — it silently reports zero project skills. The installer links each skill separately for exactly this reason.
 
@@ -42,12 +42,12 @@ Verified on 2026-07-31 against `openhands` 1.16.0 (which bundles `openhands-sdk`
 - A live API-mode headless run shows every pipeline station in the runtime `<available_skills>` block with full descriptions.
 - A live **CLI-only** ACP run with `ANTHROPIC_API_KEY`/`OPENAI_API_KEY`/`LLM_API_KEY` removed from the environment reaches the Claude Code CLI, reports `interview=Y to_tasks=Y design_gate=Y full_review=Y browser_smoke=Y`, and reads `ship/SKILL.md` correctly (7 phases, phase 4 → `implement-and-review`). OpenHands metered $0.00 for it — the CLI subscription carried the run.
 
-Two things the port had to fix, both now guarded by `_shared/scripts/validate_skill_frontmatter.py`:
+Two things the port had to fix, both now guarded by `shared/scripts/validate_skill_frontmatter.py`:
 
 - **Frontmatter must be strict YAML.** Claude Code tolerated unquoted descriptions containing `": "`; OpenHands parses with PyYAML and silently drops those skills (five of them, including `implement-and-review`). They now use `>-` block scalars. Skill names must also be lowercase-with-hyphens — `collaborative_delivery` was renamed `collaborative-delivery`.
 - **Descriptions are truncated at 1024 characters.** Seven skills exceeded it, so the "Use when … / Do not use …" tail that routing depends on was being cut. All seven were shortened — provenance and redundant prose came out, every trigger phrase and `Distinct from …` clause stayed — and the validator now warns if a description grows back over the limit.
 
-`_shared/SKILL.md` is a marker, not a skill. Without it, every file under `_shared/references/` loads as an always-on legacy skill — roughly 32 KB pinned into the system prompt on every request. The marker makes hosts treat the directory as one unit and skip the tree.
+`shared/SKILL.md` is a marker, not a skill. Without it, every file under `shared/references/` loads as an always-on legacy skill — roughly 32 KB pinned into the system prompt on every request. The marker makes hosts treat the directory as one unit and skip the tree.
 
 ## 2. CLI-only (no API keys)
 
@@ -97,7 +97,7 @@ For a machine-enforced completion gate in headless runs, add a Stop hook in the 
 }
 ```
 
-Point `quality_gate.sh` at the slice's acceptance commands (and `.agents/skills/_shared/scripts/validate_artifacts.py`).
+Point `quality_gate.sh` at the slice's acceptance commands (and `.agents/skills/shared/scripts/validate_artifacts.py`).
 
 Parallel slices: OpenHands sub-agents are sequential, so skip `implement-feature`'s 3-in-flight default at first. When needed, launch one `run-pipeline-acp.py` process per slice worktree from a shell loop — the run-state contract (side-effect keys, per-slice run ids) and the `worktree` skill's `git worktree add` fallback make that safe.
 
@@ -118,7 +118,7 @@ The seats the pipeline escalates to were already CLI-based: every `*-runner` ski
 Check what the host offers:
 
 ```bash
-python3 _shared/scripts/discover_runners.py probe --native-agent no
+python3 shared/scripts/discover_runners.py probe --native-agent no
 ```
 
 On a machine with Claude Code, Codex, Antigravity, Grok, and Cline installed, that reports **7 available seats** — `opus` and `sonnet` via `claude`, `codex`, `gemini` via `agy`, `grok`, and `kimi` + `glm` via `cline` — comfortably past the ≥3 quorum, so `models-consensus` runs at full strength rather than degrading to single-model personas mode. Pass `--native-agent no` so the opus/sonnet seats route through `claude-runner` instead of expecting a host-native subagent tool.

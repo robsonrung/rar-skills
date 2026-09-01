@@ -107,14 +107,14 @@ Do NOT close or modify any parent issue.
 
 By default this skill drafts the breakdown with a single model. **Panel mode** is opt-in: turn it on when the user asks for a multi-model task plan, or when the architecture and test strategy are consequential enough to be worth independent seats. It replaces **step 3 and step 4** — the drafting of slices and their contracts — and nothing else. The output still carries the full Slice Contract, and it still ends at the step-5 approval quiz: **the panel replaces drafting, never the gate.**
 
-Read `../_shared/collaborative-panel-runner.md` before running any panel phase — it holds the routing contract, the flags, the status taxonomy, and the completion gate.
+Read `../shared/collaborative-panel-runner.md` before running any panel phase — it holds the routing contract, the flags, the status taxonomy, and the completion gate.
 
 **Phases.** Run all five in order:
 
 `architecture_mapping` → `test_strategy` → `task_slicing` → `dependency_review` → `convergence`
 
 ```bash
-python3 _shared/scripts/panel_round.py \
+python3 shared/scripts/panel_round.py \
   --phase architecture_mapping \
   --routing to-tasks/assets/panel-routing.toml \
   --goal "the plan or PRD being broken down" \
@@ -141,7 +141,7 @@ python3 _shared/scripts/panel_round.py \
 
 A specialist role that is not relevant to the current plan still participates and states why it has no material concern.
 
-**Read gate.** Read `../_shared/references/engineering-rules.md` before `architecture_mapping` and `task_slicing`; it holds the spec-driven development, domain-driven design, clean architecture, and test-driven development rules this skill applies.
+**Read gate.** Read `../shared/references/engineering-rules.md` before `architecture_mapping` and `task_slicing`; it holds the spec-driven development, domain-driven design, clean architecture, and test-driven development rules this skill applies.
 
 **Missing inputs.** If the PRD and codebase-fit artifacts do not exist, do not stall and do not invent requirements: create a minimal assumptions section and explicitly mark the missing inputs. The approval quiz then surfaces those assumptions to the user, which is the only place they can be corrected.
 
@@ -155,10 +155,10 @@ A specialist role that is not relevant to the current plan still participates an
 6. `decision_log.md` — decisions plus preserved disagreements; record dissent rather than hiding it.
 7. `panel_summary.json` — written by the runner; the participation record.
 
-This list is mirrored in `assets/panel-routing.toml` `required_outputs`, the machine-read source consumed by `_shared/scripts/validate_artifacts.py`. Before presenting the breakdown:
+This list is mirrored in `assets/panel-routing.toml` `required_outputs`, the machine-read source consumed by `shared/scripts/validate_artifacts.py`. Before presenting the breakdown:
 
 ```bash
-python3 _shared/scripts/validate_artifacts.py \
+python3 shared/scripts/validate_artifacts.py \
   --routing to-tasks/assets/panel-routing.toml \
   --artifact-dir .codex_workflow/tasks
 ```

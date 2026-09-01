@@ -46,5 +46,5 @@ a valid result.
 ## Transport notes
 
 - **Native seat:** `Agent` with `subagent_type=general-purpose` and the `model:` alias from the seat table; the subagent writes the file itself.
-- **Runner seat:** invoke the runner per `_shared/references/runner-common.md` with `--disable-fallback`; the composed prompt asks for the same JSON as the `agent_message`, and the orchestrator writes it to `<FINDINGS_DIR>/<persona>.json`. Write composed prompts to files under `$TMPDIR`, never into the project tree.
+- **Runner seat:** invoke the runner per `shared/references/runner-common.md` with `--disable-fallback`; the composed prompt asks for the same JSON as the `agent_message`, and the orchestrator writes it to `<FINDINGS_DIR>/<persona>.json`. Write composed prompts to files under `$TMPDIR`, never into the project tree.
 - **Adversarial verifier:** same template, but its "assigned files" section is replaced by the `$FINDINGS_DIR` path holding personas 1–7's candidate files, and its brief forbids first-pass findings.

@@ -46,7 +46,7 @@
         "string",
         "null"
       ],
-      "description": "Why a fallback was used, or null when no fallback occurred. Which runners fall back and which block-and-report is defined once in _shared/references/runner-common.md (Seat fidelity); block-and-report runners always keep this null."
+      "description": "Why a fallback was used, or null when no fallback occurred. Which runners fall back and which block-and-report is defined once in shared/references/runner-common.md (Seat fidelity); block-and-report runners always keep this null."
     },
     "success": {
       "type": "boolean",

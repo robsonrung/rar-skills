@@ -10,7 +10,7 @@ The orchestrator discovers available runners at preflight (see SKILL.md Phase 3 
 
 Role diversity follows model strengths: **the default Codex seat for recall and logic, Opus for precision and root cause validation, the code-specialized Codex seat for security, Sonnet for maintainability, Gemini for cross-file consistency, GLM for edge cases, Kimi for broad pragmatic review, and Grok for execution-path and agentic-flow verification.**
 
-Seat → model id mapping is **not pinned in this file** — `_shared/references/model-roster.md` owns it. Invocations below are alias-first (`claude-runner --model opus|sonnet`) or rely on the runner's roster-backed default; the one explicit id is `--model gpt-5.3-codex`, which selects a distinct code-specialized seat rather than re-pinning the default Codex seat.
+Seat → model id mapping is **not pinned in this file** — `shared/references/model-roster.md` owns it. Invocations below are alias-first (`claude-runner --model opus|sonnet`) or rely on the runner's roster-backed default; the one explicit id is `--model gpt-5.3-codex`, which selects a distinct code-specialized seat rather than re-pinning the default Codex seat.
 
 | Seat | Default lens | Why |
 |---|---|---|

@@ -33,12 +33,12 @@ Flags, combinable with any mode: [`clarify`](#clarify), [`decider_context: repor
 ## Shared Preflight
 
 `personas` runs on one model (the strongest available) and skips seat probing; everything else below applies to `poll` and `debate`.
-For judgment-heavy `personas` runs, prefer the Opus seat, then the Codex seat, then the strongest remaining available seat. Resolve current model ids through `_shared/references/model-roster.md` and the task-shaped rationale through `_shared/references/task-shaped-model-routing.md`.
+For judgment-heavy `personas` runs, prefer the Opus seat, then the Codex seat, then the strongest remaining available seat. Resolve current model ids through `shared/references/model-roster.md` and the task-shaped rationale through `shared/references/task-shaped-model-routing.md`.
 
 ### 0. Resolve seat selection
 
 - `--auto` (or `auto: true`): SKIP the startup seat-selection question entirely and target every available seat. Never stop with `awaiting_human` over seat selection in `--auto` — pipeline callers must never block on a question.
-- Otherwise ask ONE startup selection question via [Interactive Questions](#interactive-questions), using the templates in [references/operations.md#startup-selection-templates](references/operations.md#startup-selection-templates). The seat-picker template must list ALL roster seats (`_shared/references/model-roster.md`) — a seat missing from the picker can never be chosen.
+- Otherwise ask ONE startup selection question via [Interactive Questions](#interactive-questions), using the templates in [references/operations.md#startup-selection-templates](references/operations.md#startup-selection-templates). The seat-picker template must list ALL roster seats (`shared/references/model-roster.md`) — a seat missing from the picker can never be chosen.
 - Persist `selected_seats` and `selection_source` in state before smoke tests. If selection is still unresolved after all question channels (non-`--auto` only), stop with `awaiting_human`.
 
 ### 1. Probe and smoke-test seats
@@ -46,18 +46,18 @@ For judgment-heavy `personas` runs, prefer the Opus seat, then the Codex seat, t
 For `transport: headless`, use the existing probe and headless smoke workflow below. For `transport: cmux`, read [references/cmux-transport.md](references/cmux-transport.md), run `cmux ping`, and invoke `peer-sessions` in coordinator delivery mode before adopting its terminal state through `cmux_council.py`. Do not invoke runner scripts or host-native subagents in this transport. The first artifact-producing turn is the authentication and response check; it is not a serving-model receipt.
 
 ```bash
-python3 .agents/skills/_shared/scripts/discover_runners.py probe \
+python3 .agents/skills/shared/scripts/discover_runners.py probe \
   --native-agent yes \
   --seat opus --seat sonnet --seat codex --seat gemini --seat grok --seat kimi --seat glm \
   --seat qwen --seat gemma --seat muse \
   --format json
 ```
 
-Pass `--native-agent yes` only when the host exposes the native `Agent` tool; from this source repo drop the `.agents/skills/` prefix. The probe knows each seat's real CLI dependency and returns `available`, `cli_path`, `version`, `blocked_reason` per seat. Seat → model ids live in `_shared/references/model-roster.md`; never inline pinned ids. Then run one cheap headless smoke test per selected runner-backed seat, always with `--disable-fallback` (mandatory on EVERY runner call — a council fails a seat explicitly rather than silently borrowing a provider). Missing binary, missing credentials, or a failed smoke test is a seat blocker, not a soft warning. Per-seat auth rules: [references/runner-invocations.md](references/runner-invocations.md).
+Pass `--native-agent yes` only when the host exposes the native `Agent` tool; from this source repo drop the `.agents/skills/` prefix. The probe knows each seat's real CLI dependency and returns `available`, `cli_path`, `version`, `blocked_reason` per seat. Seat → model ids live in `shared/references/model-roster.md`; never inline pinned ids. Then run one cheap headless smoke test per selected runner-backed seat, always with `--disable-fallback` (mandatory on EVERY runner call — a council fails a seat explicitly rather than silently borrowing a provider). Missing binary, missing credentials, or a failed smoke test is a seat blocker, not a soft warning. Per-seat auth rules: [references/runner-invocations.md](references/runner-invocations.md).
 
 ### 2. Artifact mode and run state
 
-Artifact mode is `persisted` when `.ai-workflow/consensus/` is writable, else `inline` ([references/operations.md#artifact-policy](references/operations.md#artifact-policy)). Every mode adopts `_shared/references/run-state-contract.md`: state at `.ai-workflow/consensus/{session_id}.json`, loop counters in `attempts`, bounds in `ceilings`, decisions in `gates`. A full `poll` run is 2N + 4 model calls for N active seats (18 for the 7-seat core panel, 24 when all three optional seats join) and MUST be resumable: increment the round/phase counter in state BEFORE launching it, never after. On startup with existing state and `status != complete`, resume per [references/operations.md#crash-recovery-and-state-resumption](references/operations.md#crash-recovery-and-state-resumption).
+Artifact mode is `persisted` when `.ai-workflow/consensus/` is writable, else `inline` ([references/operations.md#artifact-policy](references/operations.md#artifact-policy)). Every mode adopts `shared/references/run-state-contract.md`: state at `.ai-workflow/consensus/{session_id}.json`, loop counters in `attempts`, bounds in `ceilings`, decisions in `gates`. A full `poll` run is 2N + 4 model calls for N active seats (18 for the 7-seat core panel, 24 when all three optional seats join) and MUST be resumable: increment the round/phase counter in state BEFORE launching it, never after. On startup with existing state and `status != complete`, resume per [references/operations.md#crash-recovery-and-state-resumption](references/operations.md#crash-recovery-and-state-resumption).
 
 ### 3. Seat table
 
@@ -169,5 +169,5 @@ This is the ONLY path from deliberation to execution. The council never runs imp
 - Don't collapse the organizer, synthesizer, or judges back into the orchestrator to save a call — the model-written synthesis is the dominant lever of poll mode, and separate contexts are the point.
 - Read every runner result from `agent_message` / `--output-file`, never raw stdout (Kimi appends a resume hint; Codex emits a transcript).
 - Poll's gap repair is exactly one round; debate stops at its ceiling. Neither loops open-endedly, and the round counter is incremented in state before the launch.
-- Never inline pinned model ids in prose or commands — the seat → model mapping lives in `_shared/references/model-roster.md`; runner defaults follow it.
+- Never inline pinned model ids in prose or commands — the seat → model mapping lives in `shared/references/model-roster.md`; runner defaults follow it.
 - Schema-to-mode mapping and the retry reminder template: [references/operations.md#response-schema-validation](references/operations.md#response-schema-validation).

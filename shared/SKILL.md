@@ -4,11 +4,11 @@ description: Marker file. Shared contracts, references, and runner scripts that 
 disable-model-invocation: true
 ---
 
-# _shared
+# shared
 
 Not an invocable skill. This directory holds the assets other skills reference by
-path (`_shared/references/...`, `_shared/scripts/...`) once installed at
-`.agents/skills/_shared/`.
+path (`shared/references/...`, `shared/scripts/...`) once installed at
+`.agents/skills/shared/`.
 
 ## Why this file exists
 
@@ -18,8 +18,8 @@ loads as a legacy always-on skill whose full body is pinned into the system
 prompt**. Without this marker, each file under `references/` would be pinned that
 way — roughly 32 KB of contracts in every request, on every run.
 
-This file makes the host treat `_shared/` as a single unit and skip the tree.
-The name is `shared`, not `_shared`: hosts validate the frontmatter name against
+This file makes the host treat `shared/` as a single unit and skip the tree.
+The name is `shared`, not `shared`: hosts validate the frontmatter name against
 the AgentSkills rule (lowercase a-z, 0-9, hyphens), and an underscore only earns
 a startup warning — it does not stop the load, so the skill was being listed
 anyway. `disable-model-invocation: true` is what actually keeps it out of the

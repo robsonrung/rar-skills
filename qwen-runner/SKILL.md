@@ -22,7 +22,7 @@ This skill delegates to `pi-runner`, so it has the same execution and data shari
 
 ## Shared Wrapper Reference
 
-Supported options, roles, the `--json` output envelope key contract, return codes, and gotchas are identical to the shared wrapper — read [`_shared/references/runner-common.md`](../_shared/references/runner-common.md) for the shared flags, envelope keys, return codes, and the seat-fidelity rule. The envelope is produced by `pi-runner/scripts/run_pi.py` with `runner=qwen`, `effective_runner=pi`, `effective_provider=qwen` (inferred from the `qwen/...` model id); `native_provider=openrouter` is the serving gateway.
+Supported options, roles, the `--json` output envelope key contract, return codes, and gotchas are identical to the shared wrapper — read [`shared/references/runner-common.md`](../shared/references/runner-common.md) for the shared flags, envelope keys, return codes, and the seat-fidelity rule. The envelope is produced by `pi-runner/scripts/run_pi.py` with `runner=qwen`, `effective_runner=pi`, `effective_provider=qwen` (inferred from the `qwen/...` model id); `native_provider=openrouter` is the serving gateway.
 
 ## Usage
 

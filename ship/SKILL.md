@@ -16,7 +16,7 @@ Before phase 0, interpret whether the invocation semantically assigns a pipeline
 - **Unscoped** ("use X", "with Y") binds to the **implementation stage only** — never broaden it to planning or every stage — and the binding is disclosed in the opening line ("Routing implementation to X; planning stays on the session model.").
 - **Strength** is inferred from the instruction's meaning, not a keyword: "use X for implementation" is prefer-strength (fall back with prominent disclosure when unavailable); "only use X" is require-strength (an unavailable route blocks that stage — no prompt, no silent fallback).
 
-With no directive in the invocation, check `work_engine_preferences` in the local config (`_shared/references/local-config.md`) for standing per-stage defaults; an explicit directive always outranks it, and its `mode: off|prefer|require` maps onto the same strength rule above. Absent both, every stage runs on the session model.
+With no directive in the invocation, check `work_engine_preferences` in the local config (`shared/references/local-config.md`) for standing per-stage defaults; an explicit directive always outranks it, and its `mode: off|prefer|require` maps onto the same strength rule above. Absent both, every stage runs on the session model.
 
 Sanitize every routing directive out of the feature request before it enters phases 0–2 or any review input — carriers are stage-scoped routing authority, never product content.
 
@@ -26,7 +26,7 @@ Run `git remote` once at the start of the run. No remote flips the whole run loc
 
 ## Delegation
 
-You are a **thin conductor**. Every phase that does not need the user runs in its own subagent, and what crosses between phases is a file, not a paragraph. The contract is `_shared/references/handoff-contract.md` (brief → report → envelope); the per-station binding — what each worker invokes, reads, and must carry forward — is [references/station-dispatch.md](references/station-dispatch.md). Read it before phase 3.
+You are a **thin conductor**. Every phase that does not need the user runs in its own subagent, and what crosses between phases is a file, not a paragraph. The contract is `shared/references/handoff-contract.md` (brief → report → envelope); the per-station binding — what each worker invokes, reads, and must carry forward — is [references/station-dispatch.md](references/station-dispatch.md). Read it before phase 3.
 
 **Hand off the path, not the payload.** Your context holds the run-state path, the current slice id, and one ≤15-line envelope per completed station. Not a PRD body, not a diff, not a findings list, not a station transcript. Open a report body only when a decision *you* must make depends on the detail — routing a `revise`, assembling the final report, reconciling two stations that disagree.
 
@@ -65,7 +65,7 @@ On a blocked slice (escalation ladder exhausted at a hard-stop), record why, ski
 
 ### Run state
 
-The loop crosses compactions, restarts, and parallel worktrees, so its progress lives in **the ledger, not the transcript** — keep one run state per slice per `_shared/references/run-state-contract.md`. Ship-specific bindings:
+The loop crosses compactions, restarts, and parallel worktrees, so its progress lives in **the ledger, not the transcript** — keep one run state per slice per `shared/references/run-state-contract.md`. Ship-specific bindings:
 
 - `phase` is the pipeline phase number, appended to `steps` as each completes. A resumed slice restarts at `phase`, not at phase 0 — phases 3–6 are expensive and their outputs are already on disk.
 - Every delegated step's entry carries its `brief` and `report` paths, so a resumed run recovers the station's *reasoning* and not just its number. A station whose report exists is done — re-dispatch it only when its `status` says it failed.

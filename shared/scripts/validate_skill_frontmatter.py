@@ -12,7 +12,7 @@ Checks, across every top-level skill dir (any dir containing SKILL.md):
      are banned in skill names.
   3. `description:` present and at least 20 characters (enough to route on).
   4. Runner parity: every `*-runner/` dir ships scripts/run_<prefix>.py and is
-     either registered in _shared/scripts/discover_runners.py or explicitly
+     either registered in shared/scripts/discover_runners.py or explicitly
      allowlisted below as a non-seat runner. A new runner dir that is neither
      fails CI — adding a runner skill without registering its seat is the
      drift this guard exists to catch.
@@ -21,7 +21,7 @@ Checks, across every top-level skill dir (any dir containing SKILL.md):
      A skill carrying one without the other is manual-only on one harness and
      auto-invocable on the other — this guard keeps the two in lockstep.
 
-Run: python3 _shared/scripts/validate_skill_frontmatter.py
+Run: python3 shared/scripts/validate_skill_frontmatter.py
 Exit 0 on success, 1 with a FAIL line per violation.
 """
 
@@ -44,20 +44,20 @@ SKILL_NAME_RE = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
 # Runner dirs that intentionally have no seat in discover_runners.py:
 # transport delegates and seats dropped from the council lineup.
 NON_SEAT_RUNNERS = {
-    "dcode-runner",     # manual-only runner; no council seat (see _shared/references/model-roster.md)
+    "dcode-runner",     # manual-only runner; no council seat (see shared/references/model-roster.md)
     "minimax-runner",   # dropped from council lineup
     "opencode-runner",  # not part of the seat catalog
 }
 
 BANNED_NAME_PREFIXES = ("ce-",)
 
-# _shared/SKILL.md is a marker, not a skill: it stops AgentSkills hosts from
-# pinning every file under _shared/references/ into the system prompt as an
+# shared/SKILL.md is a marker, not a skill: it stops AgentSkills hosts from
+# pinning every file under shared/references/ into the system prompt as an
 # always-on legacy skill. It is exempt from the name==directory rule (it is
 # named `shared`, in the underscore-prefixed dir every skill references by
 # path) and carries disable-model-invocation so no host lists it as callable.
-# See _shared/SKILL.md.
-NOT_A_SKILL = {"_shared"}
+# See shared/SKILL.md.
+NOT_A_SKILL = {"shared"}
 
 # AgentSkills hosts truncate descriptions at this length, cutting off the
 # "Use when ... / Do not use ..." tail that routing depends on.
@@ -138,7 +138,7 @@ def extract_description(fm: str) -> str | None:
 
 
 def check_runner_parity(failures: list[str]) -> None:
-    discover_src = (REPO_ROOT / "_shared" / "scripts" / "discover_runners.py").read_text(
+    discover_src = (REPO_ROOT / "shared" / "scripts" / "discover_runners.py").read_text(
         encoding="utf-8", errors="replace"
     )
     for runner_dir in sorted(REPO_ROOT.glob("*-runner")):

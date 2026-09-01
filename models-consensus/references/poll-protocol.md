@@ -15,7 +15,7 @@ The pipeline is shaped by where multi-model gains actually come from: the **synt
 
 ## Seats
 
-Seven core seats — opus, sonnet, codex, gemini, grok, kimi, glm — plus three optional roster seats — `qwen`, `gemma`, `muse` — that the preflight probe also checks. The optional seats join the fan-out only when the probe reports them available **and** the seat selection includes them: "Core seats only" excludes them, "All available" includes them, and a manual pick names them. They never join a fan-out silently (the probe keeps them `tier: backup`, so a bare probe without `--seat` flags cannot enlarge one). All seats launch by each seat's preferred path for the current host (native where available, runner otherwise). Seat → model ids, transports, and CLI dependencies: `_shared/references/model-roster.md`; commands: [runner-invocations.md](runner-invocations.md). Poll seats take **no `--role` and no stance** — they answer the raw prompt.
+Seven core seats — opus, sonnet, codex, gemini, grok, kimi, glm — plus three optional roster seats — `qwen`, `gemma`, `muse` — that the preflight probe also checks. The optional seats join the fan-out only when the probe reports them available **and** the seat selection includes them: "Core seats only" excludes them, "All available" includes them, and a manual pick names them. They never join a fan-out silently (the probe keeps them `tier: backup`, so a bare probe without `--seat` flags cannot enlarge one). All seats launch by each seat's preferred path for the current host (native where available, runner otherwise). Seat → model ids, transports, and CLI dependencies: `shared/references/model-roster.md`; commands: [runner-invocations.md](runner-invocations.md). Poll seats take **no `--role` and no stance** — they answer the raw prompt.
 
 **Quorum:** ≥ 3 seats. Below 3 distinct seats, first try self-pairing (below); if still short, degrade the whole run to `personas` mode on the strongest available model per SKILL.md.
 
@@ -38,7 +38,7 @@ Record the run config (preset, tool profile, organizer/synthesizer/judge models)
 - **Synthesizer (Phase 5).** A fresh read-only model writes the final consensus answer grounded in the record. Use the same preset-specific defaults as the organizer.
 
 All three are user-selectable and recorded in the report. Each is a separate context from the seats, the orchestrator, and each other (SKILL.md, Shared Preflight step 6).
-Task shaped role guidance lives in `_shared/references/task-shaped-model-routing.md`.
+Task shaped role guidance lives in `shared/references/task-shaped-model-routing.md`.
 
 ## Schemas
 

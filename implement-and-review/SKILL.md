@@ -6,13 +6,13 @@ description: >-
 
 # Implement And Review
 
-Implement **one scoped task** with two model tracks that build in parallel and review each other's work, then converge on one integrated, reviewed, tested change. You (the main agent — model ids live only in `_shared/references/model-roster.md`) are the **orchestrator**: you decide the split, dispatch seats, gate writes, run the fix loops, integrate, and run the final review. You never implement a track yourself — you delegate and coordinate.
+Implement **one scoped task** with two model tracks that build in parallel and review each other's work, then converge on one integrated, reviewed, tested change. You (the main agent — model ids live only in `shared/references/model-roster.md`) are the **orchestrator**: you decide the split, dispatch seats, gate writes, run the fix loops, integrate, and run the final review. You never implement a track yourself — you delegate and coordinate.
 
 This skill builds **one task**. To break a plan into many tasks and build them all, use **`implement-feature`**, which calls this skill per task. Keep this skill simple and self-contained.
 
 **Runs standalone on any input grade.** The task can arrive as a one-line prompt, a tracker-issue brief, or a full `to-tasks` Slice Contract — the engine is the same; only how much it has to derive changes. It needs no pipeline around it: invoke it directly on a bare prompt and it derives the split, lenses, and done-gate itself. For unattended / looped use, pass `--auto` to skip the Phase 0 approval gate. A richer input (a Slice Contract) is an enrichment it *lifts* (Phase 0, step 1), never a requirement.
 
-Both tracks are **test-first (TDD)** and follow the **boy-scout rule** — leave touched code cleaner than found. The defining shape is **cross-model review**: the model that writes a track never reviews its own track. Read `_shared/references/task-shaped-model-routing.md` before assigning seats.
+Both tracks are **test-first (TDD)** and follow the **boy-scout rule** — leave touched code cleaner than found. The defining shape is **cross-model review**: the model that writes a track never reviews its own track. Read `shared/references/task-shaped-model-routing.md` before assigning seats.
 
 | Track shape | Implementer | Reviewer |
 |-------|-------------|----------|
@@ -21,7 +21,7 @@ Both tracks are **test-first (TDD)** and follow the **boy-scout rule** — leave
 | Backend after the contract or reproduction is explicit | default Codex seat (`codex-runner --role implementer`, write-enabled) | fresh Opus seat (read-only) |
 | Difficult root-cause investigation without a reproduction or diagnostic plan | Opus seat, read-only diagnosis first | default Codex seat executes only after the chain is closed |
 | Self-simplify | **`coding-review-simplify`** (standard mode) on the integrated diff, before the final gate | — |
-| Final review | the **`full-review`** skill on the task's integrated diff — full-review's multi-model triangulation (seat roster per `_shared/references/model-roster.md`) — then apply findings | — |
+| Final review | the **`full-review`** skill on the task's integrated diff — full-review's multi-model triangulation (seat roster per `shared/references/model-roster.md`) — then apply findings | — |
 
 Kimi is the first fallback reviewer when the preferred cross-model reviewer is unavailable. Several independent contexts may use the same seat; keep them separate and never count them as model diversity.
 
@@ -40,7 +40,7 @@ Exact launch commands and the worktree/integration git flow are in
 6. **Writes are gated.** No code until the user approves the plan + FE/BE split in Phase 0 (skip only when `--auto`). Implementers run unattended-write only after that approval.
 7. **Isolated parallelism.** Each track builds in its own git worktree/branch so they cannot clobber each other. Fall back to sequential same-tree execution when the project is not a git repo.
 8. **Bounded fix loop.** At most **3** review→fix cycles per track. Still blocking after 3 → stop and escalate with the open findings.
-9. **Definition of done = green.** The integrated task — after applying full-review findings — passes the project's tests/build (including the new test-first tests). If none exist, say so; never claim "tests pass" when none ran. Green must be earned: never delete, skip, weaken, or mock-away tests — or loosen acceptance checks — to reach it (`_shared/references/engineering-rules.md`, Contract integrity); a wrong contract is escalated, not edited around.
+9. **Definition of done = green.** The integrated task — after applying full-review findings — passes the project's tests/build (including the new test-first tests). If none exist, say so; never claim "tests pass" when none ran. Green must be earned: never delete, skip, weaken, or mock-away tests — or loosen acceptance checks — to reach it (`shared/references/engineering-rules.md`, Contract integrity); a wrong contract is escalated, not edited around.
 10. **Never fabricate or silently swap a seat.** Pass `--disable-fallback` to every runner. Missing seat → degrade per [Degrade Gracefully](#degrade-gracefully) and say so.
 
 ## Methodology & Per-Track Skills
@@ -60,7 +60,7 @@ Apply only the lenses that fit the task; don't force every skill onto every chan
 ## Preflight
 
 1. **Host & git.** Confirm the `Agent` tool exists (native Opus subagents). Confirm `git rev-parse --is-inside-work-tree`. No git → sequential fallback (worktree reference).
-2. **Seats.** Use the shared probe: `python3 .agents/skills/_shared/scripts/discover_runners.py probe --native-agent yes --seat codex --seat opus --seat kimi --seat grok --format json`. Require the default Codex seat and either a native or runner-backed Opus seat. Kimi is the first fallback reviewer; Grok matters only as the fallback backend implementer when Codex is missing. Mark missing seats and degrade.
+2. **Seats.** Use the shared probe: `python3 .agents/skills/shared/scripts/discover_runners.py probe --native-agent yes --seat codex --seat opus --seat kimi --seat grok --format json`. Require the default Codex seat and either a native or runner-backed Opus seat. Kimi is the first fallback reviewer; Grok matters only as the fallback backend implementer when Codex is missing. Mark missing seats and degrade.
 3. **Verification commands.** Detect how this project tests/builds and runs a *single* test (TDD needs a fast inner loop). These back the done gate — unless the task carries a Slice Contract, whose `acceptance` commands are the authoritative done gate (confirm they exist and run; reconcile with the user if they don't, never silently swap).
 4. **Base & artifacts.** Record the current head as `<base>` (when called by `implement-feature`, this is the task's assigned base). When `.ai-workflow/` is writable, use `.ai-workflow/impl-review/<session_id>/`; else keep state inline.
 
@@ -74,7 +74,7 @@ Apply only the lenses that fit the task; don't force every skill onto every chan
 
 ### Run state
 
-This skill follows `_shared/references/run-state-contract.md`. Extend the launcher's `launch-manifest.json` with the contract's keys rather than adding a second file — it already persists session, tracks, worktrees, and job ids, but nothing about *where the run is*. Carry at minimum: `status`, `phase`, `attempts` (the per-track fix-cycle counters), `ceilings` (`max_cycles: 3`), `gates`, and `steps`. Progress lives in **the ledger, not the transcript**: after a compaction, `poll` can tell you the Codex job finished, but only the manifest can tell you it was fix-cycle 2 of 3.
+This skill follows `shared/references/run-state-contract.md`. Extend the launcher's `launch-manifest.json` with the contract's keys rather than adding a second file — it already persists session, tracks, worktrees, and job ids, but nothing about *where the run is*. Carry at minimum: `status`, `phase`, `attempts` (the per-track fix-cycle counters), `ceilings` (`max_cycles: 3`), `gates`, and `steps`. Progress lives in **the ledger, not the transcript**: after a compaction, `poll` can tell you the Codex job finished, but only the manifest can tell you it was fix-cycle 2 of 3.
 
 ## Phase 1 — Implement (FE + BE, test-first, parallel)
 
@@ -88,7 +88,7 @@ Create one worktree+branch per non-empty track off `<base>`, then build both tra
 
 Commit tests and code interleaved (not all tests then all code).
 
-**Evidence contract (mandatory in every implementer brief):** each track chooses its evidence route and captures the red failure/characterization baseline **before** changing production code, then reports it as `verification_evidence` (fields per `_shared/runner-envelope.schema.json`) — the worker is the only party that witnesses red-before-implementation, so a report without it cannot be reconstructed later. Routes, the System-Wide Test Check, and the Parallel Safety Check (semantic contention beyond file overlap; decline parallelism on uncertainty) live in [references/evidence-strategy.md](references/evidence-strategy.md) — read it before writing briefs and apply the safety check before dispatching tracks concurrently. A track reporting `behavior_changed: true` without coherent evidence gets one recovery re-invocation to reconcile evidence (not reimplement); a second failure blocks integration.
+**Evidence contract (mandatory in every implementer brief):** each track chooses its evidence route and captures the red failure/characterization baseline **before** changing production code, then reports it as `verification_evidence` (fields per `shared/runner-envelope.schema.json`) — the worker is the only party that witnesses red-before-implementation, so a report without it cannot be reconstructed later. Routes, the System-Wide Test Check, and the Parallel Safety Check (semantic contention beyond file overlap; decline parallelism on uncertainty) live in [references/evidence-strategy.md](references/evidence-strategy.md) — read it before writing briefs and apply the safety check before dispatching tracks concurrently. A track reporting `behavior_changed: true` without coherent evidence gets one recovery re-invocation to reconcile evidence (not reimplement); a second failure blocks integration.
 
 ## Phase 2 — Cross-review + Fix (≤3 cycles per track)
 
@@ -110,7 +110,7 @@ Never apply review findings yourself; the implementer fixes its own track. Never
 
 ## Phase 4 — Final Review (full-review) & Apply
 
-Run the **`full-review`** skill on the task's integrated diff — full-review's multi-model triangulation (seat roster per `_shared/references/model-roster.md`) plus bug finders, personas, specialists, execution-based verification, and a structural-maintainability pass, so it goes well beyond the per-track review.
+Run the **`full-review`** skill on the task's integrated diff — full-review's multi-model triangulation (seat roster per `shared/references/model-roster.md`) plus bug finders, personas, specialists, execution-based verification, and a structural-maintainability pass, so it goes well beyond the per-track review.
 
 1. **Invoke** `full-review` (local diff vs `<base>`, or range `<base>..<integration>`). `security_focus=true` when security-sensitive. It is **read-only**.
 2. **Triage:** fix every CRITICAL/HIGH; apply safe, behavior-preserving MEDIUM simplification/maintainability findings; record deferrals with a reason. The machine JSON is the source of truth.

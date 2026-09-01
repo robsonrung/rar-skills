@@ -4,7 +4,7 @@ This reference is for `transport: headless`. The interactive cmux transport has 
 
 Complete invocation patterns for every council seat, organized by host capability.
 
-Model selection is not pinned here: pass the roster's alias (`--model opus`) or rely on the runner's default, and read `_shared/references/model-roster.md` for the seat → model mapping. The only id that still appears below is Gemini's, where `--model` is a metadata label rather than a model switch.
+Model selection is not pinned here: pass the roster's alias (`--model opus`) or rely on the runner's default, and read `shared/references/model-roster.md` for the seat → model mapping. The only id that still appears below is Gemini's, where `--model` is a metadata label rather than a model switch.
 
 ## Table of Contents
 
@@ -270,7 +270,7 @@ Do not use `--bare` for Claude runner seats when relying on Claude OAuth or keyc
 
 ## Runner Output Contract
 
-The envelope is **not** defined here. Every `--json` runner response conforms to the shared contract in **`_shared/references/runner-common.md`** (schema: `_shared/runner-envelope.schema.json`) — read that for the full required-key list, the seat-fidelity invariant, and the roles table. This section names only what the council does with it.
+The envelope is **not** defined here. Every `--json` runner response conforms to the shared contract in **`shared/references/runner-common.md`** (schema: `shared/runner-envelope.schema.json`) — read that for the full required-key list, the seat-fidelity invariant, and the roles table. This section names only what the council does with it.
 
 Three keys carry the council's independence accounting and MUST be recorded in the seat table for every runner-backed seat:
 

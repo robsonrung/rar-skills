@@ -1,7 +1,7 @@
 # Per-checkout, user-local preferences for the multi-model skills.
 # Copy to .rar-skills/config.local.yaml (gitignored) and edit.
 #
-# Invariants (see _shared/references/local-config.md):
+# Invariants (see shared/references/local-config.md):
 #   - every key is optional; missing or invalid values fall through to defaults
 #   - never credentials or raw CLI flags in this file
 #   - config always loses to direct instructions given in chat

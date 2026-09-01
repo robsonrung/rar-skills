@@ -224,14 +224,14 @@ External runners are a panel of distinct-model reviewers, each assigned a **spec
 At preflight, run the shared probe and record the resulting seat table:
 
 ```bash
-python3 .agents/skills/_shared/scripts/discover_runners.py probe \
+python3 .agents/skills/shared/scripts/discover_runners.py probe \
   --native-agent yes \
   --seat opus --seat sonnet --seat codex --seat gemini --seat grok --seat kimi --seat glm \
   --seat gemma --seat qwen --seat minimax \
   --format json
 ```
 
-**Script paths.** `_shared` scripts live at `.agents/skills/_shared/...` in an installed skill tree and at `_shared/...` in this source checkout — use whichever layout resolves on the host. This skill's own scripts are always skill-relative (`scripts/collect_context.sh`).
+**Script paths.** `shared` scripts live at `.agents/skills/shared/...` in an installed skill tree and at `shared/...` in this source checkout — use whichever layout resolves on the host. This skill's own scripts are always skill-relative (`scripts/collect_context.sh`).
 
 Pass `--native-agent yes` only when the host exposes the native `Agent` tool (Claude Code); otherwise pass `no` or omit. The script returns the JSON envelope documented in `discover_runners.py`: `seats[]` (each with `seat`, `tier`, `execution_path`, `available`, `version`, `cli_path`, `blocked_reason`, `depends_on`, `notes`) plus `summary.light_quorum_met` and `summary.quality_quorum_met`. Use those fields directly — do not re-probe `PATH` inline.
 
@@ -239,7 +239,7 @@ The `--seat` list above names the backup seats (`gemma`, `qwen`, `minimax`) expl
 
 The probe covers this default candidate set, in priority order:
 
-Role diversity follows the model's strengths: **the default Codex seat for recall and logic, Opus for precision and root cause validation, the code-specialized Codex seat for security, Sonnet for maintainability, Gemini for cross-file consistency, GLM for edge cases, Kimi for broad pragmatic review, and Grok for execution-path and agentic-flow verification.** Shared rationale: `_shared/references/task-shaped-model-routing.md`.
+Role diversity follows the model's strengths: **the default Codex seat for recall and logic, Opus for precision and root cause validation, the code-specialized Codex seat for security, Sonnet for maintainability, Gemini for cross-file consistency, GLM for edge cases, Kimi for broad pragmatic review, and Grok for execution-path and agentic-flow verification.** Shared rationale: `shared/references/task-shaped-model-routing.md`.
 
 | Seat | Execution path | Default lens |
 |------|----------------|--------------|
@@ -250,12 +250,12 @@ Role diversity follows the model's strengths: **the default Codex seat for recal
 | `grok` | `grok-runner --effort high` | `logic_state` second seat — execution paths / CLI & tool invocation flows / integration behavior (Terminal-Bench-class agentic strength) |
 | `glm` | `glm-runner` | `broad_sweep` (the GLM seat — edge cases / resource & failure paths) |
 | `kimi` | `kimi-runner` | `broad_sweep` (broad pragmatic — input/auth) |
-| `codex-code` | `codex-runner --model gpt-5.3-codex --effort high` (see `_shared/references/model-roster.md`) | `security_runtime` — code-specialized secondary Codex seat |
+| `codex-code` | `codex-runner --model gpt-5.3-codex --effort high` (see `shared/references/model-roster.md`) | `security_runtime` — code-specialized secondary Codex seat |
 | `gemma` | `gemma-runner` | `broad_sweep` (regression/perf) backup |
 | `qwen` | `qwen-runner` | `logic_state` backup |
 | `minimax` | `minimax-runner` | `cross_file_consistency` backup |
 
-**Model ids are not pinned here.** `_shared/references/model-roster.md` is the single source of truth for seat → model id. Invocations are alias-first where the CLI supports an alias (`claude-runner --model opus|sonnet`, the native `Agent` tool's `model:` field); otherwise the runner's own default carries the roster id and no `--model` flag is needed. The one deliberate exception is `--model gpt-5.3-codex`, which selects a *different seat* on the same CLI rather than re-pinning the default one.
+**Model ids are not pinned here.** `shared/references/model-roster.md` is the single source of truth for seat → model id. Invocations are alias-first where the CLI supports an alias (`claude-runner --model opus|sonnet`, the native `Agent` tool's `model:` field); otherwise the runner's own default carries the roster id and no `--model` flag is needed. The one deliberate exception is `--model gpt-5.3-codex`, which selects a *different seat* on the same CLI rather than re-pinning the default one.
 
 `security_runtime` is a **Codex** lens: in `quality`/`security_focus` runs, fill it with the `codex-code` seat (`codex-runner --model gpt-5.3-codex`, the code-specialized security reviewer) alongside the default Codex `logic_state` seat — two distinct models on one transport, not one seat used twice.
 
@@ -350,7 +350,7 @@ Synthesis is delegated to a **fresh-model synthesizer**, not run inline by the o
 
 ### Synthesizer
 
-A fresh read-only Opus synthesizer context receives the candidate record: use `Agent` with `subagent_type=general-purpose`, `model: "opus"` when native, otherwise `claude-runner --model opus --effort medium --restrict-tools --disable-fallback`. If the Opus seat is unavailable, fall back to the default Codex seat at high effort and lower confidence one band. Model ids remain in `_shared/references/model-roster.md`.
+A fresh read-only Opus synthesizer context receives the candidate record: use `Agent` with `subagent_type=general-purpose`, `model: "opus"` when native, otherwise `claude-runner --model opus --effort medium --restrict-tools --disable-fallback`. If the Opus seat is unavailable, fall back to the default Codex seat at high effort and lower confidence one band. Model ids remain in `shared/references/model-roster.md`.
 
 1. All candidate comments from gates, bug finders, personas, specialists, external runners, and existing PR comments.
 2. A per-finding **corroboration map** keyed by `(path, line_range, category)` showing every originating source and the `corroborated_models` count.
@@ -424,9 +424,9 @@ Verification and corroboration boosts are applied per `references/filtering_pipe
 | `scripts/diff_line_map.py` | Parse diffs into structured file and line ranges |
 | `scripts/review_scope.py` | Deterministic scope signals (executable-line count, uncounted files, path/verification signals, fail-closed `lite_eligible`) — Phase 1 |
 | `scripts/findings_mechanics.py` | Mechanical pre-pass: schema validation, exact-duplicate merge, confidence-anchor snapping, quote-the-line gate, triage grouping, stable numbering — before Phase 5 |
-| `_shared/scripts/discover_runners.py` | Standardized preflight probe used by Phase 3 to enumerate available runner seats |
+| `shared/scripts/discover_runners.py` | Standardized preflight probe used by Phase 3 to enumerate available runner seats |
 
-Paths in the first four rows are **skill-relative** — resolve them against the directory holding this SKILL.md. The shared script is repo-relative and has two layouts: `.agents/skills/_shared/scripts/discover_runners.py` in an installed skill tree, `_shared/scripts/discover_runners.py` in this source checkout. Try the installed path first, fall back to the checkout path.
+Paths in the first four rows are **skill-relative** — resolve them against the directory holding this SKILL.md. The shared script is repo-relative and has two layouts: `.agents/skills/shared/scripts/discover_runners.py` in an installed skill tree, `shared/scripts/discover_runners.py` in this source checkout. Try the installed path first, fall back to the checkout path.
 
 ## Triage Groups and Apply Authority
 
@@ -448,6 +448,6 @@ When the review target is a planning/requirements document rather than code (a p
 2. **Select personas conditionally** from `references/doc-personas/` (whole-doc, coherence, feasibility, scope-guardian, design-lens, product-lens, security-lens, adversarial). The **product-lens** persona activates on the two-leg test (the doc makes a user-facing product claim AND that claim is contestable). The **adversarial** persona activates on *challenge surface* — genuine unresolved risk — **not** on document structure: do NOT activate it for a routine, already-validated plan (the anti-noise rule).
 3. **Run the persona panel** and merge findings through `references/doc-findings-schema.json` (P0–P3 severity, error/omission `finding_type`, `safe_auto`/`gated_auto`/`manual` autofix classes, discrete confidence anchors with behavioral criteria).
 4. **Decision-primer:** carry accumulated applied/rejected decisions with their evidence into any later round so rejected findings stay suppressed and applied fixes get verified rather than re-raised.
-5. For a cross-model leg, dispatch through the local runner seats (Phase 3's runner discovery + `_shared/references/runner-common.md`), not a shell-out — keeping the `verified` independence semantics.
+5. For a cross-model leg, dispatch through the local runner seats (Phase 3's runner discovery + `shared/references/runner-common.md`), not a shell-out — keeping the `verified` independence semantics.
 
 *Document-review dimension and mechanical pre-pass adapted from [compound-engineering-plugin](https://github.com/EveryInc/compound-engineering-plugin) (MIT). See NOTICE.*

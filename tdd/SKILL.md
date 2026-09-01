@@ -44,7 +44,7 @@ You can only learn from a step if you can attribute its effect:
 - **One change at a time.** Never bundle a refactor with a behavior change with a config tweak.
 - An intermittent test is a **failure**, never a pass to be re-run.
 - Avoid programming by coincidence. If the code passes, know why.
-- **Never game the check.** Deleting, skipping, weakening, narrowing, or mocking-away a test to reach green is forbidden; if the test or contract is wrong, stop and report it (`_shared/references/engineering-rules.md`, Contract integrity).
+- **Never game the check.** Deleting, skipping, weakening, narrowing, or mocking-away a test to reach green is forbidden; if the test or contract is wrong, stop and report it (`shared/references/engineering-rules.md`, Contract integrity).
 
 ## The test-writing bar
 

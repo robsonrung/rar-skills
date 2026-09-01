@@ -72,7 +72,7 @@ Each skill directory is a self-contained unit. A SKILL.md must only reference fi
 
 Why: skills execute from the user's working directory, not the skill directory; installed copies land at unpredictable versioned paths; and packaging or conversion tools copy each skill directory as an isolated unit, so cross-directory references break in the copy.
 
-If two skills need the same small supporting file, **duplicate it into each skill's directory** and prefer small, self-contained reference files over shared dependencies. **Repo exception:** this repository's `_shared/` convention (shared references, scripts, schemas, and tests under `_shared/`) is a sanctioned shared root for skills that live and run inside this repo — keep using it here. The self-containment rule applies in full to any skill meant to be packaged, distributed, or installed standalone: at that point, inline or duplicate whatever it needs from `_shared/`.
+If two skills need the same small supporting file, **duplicate it into each skill's directory** and prefer small, self-contained reference files over shared dependencies. **Repo exception:** this repository's `shared/` convention (shared references, scripts, schemas, and tests under `shared/`) is a sanctioned shared root for skills that live and run inside this repo — keep using it here. The self-containment rule applies in full to any skill meant to be packaged, distributed, or installed standalone: at that point, inline or duplicate whatever it needs from `shared/`.
 
 ## Applying feedback: Change / Verify / Consider
 

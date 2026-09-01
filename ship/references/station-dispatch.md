@@ -2,13 +2,13 @@
 
 Loaded by `ship` before phase 3. One row per delegated station: what the worker invokes, what it may read, what its report must carry forward, and what its envelope's `verdict` may say.
 
-The brief/report/envelope shapes are **not** restated here — they live in `_shared/references/handoff-contract.md`. This file is only the per-station binding.
+The brief/report/envelope shapes are **not** restated here — they live in `shared/references/handoff-contract.md`. This file is only the per-station binding.
 
 Run directory for a ship run: `.ai-workflow/ship/<run-id>/<slice-id>/`. Phase-1 and phase-2 artifacts are run-level (no `<slice-id>`), since they precede the slice split.
 
 ## Two seats rules that apply to every station
 
-1. **A station worker does not spawn host-native subagents.** Nesting the `Agent` tool is not guaranteed inside a worker, so a station whose skill fans out to seats routes them through the runner CLIs instead — the existing switch is `python3 _shared/scripts/discover_runners.py probe --native-agent no`, which reports the opus/sonnet seats as `claude-runner`-backed rather than expecting a host subagent. State `--native-agent no` in the brief for every station that fans out (3, 4, 5, 6). Seat fidelity is unchanged: a missing CLI is `seat_unavailable`, never a substitution.
+1. **A station worker does not spawn host-native subagents.** Nesting the `Agent` tool is not guaranteed inside a worker, so a station whose skill fans out to seats routes them through the runner CLIs instead — the existing switch is `python3 shared/scripts/discover_runners.py probe --native-agent no`, which reports the opus/sonnet seats as `claude-runner`-backed rather than expecting a host subagent. State `--native-agent no` in the brief for every station that fans out (3, 4, 5, 6). Seat fidelity is unchanged: a missing CLI is `seat_unavailable`, never a substitution.
 2. **Entry-point skills are invoked by file path.** A skill carrying `disable-model-invocation: true` never appears in a worker's skill list, so naming it finds nothing. In this pipeline that is `resolve-pr-feedback` — its brief says *read `resolve-pr-feedback/SKILL.md` and follow it*. Every other station skill is model-invocable and is named normally.
 
 ## Phase 1 — delegated grounding (the one exception in the interactive half)

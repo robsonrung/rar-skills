@@ -1,6 +1,6 @@
 # Evidence strategy and safety checks for implementation tracks
 
-Contract-level guidance for the implementer seats (both tracks) and the orchestrator. The load-bearing rule: **red-before-implementation evidence exists only in the worker's report** — it cannot be reconstructed from the tree after the fact, so every implementer must capture it as it goes and return it in the `verification_evidence` field of its report (schema: `_shared/runner-envelope.schema.json`).
+Contract-level guidance for the implementer seats (both tracks) and the orchestrator. The load-bearing rule: **red-before-implementation evidence exists only in the worker's report** — it cannot be reconstructed from the tree after the fact, so every implementer must capture it as it goes and return it in the `verification_evidence` field of its report (schema: `shared/runner-envelope.schema.json`).
 
 ## verification_evidence report contract
 

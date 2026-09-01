@@ -2,6 +2,6 @@
 interface:
   display_name: "Shared"
   short_description: "Marker for the shared contracts, references, and runner scripts other skills load by path"
-  default_prompt: "Not invocable — read the file another skill named under _shared/references/ or _shared/scripts/ instead."
+  default_prompt: "Not invocable — read the file another skill named under shared/references/ or shared/scripts/ instead."
 policy:
   allow_implicit_invocation: false

@@ -57,8 +57,8 @@ from pathlib import Path
 from typing import NoReturn
 
 SKILL_ROOT = Path(__file__).resolve().parents[1]
-SKILLS_DIR = SKILL_ROOT.parent  # holds codex-runner/, claude-runner/, _shared/, ...
-JOBS_CLI = SKILLS_DIR / "_shared" / "scripts" / "runner_jobs.py"
+SKILLS_DIR = SKILL_ROOT.parent  # holds codex-runner/, claude-runner/, shared/, ...
+JOBS_CLI = SKILLS_DIR / "shared" / "scripts" / "runner_jobs.py"
 JOB_ID_RE = re.compile(r"\b([a-z]+-[0-9a-f]{8})\b")
 
 
@@ -419,7 +419,7 @@ def build_parser() -> argparse.ArgumentParser:
     L.add_argument("--fe-mode", choices=("auto", "subagent", "runner"), default="auto",
                    help="frontend execution path: auto selects a Codex runner or native Opus subagent; runner forces the matching runner; subagent is Opus only")
     L.add_argument("--fe-model", default=None, help="optional model override for the selected frontend runner; defaults to the seat's roster model")
-    L.add_argument("--be-model", default=None, help="optional backend model override; defaults to the Codex seat in _shared/references/model-roster.md")
+    L.add_argument("--be-model", default=None, help="optional backend model override; defaults to the Codex seat in shared/references/model-roster.md")
     L.add_argument("--codex-effort", default="high", help="Codex reasoning effort for the backend implement run")
     L.add_argument("--timeout", type=int, default=1800, help="per-implementer timeout in seconds")
     L.add_argument("--full-auto", action=argparse.BooleanOptionalAction, default=True,

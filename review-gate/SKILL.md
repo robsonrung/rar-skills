@@ -55,13 +55,13 @@ You do not read the whole diff yourself. Spawn the 8 personas from `references/p
 At preflight, run the shared probe and record the seat table:
 
 ```bash
-python3 .agents/skills/_shared/scripts/discover_runners.py probe \
+python3 .agents/skills/shared/scripts/discover_runners.py probe \
   --native-agent yes \
   --seat opus --seat sonnet --seat codex --seat gemini --seat grok --seat kimi --seat glm \
   --format json
 ```
 
-`_shared` scripts live at `.agents/skills/_shared/...` in an installed skill tree and at `_shared/...` in this source checkout — use whichever layout resolves. Model ids are not pinned here; `_shared/references/model-roster.md` is the single source of truth for seat → model id, and the assignments below follow `_shared/references/task-shaped-model-routing.md`.
+`shared` scripts live at `.agents/skills/shared/...` in an installed skill tree and at `shared/...` in this source checkout — use whichever layout resolves. Model ids are not pinned here; `shared/references/model-roster.md` is the single source of truth for seat → model id, and the assignments below follow `shared/references/task-shaped-model-routing.md`.
 
 | Persona | Seat | Fallback |
 |---|---|---|
@@ -77,7 +77,7 @@ python3 .agents/skills/_shared/scripts/discover_runners.py probe \
 Seat rules:
 
 - A seat with `available: false` degrades to its fallback with the same brief; record the effective execution path in `scope.agents[]`. With fewer than 3 distinct external seats, run all personas native and record `methodology: "single-model degraded"`. Never fail the gate because a runner is missing — degrade to native, never to silence.
-- Runner invocations pass `--disable-fallback` (seat fidelity, per `_shared/references/runner-common.md`); read `agent_message` from the runner envelope, never raw stdout.
+- Runner invocations pass `--disable-fallback` (seat fidelity, per `shared/references/runner-common.md`); read `agent_message` from the runner envelope, never raw stdout.
 - Launch personas in batches respecting `concurrency` (personas 1–4, then 5–7 plus any extras); the adversarial verifier runs alone after all others return.
 
 ### Fan-out mechanics

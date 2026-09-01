@@ -44,7 +44,7 @@
       "must_not_contain": ["## Coupling Pass"]
     },
     {
-      "file": "_shared/references/runner-common.md",
+      "file": "shared/references/runner-common.md",
       "concept": "seat fidelity",
       "must_contain": ["seat fidelity"],
       "must_not_contain": []
@@ -92,13 +92,13 @@
       "must_not_contain": []
     },
     {
-      "file": "_shared/references/handoff-contract.md",
+      "file": "shared/references/handoff-contract.md",
       "concept": "hand off the path, not the payload / fresh-reader test",
       "must_contain": ["hand off the path, not the payload", "fresh-reader test"],
       "must_not_contain": []
     },
     {
-      "file": "_shared/references/run-state-contract.md",
+      "file": "shared/references/run-state-contract.md",
       "concept": "the ledger, not the transcript / the model never decides the retry / three exits / crash-resume test",
       "must_contain": ["the ledger, not the transcript", "the model never decides the retry", "three exits", "crash-resume test", "already decided"],
       "must_not_contain": []

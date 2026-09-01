@@ -7,7 +7,7 @@ description: Execute prompts using Grok CLI in headless print mode as the xAI se
 
 Execute prompts via Grok CLI `-p` mode with role overlays, native structured output, and continuation support.
 
-Roles, the output-envelope key contract, presenting-results rules, the background-jobs CLI, and the **seat fidelity** invariant are shared across runners — see `../_shared/references/runner-common.md`. Only this runner's deltas are inline below.
+Roles, the output-envelope key contract, presenting-results rules, the background-jobs CLI, and the **seat fidelity** invariant are shared across runners — see `../shared/references/runner-common.md`. Only this runner's deltas are inline below.
 
 ## Runtime Compatibility
 
@@ -19,7 +19,7 @@ This skill invokes the local `grok` CLI from the current machine. Prompt text, p
 
 ## Output Envelope
 
-The required key contract is shared — see `../_shared/references/runner-common.md`. Grok-specific envelope extensions:
+The required key contract is shared — see `../shared/references/runner-common.md`. Grok-specific envelope extensions:
 - `agent_message` — the clean final answer. With `--output-format json` it is the payload's `text` field; with `stream-json` it is the concatenated `text` events; with `text` it is the trimmed stdout.
 - `session_id` — the Grok session id (available with `json`/`stream-json` output), usable for `--resume <id>` follow-ups.
 - `native_model_id` — the model that actually answered, harvested from grok's `modelUsage` (e.g. `grok-4.6-build`); also feeds `effective_model`.
@@ -60,7 +60,7 @@ Use `--working-dir` when the prompt depends on package-local files or generated 
 
 ## Roles
 
-The role list and the analysis-seat read-only default are shared — see `../_shared/references/runner-common.md`. For Grok, analysis roles default to plan mode (`--permission-mode plan`); pass `--allow-write` to opt out.
+The role list and the analysis-seat read-only default are shared — see `../shared/references/runner-common.md`. For Grok, analysis roles default to plan mode (`--permission-mode plan`); pass `--allow-write` to opt out.
 
 ## Session Continuation
 
@@ -69,11 +69,11 @@ The role list and the analysis-seat read-only default are shared — see `../_sh
 
 ## Background Jobs
 
-`--background` runs as a tracked job; manage it with the shared jobs CLI (`list --runner grok` / `status` / `result` / `cancel`) — see `../_shared/references/runner-common.md`.
+`--background` runs as a tracked job; manage it with the shared jobs CLI (`list --runner grok` / `status` / `result` / `cancel`) — see `../shared/references/runner-common.md`.
 
 ## Presenting Results
 
-Shared rules (prefer `agent_message`, severity-ordered findings, evidence boundaries, never auto-apply, **seat fidelity** on failure) live in `../_shared/references/runner-common.md`.
+Shared rules (prefer `agent_message`, severity-ordered findings, evidence boundaries, never auto-apply, **seat fidelity** on failure) live in `../shared/references/runner-common.md`.
 
 ## Examples
 

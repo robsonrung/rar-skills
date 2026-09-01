@@ -1,6 +1,6 @@
 # Panel-mode routing for `to-spec` (opt-in; see SKILL.md "Panel mode").
 #
-# Model ids come from `_shared/references/model-roster.md` — update the roster
+# Model ids come from `shared/references/model-roster.md` — update the roster
 # first, then this file. Role names are what SKILL.md refers to; the seat behind
 # each role is editable here without touching the workflow.
 

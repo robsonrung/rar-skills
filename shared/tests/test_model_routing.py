@@ -51,7 +51,7 @@ class SkillRoutingContractTests(unittest.TestCase):
         return (REPO_ROOT / path).read_text(encoding="utf-8")
 
     def test_shared_policy_uses_seats_instead_of_version_ids(self):
-        text = self.read("_shared/references/task-shaped-model-routing.md")
+        text = self.read("shared/references/task-shaped-model-routing.md")
         self.assertNotIn("gpt-", text.lower())
         self.assertNotIn("claude-opus-", text.lower())
         self.assertIn("cost per accepted result", text)
@@ -78,8 +78,8 @@ class SkillRoutingContractTests(unittest.TestCase):
         self.assertIn("In `budget`, use the Codex seat", protocol)
 
     def test_qwen_uses_pi_with_qwen38_max(self):
-        roster = self.read("_shared/references/model-roster.md")
-        discovery = self.read("_shared/scripts/discover_runners.py")
+        roster = self.read("shared/references/model-roster.md")
+        discovery = self.read("shared/scripts/discover_runners.py")
         runner = self.read("qwen-runner/scripts/run_qwen.py")
         self.assertIn("qwen/qwen3.8-2.4t-a95b", roster)
         self.assertIn('execution_path="qwen_runner_via_pi"', discovery)
@@ -87,8 +87,8 @@ class SkillRoutingContractTests(unittest.TestCase):
         self.assertIn("import run_pi", runner)
 
     def test_muse_uses_cline_with_muse_spark(self):
-        roster = self.read("_shared/references/model-roster.md")
-        discovery = self.read("_shared/scripts/discover_runners.py")
+        roster = self.read("shared/references/model-roster.md")
+        discovery = self.read("shared/scripts/discover_runners.py")
         runner = self.read("muse-runner/scripts/run_muse.py")
         self.assertIn("meta/muse-spark-1.1", roster)
         self.assertIn('execution_path="muse_runner_via_cline"', discovery)

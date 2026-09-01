@@ -79,7 +79,7 @@ are the checkpoints.
 
 Non-interactive: never pause to ask; decisions follow the calling pipeline's
 escalation ladder. Return a structured result whose field names align with the
-delegate-return vocabulary in `_shared/references/pr-watch-contracts.md`
+delegate-return vocabulary in `shared/references/pr-watch-contracts.md`
 (status states verbatim from there — never invent new ones):
 
 ```json

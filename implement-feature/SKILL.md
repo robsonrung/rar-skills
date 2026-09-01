@@ -5,7 +5,7 @@ description: Build a whole feature by breaking a plan into tasks and running imp
 
 # Implement Feature
 
-High-level build orchestrator: turn a plan into a working, reviewed feature by **decomposing it into tasks and delegating each to `implement-and-review`**. You (the main agent, the Opus seat — model ids live only in `_shared/references/model-roster.md`) own the breakdown, the dependency DAG and scheduling, cross-task integration, and the feature-wide final review. Per-task building — the FE/BE split, cross-model review, and TDD — is `implement-and-review`'s job. **Call it; don't reimplement it.**
+High-level build orchestrator: turn a plan into a working, reviewed feature by **decomposing it into tasks and delegating each to `implement-and-review`**. You (the main agent, the Opus seat — model ids live only in `shared/references/model-roster.md`) own the breakdown, the dependency DAG and scheduling, cross-task integration, and the feature-wide final review. Per-task building — the FE/BE split, cross-model review, and TDD — is `implement-and-review`'s job. **Call it; don't reimplement it.**
 
 Pipeline: **plan → `to-tasks` (vertical slices) → `implement-and-review` per task (parallel where independent) → integrate in dependency order → feature-wide `full-review` → green.**
 
@@ -25,7 +25,7 @@ The detailed scheduling/integration commands are in [references/feature-orchestr
 ## Preflight
 
 1. **Host & git.** Worktrees (and thus parallel tasks) need git; no git → sequential fallback.
-2. **Seats.** Use the shared probe to verify the primary seats up front so tasks don't all fail: `python3 .agents/skills/_shared/scripts/discover_runners.py probe --native-agent yes --seat codex --seat opus --seat kimi --format json`. Each task's `implement-and-review` needs the default Codex seat and either a native or runner-backed Opus seat; Kimi is the first fallback reviewer.
+2. **Seats.** Use the shared probe to verify the primary seats up front so tasks don't all fail: `python3 .agents/skills/shared/scripts/discover_runners.py probe --native-agent yes --seat codex --seat opus --seat kimi --format json`. Each task's `implement-and-review` needs the default Codex seat and either a native or runner-backed Opus seat; Kimi is the first fallback reviewer.
 3. **Verification commands.** Detect the project's feature-wide test/build commands. `to-tasks` acceptance contracts must use commands that exist.
 4. **Concurrency cap.** Default **3 tasks in flight** (each runs a full FE+BE build); lower it when seats/cost are tight.
 5. **Base & artifacts.** Record `HEAD` as the feature `<base>`; create the feature integration branch; use `.ai-workflow/impl-review/<session_id>/` for the breakdown, per-task subdirs, and the report.
@@ -52,7 +52,7 @@ Build the dependency graph from `blocked_by`. Then:
 
 ### Run state
 
-A feature spans hours and many subprocesses, so the DAG's progress lives in **the ledger, not the transcript**. This skill follows `_shared/references/run-state-contract.md` — read it for the shape, the attempts/gates/side-effect rules, and the resume protocol. One feature-level run state, beside the per-task states each `implement-and-review` keeps. Only the feature-specific keys are stated here:
+A feature spans hours and many subprocesses, so the DAG's progress lives in **the ledger, not the transcript**. This skill follows `shared/references/run-state-contract.md` — read it for the shape, the attempts/gates/side-effect rules, and the resume protocol. One feature-level run state, beside the per-task states each `implement-and-review` keeps. Only the feature-specific keys are stated here:
 
 - **`ceilings.max_in_flight`** — the concurrency cap (default 3). Count what is actually in flight against it rather than estimating.
 - **`side_effects` keys are `merge:<task-id>`** — written before merging a task into the feature integration branch; skip a merge whose key is already present.

@@ -51,11 +51,11 @@ installed=0
 for dest in "${dests[@]}"; do
   mkdir -p "$dest"
   count=0
-  # A skill is a directory with SKILL.md; _shared ships alongside them as-is,
-  # because skills reference .../skills/_shared/{references,scripts}/...
+  # A skill is a directory with SKILL.md; shared ships alongside them as-is,
+  # because skills reference .../skills/shared/{references,scripts}/...
   for dir in "$SOURCE_DIR"/*/; do
     name="$(basename "$dir")"
-    if [[ "$name" != "_shared" && ! -f "$dir/SKILL.md" ]]; then
+    if [[ "$name" != "shared" && ! -f "$dir/SKILL.md" ]]; then
       continue
     fi
     rm -rf "$dest/$name"

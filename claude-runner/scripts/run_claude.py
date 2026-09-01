@@ -171,7 +171,7 @@ def extract_output_fields(
 
 
 def load_runner_jobs():
-    shared_dir = Path(__file__).resolve().parents[2] / "_shared" / "scripts"
+    shared_dir = Path(__file__).resolve().parents[2] / "shared" / "scripts"
     if not (shared_dir / "runner_jobs.py").is_file():
         return None
     sys.path.insert(0, str(shared_dir))
@@ -651,7 +651,7 @@ Examples:
         "-m",
         type=str,
         default=None,
-        help="Claude model alias ('opus', 'sonnet') or a full model id; aliases are preferred so the seat tracks _shared/references/model-roster.md",
+        help="Claude model alias ('opus', 'sonnet') or a full model id; aliases are preferred so the seat tracks shared/references/model-roster.md",
     )
     parser.add_argument(
         "--output-format",
@@ -758,7 +758,7 @@ Examples:
         jobs = load_runner_jobs()
         if jobs is None:
             parser.error(
-                "--background requires the shared jobs module (_shared/scripts/runner_jobs.py), which was not found"
+                "--background requires the shared jobs module (shared/scripts/runner_jobs.py), which was not found"
             )
         prompt_source = args.prompt or (
             f"prompt files: {', '.join(args.prompt_files)}"

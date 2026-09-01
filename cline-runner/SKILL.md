@@ -7,7 +7,7 @@ description: Execute prompts using Cline CLI in headless print mode with NDJSON 
 
 Execute prompts through the local `cline` CLI in one-shot headless mode. Cline is provider-agnostic — unlike single-vendor runners, `--model` takes any `provider/model` pair the local `cline auth` has configured, so this is the runner to reach for when the caller needs to pick the exact model per run.
 
-Roles, the output-envelope key contract, presenting-results rules, the background-jobs CLI, and the **seat fidelity** invariant are shared across runners — see `../_shared/references/runner-common.md`. Only this runner's deltas are inline below.
+Roles, the output-envelope key contract, presenting-results rules, the background-jobs CLI, and the **seat fidelity** invariant are shared across runners — see `../shared/references/runner-common.md`. Only this runner's deltas are inline below.
 
 ## Default Model
 
@@ -33,7 +33,7 @@ A lane with missing provider state fails explicitly as `status: lane_unavailable
 
 ## Output Envelope
 
-The required key contract is shared — see `../_shared/references/runner-common.md`. Cline-specific extensions: `agent_message` (the final answer text, extracted from the terminal `run_result` event, or trimmed stdout in `text` mode), `finish_reason` (Cline's native `completed`/`error`/etc.), `native_model_id`/`native_provider` (the model that actually answered, read back from the stream — useful when `--model` was omitted), `native_return_code` (the raw process exit code before return-code normalization), `tool_mode` (`act`/`plan`/`no_tools` — see Security Model; `restrict_tools` stays as the boolean `tool_mode != "act"` for backward compatibility), `thinking` (the reasoning-effort level forwarded, when set), `provider_config_mutated` (true when `--model` was forwarded without `--data-dir` — see Security Model), and `session_id` (recovered best-effort from `cline history`, not from the stream itself; can be null under concurrent use — see Gotchas).
+The required key contract is shared — see `../shared/references/runner-common.md`. Cline-specific extensions: `agent_message` (the final answer text, extracted from the terminal `run_result` event, or trimmed stdout in `text` mode), `finish_reason` (Cline's native `completed`/`error`/etc.), `native_model_id`/`native_provider` (the model that actually answered, read back from the stream — useful when `--model` was omitted), `native_return_code` (the raw process exit code before return-code normalization), `tool_mode` (`act`/`plan`/`no_tools` — see Security Model; `restrict_tools` stays as the boolean `tool_mode != "act"` for backward compatibility), `thinking` (the reasoning-effort level forwarded, when set), `provider_config_mutated` (true when `--model` was forwarded without `--data-dir` — see Security Model), and `session_id` (recovered best-effort from `cline history`, not from the stream itself; can be null under concurrent use — see Gotchas).
 
 With `--output-file` set, the `--json` stdout pointer is `{success, return_code, output_file, runner, effective_runner, effective_provider, fallback_from, status}` so an orchestrator can see which seat answered without opening the file.
 
@@ -78,15 +78,15 @@ Paths in the examples use the installed `.agents/skills/` layout. When running f
 
 ## Roles
 
-The role list and the analysis-seat read-only default are shared — see `../_shared/references/runner-common.md`. For Cline, analysis roles default to read-only plan mode, a real enforcement boundary (see Security Model); pass `--allow-write` to opt out, or `--no-tools` to block tools entirely.
+The role list and the analysis-seat read-only default are shared — see `../shared/references/runner-common.md`. For Cline, analysis roles default to read-only plan mode, a real enforcement boundary (see Security Model); pass `--allow-write` to opt out, or `--no-tools` to block tools entirely.
 
 ## Background Jobs
 
-`--background` runs as a tracked job; manage it with the shared jobs CLI (`list`/`status`/`result`/`cancel`) — see `../_shared/references/runner-common.md`.
+`--background` runs as a tracked job; manage it with the shared jobs CLI (`list`/`status`/`result`/`cancel`) — see `../shared/references/runner-common.md`.
 
 ## Presenting Results
 
-Shared rules (prefer `agent_message`, severity-ordered findings, evidence boundaries, never auto-apply, **seat fidelity** on failure) live in `../_shared/references/runner-common.md`.
+Shared rules (prefer `agent_message`, severity-ordered findings, evidence boundaries, never auto-apply, **seat fidelity** on failure) live in `../shared/references/runner-common.md`.
 
 ## Examples
 
