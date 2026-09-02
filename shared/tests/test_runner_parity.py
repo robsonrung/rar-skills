@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Cross-runner parity tests for the wrapper scripts (claude, codex, gemini,
-grok, cline, pi) and the seat shims built on them (muse, qwen, kimi, glm).
+grok, cline, pi) and the named seats they serve (pi: kimi, glm, qwen, gemma;
+cline: muse, minimax) via `--seat`.
 
 Locks in the family-wide contract so the per-script copies cannot drift:
 
@@ -29,18 +30,32 @@ import unittest
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(REPO_ROOT / "shared" / "scripts"))
+from skill_paths import skill_dir, runner_script  # noqa: E402
 
+
+def P(rel: str):
+    """Resolve "<skill>/<path>" by skill name in either layout."""
+    name, _, rest = rel.partition("/")
+    return skill_dir(name, root=REPO_ROOT) / rest if rest else skill_dir(name, root=REPO_ROOT)
+
+_PI = runner_script("pi", root=REPO_ROOT)
+_CLINE = runner_script("cline", root=REPO_ROOT)
+
+# runner label -> (script, extra args that select the seat)
 RUNNER_SCRIPTS = {
-    "claude": REPO_ROOT / "claude-runner" / "scripts" / "run_claude.py",
-    "codex": REPO_ROOT / "codex-runner" / "scripts" / "run_codex.py",
-    "gemini": REPO_ROOT / "gemini-runner" / "scripts" / "run_gemini.py",
-    "grok": REPO_ROOT / "grok-runner" / "scripts" / "run_grok.py",
-    "cline": REPO_ROOT / "cline-runner" / "scripts" / "run_cline.py",
-    "muse": REPO_ROOT / "muse-runner" / "scripts" / "run_muse.py",
-    "qwen": REPO_ROOT / "qwen-runner" / "scripts" / "run_qwen.py",
-    "pi": REPO_ROOT / "pi-runner" / "scripts" / "run_pi.py",
-    "kimi": REPO_ROOT / "kimi-runner" / "scripts" / "run_kimi.py",
-    "glm": REPO_ROOT / "glm-runner" / "scripts" / "run_glm.py",
+    "claude": (runner_script("claude", root=REPO_ROOT), ()),
+    "codex": (runner_script("codex", root=REPO_ROOT), ()),
+    "gemini": (runner_script("gemini", root=REPO_ROOT), ()),
+    "grok": (runner_script("grok", root=REPO_ROOT), ()),
+    "cline": (_CLINE, ()),
+    "muse": (_CLINE, ("--seat", "muse")),
+    "minimax": (_CLINE, ("--seat", "minimax")),
+    "pi": (_PI, ()),
+    "kimi": (_PI, ("--seat", "kimi")),
+    "glm": (_PI, ("--seat", "glm")),
+    "qwen": (_PI, ("--seat", "qwen")),
+    "gemma": (_PI, ("--seat", "gemma")),
 }
 
 REQUIRED_KEYS = (
@@ -66,7 +81,13 @@ POINTER_KEYS = (
 )
 
 
-def run_script(script: Path, *args: str, cwd: str | None = None) -> subprocess.CompletedProcess:
+def run_script(
+    script: Path | tuple[Path, tuple[str, ...]], *args: str, cwd: str | None = None
+) -> subprocess.CompletedProcess:
+    seat_args: tuple[str, ...] = ()
+    if isinstance(script, tuple):
+        script, seat_args = script
+    args = (*seat_args, *args)
     env = os.environ.copy()
     # Strip PATH so shutil.which() finds no native CLI; the scripts themselves
     # are launched via sys.executable, which does not consult PATH.
@@ -115,6 +136,18 @@ class MissingCliEnvelopeParityTests(unittest.TestCase):
                     self.assertEqual(env["effective_model"], "z-ai/glm-5.3-flash")
                     self.assertEqual(env["effective_provider"], "z-ai")
                     self.assertIn("Pi CLI not found", env["stderr"])
+                if name == "gemma":
+                    self.assertEqual(env["effective_runner"], "pi")
+                    self.assertEqual(env["effective_model"], "google/gemma-4-31b-it")
+                    self.assertEqual(env["effective_provider"], "google")
+                if name == "muse":
+                    self.assertEqual(env["effective_runner"], "cline")
+                    self.assertEqual(env["effective_model"], "meta/muse-spark-1.3")
+                    self.assertEqual(env["effective_provider"], "meta")
+                if name == "minimax":
+                    self.assertEqual(env["effective_runner"], "cline")
+                    self.assertEqual(env["effective_model"], "minimax/minimax-m2.7")
+                    self.assertEqual(env["effective_provider"], "minimax")
 
 
 class OutputFilePointerParityTests(unittest.TestCase):

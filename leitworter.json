@@ -2,181 +2,602 @@
   "_comment": "Machine-readable registry for the leitwörter convention (see LEITWORTER.md). The `guards` block is enforced by scripts/check_leitworter.py and the CI workflow: must_contain entries are deletion tripwires (the leitwort must still be present), must_not_contain entries are drift tripwires (an old generic phrasing must not return). The `canon` block is the cross-skill vocabulary, used by skill-expert and for warn-only drift hints. Matching is case-insensitive substring.",
   "guards": [
     {
-      "file": "clean-code/SKILL.md",
+      "file": "engineering/practice/clean-code/SKILL.md",
       "concept": "named smells / earned comment",
-      "must_contain": ["Diagnose by name", "primitive obsession", "data clump", "earned comment"],
+      "must_contain": [
+        "Diagnose by name",
+        "primitive obsession",
+        "data clump",
+        "earned comment"
+      ],
       "must_not_contain": []
     },
     {
-      "file": "software-design-philosophy/SKILL.md",
+      "file": "engineering/lenses/software-design-philosophy/SKILL.md",
       "concept": "conceptual integrity / change ownership / smallest coherent shape / design it twice / stay strategic / decide what matters",
-      "must_contain": ["conceptual integrity", "change ownership", "smallest coherent shape", "design it twice", "stay strategic", "decide what matters", "reader, not writer"],
+      "must_contain": [
+        "conceptual integrity",
+        "change ownership",
+        "smallest coherent shape",
+        "design it twice",
+        "stay strategic",
+        "decide what matters",
+        "reader, not writer"
+      ],
       "must_not_contain": []
     },
     {
-      "file": "tdd/SKILL.md",
+      "file": "engineering/practice/tdd/SKILL.md",
       "concept": "smallest reversible move / the Iron Law",
-      "must_contain": ["smallest reversible move", "Iron Law"],
+      "must_contain": [
+        "smallest reversible move",
+        "Iron Law"
+      ],
       "must_not_contain": []
     },
     {
-      "file": "security-gate/SKILL.md",
+      "file": "engineering/gates/security-gate/SKILL.md",
       "concept": "threat-model-lite / deep-pass trigger",
-      "must_contain": ["threat-model-lite", "deep-pass trigger"],
-      "must_not_contain": ["## Part 1", "## Part 2"]
+      "must_contain": [
+        "threat-model-lite",
+        "deep-pass trigger"
+      ],
+      "must_not_contain": [
+        "## Part 1",
+        "## Part 2"
+      ]
     },
     {
-      "file": "summarize/SKILL.md",
+      "file": "engineering/deliver/summarize/SKILL.md",
       "concept": "cold-start test",
-      "must_contain": ["cold-start test"],
+      "must_contain": [
+        "cold-start test"
+      ],
       "must_not_contain": []
     },
     {
-      "file": "brainstorm/SKILL.md",
+      "file": "engineering/workflow/brainstorm/SKILL.md",
       "concept": "the why before the how / expand the solution space",
-      "must_contain": ["the why before the how", "expand the solution space"],
+      "must_contain": [
+        "the why before the how",
+        "expand the solution space"
+      ],
       "must_not_contain": []
     },
     {
-      "file": "coding-review-simplify/SKILL.md",
+      "file": "engineering/review/coding-review-simplify/SKILL.md",
       "concept": "connascence",
-      "must_contain": ["Connascence Pass", "connascent", "behavior-preserving", "observable behavior"],
-      "must_not_contain": ["## Coupling Pass"]
+      "must_contain": [
+        "Connascence Pass",
+        "connascent",
+        "behavior-preserving",
+        "observable behavior"
+      ],
+      "must_not_contain": [
+        "## Coupling Pass"
+      ]
     },
     {
       "file": "shared/references/runner-common.md",
       "concept": "seat fidelity",
-      "must_contain": ["seat fidelity"],
+      "must_contain": [
+        "seat fidelity"
+      ],
       "must_not_contain": []
     },
     {
-      "file": "skill-expert/SKILL.md",
+      "file": "extras/skill-expert/SKILL.md",
       "concept": "acceptance contract",
-      "must_contain": ["acceptance contract"],
+      "must_contain": [
+        "acceptance contract"
+      ],
       "must_not_contain": []
     },
     {
-      "file": "consensus-summary-html/SKILL.md",
+      "file": "visualization/consensus-summary-html/SKILL.md",
       "concept": "decision surface / lead with the outcome / selection over compression / evidence and independence",
-      "must_contain": ["decision surface", "lead with the outcome", "selection over compression", "acceptance contract", "seat fidelity", "flag, never overwrite", "observable failure"],
+      "must_contain": [
+        "decision surface",
+        "lead with the outcome",
+        "selection over compression",
+        "acceptance contract",
+        "seat fidelity",
+        "flag, never overwrite",
+        "observable failure"
+      ],
       "must_not_contain": []
     },
     {
-      "file": "fable-mindset/SKILL.md",
+      "file": "extras/fable-mindset/SKILL.md",
       "concept": "the five moments — intake (act or assess / the mandate), diagnosis (pattern-match is not diagnosis / artifact of proof), decision (recommendation, not survey / already decided), implementation (native diff / defensive theater), reporting (lead with the outcome / selection over compression)",
-      "must_contain": ["act or assess", "the mandate", "eager fix", "timid report", "pattern-match is not diagnosis", "artifact of proof", "recommendation, not survey", "already decided", "marginal-information test", "survey ends here", "native diff", "earned comment", "defensive theater", "smallest coherent shape", "lead with the outcome", "selection over compression", "honest ledger", "last-paragraph check"],
+      "must_contain": [
+        "act or assess",
+        "the mandate",
+        "eager fix",
+        "timid report",
+        "pattern-match is not diagnosis",
+        "artifact of proof",
+        "recommendation, not survey",
+        "already decided",
+        "marginal-information test",
+        "survey ends here",
+        "native diff",
+        "earned comment",
+        "defensive theater",
+        "smallest coherent shape",
+        "lead with the outcome",
+        "selection over compression",
+        "honest ledger",
+        "last-paragraph check"
+      ],
       "must_not_contain": []
     },
     {
-      "file": "knowledge-graph/SKILL.md",
+      "file": "extras/knowledge-graph/SKILL.md",
       "concept": "the schema is the only training data / the graph accumulates / local vs global search / flag, never overwrite",
-      "must_contain": ["the schema is the only training data", "the graph accumulates; it never rebuilds", "local search", "global search", "flag, never overwrite"],
+      "must_contain": [
+        "the schema is the only training data",
+        "the graph accumulates; it never rebuilds",
+        "local search",
+        "global search",
+        "flag, never overwrite"
+      ],
       "must_not_contain": []
     },
     {
-      "file": "agent-architecture-lens/SKILL.md",
+      "file": "engineering/lenses/agent-architecture-lens/SKILL.md",
       "concept": "the six signals / a graph is not an upgrade / three exits / the model never decides the retry / the ledger, not the transcript / crash-resume test",
-      "must_contain": ["the six signals", "a graph is not an upgrade", "three exits", "the model never decides the retry", "the ledger, not the transcript", "crash-resume test"],
+      "must_contain": [
+        "the six signals",
+        "a graph is not an upgrade",
+        "three exits",
+        "the model never decides the retry",
+        "the ledger, not the transcript",
+        "crash-resume test"
+      ],
       "must_not_contain": []
     },
     {
-      "file": "ship/SKILL.md",
+      "file": "engineering/workflow/implement-tasks/SKILL.md",
       "concept": "thin conductor / hand off the path, not the payload / the ledger, not the transcript",
-      "must_contain": ["thin conductor", "hand off the path, not the payload", "the ledger, not the transcript"],
+      "must_contain": [
+        "thin conductor",
+        "hand off the path, not the payload",
+        "the ledger, not the transcript"
+      ],
       "must_not_contain": []
     },
     {
-      "file": "peer-sessions/SKILL.md",
+      "file": "extras/peer-sessions/SKILL.md",
       "concept": "durable peer coordination through the ledger, path handoffs, three exits, cold-start test, and acceptance contract",
-      "must_contain": ["the ledger, not the transcript", "hand off the path, not the payload", "three exits", "cold-start test", "acceptance contract"],
+      "must_contain": [
+        "the ledger, not the transcript",
+        "hand off the path, not the payload",
+        "three exits",
+        "cold-start test",
+        "acceptance contract"
+      ],
       "must_not_contain": []
     },
     {
       "file": "shared/references/handoff-contract.md",
       "concept": "hand off the path, not the payload / fresh-reader test",
-      "must_contain": ["hand off the path, not the payload", "fresh-reader test"],
+      "must_contain": [
+        "hand off the path, not the payload",
+        "fresh-reader test"
+      ],
       "must_not_contain": []
     },
     {
       "file": "shared/references/run-state-contract.md",
       "concept": "the ledger, not the transcript / the model never decides the retry / three exits / crash-resume test",
-      "must_contain": ["the ledger, not the transcript", "the model never decides the retry", "three exits", "crash-resume test", "already decided"],
+      "must_contain": [
+        "the ledger, not the transcript",
+        "the model never decides the retry",
+        "three exits",
+        "crash-resume test",
+        "already decided"
+      ],
       "must_not_contain": []
     },
     {
-      "file": "review-gate/SKILL.md",
+      "file": "extras/review-gate/SKILL.md",
       "concept": "scope contract with honesty accounting / precision over volume / checks are facts",
-      "must_contain": ["scope contract", "broken contract", "precision over volume", "never claim a check ran that didn't"],
+      "must_contain": [
+        "scope contract",
+        "broken contract",
+        "precision over volume",
+        "never claim a check ran that didn't"
+      ],
       "must_not_contain": []
     },
     {
-      "file": "verify-changes/SKILL.md",
+      "file": "extras/verify-changes/SKILL.md",
       "concept": "captured evidence, not narrative",
-      "must_contain": ["only captured command results count as evidence"],
+      "must_contain": [
+        "only captured command results count as evidence"
+      ],
       "must_not_contain": []
     },
     {
-      "file": "distributed-systems-patterns/SKILL.md",
-      "concept": "coscheduled pair / container API / readiness, not liveness / need a master",
-      "must_contain": ["coscheduled pair", "container API", "readiness, not liveness", "need a master"],
+      "file": "engineering/lenses/distributed-systems-patterns/SKILL.md",
+      "concept": "coscheduled pair / container API / readiness, not liveness / need a master / data communication layer / single source of truth / single writer / event-first",
+      "must_contain": [
+        "coscheduled pair",
+        "container API",
+        "readiness, not liveness",
+        "need a master",
+        "data communication layer",
+        "single source of truth",
+        "single writer",
+        "event-first"
+      ],
       "must_not_contain": []
     },
     {
-      "file": "to-prototype/SKILL.md",
+      "file": "engineering/workflow/to-prototype/SKILL.md",
       "concept": "prototype code never graduates",
-      "must_contain": ["prototype code never graduates"],
+      "must_contain": [
+        "prototype code never graduates"
+      ],
+      "must_not_contain": []
+    },
+    {
+      "file": "engineering/workflow/interview-me/SKILL.md",
+      "concept": "spec-ready / design tree / the frontier / all three or no ADR / record on settle",
+      "must_contain": [
+        "spec-ready",
+        "design tree",
+        "the frontier",
+        "all three or no ADR",
+        "record on settle",
+        "already decided",
+        "the user's time is the bottleneck"
+      ],
       "must_not_contain": []
     }
   ],
   "canon": [
-    { "concept": "not changing what the code does", "leitwort": "behavior-preserving", "drift_terms": ["behavior unchanged", "invariant-safe", "correctness-preserving"] },
-    { "concept": "coupling as the unit of analysis", "leitwort": "connascence", "drift_terms": [] },
-    { "concept": "keeping scope minimal", "leitwort": "smallest coherent shape", "drift_terms": ["don't boil the ocean"] },
-    { "concept": "cheapest reversible learning step", "leitwort": "smallest reversible move", "drift_terms": [] },
-    { "concept": "test value", "leitwort": "four pillars", "drift_terms": [] },
-    { "concept": "testing what not how", "leitwort": "observable behavior", "drift_terms": [] },
-    { "concept": "one coherent design idea", "leitwort": "conceptual integrity", "drift_terms": [] },
-    { "concept": "where a change wants to live", "leitwort": "change ownership", "drift_terms": [] },
-    { "concept": "failures must be loud", "leitwort": "observable failure", "drift_terms": [] },
-    { "concept": "end-to-end thin path", "leitwort": "vertical slice", "drift_terms": [] },
-    { "concept": "domain words in code", "leitwort": "ubiquitous language", "drift_terms": [] },
-    { "concept": "resumable handoff", "leitwort": "cold-start test", "drift_terms": [] },
-    { "concept": "pinning legacy behavior before change", "leitwort": "characterization test", "drift_terms": [] },
-    { "concept": "a seat's output is only ever that seat's", "leitwort": "seat fidelity", "drift_terms": [] },
-    { "concept": "a task is done only when its acceptance criteria pass", "leitwort": "acceptance contract", "drift_terms": [] },
-    { "concept": "a comment that carries what the code cannot", "leitwort": "earned comment", "drift_terms": [] },
-    { "concept": "an expectation encoded as a failing check, not prose", "leitwort": "executable documentation", "drift_terms": ["living documentation", "self-checking comment"] },
-    { "concept": "the first fork on any request — change or assessment", "leitwort": "act or assess", "drift_terms": ["act vs report", "fix vs explain"] },
-    { "concept": "recognition is not proof of cause", "leitwort": "pattern-match is not diagnosis", "drift_terms": ["classic symptom", "the usual suspect"] },
-    { "concept": "decide, don't enumerate", "leitwort": "recommendation, not survey", "drift_terms": ["options memo", "exhaustive comparison"] },
-    { "concept": "a change indistinguishable from the house style", "leitwort": "native diff", "drift_terms": ["seamless diff", "blends into the codebase"] },
-    { "concept": "a visual report that moves from decision to evidence and action", "leitwort": "decision surface", "drift_terms": [] },
-    { "concept": "open the report with what happened", "leitwort": "lead with the outcome", "drift_terms": ["bottom line up front"] },
-    { "concept": "brevity by omission, not by squeezing", "leitwort": "selection over compression", "drift_terms": ["tighten the wording"] },
-    { "concept": "autonomy the request grants", "leitwort": "the mandate", "drift_terms": ["permission scope", "authorization level"] },
-    { "concept": "settled choices are inputs, not open questions", "leitwort": "already decided", "drift_terms": ["revisit the decision"] },
-    { "concept": "a question exploration could answer is not for the user", "leitwort": "the user's time is the bottleneck", "drift_terms": [] },
-    { "concept": "entity-anchored retrieval from a seed node", "leitwort": "local search", "drift_terms": ["k-hop query"] },
-    { "concept": "corpus-anchored retrieval over the whole graph", "leitwort": "global search", "drift_terms": ["thematic query", "whole-graph search"] },
-    { "concept": "a conflicting fact is recorded, not resolved away", "leitwort": "flag, never overwrite", "drift_terms": ["latest wins", "reconcile conflicts", "dedupe contradictions"] },
-    { "concept": "the routing test for whether a loop needs to become a graph", "leitwort": "the six signals", "drift_terms": ["complexity threshold"] },
-    { "concept": "structure is a response to a requirement, not an improvement", "leitwort": "a graph is not an upgrade", "drift_terms": ["graphs are better"] },
-    { "concept": "success, retries exhausted, and a hard ceiling", "leitwort": "three exits", "drift_terms": ["exit criteria"] },
-    { "concept": "the retry bound lives outside the model's judgment", "leitwort": "the model never decides the retry", "drift_terms": ["retry policy"] },
-    { "concept": "run progress lives in a durable artifact, not the message history", "leitwort": "the ledger, not the transcript", "drift_terms": ["persisted state"] },
-    { "concept": "prove resumption by killing the run mid-flight", "leitwort": "crash-resume test", "drift_terms": ["recovery test", "resilience test"] },
-    { "concept": "delegated work crosses as a file reference, never as pasted content", "leitwort": "hand off the path, not the payload", "drift_terms": ["pass the context along", "include the full output"] },
-    { "concept": "an orchestrator that routes and integrates but never absorbs its workers' working set", "leitwort": "thin conductor", "drift_terms": [] },
-    { "concept": "prove a handoff doc stands alone by giving it to a context that saw nothing else", "leitwort": "fresh-reader test", "drift_terms": [] },
-    { "concept": "single-node helper must share a machine and the namespaces the pattern needs", "leitwort": "coscheduled pair", "drift_terms": ["sidecar on another host", "loosely coupled containers"] },
-    { "concept": "reusable container's env vars, ports, files, and signals as a versioned contract", "leitwort": "container API", "drift_terms": ["container contract", "image parameters"] },
-    { "concept": "balancer membership is not the same as process restart", "leitwort": "readiness, not liveness", "drift_terms": [] },
-    { "concept": "prove a singleton is not enough before electing an owner", "leitwort": "need a master", "drift_terms": ["leader election required", "master election required"] },
-    { "concept": "sketch two or three meaningfully different designs before coding a consequential interface", "leitwort": "design it twice", "drift_terms": [] },
-    { "concept": "when changing existing code, do not tack on a special case that makes the design worse", "leitwort": "stay strategic", "drift_terms": ["just add a special case"] },
-    { "concept": "name the few things this situation depends on and emphasize only those", "leitwort": "decide what matters", "drift_terms": [] },
-    { "concept": "complexity is judged by the next person to change the code, not by its author", "leitwort": "reader, not writer", "drift_terms": [] },
-    { "concept": "throwaway spike code is discarded, never promoted to production", "leitwort": "prototype code never graduates", "drift_terms": ["promote the prototype", "harden the spike"] }
+    {
+      "concept": "not changing what the code does",
+      "leitwort": "behavior-preserving",
+      "drift_terms": [
+        "behavior unchanged",
+        "invariant-safe",
+        "correctness-preserving"
+      ]
+    },
+    {
+      "concept": "coupling as the unit of analysis",
+      "leitwort": "connascence",
+      "drift_terms": []
+    },
+    {
+      "concept": "keeping scope minimal",
+      "leitwort": "smallest coherent shape",
+      "drift_terms": [
+        "don't boil the ocean"
+      ]
+    },
+    {
+      "concept": "cheapest reversible learning step",
+      "leitwort": "smallest reversible move",
+      "drift_terms": []
+    },
+    {
+      "concept": "test value",
+      "leitwort": "four pillars",
+      "drift_terms": []
+    },
+    {
+      "concept": "testing what not how",
+      "leitwort": "observable behavior",
+      "drift_terms": []
+    },
+    {
+      "concept": "one coherent design idea",
+      "leitwort": "conceptual integrity",
+      "drift_terms": []
+    },
+    {
+      "concept": "where a change wants to live",
+      "leitwort": "change ownership",
+      "drift_terms": []
+    },
+    {
+      "concept": "failures must be loud",
+      "leitwort": "observable failure",
+      "drift_terms": []
+    },
+    {
+      "concept": "end-to-end thin path",
+      "leitwort": "vertical slice",
+      "drift_terms": []
+    },
+    {
+      "concept": "domain words in code",
+      "leitwort": "ubiquitous language",
+      "drift_terms": []
+    },
+    {
+      "concept": "resumable handoff",
+      "leitwort": "cold-start test",
+      "drift_terms": []
+    },
+    {
+      "concept": "pinning legacy behavior before change",
+      "leitwort": "characterization test",
+      "drift_terms": []
+    },
+    {
+      "concept": "a seat's output is only ever that seat's",
+      "leitwort": "seat fidelity",
+      "drift_terms": []
+    },
+    {
+      "concept": "a task is done only when its acceptance criteria pass",
+      "leitwort": "acceptance contract",
+      "drift_terms": []
+    },
+    {
+      "concept": "a comment that carries what the code cannot",
+      "leitwort": "earned comment",
+      "drift_terms": []
+    },
+    {
+      "concept": "an expectation encoded as a failing check, not prose",
+      "leitwort": "executable documentation",
+      "drift_terms": [
+        "living documentation",
+        "self-checking comment"
+      ]
+    },
+    {
+      "concept": "the first fork on any request — change or assessment",
+      "leitwort": "act or assess",
+      "drift_terms": [
+        "act vs report",
+        "fix vs explain"
+      ]
+    },
+    {
+      "concept": "recognition is not proof of cause",
+      "leitwort": "pattern-match is not diagnosis",
+      "drift_terms": [
+        "classic symptom",
+        "the usual suspect"
+      ]
+    },
+    {
+      "concept": "decide, don't enumerate",
+      "leitwort": "recommendation, not survey",
+      "drift_terms": [
+        "options memo",
+        "exhaustive comparison"
+      ]
+    },
+    {
+      "concept": "a change indistinguishable from the house style",
+      "leitwort": "native diff",
+      "drift_terms": [
+        "seamless diff",
+        "blends into the codebase"
+      ]
+    },
+    {
+      "concept": "a visual report that moves from decision to evidence and action",
+      "leitwort": "decision surface",
+      "drift_terms": []
+    },
+    {
+      "concept": "open the report with what happened",
+      "leitwort": "lead with the outcome",
+      "drift_terms": [
+        "bottom line up front"
+      ]
+    },
+    {
+      "concept": "brevity by omission, not by squeezing",
+      "leitwort": "selection over compression",
+      "drift_terms": [
+        "tighten the wording"
+      ]
+    },
+    {
+      "concept": "autonomy the request grants",
+      "leitwort": "the mandate",
+      "drift_terms": [
+        "permission scope",
+        "authorization level"
+      ]
+    },
+    {
+      "concept": "settled choices are inputs, not open questions",
+      "leitwort": "already decided",
+      "drift_terms": [
+        "revisit the decision"
+      ]
+    },
+    {
+      "concept": "a question exploration could answer is not for the user",
+      "leitwort": "the user's time is the bottleneck",
+      "drift_terms": []
+    },
+    {
+      "concept": "entity-anchored retrieval from a seed node",
+      "leitwort": "local search",
+      "drift_terms": [
+        "k-hop query"
+      ]
+    },
+    {
+      "concept": "corpus-anchored retrieval over the whole graph",
+      "leitwort": "global search",
+      "drift_terms": [
+        "thematic query",
+        "whole-graph search"
+      ]
+    },
+    {
+      "concept": "a conflicting fact is recorded, not resolved away",
+      "leitwort": "flag, never overwrite",
+      "drift_terms": [
+        "latest wins",
+        "reconcile conflicts",
+        "dedupe contradictions"
+      ]
+    },
+    {
+      "concept": "the routing test for whether a loop needs to become a graph",
+      "leitwort": "the six signals",
+      "drift_terms": [
+        "complexity threshold"
+      ]
+    },
+    {
+      "concept": "structure is a response to a requirement, not an improvement",
+      "leitwort": "a graph is not an upgrade",
+      "drift_terms": [
+        "graphs are better"
+      ]
+    },
+    {
+      "concept": "success, retries exhausted, and a hard ceiling",
+      "leitwort": "three exits",
+      "drift_terms": [
+        "exit criteria"
+      ]
+    },
+    {
+      "concept": "the retry bound lives outside the model's judgment",
+      "leitwort": "the model never decides the retry",
+      "drift_terms": [
+        "retry policy"
+      ]
+    },
+    {
+      "concept": "run progress lives in a durable artifact, not the message history",
+      "leitwort": "the ledger, not the transcript",
+      "drift_terms": [
+        "persisted state"
+      ]
+    },
+    {
+      "concept": "prove resumption by killing the run mid-flight",
+      "leitwort": "crash-resume test",
+      "drift_terms": [
+        "recovery test",
+        "resilience test"
+      ]
+    },
+    {
+      "concept": "delegated work crosses as a file reference, never as pasted content",
+      "leitwort": "hand off the path, not the payload",
+      "drift_terms": [
+        "pass the context along",
+        "include the full output"
+      ]
+    },
+    {
+      "concept": "an orchestrator that routes and integrates but never absorbs its workers' working set",
+      "leitwort": "thin conductor",
+      "drift_terms": []
+    },
+    {
+      "concept": "prove a handoff doc stands alone by giving it to a context that saw nothing else",
+      "leitwort": "fresh-reader test",
+      "drift_terms": []
+    },
+    {
+      "concept": "single-node helper must share a machine and the namespaces the pattern needs",
+      "leitwort": "coscheduled pair",
+      "drift_terms": [
+        "sidecar on another host",
+        "loosely coupled containers"
+      ]
+    },
+    {
+      "concept": "reusable container's env vars, ports, files, and signals as a versioned contract",
+      "leitwort": "container API",
+      "drift_terms": [
+        "container contract",
+        "image parameters"
+      ]
+    },
+    {
+      "concept": "balancer membership is not the same as process restart",
+      "leitwort": "readiness, not liveness",
+      "drift_terms": []
+    },
+    {
+      "concept": "prove a singleton is not enough before electing an owner",
+      "leitwort": "need a master",
+      "drift_terms": [
+        "leader election required",
+        "master election required"
+      ]
+    },
+    {
+      "concept": "sketch two or three meaningfully different designs before coding a consequential interface",
+      "leitwort": "design it twice",
+      "drift_terms": []
+    },
+    {
+      "concept": "when changing existing code, do not tack on a special case that makes the design worse",
+      "leitwort": "stay strategic",
+      "drift_terms": [
+        "just add a special case"
+      ]
+    },
+    {
+      "concept": "name the few things this situation depends on and emphasize only those",
+      "leitwort": "decide what matters",
+      "drift_terms": []
+    },
+    {
+      "concept": "complexity is judged by the next person to change the code, not by its author",
+      "leitwort": "reader, not writer",
+      "drift_terms": []
+    },
+    {
+      "concept": "throwaway spike code is discarded, never promoted to production",
+      "leitwort": "prototype code never graduates",
+      "drift_terms": [
+        "promote the prototype",
+        "harden the spike"
+      ]
+    },
+    {
+      "concept": "ask every question whose prerequisites are settled, none that waits on an open answer",
+      "leitwort": "the frontier",
+      "drift_terms": [
+        "batch of questions"
+      ]
+    },
+    {
+      "concept": "an ADR only when hard to reverse, surprising without context, and a real trade-off",
+      "leitwort": "all three or no ADR",
+      "drift_terms": [
+        "ADR when significant",
+        "worth documenting"
+      ]
+    },
+    {
+      "concept": "the ADR or glossary entry is written when the decision lands, not at the end",
+      "leitwort": "record on settle",
+      "drift_terms": [
+        "write the docs at the end",
+        "batch the docs"
+      ]
+    }
   ],
-  "filler_verbs": ["carefully", "thoroughly", "make sure", "be sure to", "as appropriate", "as needed", "properly"]
+  "filler_verbs": [
+    "carefully",
+    "thoroughly",
+    "make sure",
+    "be sure to",
+    "as appropriate",
+    "as needed",
+    "properly"
+  ]
 }

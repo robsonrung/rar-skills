@@ -1,0 +1,7 @@
+# Codex agent interface metadata; consumed by the Codex host, not read at runtime by the model.
+interface:
+  display_name: "Decide About Disagreements"
+  short_description: "Resolve open models-consensus disagreements with the user"
+  default_prompt: "Use $decide-about-disagreements to walk me through the unresolved topics in this models-consensus result and settle each one."
+policy:
+  allow_implicit_invocation: false

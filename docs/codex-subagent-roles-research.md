@@ -10,17 +10,17 @@ Put personal defaults in `~/.codex/config.toml`. Put repository specific limits 
 
 ## What the current documentation supports
 
-* `[agents]` can enable multi agent tools, set a concurrent thread cap, select default model and reasoning effort, and control interruption messages. An explicit spawn setting overrides the defaults. The thread cap excludes the primary thread. [Configuration reference](https://learn.chatgpt.com/docs/config-file/config-reference) [Sample configuration](https://learn.chatgpt.com/docs/config-file/config-sample)
+- `[agents]` can enable multi agent tools, set a concurrent thread cap, select default model and reasoning effort, and control interruption messages. An explicit spawn setting overrides the defaults. The thread cap excludes the primary thread. [Configuration reference](https://learn.chatgpt.com/docs/config-file/config-reference) [Sample configuration](https://learn.chatgpt.com/docs/config-file/config-sample)
 
-* Standalone custom role files belong in `.codex/agents/` for a project or `~/.codex/agents/` for a user. Each file requires `name`, `description`, and `developer_instructions`. A role can also set model, reasoning effort, sandbox, MCP servers, and skill configuration. [Subagents](https://learn.chatgpt.com/docs/agent-configuration/subagents)
+- Standalone custom role files belong in `.codex/agents/` for a project or `~/.codex/agents/` for a user. Each file requires `name`, `description`, and `developer_instructions`. A role can also set model, reasoning effort, sandbox, MCP servers, and skill configuration. [Subagents](https://learn.chatgpt.com/docs/agent-configuration/subagents)
 
-* A custom role inherits the parent sandbox, MCP servers, and `skills.config` when its file does not override them. The parent turn can still apply its live sandbox and approval settings to a child. Start all new read only roles with `sandbox_mode = "read-only"`, but keep approvals in the parent turn. [Subagents](https://learn.chatgpt.com/docs/agent-configuration/subagents)
+- A custom role inherits the parent sandbox, MCP servers, and `skills.config` when its file does not override them. The parent turn can still apply its live sandbox and approval settings to a child. Start all new read only roles with `sandbox_mode = "read-only"`, but keep approvals in the parent turn. [Subagents](https://learn.chatgpt.com/docs/agent-configuration/subagents)
 
-* The official guidance favors parallel agents for independent exploration, tests, triage, log analysis, research, and summarization. It warns that parallel write work creates merge conflicts and added coordination cost. Every child also uses model and tool tokens. [Subagents](https://learn.chatgpt.com/docs/agent-configuration/subagents)
+- The official guidance favors parallel agents for independent exploration, tests, triage, log analysis, research, and summarization. It warns that parallel write work creates merge conflicts and added coordination cost. Every child also uses model and tool tokens. [Subagents](https://learn.chatgpt.com/docs/agent-configuration/subagents)
 
-* `gpt-5.6` is the suggested starting point for demanding, ambiguous work. `gpt-5.6-terra` fits faster read heavy work. `gpt-5.6-luna` fits narrow, repeatable work. Use `high` for review and security analysis, `medium` for normal workers, and `low` only for simple speed sensitive tasks. Higher effort increases time and token use. [Subagents](https://learn.chatgpt.com/docs/agent-configuration/subagents)
+- `gpt-5.6` is the suggested starting point for demanding, ambiguous work. `gpt-5.6-terra` fits faster read heavy work. `gpt-5.6-luna` fits narrow, repeatable work. Use `high` for review and security analysis, `medium` for normal workers, and `low` only for simple speed sensitive tasks. Higher effort increases time and token use. [Subagents](https://learn.chatgpt.com/docs/agent-configuration/subagents)
 
-* At normal intelligence levels, delegation must be requested directly or be required by applicable project or skill instructions. Current local Codex clients enable the feature by default. ChatGPT Work can delegate proactively only with Ultra on eligible accounts and supported models. [Subagents](https://learn.chatgpt.com/docs/agent-configuration/subagents)
+- At normal intelligence levels, delegation must be requested directly or be required by applicable project or skill instructions. Current local Codex clients enable the feature by default. ChatGPT Work can delegate proactively only with Ultra on eligible accounts and supported models. [Subagents](https://learn.chatgpt.com/docs/agent-configuration/subagents)
 
 ## Repository fit
 
@@ -34,27 +34,27 @@ There is no tracked `.codex/` configuration layer in this repository now. The ro
 
 ### Native or generic subagent fanout
 
-* `ship` calls for one worker per autonomous station and per slice after the user approval gate. [Ship](../ship/SKILL.md)
+- `ship` calls for one worker per autonomous station and per slice after the user approval gate. [Ship](../ship/SKILL.md)
 
-* `design-gate` runs up to three read only lens reviewers in parallel. [Design gate](../design-gate/SKILL.md)
+- `design-gate` runs up to three read only lens reviewers in parallel. [Design gate](../design-gate/SKILL.md)
 
-* `review-gate` delegates close reading to eight parallel review personas and can use native subagents for every persona. [Review gate](../review-gate/SKILL.md)
+- `review-gate` delegates close reading to eight parallel review personas and can use native subagents for every persona. [Review gate](../review-gate/SKILL.md)
 
-* `full-review` has a parallel review phase for bug finders, personas, conditional specialists, and external model runners. [Full review](../full-review/SKILL.md)
+- `full-review` has a parallel review phase for bug finders, personas, conditional specialists, and external model runners. [Full review](../full-review/SKILL.md)
 
-* `coding-review-simplify` starts three reviewer subagents in standard and deep modes. [Coding review simplify](../coding-review-simplify/SKILL.md)
+- `coding-review-simplify` starts three reviewer subagents in standard and deep modes. [Coding review simplify](../coding-review-simplify/SKILL.md)
 
-* `capture-learning` uses three parallel research agents plus a read only grounding validation pass in full mode. [Capture learning](../capture-learning/SKILL.md)
+- `capture-learning` uses three parallel research agents plus a read only grounding validation pass in full mode. [Capture learning](../capture-learning/SKILL.md)
 
-* `resolve-pr-feedback` judges comments centrally, then fans approved fixes out to generic fixer subagents. [Resolve PR feedback](../resolve-pr-feedback/SKILL.md)
+- `resolve-pr-feedback` judges comments centrally, then fans approved fixes out to generic fixer subagents. [Resolve PR feedback](../resolve-pr-feedback/SKILL.md)
 
-* `dynamic-harness` has a manager mode that creates bounded agents or separate threads, with a run state and a defined write scope. [Dynamic harness](../dynamic-harness/SKILL.md)
+- `dynamic-harness` has a manager mode that creates bounded agents or separate threads, with a run state and a defined write scope. [Dynamic harness](../dynamic-harness/SKILL.md)
 
 ### Worktree and model panel orchestration
 
-* `implement-and-review` and `implement-feature` use isolated worktrees for parallel implementation. They already define implementer and reviewer behavior, bounded repair loops, and integration rules. [Implement and review](../implement-and-review/SKILL.md) [Implement feature](../implement-feature/SKILL.md)
+- `implement-and-review` and `implement-feature` use isolated worktrees for parallel implementation. They already define implementer and reviewer behavior, bounded repair loops, and integration rules. [Implement and review](../implement-and-review/SKILL.md) [Implement feature](../implement-feature/SKILL.md)
 
-* `models-consensus`, `diverse-plan`, `collaborative-delivery`, `peer-sessions`, and the panel modes of planning skills depend on independent runner seats or bounded peer sessions. Preserve their existing model roster and diversity rules. A generic subagent role must not silently replace a distinct runner seat. [Models consensus](../models-consensus/SKILL.md) [Diverse plan](../diverse-plan/SKILL.md) [Peer sessions](../peer-sessions/SKILL.md)
+- `models-consensus`, `diverse-plan`, `collaborative-delivery`, `peer-sessions`, and the panel modes of planning skills depend on independent runner seats or bounded peer sessions. Preserve their existing model roster and diversity rules. A generic subagent role must not silently replace a distinct runner seat. [Models consensus](../models-consensus/SKILL.md) [Diverse plan](../diverse-plan/SKILL.md) [Peer sessions](../peer-sessions/SKILL.md)
 
 ## Roles worth adding
 
@@ -150,10 +150,10 @@ Use the same required fields for `risk_reviewer` and `docs_researcher`. Pin the 
 
 ## Sources
 
-* [Subagents](https://learn.chatgpt.com/docs/agent-configuration/subagents)
+- [Subagents](https://learn.chatgpt.com/docs/agent-configuration/subagents)
 
-* [Configuration reference](https://learn.chatgpt.com/docs/config-file/config-reference)
+- [Configuration reference](https://learn.chatgpt.com/docs/config-file/config-reference)
 
-* [Sample configuration](https://learn.chatgpt.com/docs/config-file/config-sample)
+- [Sample configuration](https://learn.chatgpt.com/docs/config-file/config-sample)
 
-* [Config basics](https://learn.chatgpt.com/docs/config-file/config-basic)
+- [Config basics](https://learn.chatgpt.com/docs/config-file/config-basic)

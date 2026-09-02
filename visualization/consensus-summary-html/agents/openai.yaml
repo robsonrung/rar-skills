@@ -1,0 +1,7 @@
+# Codex agent interface metadata; consumed by the Codex host, not read at runtime by the model.
+interface:
+  display_name: "Consensus Summary HTML"
+  short_description: "Render a models-consensus result as an HTML decision brief"
+  default_prompt: "Use $consensus-summary-html to turn this completed models-consensus result into a self-contained HTML decision brief."
+policy:
+  allow_implicit_invocation: false

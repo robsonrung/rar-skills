@@ -1,0 +1,8 @@
+# Codex-host interface/registration config for this skill (display metadata and
+# default prompt shown in the Codex app). Not meant to be read at runtime.
+interface:
+  display_name: "Implement Tasks"
+  short_description: "Build the approved task queue with implement-and-review per task, review the seams, and open the PR"
+  default_prompt: "Use $implement-tasks to build every slice in the approved task queue with implement-and-review (parallel where independent), integrate in dependency order, run the feature-wide full-review, make residual findings durable, and open the PR."
+policy:
+  allow_implicit_invocation: false

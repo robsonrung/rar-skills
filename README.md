@@ -1,26 +1,51 @@
 # rar-skills
 
-Claude Code skills that compose into **one development workflow** — idea → interview → spec → tasks → design gate → test-driven build → review → PR. Every human decision is collected in the first three phases; everything after the approval gate runs autonomously while still optimizing architecture, tests, simplicity, and security.
+Claude Code skills that compose into **one development workflow** in four steps — interview → PRD → tasks → implement — with every human decision collected in the first three steps and the fourth running autonomously while still optimizing architecture, tests, simplicity, and security.
 
 ## The workflow
 
-One user-called skill per step. `ship` runs the whole pipeline; each step is also usable on its own.
+Four skills you type, one after the other. Each ends by naming the next; each is also usable on its own.
 
-| Step | Skill | What it does |
-|---|---|---|
-| 0. Frame | `brainstorm` · `to-prototype` | Sharpen a fuzzy idea to a BUILD/DEFER/REDUCE-SCOPE/REJECT verdict; spike a design unknown only running code can settle. |
-| 1. Specify | `interview` → `to-spec` | Grill the idea against the code, the glossary, and past decisions until spec-ready; then synthesize the PRD (security decisions and test seams included). |
-| 2. Plan | `to-tasks` | Cut tracer-bullet vertical slices, each with a machine-checkable acceptance contract and design/security gate flags. **The last human gate.** |
-| 3. Design gate | `coding-design-plan` → `design-gate` | Shape the plan, then run only the design lenses the slice's flags select, as parallel read-only reviewers. |
-| 4. Build | `implement-and-review` (or `tdd` directly) | Test-first implementation with cross-model review; `safe-incremental-coding` first on untested legacy code; `diagnose` for bugs. |
-| 5. Verify | `coding-review-simplify` → `full-review` → `browser-smoke` | Self-simplify, then the multi-model review gate on final code, then drive the real app. |
-| 6. Deliver | `open-pr` · `resolve-pr-feedback` | PR with acceptance evidence and the decision log; resolve review threads. |
+| Step | Skill | What it does | Accessory skills that run inside it |
+| --- | --- | --- | --- |
+| 1. Interview | `interview-me` | Grill the idea against the code, the glossary (`CONCEPTS.md`), and past decisions (`docs/adr/`) in frontier rounds until spec-ready, writing glossary entries and ADRs as decisions settle. | `security-gate` (threat-model-lite checklist), `test-lens` (naming the test seams), `to-prototype` (detour for a question only running code can settle) |
+| 2. PRD | `to-prd` | Synthesize the PRD from the interview, security decisions and test seams included. No second interview. | `security-gate`; optional multi-model panel mode |
+| 3. Tasks | `to-tasks` | Cut tracer-bullet vertical slices, each with a machine-checkable acceptance contract and design/security gate flags. **The last human gate.** | `design-gate`'s routing table and `security-gate`'s trigger list, to set the flags |
+| 4. Implement | `implement-tasks` | Build the slice DAG with `implement-and-review` per slice in parallel worktrees, integrate in dependency order, review the seams, make residual findings durable, open the PR. | per slice: `coding-design-plan` → `design-gate` (the lenses) → `tdd` (+ `safe-incremental-coding`, `clean-code`, `test-lens`, `diagnose`) → `coding-review-simplify` → `full-review`; then `open-pr` |
 
-`ship` is a **thin conductor**: steps 3–6 each run in their own subagent, and what crosses between them is a markdown report on disk plus a short envelope — *hand off the path, not the payload*. Steps 0–2 stay in the main context because only they talk to you. That keeps the conductor's context flat across a whole run, and keeps each step's reasoning recoverable after a compaction.
+`implement-tasks` is a **thin conductor**: each slice builds in its own `implement-and-review` run, and what crosses back is a report on disk plus a short envelope — _hand off the path, not the payload_. Progress lives in a run state on disk, so a run survives compactions and restarts. After the step-3 approval nothing asks you anything: contested decisions go to `models-consensus`, and only destructive or irreversible operations hard-stop for a human.
 
-Full narrative, design principles, and conventions: [docs/workflow.md](docs/workflow.md). Visual map: `workflow.html`. How a feature moves through the relay: [docs/pipeline.html](docs/pipeline.html).
+Full narrative, design principles, and conventions: [docs/workflow.md](docs/workflow.md). Skill catalogue and call map, a snapshot taken before this four-step consolidation: [docs/skills-atlas.html](docs/skills-atlas.html).
 
-Supporting casts: **design lenses** (`architecture-lens`, `macro-architecture`, `domain-driven-design`, `software-design-philosophy`, `design-patterns`, `data-systems-coding-lens`, `distributed-systems-patterns`, `agent-architecture-lens`, `react-performance`) are routed by `design-gate` rather than chosen by hand; **`models-consensus`** answers contested questions with a multi-model council (modes `poll` / `debate` / `personas`) and is what the autonomous phases escalate to instead of asking the user; **`fable-mindset`** governs turn-level posture; the **`*-runner`** family provides the model seats.
+Supporting casts: **design lenses** (`architecture-lens`, `macro-architecture`, `domain-driven-design`, `software-design-philosophy`, `design-patterns`, `data-systems-coding-lens`, `distributed-systems-patterns`, `agent-architecture-lens`, `advanced-react`, `ui-ux-pro-max`) are routed by `design-gate` rather than chosen by hand; **`models-consensus`** answers contested questions with a multi-model council (modes `poll` / `debate` / `personas`) and is what the autonomous step escalates to instead of asking the user; **`fable-mindset`** governs turn-level posture; **knowledge** is kept current by `interview-me` (writes glossary entries and ADRs as decisions settle) and `capture-learning` (records solved problems); the **`*-runner`** family provides the model seats.
+
+## Repository layout
+
+```
+engineering/           the workflow and everything it calls
+  workflow/            the engineer's toolbox — brainstorm · interview-me · to-prd · to-tasks · implement-tasks
+                       models-consensus · to-prototype; which tool you reach for depends on the task
+  engine/              implement-and-review · coding-design-plan · worktree
+  gates/               security-gate · design-gate
+  lenses/              architecture-lens · macro-architecture · domain-driven-design · software-design-philosophy
+                       design-patterns · data-systems-coding-lens · distributed-systems-patterns
+                       agent-architecture-lens · advanced-react · ui-ux-pro-max
+  practice/            tdd · safe-incremental-coding · clean-code · test-lens · diagnose · frontend-design
+  review/              coding-review-simplify · full-review
+  deliver/             open-pr · capture-learning · session-handoff · summarize · resolve-pr-feedback
+  seats/               claude-runner · codex-runner · gemini-runner · grok-runner
+                       pi-runner (--seat kimi|glm|qwen|gemma) · cline-runner (--seat muse|minimax) · dcode-runner · opencode-runner
+visualization/         skills whose deliverable is a rendered page: explain-architecture (orientation page)
+                       · html-explainer (drill-down) · consensus-summary-html — all load
+                       shared/references/html-page-conventions.md
+extras/                standalone skills the workflow does not call: diverse-plan, collaborative-delivery,
+                       review-gate, verify-changes, browser-smoke, knowledge-graph, dynamic-harness,
+                       peer-sessions, cmux-cli, fable-mindset, skill-expert, agents-md-craft,
+                       decide-about-disagreements
+shared/                contracts, references, runner scripts, hooks, and tests every skill loads by path
+```
+
+The grouping is for reading the repository. Installed, every skill is a flat sibling under `.agents/skills/<name>/` (and `.claude/skills/<name>/`), with `shared/` next to them, so the paths skills use at runtime (`.agents/skills/shared/...`, `.agents/skills/pi-runner/...`) never change. Scripts that run from a source checkout locate `shared/` and sibling skills by name through `shared/scripts/skill_paths.py`.
 
 ## Quickstart
 
@@ -47,7 +72,7 @@ scripts/install-skills.sh /path/to/your-project
 ```bash
 scripts/install-skills.sh /path/to/your-project
 scripts/run-pipeline-acp.py /path/to/your-project \
-  -t "Read .claude/skills/ship/SKILL.md and follow it for: <feature idea>"
+  -t "Read .claude/skills/interview-me/SKILL.md and follow it for: <feature idea>"
 ```
 
 The `*-runner` seats are CLI-backed already, so a host with the runner CLIs installed keeps the full multi-model council with no API key anywhere.
@@ -60,14 +85,14 @@ python3 pipeline-board/serve.py /path/to/your-project
 
 ## Prerequisites
 
-Most skills here are **pure-prompt** (the design lenses, reviews, and planning skills — e.g. `design-gate`, `architecture-lens`, `clean-code`, `tdd`, `coding-design-plan`). They need nothing beyond Claude Code itself, and the pipeline is self-contained: every skill `ship` invokes lives in this collection.
+Most skills here are **pure-prompt** (the design lenses, reviews, and planning skills — e.g. `design-gate`, `architecture-lens`, `clean-code`, `tdd`, `coding-design-plan`). They need nothing beyond Claude Code itself, and the pipeline is self-contained: every skill the four steps invoke lives in this collection.
 
-The prerequisites below apply to the **multi-model and runner skills** — `models-consensus`, `diverse-plan`, `implement-and-review`, `implement-feature`, `full-review`, `collaborative-delivery`, the panel modes of `brainstorm` / `to-spec` / `to-tasks`, and the `*-runner` skills they drive. You only need the pieces for the seats you actually want; these skills run on a **quorum** (typically ≥3 seats) and degrade gracefully when a CLI is missing — they report the absent seat rather than faking it (*seat fidelity*). Seat → model ids live in one place: [`shared/references/model-roster.md`](shared/references/model-roster.md).
+The prerequisites below apply to the **multi-model and runner skills** — `models-consensus`, `diverse-plan`, `implement-and-review`, `implement-tasks`, `full-review`, `collaborative-delivery`, the panel modes of `brainstorm` / `to-prd` / `to-tasks`, and the `*-runner` skills they drive. You only need the pieces for the seats you actually want; these skills run on a **quorum** (typically ≥3 seats) and degrade gracefully when a CLI is missing — they report the absent seat rather than faking it (_seat fidelity_). Seat → model ids live in one place: [`shared/references/model-roster.md`](shared/references/model-roster.md).
 
 ### 1. Runtime
 
 | Requirement | Why |
-|-------------|-----|
+| --- | --- |
 | **Python 3** (`python3` in `PATH`) | All runner wrappers, the shared background-jobs CLI (`shared/scripts/runner_jobs.py`), `ui-ux-pro-max`, and the leitwörter check are Python 3 scripts. |
 | **Claude Code** | Host for every skill; provides the native `Agent` subagent used for Opus/Sonnet seats without a CLI fallback. |
 
@@ -76,16 +101,16 @@ The prerequisites below apply to the **multi-model and runner skills** — `mode
 Each model seat is backed by a local CLI. Install only the ones whose seats you want. None are required individually — missing CLIs just drop that seat.
 
 | CLI binary | Provides seat(s) | Used by | Auth / config |
-|------------|------------------|---------|---------------|
+| --- | --- | --- | --- |
 | `claude` | Claude (runner fallback for the native `Agent` seats) | `claude-runner` | Logged-in CLI (OAuth/keychain), **or** `ANTHROPIC_API_KEY` / `ANTHROPIC_AUTH_TOKEN` for bare/headless mode |
 | `codex` | Codex (`gpt-5.6-sol`) | `codex-runner` | `codex` CLI authenticated |
 | `agy` (Antigravity CLI) | Gemini / Google | `gemini-runner` | `agy` authenticated; model selected via `/model` or `~/.gemini/antigravity-cli/settings.json` |
 | `grok` | Grok (`grok-4.6` — Grok 4.6) | `grok-runner` | `grok` CLI logged in (`grok login`, grok.com account) |
-| `pi` | Kimi (`moonshotai/kimi-k3`), GLM (`z-ai/glm-5.3-flash`), Qwen (`qwen/qwen3.8-max`), and Gemma (`google/gemma-4-31b-it`), all served via OpenRouter | `pi-runner`, `kimi-runner`, `glm-runner`, `qwen-runner`, `gemma-runner` | `pi` CLI (`npm install -g @mariozechner/pi-coding-agent`) + `OPENROUTER_API_KEY` |
-| `cline` | Muse (`meta/muse-spark-1.1`) and Minimax | `muse-runner`, `minimax-runner` | Cline provider authenticated via `cline auth`; Muse access is limited to users in the United States |
+| `pi` | Kimi (`moonshotai/kimi-k3`), GLM (`z-ai/glm-5.3-flash`), Qwen (`qwen/qwen3.8-max`), and Gemma (`google/gemma-4-31b-it`), all served via OpenRouter | `pi-runner` (`--seat kimi\|glm\|qwen\|gemma`) | `pi` CLI (`npm install -g @mariozechner/pi-coding-agent`) + `OPENROUTER_API_KEY` |
+| `cline` | Muse (`meta/muse-spark-1.3`) and Minimax | `cline-runner` (`--seat muse\|minimax`) | Cline provider authenticated via `cline auth`; Muse access is limited to users in the United States |
 | `opencode` (optional) | OpenCode | `opencode-runner` | Its own auth; no bundled wrapper — runs through the host approval flow |
 
-> The Kimi, GLM, Qwen, and Gemma runners are thin shims over `pi-runner` (provider and model pinned per invocation — no shared provider state). The Muse and Minimax runners are thin shims over `cline-runner` with their own model IDs.
+> Kimi, GLM, Qwen, and Gemma are seats of `pi-runner` (`--seat <name>` pins the provider and model per invocation — no shared provider state). Muse and Minimax are seats of `cline-runner`. Seat → model ids: `shared/references/model-roster.md`.
 
 ### 3. Cloud / provider configuration
 
@@ -96,20 +121,20 @@ Every CLI seat is an external model call — it sends prompt text, prompt files,
 - **Google** — for `agy` (Gemini).
 - **xAI** — for `grok` (Grok 4.6 seat).
 - **Pi-backed seats (OpenRouter)** — Kimi (`moonshotai/kimi-k3`), GLM (`z-ai/glm-5.3-flash`), Qwen (`qwen/qwen3.8-max`), and Gemma (`google/gemma-4-31b-it`), pinned per invocation through the `pi` CLI. One credential: `OPENROUTER_API_KEY`. Note these seats share the OpenRouter dependency, so an outage or key problem drops them together.
-- **Cline-backed seats** — Muse (`meta/muse-spark-1.1`) and Minimax (`minimax/minimax-m2.7`). Authenticate a Cline provider via `cline auth` that can resolve each model ID. OpenRouter limits Muse access to users in the United States.
+- **Cline-backed seats** — Muse (`meta/muse-spark-1.3`) and Minimax (`minimax/minimax-m2.7`). Authenticate a Cline provider via `cline auth` that can resolve each model ID. OpenRouter limits Muse access to users in the United States.
 
 ### 4. Environment variables
 
 | Variable | When you need it |
-|----------|------------------|
-| `ANTHROPIC_API_KEY` *or* `ANTHROPIC_AUTH_TOKEN` | Only for `claude-runner` in bare/headless mode (bare mode disables OAuth/keychain). Not needed when the `claude` CLI is interactively logged in. |
+| --- | --- |
+| `ANTHROPIC_API_KEY` _or_ `ANTHROPIC_AUTH_TOKEN` | Only for `claude-runner` in bare/headless mode (bare mode disables OAuth/keychain). Not needed when the `claude` CLI is interactively logged in. |
 | `RUNNER_BASE_PATH` | Override the runner-script base path when skills are **not** installed at the default `.agents/skills/` location (e.g. running from a source checkout). |
 
 ### 5. External skills
 
-None are required. The pipeline is self-contained — the five steps that used to depend on external installs are now in-repo: `tdd`, `interview` (the requirements interview), `to-prototype`, `diagnose`, and `session-handoff`.
+None are required. The pipeline is self-contained — the five steps that used to depend on external installs are now in-repo: `tdd`, `interview-me` (the requirements interview), `to-prototype`, `diagnose`, and `session-handoff`.
 
-Two optional integrations are used when present and skipped when not: a code-review plugin (the `/review` builtin or an equivalent) and, in `ship` phase 5, driving the real app — handled here by `browser-smoke` for web-facing changes, or the host's run-the-app check otherwise.
+Two optional integrations are used when present and skipped when not: a code-review plugin (the `/review` builtin or an equivalent) and driving the real app after a build — handled here by `browser-smoke` for web-facing changes, or the host's run-the-app check otherwise.
 
 If a referenced skill is absent, the calling skill notes it and continues with the lenses it can apply — the pipeline degrades, it does not break.
 

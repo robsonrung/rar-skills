@@ -225,7 +225,7 @@
         "object",
         "null"
       ],
-      "description": "Implementation-run evidence contract, reported by roles that change behavior (implementer tracks in implement-and-review/implement-feature). Red-before-implementation evidence exists only in this report \u2014 it cannot be reconstructed from the tree afterward, so orchestrators must persist it. Absent/null for analysis roles.",
+      "description": "Implementation-run evidence contract, reported by roles that change behavior (implementer tracks in implement-and-review/implement-tasks). Red-before-implementation evidence exists only in this report \u2014 it cannot be reconstructed from the tree afterward, so orchestrators must persist it. Absent/null for analysis roles.",
       "properties": {
         "behavior_changed": {
           "type": "boolean",

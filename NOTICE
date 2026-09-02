@@ -16,6 +16,18 @@ contract/reference grafts inside full-review, skill-expert, ship,
 coding-design-plan, to-tasks, models-consensus (personas mode), coding-review-simplify,
 and brainstorm.
 
+This repository also contains material adapted from:
+
+  mattpocock/skills
+  https://github.com/mattpocock/skills
+  Copyright (c) 2026 Matt Pocock
+  Licensed under the MIT License
+
+Adapted material: the design-tree rounds (`grilling`) and the three-test ADR
+bar (`domain-modeling`) inside the interview-me skill, which carries the
+provenance line. The MIT permission notice reproduced below applies to that
+material as well.
+
 MIT License text (upstream):
 
 Permission is hereby granted, free of charge, to any person obtaining a copy

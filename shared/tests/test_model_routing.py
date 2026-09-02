@@ -13,10 +13,18 @@ from pathlib import Path
 import tomllib
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(REPO_ROOT / "shared" / "scripts"))
+from skill_paths import skill_dir, runner_script  # noqa: E402
+
+
+def P(rel: str):
+    """Resolve "<skill>/<path>" by skill name in either layout."""
+    name, _, rest = rel.partition("/")
+    return skill_dir(name, root=REPO_ROOT) / rest if rest else skill_dir(name, root=REPO_ROOT)
 
 
 def load_routing(path: str) -> dict:
-    with (REPO_ROOT / path).open("rb") as handle:
+    with P(path).open("rb") as handle:
         return tomllib.load(handle)
 
 
@@ -24,7 +32,7 @@ class PanelRoutingTests(unittest.TestCase):
     def test_ambiguous_planning_uses_opus_synthesis_and_codex_challenge(self):
         for path in (
             "brainstorm/assets/panel-routing.toml",
-            "to-spec/assets/panel-routing.toml",
+            "to-prd/assets/panel-routing.toml",
         ):
             with self.subTest(path=path):
                 providers = load_routing(path)["providers"]
@@ -48,7 +56,7 @@ class PanelRoutingTests(unittest.TestCase):
 
 class SkillRoutingContractTests(unittest.TestCase):
     def read(self, path: str) -> str:
-        return (REPO_ROOT / path).read_text(encoding="utf-8")
+        return P(path).read_text(encoding="utf-8")
 
     def test_shared_policy_uses_seats_instead_of_version_ids(self):
         text = self.read("shared/references/task-shaped-model-routing.md")
@@ -77,23 +85,24 @@ class SkillRoutingContractTests(unittest.TestCase):
         self.assertIn("In `quality` and `research`, default to the Opus seat", protocol)
         self.assertIn("In `budget`, use the Codex seat", protocol)
 
-    def test_qwen_uses_pi_with_qwen38_max(self):
+    def test_qwen_is_a_pi_seat_with_qwen38_max(self):
         roster = self.read("shared/references/model-roster.md")
         discovery = self.read("shared/scripts/discover_runners.py")
-        runner = self.read("qwen-runner/scripts/run_qwen.py")
+        runner = self.read("pi-runner/scripts/run_pi.py")
         self.assertIn("qwen/qwen3.8-max", roster)
-        self.assertIn('execution_path="qwen_runner_via_pi"', discovery)
-        self.assertIn('DEFAULT_MODEL = "qwen/qwen3.8-max"', runner)
-        self.assertIn("import run_pi", runner)
+        self.assertIn("`pi-runner --seat qwen`", roster)
+        self.assertIn('execution_path="pi_runner_seat"', discovery)
+        self.assertIn('"qwen": "qwen/qwen3.8-max"', runner)
 
-    def test_muse_uses_cline_with_muse_spark(self):
+    def test_muse_is_a_cline_seat_with_muse_spark(self):
         roster = self.read("shared/references/model-roster.md")
         discovery = self.read("shared/scripts/discover_runners.py")
-        runner = self.read("muse-runner/scripts/run_muse.py")
-        self.assertIn("meta/muse-spark-1.1", roster)
-        self.assertIn('execution_path="muse_runner_via_cline"', discovery)
-        self.assertIn('DEFAULT_MODEL = "meta/muse-spark-1.1"', runner)
-        self.assertIn("import run_cline", runner)
+        runner = self.read("cline-runner/scripts/run_cline.py")
+        self.assertIn("meta/muse-spark-1.3", roster)
+        self.assertIn("`cline-runner --seat muse`", roster)
+        self.assertIn('execution_path="cline_runner_seat"', discovery)
+        self.assertIn('"muse": "meta/muse-spark-1.3"', runner)
+        self.assertNotIn("muse-spark-1.1", runner)
 
 
 class DeliveryLauncherRoutingTests(unittest.TestCase):
@@ -104,7 +113,7 @@ class DeliveryLauncherRoutingTests(unittest.TestCase):
             brief.write_text("frontend acceptance contract", encoding="utf-8")
             command = [
                 sys.executable,
-                str(REPO_ROOT / "implement-and-review/scripts/launch.py"),
+                str(P("implement-and-review/scripts/launch.py")),
                 "launch",
                 "--session-id",
                 "routing-test",
@@ -156,7 +165,7 @@ class DeliveryLauncherRoutingTests(unittest.TestCase):
             completed = subprocess.run(
                 [
                     sys.executable,
-                    str(REPO_ROOT / "implement-and-review/scripts/launch.py"),
+                    str(P("implement-and-review/scripts/launch.py")),
                     "launch",
                     "--session-id",
                     "routing-test",

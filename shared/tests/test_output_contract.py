@@ -11,10 +11,11 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT / "shared" / "scripts"))
+from skill_paths import skill_dir, runner_script  # noqa: E402
 
 from output_contract import validate_output_contract, validate_value  # noqa: E402
 
-OPENING_SCHEMA = REPO_ROOT / "models-consensus" / "schemas" / "opening-answer.schema.json"
+OPENING_SCHEMA = skill_dir("models-consensus", root=REPO_ROOT) / "schemas" / "opening-answer.schema.json"
 
 
 def opening_answer() -> dict:
@@ -27,7 +28,7 @@ def opening_answer() -> dict:
 
 
 def run_runner(name: str, text: str) -> tuple[subprocess.CompletedProcess, dict]:
-    script = REPO_ROOT / f"{name}-runner" / "scripts" / f"run_{name}.py"
+    script = runner_script(name, root=REPO_ROOT)
     with tempfile.TemporaryDirectory() as directory:
         root = Path(directory)
         bin_dir = root / "bin"
@@ -85,7 +86,7 @@ class OutputContractUnitTests(unittest.TestCase):
         self.assertEqual(result.error_kind, "schema_invalid")
 
     def test_all_bundled_consensus_schemas_use_the_supported_subset(self):
-        for schema in (REPO_ROOT / "models-consensus" / "schemas").glob("*.json"):
+        for schema in (skill_dir("models-consensus", root=REPO_ROOT) / "schemas").glob("*.json"):
             with self.subTest(schema=schema.name):
                 result = validate_value({}, schema)
                 self.assertNotIn("unsupported schema keyword", result.error or "")

@@ -171,7 +171,7 @@ def main() -> int:
         routing_path = get_skill_root() / "assets" / "routing.toml"
     cfg = load_toml(routing_path)
     skill = cfg.get("skill", {})
-    artifact_dir = Path(args.artifact_dir or skill.get("artifact_dir") or ".codex_workflow/panel")
+    artifact_dir = Path(args.artifact_dir or skill.get("artifact_dir") or ".ai-workflow/panel")
     try:
         content, source = read_content(args)
     except Exception as exc:  # noqa: BLE001

@@ -1,4 +1,0 @@
-interface:
-  display_name: "Qwen Runner"
-  short_description: "Run Qwen3.8 Max through Cline CLI"
-  default_prompt: "Use $qwen-runner to execute this task with Qwen3.8 Max from the current workspace."

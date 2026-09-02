@@ -1,7 +1,0 @@
-# Codex agent interface metadata; consumed by the Codex host, not read at runtime by the model.
-interface:
-  display_name: "Explain Architecture"
-  short_description: "Explain a codebase's layers, flows, boundaries, and the why"
-  default_prompt: "Use $explain-architecture to explain how this codebase or subsystem works — its layers, components, key flows, boundaries, and the reasoning behind them — tuned to the audience, with an optional diagram. Explain, do not judge."
-policy:
-  allow_implicit_invocation: false

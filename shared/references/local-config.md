@@ -12,11 +12,11 @@ Per-checkout, user-local preferences for multi-model skills (councils, roundtabl
 ## Keys
 
 | Key | Consumed by | Meaning |
-|---|---|---|
+| --- | --- | --- |
 | `seats.preferred` / `seats.excluded` | models-consensus, full-review, diverse-plan, panel modes | Seat ids to favor / never launch (ids per `discover_runners.py`). |
 | `models.<seat>` | runner-backed seats | Per-seat model override forwarded to the runner's `--model` when supported. |
 | `quorum.light` / `quorum.quality` | seat-discovery consumers | Advisory quorum thresholds (defaults 2 / 3). |
-| `work_engine_preferences` | implement-and-review, implement-feature, ship | Ordered harness+model candidates with `mode: off\|prefer\|require` and `skip_if_equivalent_to_host`. |
+| `work_engine_preferences` | implement-and-review, implement-tasks | Ordered harness+model candidates with `mode: off\|prefer\|require` and `skip_if_equivalent_to_host`. |
 | `runner_base_path` | any skill invoking runner scripts from another checkout | Overrides the default repo-root-relative runner script location. |
 
 ## Cline lanes
@@ -27,4 +27,4 @@ Concurrent Cline lanes deliberately do **not** live in this YAML. The built-in `
 
 Skills should treat parsing failures as "no config" (log one line, continue with defaults) and must state in their output when a config value changed seat selection, so the user can see why a seat was skipped.
 
-*Pattern adapted from [compound-engineering-plugin](https://github.com/EveryInc/compound-engineering-plugin) (MIT). See NOTICE.*
+_Pattern adapted from [compound-engineering-plugin](https://github.com/EveryInc/compound-engineering-plugin) (MIT). See NOTICE._

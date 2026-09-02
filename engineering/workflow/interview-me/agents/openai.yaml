@@ -1,0 +1,8 @@
+# Codex-host interface/registration config for this skill (display metadata and
+# default prompt shown in the Codex app). Not meant to be read at runtime.
+interface:
+  display_name: "Interview Me"
+  short_description: "Grill a feature idea against the code, the glossary, and past decisions until spec-ready"
+  default_prompt: "Use $interview-me to grill this feature against the code, CONCEPTS.md, and docs/adr/ in frontier rounds until nothing is silently assumed, writing glossary entries and ADRs as decisions settle."
+policy:
+  allow_implicit_invocation: false

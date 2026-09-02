@@ -1,4 +1,0 @@
-interface:
-  display_name: "GLM Runner"
-  short_description: "Run workspace prompts through Cline CLI on GLM"
-  default_prompt: "Use $glm-runner to execute this task with GLM from the current workspace."

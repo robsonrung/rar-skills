@@ -1,4 +1,0 @@
-interface:
-  display_name: "Gemma Runner"
-  short_description: "Run workspace prompts through Cline CLI on Gemma"
-  default_prompt: "Use $gemma-runner to execute this task with Gemma from the current workspace."

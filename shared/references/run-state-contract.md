@@ -1,6 +1,6 @@
 # Run State Contract
 
-Canonical, agent-facing rules for the durable run state shared by every long-running orchestration skill (`ship`, `implement-and-review`, `implement-feature`, `dynamic-harness`, `models-consensus`). Each skill's SKILL.md points here and keeps inline only its own field names and ceilings.
+Canonical, agent-facing rules for the durable run state shared by every long-running orchestration skill (`implement-tasks`, `implement-and-review`, `dynamic-harness`, `models-consensus`). Each skill's SKILL.md points here and keeps inline only its own field names and ceilings.
 
 A long run's progress lives in **the ledger, not the transcript**. Anything the run must know after a crash, a compaction, or a restart is written to this file; anything held only in the message history is lost with it.
 
@@ -12,7 +12,7 @@ A long run's progress lives in **the ledger, not the transcript**. Anything the 
 
 Same tree as the existing `.ai-workflow/runner-jobs/`, `.ai-workflow/consensus/`, and `.ai-workflow/roundtable/` layouts (gitignored). `<run-id>` is unique per run — a UTC timestamp plus a short random suffix. Never reuse a fixed path across runs: a single fixed path turns two concurrent runs into one corrupted run.
 
-This is the path for a skill adopting the contract fresh. A skill that already has an established state location keeps it (`models-consensus` stays at `.ai-workflow/consensus/{session_id}.json`, `implement-and-review` extends its `launch-manifest.json`) — what this contract fixes is the *shape and the rules*, not the filename. Two state files for one run is worse than one file in an unusual place.
+This is the path for a skill adopting the contract fresh. A skill that already has an established state location keeps it (`models-consensus` stays at `.ai-workflow/consensus/{session_id}.json`, `implement-and-review` extends its `launch-manifest.json`) — what this contract fixes is the _shape and the rules_, not the filename. Two state files for one run is worse than one file in an unusual place.
 
 ## Shape
 
@@ -24,11 +24,29 @@ This is the path for a skill adopting the contract fresh. A skill that already h
   "phase": "backend_review",
   "started_at": "2026-07-28T14:02:11Z",
   "updated_at": "2026-07-28T14:37:52Z",
-  "attempts":     { "backend_fix_cycle": 2 },
-  "ceilings":     { "max_cycles": 3, "max_agents": 12, "deadline": "2026-07-28T16:00:00Z" },
-  "gates":        [ { "gate": "phase0_plan_approval", "decision": "approved", "decided_at": "2026-07-28T14:04:00Z" } ],
-  "side_effects": [ { "key": "pr:feat-auth", "done_at": "2026-07-28T15:10:03Z" } ],
-  "steps":        [ { "step": "backend_review", "result": "ok", "artifact": ".ai-workflow/impl-review/a3f9/be-review-2.json" } ]
+  "attempts": { "backend_fix_cycle": 2 },
+  "ceilings": {
+    "max_cycles": 3,
+    "max_agents": 12,
+    "deadline": "2026-07-28T16:00:00Z"
+  },
+  "gates": [
+    {
+      "gate": "phase0_plan_approval",
+      "decision": "approved",
+      "decided_at": "2026-07-28T14:04:00Z"
+    }
+  ],
+  "side_effects": [
+    { "key": "pr:feat-auth", "done_at": "2026-07-28T15:10:03Z" }
+  ],
+  "steps": [
+    {
+      "step": "backend_review",
+      "result": "ok",
+      "artifact": ".ai-workflow/impl-review/a3f9/be-review-2.json"
+    }
+  ]
 }
 ```
 

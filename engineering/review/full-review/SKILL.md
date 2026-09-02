@@ -1,0 +1,453 @@
+---
+name: full-review
+description: Full-spectrum code review combining parallel specialist review, multi-model triangulation, execution-based bug verification, and ambitious structural maintainability review. Use when the user asks to review a PR, commit, branch, or diff; to find bugs (bughunt); for a security review (find vulnerabilities); for a maintainability or code-quality audit; for a deep/thorough review (ultrareview, thermonuclear review); or to review a planning or requirements document (plan review, spec review, PRD review) via the document-review dimension.
+allowed-tools:
+  - Bash
+  - Read
+  - Glob
+  - Grep
+  - Agent
+---
+
+# Full Review
+
+Run a high-signal, evidence-backed review of a pull request, commit, branch, local diff, or task-scoped file set. Favor concrete bugs, security issues, backwards-compatibility breaks, production risks, and structural maintainability regressions over cosmetic feedback.
+
+## Inputs
+
+Accept one of:
+
+1. PR number, preferably through `gh`.
+2. Commit SHA.
+3. Commit range.
+4. Local diff against a base branch.
+5. Task-scoped file list, such as `Review task <TX> files: <file1>, <file2>, ...`.
+
+Treat `Quick review ...`, `Quick review commit <hash>`, and `Quick review task <TX> files: ...` as `quick_mode=true`.
+
+Use these knobs when requested or when context makes them obvious:
+
+| Knob | Default | Meaning |
+| --- | --- | --- |
+| `focus_paths` | none | Restrict the review to selected paths |
+| `ignore_paths` | none | Exclude selected paths |
+| `max_comments` | 20 | Maximum emitted comments |
+| `quiet_mode` | true | Suppress low-value LOW severity comments |
+| `quick_mode` | false | Review only security, runtime, and compatibility blockers |
+| `verify_mode` | true | Run verification where execution is possible |
+| `confidence_threshold` | per mode | Override the active threshold from `references/filtering_pipeline.md` section 4 |
+| `security_focus` | false | Prioritize the security dimension; optionally takes recorded security decisions to verify against |
+| `triangulation` | per mode | External-runner posture: `off`, `light`, or `quality`. Defaults: `quick_mode` → `light`; ultra/thorough → `quality`; otherwise `quality` when ≥3 runner CLIs are present, else `light` |
+| `depth` | `auto` | `auto` self-right-sizes via the Phase 1 lite gate; `full` disables the lite roster (set it when a deep/thorough review is explicitly requested) |
+| `apply_fixes` | false | Explicit authority to apply apply-queue fixes after Phase 6. Authority, not an output mode — see Apply Authority |
+
+When `security_focus=true` (set by the caller — e.g. a pipeline's `security-gate` for a `security: deep` change): treat any provided security decisions (recorded auth, validation, logging, and tenancy choices) as hard constraints and explicitly check the implementation against each; activate the `specialist_authorization`, `specialist_database`, and `specialist_data_integrity` specialists in Phase 3 regardless of trigger patterns; and never drop security-category findings to satisfy `max_comments`.
+
+## Output Contract
+
+Always produce:
+
+1. A human report using `references/review_report_template.md`.
+2. Machine JSON matching `references/review_output_schema.json`.
+
+End the human report with:
+
+```text
+Bugs found: N | Verified: X | Refuted: Y | Verdict: APPROVE|COMMENT|REQUEST_CHANGES
+```
+
+## Workflow
+
+| Phase | Name | Purpose |
+| --- | --- | --- |
+| 0 | Calibrate | Read repo rules, detect stack, classify touched areas |
+| 1 | Collect context | Gather description, file list, diff, and existing review comments |
+| 2 | Gate review | Check intent, compatibility, library/API use, and structural quality |
+| 3 | Parallel review | Run bug finders, personas, specialists, and external runners |
+| 4 | Verify | Reproduce runtime findings and evidence-check structural findings |
+| 5 | Synthesize | Merge, dedupe, confidence-filter, and cap findings |
+| 6 | Deliver | Emit verdict, report, JSON, and inline comments when supported |
+
+In quick mode, keep Phase 0 and Phase 1, narrow Phase 2 to security/runtime/compatibility blockers, run only bug finders plus the `triangulation: light` external panel in Phase 3, skip Phase 4 (both execution-based verify and the adversarial-verify sub-pass), and apply the quick-mode synthesis threshold from `references/filtering_pipeline.md` section 4. The fresh-model synthesizer in Phase 5 still runs.
+
+## Phase 0: Calibrate
+
+Read only the guidance that affects reviewed files:
+
+1. Root and nearest nested `AGENTS.md`, `CLAUDE.md`, or equivalent repo instructions.
+2. Nearby package docs, README files, architectural docs, CI config, lint config, formatter config, and test config.
+3. Generated-code policies, API contracts, migrations, schema docs, and ownership boundaries when the diff touches them.
+
+Detect stack from local evidence such as lockfiles, manifests, module files, package manager files, framework config, and nearby tests.
+
+Summarize `rules_compact` with:
+
+1. Relevant coding conventions.
+2. Error-handling style.
+3. Testing expectations.
+4. Layering and ownership boundaries.
+5. Generated-file discipline.
+6. Validation commands.
+
+Treat explicit repo rules as hard constraints. Do not reference skills, tools, packages, or docs that are not present or available in the current environment.
+
+## Phase 1: Collect Context
+
+Prefer `scripts/collect_context.sh` when it covers the input. This review is read-only: point its `OUT_DIR` at a temp directory under `$TMPDIR` (or `/tmp`) rather than accepting its `./artifacts/full-review` default, so no review artifact lands in the project tree.
+
+Minimum context:
+
+1. PR, commit, branch, or task description.
+2. Changed file list.
+3. Unified diff.
+4. Surrounding code for touched functions, classes, routes, queries, migrations, tests, or config.
+
+Determine the diff with the matching `scripts/collect_context.sh` mode (`pr`, `commit`, `range`, `local`). If the script does not cover the input, replicate the equivalent commands for the matching mode in `scripts/collect_context.sh`. For branch or local review, find the merge base against the requested base branch, falling back from `main` to `master` when needed (the script defaults to `main` without fallback).
+
+If the diff is empty, say so and stop.
+
+Treat existing PR comments as candidates, not truth. Avoid duplicating issues already raised unless adding verification or a materially better fix.
+
+### Scope Signals
+
+After collecting the diff, run the deterministic scope helper and load its JSON:
+
+```bash
+python3 scripts/review_scope.py --base <BASE> [--head <HEAD>]
+```
+
+It owns executable-line counting, uncounted-file detection, path signals (`migrations`, `frontend`, `api`, `swift-ios`, `verification_guard`), and the fail-closed `lite_eligible` calculation. Do not re-estimate these from diff hunks.
+
+### Lite Roster (Fail Closed)
+
+Small mechanical diffs get a reduced Phase 3 roster: bug finders 3 (logic and state) and 5 (regression and integration) plus `triangulation: light`; personas and specialists are skipped. Phases 4–6 run unchanged.
+
+Collapse to the lite roster only when **all** of these hold:
+
+1. The helper returned `lite_eligible: true` (1–39 executable changed lines, zero uncounted files, no path signals).
+2. No content-based risk read from the diff: auth, payments, data mutation, secrets or permissions, deserialization, crypto, concurrency or background jobs, external APIs, filesystem or process execution.
+3. `security_focus=false` and `depth` is not `full`.
+
+**This gate fails closed.** `exec_lines: null`, `uncounted_files > 0`, any signal, or helper failure disqualifies the lite path — the gate keys on risk, not size alone. A 12-line auth change still gets the full roster; a pure code diff that also touches one `.md` runs the full roster. When in doubt, run the full roster.
+
+### Silent-Pass Trigger
+
+When the `verification_guard` signal fires — CI/CD gating logic, merge-blocking checks, coverage or lint gates, test infrastructure and mocks — the change's failure mode is passing silently: it can go green while the thing it guards is red. Regardless of diff size or mode:
+
+1. Never take the lite path.
+2. Run the full roster with the Reliability Skeptic given an explicit brief on the guard files: "if this mechanism is wrong, does it fail loudly or silently pass?"
+3. In `quick_mode`, still add that false-pass brief to one engaged external seat's `{category_emphasis}`.
+
+## Phase 2: Gate Review
+
+Run a first pass before launching specialists.
+
+### Intent Gate
+
+Check whether the diff matches the stated goal. Look for missing requirements, scope creep, silent behavior changes, and backwards-compatibility breaks.
+
+If intent is unclear, ask a targeted question or lower confidence. Do not invent requirements.
+
+### Quality Gate
+
+Check the diff for:
+
+1. Correctness bugs.
+2. Security issues.
+3. Reliability and partial-failure risks.
+4. Performance and scalability regressions.
+5. API, data, schema, and configuration compatibility breaks.
+6. Test gaps around changed behavior.
+7. Library or external API misuse.
+8. Structural maintainability regressions.
+
+For new or changed external library usage, prefer local type information and existing call sites. If local evidence is insufficient and current docs are available through approved tooling, verify the API before asserting misuse. If docs are unavailable, downgrade confidence and phrase the issue as a question.
+
+For structural quality, read `references/structural_quality_review.md` and apply its review stance and blocking bar.
+
+For tests, compare against nearby examples before flagging style-level issues. Prefer behavior and regression coverage findings over generic mocking or naming feedback.
+
+## Phase 3: Parallel Review
+
+Run all relevant review seats in one parallel batch when the host supports it.
+
+### Findings Directory
+
+Use a shared findings directory:
+
+```bash
+FINDINGS_DIR="${TMPDIR:-/tmp}/full-review-findings-$(date +%s)"
+mkdir -p "$FINDINGS_DIR"
+echo "$FINDINGS_DIR"
+```
+
+Pass the concrete `$FINDINGS_DIR` path in every seat prompt. Each review seat writes candidate findings to `$FINDINGS_DIR/<seat-name>.json` (bug finders use their `source` field value as the seat name).
+
+### Bug Finders
+
+Run the six bug finders from `references/bug_finders.md`:
+
+1. Input validation and injection.
+2. Auth, session, and crypto.
+3. Logic and state.
+4. Data, resource, and exposure.
+5. Regression and integration.
+6. Performance and scalability.
+
+Only report candidates with confidence `0.8` or higher.
+
+### Personas
+
+Run the six personas from `references/panel_roles.md`:
+
+1. Spec Guardian.
+2. Security Sentinel.
+3. Reliability Skeptic.
+4. Performance Tuner.
+5. Maintainer Gardener.
+6. Test Cartographer.
+
+The Maintainer Gardener must apply `references/structural_quality_review.md` and must not downgrade clear structural regressions into optional cleanup.
+
+### Conditional Specialists
+
+Activate specialists from `references/conditional_specialists.md` only when the diff matches their trigger patterns. Give each specialist only the relevant diff subset plus `rules_compact`.
+
+Tag specialist findings with `specialist_database`, `specialist_api_contract`, `specialist_authorization`, `specialist_performance`, `specialist_integration`, `specialist_data_integrity`, `specialist_react`, or `specialist_ui_ux`.
+
+### External Runners
+
+External runners are a panel of distinct-model reviewers, each assigned a **specific lens** rather than a generic role. The roster is data-driven from the runners present on the host — not a fixed three.
+
+#### Runner Discovery
+
+At preflight, run the shared probe and record the resulting seat table:
+
+```bash
+python3 .agents/skills/shared/scripts/discover_runners.py probe \
+  --native-agent yes \
+  --seat opus --seat sonnet --seat codex --seat gemini --seat grok --seat kimi --seat glm \
+  --seat gemma --seat qwen --seat minimax \
+  --format json
+```
+
+**Script paths.** `shared` scripts live at `.agents/skills/shared/...` in an installed skill tree and at `shared/...` in this source checkout — use whichever layout resolves on the host. This skill's own scripts are always skill-relative (`scripts/collect_context.sh`).
+
+Pass `--native-agent yes` only when the host exposes the native `Agent` tool (Claude Code); otherwise pass `no` or omit. The script returns the JSON envelope documented in `discover_runners.py`: `seats[]` (each with `seat`, `tier`, `execution_path`, `available`, `version`, `cli_path`, `blocked_reason`, `depends_on`, `notes`) plus `summary.light_quorum_met` and `summary.quality_quorum_met`. Use those fields directly — do not re-probe `PATH` inline.
+
+The `--seat` list above names the backup seats (`gemma`, `qwen`, `minimax`) explicitly because the probe only covers `tier: backup` seats when they are named — that is the _only_ difference between them and the primary seats. Their availability is read from the same `seats[]` envelope, by the same fields, with no separate check.
+
+The probe covers this default candidate set, in priority order:
+
+Role diversity follows the model's strengths: **the default Codex seat for recall and logic, Opus for precision and root cause validation, the code-specialized Codex seat for security, Sonnet for maintainability, Gemini for cross-file consistency, GLM for edge cases, Kimi for broad pragmatic review, and Grok for execution-path and agentic-flow verification.** Shared rationale: `shared/references/task-shaped-model-routing.md`.
+
+| Seat | Execution path | Default lens |
+| --- | --- | --- |
+| `codex` | `codex-runner --effort high` | `logic_state` broad recall |
+| `opus` | native `Agent` subagent (`model: "opus"`) or `claude-runner --model opus --effort medium` | `precision_root_cause`; Phase 5 synthesizer |
+| `sonnet` | native `Agent` subagent (`model: "sonnet"`) or `claude-runner --model sonnet` | `structural_maintainability` (the Sonnet seat owns maintainability) |
+| `gemini` | `gemini-runner` (Antigravity `agy`) | `cross_file_consistency` (the Gemini seat — broad, long context) |
+| `grok` | `grok-runner --effort high` | `logic_state` second seat — execution paths / CLI & tool invocation flows / integration behavior (Terminal-Bench-class agentic strength) |
+| `glm` | `pi-runner --seat glm` | `broad_sweep` (the GLM seat — edge cases / resource & failure paths) |
+| `kimi` | `pi-runner --seat kimi` | `broad_sweep` (broad pragmatic — input/auth) |
+| `codex-code` | `codex-runner --model gpt-5.3-codex --effort high` (see `shared/references/model-roster.md`) | `security_runtime` — code-specialized secondary Codex seat |
+| `gemma` | `pi-runner --seat gemma` | `broad_sweep` (regression/perf) backup |
+| `qwen` | `pi-runner --seat qwen` | `logic_state` backup |
+| `minimax` | `cline-runner --seat minimax` | `cross_file_consistency` backup |
+
+**Model ids are not pinned here.** `shared/references/model-roster.md` is the single source of truth for seat → model id. Invocations are alias-first where the CLI supports an alias (`claude-runner --model opus|sonnet`, the native `Agent` tool's `model:` field); otherwise the runner's own default carries the roster id and no `--model` flag is needed. The one deliberate exception is `--model gpt-5.3-codex`, which selects a _different seat_ on the same CLI rather than re-pinning the default one.
+
+`security_runtime` is a **Codex** lens: in `quality`/`security_focus` runs, fill it with the `codex-code` seat (`codex-runner --model gpt-5.3-codex`, the code-specialized security reviewer) alongside the default Codex `logic_state` seat — two distinct models on one transport, not one seat used twice.
+
+`logic_state` may likewise be double-seated (the shared-lens rule below already permits it): codex takes logic/state/concurrency on tight code slices, grok takes execution paths, CLI/tool invocation flows, and integration behavior — non-overlapping `{category_emphasis}` values.
+
+Mark seats with `available: false` as `unavailable` in your run config and continue. Never fail the review because a runner is missing.
+
+#### Triangulation Preset
+
+The `triangulation` knob selects how many seats run and which lenses are mandatory:
+
+| Preset | Seats engaged | Lens coverage |
+| --- | --- | --- |
+| `off` | none | Skip external runners entirely. Use only when the host has zero runners or the caller explicitly disables. |
+| `light` | default Codex seat + one cheap sweep seat (glm, then kimi, then gemma/qwen) | `logic_state` for broad recall plus one `broad_sweep`. Default for `quick_mode`. |
+| `quality` | All available distinct seats, up to 7 | Core coverage is default Codex `logic_state`, Opus `precision_root_cause`, Sonnet `structural_maintainability`, Gemini `cross_file_consistency`, Grok execution-path `logic_state`, and up to two non-overlapping `broad_sweep` seats. |
+
+When `security_focus=true`, force the `security_runtime` lens onto the code-specialized Codex seat and drop the last `broad_sweep` seat if the seven-seat cap is reached. Never drop Opus precision or Sonnet maintainability to make room.
+
+#### Quorum
+
+Require **at least 3 distinct external seats** in `quality` mode (`light` requires 2). If quorum is not met:
+
+1. Try to fill open lenses from the backup column of the discovery table.
+2. If still under quorum, run with what is available, mark the review's confidence cap at `0.85` (no finding can exceed this), and record `triangulation: degraded` in the report.
+3. In `quick_mode`, the quorum is **bypassed** — proceed with as few as one runner, and note the degraded posture.
+
+The prior "lower the confidence cap by 0.1 when zero runners execute" rule is **removed**; the cap above is the single posture.
+
+#### Seat → Lens Routing
+
+For each engaged seat, the orchestrator picks a lens from `references/external_prompt_template.md` (seat → lens default table), then composes the base template with that lens's `<role>`, `<what_to_look_for>`, `<focus_emphasis>`, `<context_window_policy>`, and `{category_emphasis}` slot.
+
+Two seats may share a lens (e.g. three `broad_sweep` seats) only when they receive non-overlapping `{category_emphasis}` values.
+
+#### Identical Conditions
+
+Every engaged seat receives **the same**:
+
+1. Diff (and the same `{extended_context}` payload when the lens calls for it).
+2. `rules_compact`.
+3. Tool profile and budget.
+4. `--disable-fallback` (or runner-equivalent) so a missing CLI does not silently borrow another provider.
+
+Uneven access biases the panel and breaks the multi-model corroboration boost in synthesis.
+
+#### Invocation
+
+Use `references/external_prompt_template.md`. Write composed prompts to files under `$TMPDIR` (the `$FINDINGS_DIR` above, or a sibling temp directory) — **never** into `artifacts/full-review/` or anywhere else in the project tree; this review does not write to the repo. Redirect runner output to files in that same temp directory so it survives the call, and check exit codes explicitly. Launch all engaged seats **concurrently**.
+
+For each successful runner:
+
+1. Parse JSON against `references/review_output_schema.json`.
+2. Tag comments with `external_<seat>` — the seat id from runner discovery (e.g. `external_opus`, `external_codex`, `external_gemini`, `external_grok`, `external_kimi`, `external_glm`, `external_gemma`, `external_qwen`, `external_minimax`, `external_sonnet`).
+3. Discard invalid JSON or nonzero exits and note the failure in the report.
+
+## Phase 4: Verify
+
+Apply verification before synthesis.
+
+Start with a **pre-verify dedupe pass**: walk every candidate finding, group near-duplicates by `(path, line_range, category)` per `references/filtering_pipeline.md` section 3, and compute the `corroborated_models` count on each surviving candidate. This pass exists only to inform Phase 4 trigger decisions (the canonical dedupe + confidence boost run in Phase 5 — do not apply the confidence bumps here).
+
+Runtime, security, correctness, regression, performance, and reliability findings require execution-based proof when `verify_mode=true`.
+
+For each runtime candidate:
+
+1. Read full local context around the reported location.
+2. Check for upstream validation, downstream recovery, middleware, guards, feature flags, or documented intentional behavior.
+3. Write minimal reproduction scripts only to `/tmp` or `$TMPDIR`.
+4. Run the nearest existing tests or a targeted probe.
+5. Mark as verified when reproduced, refuted when disproven, or unverified when execution is not possible.
+
+Structural maintainability findings are evidence-checked rather than runtime-verified. Measure or inspect the concrete indicator per the evidence requirements in `references/structural_quality_review.md`. Keep only findings with a concrete safer refactor path.
+
+Do not modify project files during verification.
+
+### Adversarial-Verify Sub-Pass
+
+After execution-based verification, hot single-model findings get a refute-by-default skeptic vote from the cheap pool (Kimi/GLM/Gemma) following `references/adversarial_verify.md`. Trigger conditions, skeptic selection, voting math, and the surviving-finding confidence delta live in that reference.
+
+Run conditions in brief:
+
+- Skip when `triangulation: off`.
+- Trigger on `security|correctness|reliability|performance` findings at CRITICAL or HIGH severity with `corroborated_models == 1` and no Phase 4 verdict.
+- Up to 10 findings per review enter this sub-pass; prioritize by severity, then confidence.
+
+Refuted findings are dropped before Phase 5. Surviving findings carry `adversarial_verify` metadata into synthesis.
+
+## Phase 5: Synthesize
+
+Synthesis is delegated to a **fresh-model synthesizer**, not run inline by the orchestrator. The orchestrator assembles the inputs, the synthesizer applies the filtering pipeline and writes the final candidate list, and the orchestrator validates the output against the record.
+
+### Synthesizer
+
+A fresh read-only Opus synthesizer context receives the candidate record: use `Agent` with `subagent_type=general-purpose`, `model: "opus"` when native, otherwise `claude-runner --model opus --effort medium --restrict-tools --disable-fallback`. If the Opus seat is unavailable, fall back to the default Codex seat at high effort and lower confidence one band. Model ids remain in `shared/references/model-roster.md`.
+
+1. All candidate comments from gates, bug finders, personas, specialists, external runners, and existing PR comments.
+2. A per-finding **corroboration map** keyed by `(path, line_range, category)` showing every originating source and the `corroborated_models` count.
+3. The `adversarial_verify` metadata block on findings that went through Phase 4's sub-pass.
+4. `rules_compact` and `triangulation` posture (`off | light | quality | degraded`).
+5. The current values of `max_comments`, `quiet_mode`, `quick_mode`, and `confidence_threshold`.
+
+The synthesizer:
+
+1. Applies `references/filtering_pipeline.md` end to end (normalize → evidence → dedupe + multi-model corroboration boost → confidence filter → risk-based cap → tone).
+2. Suppresses cosmetic style, broad refactor wishes, generic hardening requests, pre-existing issues outside the diff, and already-raised issues.
+3. Returns the final list of comments tagged with `source: synthesizer` only on net-new findings (rare — only when synthesis surfaces a missed cross-link); preserves the originating `source` and `corroborated_by` on every other comment.
+4. Returns a short "synthesis log" describing which corroboration bumps and adversarial-verify drops were applied — this becomes the report's "Synthesis activity" section.
+
+### Orchestrator Validation
+
+The orchestrator does **not** rewrite the synthesizer's output prose. It validates:
+
+1. Every emitted comment has `path`, `line_range`, and concrete evidence.
+2. No comment was added with a stronger severity than its originating source justified (the corroboration-boost upgrade in `references/filtering_pipeline.md` section 3 is the only allowed bump path).
+3. Refuted adversarial-verify findings are absent.
+4. Counts in the human report match the JSON.
+
+If validation fails, send the synthesizer one bounded repair round with the specific issue. Do not loop.
+
+Structural findings are allowed when changed code meets the blocking bar and "What To Flag" criteria in `references/structural_quality_review.md`.
+
+Never emit a comment without path and line range.
+
+## Phase 6: Deliver
+
+Verdict rules:
+
+| Condition                                         | Verdict           |
+| ------------------------------------------------- | ----------------- |
+| Any CRITICAL or HIGH finding remains              | `REQUEST_CHANGES` |
+| No blockers but meaningful MEDIUM findings remain | `COMMENT`         |
+| Only LOW findings or no findings remain           | `APPROVE`         |
+
+Severity guidance:
+
+| Severity | Meaning |
+| --- | --- |
+| CRITICAL | Security vulnerability, data-loss risk, or compatibility break |
+| HIGH | Runtime bug on a likely path, or structural regression that blocks safe future changes |
+| MEDIUM | Missing safeguard, meaningful pattern deviation, or localized maintainability regression |
+| LOW | Minor clarity or optimization improvement |
+
+Each comment must include `severity`, `confidence`, `category`, `path`, `line_start`, `line_end`, `title`, `problem`, `evidence`, `suggested_fix`, and `tests_to_run`. Include `verified` when Phase 4 ran.
+
+Keep evidence snippets short. Prefer exact identifiers. Scope findings to the reviewed change. Name the violated local rule when a finding depends on repo-specific convention.
+
+On hosts that support inline review output, mirror retained findings there. When mirroring findings as GitHub inline comments, follow `references/github_comment_format.md`. On Codex desktop, use `::code-comment{...}` directives. Keep the machine JSON as the source of truth.
+
+## Confidence Rubric
+
+| Score | Meaning |
+| --- | --- |
+| `0.9+` | Deterministic bug, security flaw, or rule violation with direct evidence |
+| `0.7` to `0.9` | Likely issue with strong indicators |
+| `0.5` to `0.7` | Plausible risk, question, or targeted defensive test |
+| Below `0.5` | Weak signal — suppress unless explicitly requested. Scoring band only, not a second filter; the active filter threshold lives in `references/filtering_pipeline.md` section 4 |
+
+Verification and corroboration boosts are applied per `references/filtering_pipeline.md`. For structural maintainability, use `0.85+` only when the evidence and simpler refactor path are concrete.
+
+## Helper Scripts
+
+| Script | Purpose |
+| --- | --- |
+| `scripts/collect_context.sh` | Gather PR, commit, range, or local diff context |
+| `scripts/diff_line_map.py` | Parse diffs into structured file and line ranges |
+| `scripts/review_scope.py` | Deterministic scope signals (executable-line count, uncounted files, path/verification signals, fail-closed `lite_eligible`) — Phase 1 |
+| `scripts/findings_mechanics.py` | Mechanical pre-pass: schema validation, exact-duplicate merge, confidence-anchor snapping, quote-the-line gate, triage grouping, stable numbering — before Phase 5 |
+| `shared/scripts/discover_runners.py` | Standardized preflight probe used by Phase 3 to enumerate available runner seats |
+
+Paths in the first four rows are **skill-relative** — resolve them against the directory holding this SKILL.md. The shared script is repo-relative and has two layouts: `.agents/skills/shared/scripts/discover_runners.py` in an installed skill tree, `shared/scripts/discover_runners.py` in this source checkout. Try the installed path first, fall back to the checkout path.
+
+## Triage Groups and Apply Authority
+
+`findings_mechanics.py` tags each retained finding with a **triage group** so a downstream fixer knows where it may act:
+
+- **apply-queue** — mechanical, low-ambiguity fixes with a concrete `suggested_fix` and `autofix_class: safe_auto`. An automated fixer may apply these.
+- **decision-gate** — anything requiring a human call: design/architecture trade-offs, product/UX decisions, `autofix_class` of `gated_auto` or `manual`, or any CRITICAL/HIGH finding. A fixer stops here and surfaces the finding.
+
+**Apply Authority** — applying fixes is explicit authority (`apply_fixes: true`), separate from output mode. Default is report-only. When granted:
+
+- **Clean tree** → apply apply-queue fixes and commit them (`fix(review): <summary>`), leaving decision-gate findings for the human.
+- **Dirty tree** → apply apply-queue fixes but leave them uncommitted, so the user reconciles with their in-progress work. Never apply decision-gate findings automatically regardless of authority.
+
+## Document-Review Dimension
+
+When the review target is a planning/requirements document rather than code (a plan, spec, PRD — classify by content shape, not path), run this dimension instead of the code roster:
+
+1. **Classify document type** by content shape — requirements signals (user-facing outcomes, acceptance criteria) vs plan signals (units, sequencing, file targets).
+2. **Select personas conditionally** from `references/doc-personas/` (whole-doc, coherence, feasibility, scope-guardian, design-lens, product-lens, security-lens, adversarial). The **product-lens** persona activates on the two-leg test (the doc makes a user-facing product claim AND that claim is contestable). The **adversarial** persona activates on _challenge surface_ — genuine unresolved risk — **not** on document structure: do NOT activate it for a routine, already-validated plan (the anti-noise rule).
+3. **Run the persona panel** and merge findings through `references/doc-findings-schema.json` (P0–P3 severity, error/omission `finding_type`, `safe_auto`/`gated_auto`/`manual` autofix classes, discrete confidence anchors with behavioral criteria).
+4. **Decision-primer:** carry accumulated applied/rejected decisions with their evidence into any later round so rejected findings stay suppressed and applied fixes get verified rather than re-raised.
+5. For a cross-model leg, dispatch through the local runner seats (Phase 3's runner discovery + `shared/references/runner-common.md`), not a shell-out — keeping the `verified` independence semantics.
+
+_Document-review dimension and mechanical pre-pass adapted from [compound-engineering-plugin](https://github.com/EveryInc/compound-engineering-plugin) (MIT). See NOTICE._

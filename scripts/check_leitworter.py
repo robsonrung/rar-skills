@@ -63,7 +63,8 @@ def check_guards(registry: dict, root: Path) -> list[str]:
 
 
 def skill_files(root: Path) -> list[Path]:
-    return sorted(p for p in root.glob("*/SKILL.md"))
+    skip = {"node_modules", ".git", ".worktrees"}
+    return sorted(p for p in root.rglob("SKILL.md") if not (set(p.relative_to(root).parts) & skip))
 
 
 def owner_files(registry: dict, leitwort: str) -> set[str]:

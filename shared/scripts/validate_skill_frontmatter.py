@@ -37,6 +37,8 @@ except ImportError:  # keep the guard runnable without the dep
     yaml = None
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from skill_paths import iter_skill_dirs  # noqa: E402
 
 # AgentSkills name rule: lowercase alphanumerics separated by single hyphens.
 SKILL_NAME_RE = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
@@ -45,7 +47,6 @@ SKILL_NAME_RE = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
 # transport delegates and seats dropped from the council lineup.
 NON_SEAT_RUNNERS = {
     "dcode-runner",     # manual-only runner; no council seat (see shared/references/model-roster.md)
-    "minimax-runner",   # dropped from council lineup
     "opencode-runner",  # not part of the seat catalog
 }
 
@@ -66,7 +67,7 @@ DESCRIPTION_TRUNCATION_LIMIT = 1024
 
 def check_frontmatter(failures: list[str], warnings: list[str]) -> int:
     count = 0
-    for skill_md in sorted(REPO_ROOT.glob("*/SKILL.md")):
+    for skill_md in sorted(d / "SKILL.md" for d in iter_skill_dirs(REPO_ROOT)):
         if skill_md.parent.name in NOT_A_SKILL:
             continue
         count += 1
@@ -141,7 +142,7 @@ def check_runner_parity(failures: list[str]) -> None:
     discover_src = (REPO_ROOT / "shared" / "scripts" / "discover_runners.py").read_text(
         encoding="utf-8", errors="replace"
     )
-    for runner_dir in sorted(REPO_ROOT.glob("*-runner")):
+    for runner_dir in sorted(d for d in iter_skill_dirs(REPO_ROOT) if d.name.endswith("-runner")):
         if not runner_dir.is_dir():
             continue
         prefix = runner_dir.name.removesuffix("-runner")
@@ -160,7 +161,7 @@ def check_runner_parity(failures: list[str]) -> None:
 
 
 def check_invocation_parity(failures: list[str]) -> None:
-    for skill_md in sorted(REPO_ROOT.glob("*/SKILL.md")):
+    for skill_md in sorted(d / "SKILL.md" for d in iter_skill_dirs(REPO_ROOT)):
         if skill_md.parent.name in NOT_A_SKILL:
             continue
         text = skill_md.read_text(encoding="utf-8", errors="replace")

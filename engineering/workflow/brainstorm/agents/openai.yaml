@@ -1,0 +1,8 @@
+# Codex-host interface/registration config for this skill (display metadata and
+# default prompt shown in the Codex app). Not meant to be read at runtime.
+interface:
+  display_name: "Brainstorm"
+  short_description: "Sharpen a half-baked idea to a BUILD / DEFER / REDUCE SCOPE / REJECT verdict"
+  default_prompt: "Use $brainstorm to explore this idea: motivation before mechanism, widen the option space, and close with a BUILD / DEFER / REDUCE SCOPE / REJECT verdict."
+policy:
+  allow_implicit_invocation: false

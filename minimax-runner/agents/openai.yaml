@@ -1,5 +1,0 @@
-# Consumed by the Codex app: exposes this skill as a native subagent seat with UI metadata and a default prompt (see the claude-runner skill's SKILL.md notes). Do not remove.
-interface:
-  display_name: "Minimax Runner"
-  short_description: "Run workspace prompts through Cline CLI on Minimax"
-  default_prompt: "Use $minimax-runner to execute this task with Minimax from the current workspace."

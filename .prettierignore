@@ -1,0 +1,9 @@
+# Markdown formatting is enforced with Prettier defaults (proseWrap: never — paragraphs stay on one line).
+# Run: npx prettier@3 --write "**/*.md"
+.git/
+.ai-workflow/
+.rar-skills/
+.claude/
+node_modules/
+__pycache__/
+LICENSE

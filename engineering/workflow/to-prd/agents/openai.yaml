@@ -1,0 +1,8 @@
+# Codex-host interface/registration config for this skill (display metadata and
+# default prompt shown in the Codex app). Not meant to be read at runtime.
+interface:
+  display_name: "To PRD"
+  short_description: "Synthesize the interview into a PRD under .ai-workflow/work/<slug>/prd.md"
+  default_prompt: "Use $to-prd to synthesize the current discussion into a PRD with security and testing decisions folded in, without a second interview."
+policy:
+  allow_implicit_invocation: false

@@ -1,0 +1,891 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>rar-skills — the atlas</title>
+<meta name="description" content="What every skill in rar-skills does, how they call each other, and where the collection could be simplified.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght,SOFT@9..144,300..900,0..100&family=Literata:ital,opsz,wght@0,7..72,300..700;1,7..72,300..700&family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#f3ede2; --paper-2:#ebe3d4; --paper-3:#e2d8c5;
+    --ink:#1b1712; --ink-2:#4a423a; --ink-3:#7d746a; --ink-4:#a89e91;
+    --rule:rgba(27,23,18,.16); --rule-2:rgba(27,23,18,.08);
+    --human:#c23a1c; --human-soft:rgba(194,58,28,.12);
+    --auto:#1d6b66; --auto-soft:rgba(29,107,102,.12);
+    --gate:#b7791f; --gate-soft:rgba(183,121,31,.14);
+    --council:#4b3f8f; --council-soft:rgba(75,63,143,.12);
+    --display:"Fraunces",Georgia,"Times New Roman",serif;
+    --body:"Literata",Georgia,serif;
+    --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0;background:var(--paper);color:var(--ink);
+    font-family:var(--body);font-size:16.5px;line-height:1.6;
+    font-optical-sizing:auto;-webkit-font-smoothing:antialiased;
+    position:relative;
+  }
+  body::before{ /* paper grain */
+    content:"";position:fixed;inset:0;pointer-events:none;z-index:0;opacity:.55;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .06 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+  .wrap{max-width:1200px;margin:0 auto;padding:0 28px;position:relative;z-index:1}
+  a{color:inherit;text-decoration:none;border-bottom:1px solid var(--rule);transition:border-color .2s}
+  a:hover{border-color:var(--ink)}
+  code,.mono{font-family:var(--mono);font-size:.86em}
+  code{background:var(--paper-2);padding:.1em .38em;border-radius:3px;white-space:nowrap}
+  h1,h2,h3,h4{font-family:var(--display);font-weight:500;letter-spacing:-.01em;margin:0}
+  p{margin:0 0 1em}
+  .muted{color:var(--ink-3)}
+  .hidden{display:none!important}
+
+  /* ---------- nav ---------- */
+  nav.top{position:sticky;top:0;z-index:20;background:rgba(243,237,226,.86);backdrop-filter:blur(10px);border-bottom:1px solid var(--rule-2)}
+  nav.top .wrap{display:flex;align-items:center;justify-content:space-between;height:52px;gap:20px}
+  nav.top .brand{font-family:var(--display);font-size:18px;font-weight:600;border:none}
+  nav.top .brand i{font-style:italic;font-weight:300;color:var(--ink-3)}
+  nav.top ul{list-style:none;margin:0;padding:0;display:flex;gap:26px}
+  nav.top li a{font-family:var(--mono);font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-2);border:none}
+  nav.top li a b{color:var(--human);font-weight:500;margin-right:6px}
+  nav.top li a:hover{color:var(--ink)}
+  @media (max-width:760px){nav.top ul{display:none}}
+
+  /* ---------- hero ---------- */
+  header.hero{padding:88px 0 56px;position:relative;overflow:hidden}
+  header.hero .grid{display:grid;grid-template-columns:minmax(0,7fr) minmax(0,5fr);gap:48px;align-items:end}
+  .kicker{font-family:var(--mono);font-size:12px;letter-spacing:.22em;text-transform:uppercase;color:var(--human);margin:0 0 22px;display:flex;align-items:center;gap:14px}
+  .kicker::before{content:"";width:34px;height:1px;background:var(--human)}
+  h1{font-size:clamp(46px,7.4vw,96px);line-height:.98;font-weight:400;font-variation-settings:"SOFT" 40;margin:0 0 26px}
+  h1 em{font-style:italic;font-weight:300;color:var(--human)}
+  .lede{font-size:clamp(18px,2vw,22px);line-height:1.45;color:var(--ink-2);max-width:40ch;font-weight:300}
+  .lede b{font-weight:500;color:var(--ink)}
+  .stats{display:grid;grid-template-columns:1fr 1fr;gap:0;border-top:1px solid var(--ink);border-left:1px solid var(--ink)}
+  .stat{padding:18px 20px 20px;border-right:1px solid var(--ink);border-bottom:1px solid var(--ink);position:relative;background:transparent}
+  .stat .n{font-family:var(--display);font-size:clamp(40px,4.6vw,58px);line-height:1;font-weight:300;font-variation-settings:"opsz" 144}
+  .stat .l{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);margin-top:8px}
+  .stat.h .n{color:var(--human)} .stat.a .n{color:var(--auto)} .stat.c .n{color:var(--council)} .stat.g .n{color:var(--gate)}
+  .legend{display:flex;flex-wrap:wrap;gap:18px 26px;margin-top:40px;padding-top:22px;border-top:1px solid var(--rule)}
+  .legend span{display:inline-flex;align-items:center;gap:9px;font-family:var(--mono);font-size:12px;color:var(--ink-2)}
+  .sw{width:14px;height:14px;border-radius:50%;display:inline-block}
+  .sw.h{background:var(--human)} .sw.a{background:var(--auto)} .sw.c{background:var(--council)} .sw.g{background:var(--gate)} .sw.n{background:var(--ink-4)}
+  .ln{width:34px;height:0;border-top:2px solid var(--ink);display:inline-block}
+  .ln.dash{border-top-style:dashed;border-color:var(--ink-3)}
+  @media (max-width:900px){header.hero .grid{grid-template-columns:1fr;gap:34px}}
+
+  /* ---------- sections ---------- */
+  section{padding:76px 0 30px;border-top:1px solid var(--rule)}
+  .sec-head{display:grid;grid-template-columns:110px 1fr;gap:26px;align-items:start;margin-bottom:34px}
+  .sec-head .num{font-family:var(--display);font-size:64px;line-height:.9;font-weight:300;color:var(--ink-4);font-variation-settings:"opsz" 144}
+  .sec-head h2{font-size:clamp(30px,3.6vw,44px);line-height:1.05;font-weight:400}
+  .sec-head h2 em{font-style:italic;font-weight:300}
+  .sec-head p{margin:14px 0 0;max-width:66ch;color:var(--ink-2)}
+  @media (max-width:700px){.sec-head{grid-template-columns:1fr;gap:6px}.sec-head .num{font-size:40px}}
+
+  /* ---------- catalogue ---------- */
+  .tools{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:0 0 26px}
+  .tools input{font:inherit;font-family:var(--mono);font-size:13px;padding:9px 13px;border:1px solid var(--rule);background:rgba(255,255,255,.35);border-radius:4px;min-width:260px;color:var(--ink);outline:none}
+  .tools input:focus{border-color:var(--ink)}
+  .tools .count{font-family:var(--mono);font-size:12px;color:var(--ink-3)}
+  .family{margin:0 0 44px}
+  .family-head{display:flex;align-items:baseline;gap:16px;margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid var(--ink)}
+  .family-head h3{font-size:26px;font-weight:400}
+  .family-head h3 em{font-style:italic;font-weight:300;color:var(--ink-3)}
+  .family-head .tag{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);margin-left:auto;white-space:nowrap}
+  .family-head .tag i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:7px;vertical-align:middle}
+  .family p.about{color:var(--ink-2);max-width:78ch;margin:0 0 18px;font-size:15.5px}
+  .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:1px;padding:1px}
+  .card{background:var(--paper);padding:16px 18px 18px;position:relative;transition:background .2s;min-height:118px;outline:1px solid var(--rule-2)}
+  .card:hover{background:rgba(255,255,255,.5)}
+  .card .name{font-family:var(--mono);font-size:13.5px;font-weight:600;letter-spacing:-.01em;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .card .name .badge{font-weight:500;font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;padding:2px 6px;border:1px solid currentColor;border-radius:2px;line-height:1.3}
+  .badge.entry{color:var(--human)} .badge.shim{color:var(--ink-3)} .badge.lens{color:var(--auto)} .badge.panel{color:var(--council)}
+  .card .what{font-size:14.5px;line-height:1.5;color:var(--ink-2);margin:8px 0 0}
+  .card .calls{font-family:var(--mono);font-size:11px;color:var(--ink-3);margin-top:10px;line-height:1.7}
+  .card .calls b{font-weight:500;color:var(--ink-4)}
+  .card .calls span{white-space:nowrap}
+  .card.dim{opacity:.22}
+
+  /* ---------- map ---------- */
+  .mapwrap{position:relative;border:1px solid var(--ink);background:linear-gradient(180deg,rgba(255,255,255,.35),rgba(255,255,255,0));overflow-x:auto;overflow-y:hidden}
+  .map{position:relative;display:grid;grid-template-columns:.85fr .9fr 1.05fr 1.05fr 1.2fr 1.3fr;gap:0;min-width:1090px;padding:30px 14px 26px}
+  .map svg.edges{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:1}
+  .col{position:relative;z-index:2;padding:0 6px;border-left:1px dashed var(--rule);min-width:0}
+  .col:first-child{border-left:none}
+  .col h4{font-family:var(--mono);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3);font-weight:500;margin:0 0 14px;padding-bottom:8px;border-bottom:1px solid var(--rule)}
+  .col h4 i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:7px;vertical-align:1px}
+  .node{display:block;font-family:var(--mono);font-size:11px;padding:6px 8px;margin:0 0 7px;border:1px solid var(--rule);border-radius:3px;background:var(--paper);cursor:default;position:relative;transition:all .18s;line-height:1.35;overflow-wrap:anywhere}
+  .node.h{border-color:var(--human);border-left-width:3px}
+  .node.a{border-color:var(--auto);border-left-width:3px}
+  .node.c{border-color:var(--council);border-left-width:3px}
+  .node.g{border-color:var(--gate);border-left-width:3px}
+  .node.n{border-left-width:3px;border-left-color:var(--ink-4)}
+  .node.grp{border-style:dashed;color:var(--ink-2)}
+  .node.on{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+  .node.near{background:rgba(255,255,255,.7);border-color:var(--ink)}
+  .node.far{opacity:.28}
+  .node .k{display:inline-block;margin-left:7px;font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-4);vertical-align:1px}
+  .node.on .k{color:var(--paper-3)}
+  .gap{height:14px}
+  .map-controls{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:14px 0 0;font-family:var(--mono);font-size:12px;color:var(--ink-2)}
+  .map-controls button{font:inherit;font-family:var(--mono);font-size:12px;padding:6px 12px;border:1px solid var(--rule);background:transparent;border-radius:3px;cursor:pointer;color:var(--ink-2)}
+  .map-controls button.act{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+  .map-controls .hint{margin-left:auto;color:var(--ink-3)}
+  #edgeInfo{font-family:var(--mono);font-size:12.5px;color:var(--ink-2);margin:12px 0 0;min-height:22px}
+  #edgeInfo b{color:var(--ink);font-weight:600}
+
+  /* ---------- constellations ---------- */
+  .const{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:18px;margin-top:40px}
+  .cst{border:1px solid var(--rule);padding:18px 20px 20px;background:rgba(255,255,255,.28);position:relative}
+  .cst::before{content:attr(data-n);position:absolute;top:-11px;left:16px;background:var(--paper);padding:0 8px;font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;color:var(--ink-3)}
+  .cst h4{font-size:20px;font-weight:500;margin:4px 0 8px}
+  .cst .chain{font-family:var(--mono);font-size:12px;line-height:2.1;color:var(--ink-2);margin:0 0 8px}
+  .cst .chain em{font-style:normal;color:var(--ink-4);margin:0 5px}
+  .cst p{font-size:14.5px;color:var(--ink-2);margin:0;line-height:1.5}
+
+  /* ---------- adjacency ---------- */
+  details.adj{margin-top:34px;border:1px solid var(--rule)}
+  details.adj summary{cursor:pointer;padding:14px 18px;font-family:var(--mono);font-size:12.5px;letter-spacing:.06em;color:var(--ink-2);list-style:none;display:flex;justify-content:space-between}
+  details.adj summary::-webkit-details-marker{display:none}
+  details.adj summary::after{content:"+";font-size:18px;line-height:1}
+  details.adj[open] summary::after{content:"–"}
+  .adjtab{overflow-x:auto;border-top:1px solid var(--rule)}
+  table{border-collapse:collapse;width:100%;font-size:13.5px}
+  th,td{text-align:left;padding:9px 14px;border-bottom:1px solid var(--rule-2);vertical-align:top}
+  th{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3);font-weight:500}
+  td.k{font-family:var(--mono);font-size:12.5px;white-space:nowrap;font-weight:600}
+  td.v{font-family:var(--mono);font-size:12px;color:var(--ink-2);line-height:1.8}
+  td.v span{white-space:nowrap}
+  td.v span i{font-style:normal;color:var(--ink-4);font-size:10.5px}
+
+  /* ---------- optimization ---------- */
+  .findings{display:flex;flex-direction:column;gap:0;border-top:1px solid var(--ink)}
+  .f{display:grid;grid-template-columns:76px minmax(0,1fr) 300px;gap:30px;padding:30px 0 32px;border-bottom:1px solid var(--rule)}
+  .f .idx{font-family:var(--display);font-size:38px;font-weight:300;line-height:1;color:var(--ink-4);font-variation-settings:"opsz" 144}
+  .f h3{font-size:24px;font-weight:500;line-height:1.2;margin:0 0 10px}
+  .f h3 em{font-style:italic;font-weight:300}
+  .f .ev{font-size:15px;color:var(--ink-2);line-height:1.55}
+  .f .ev p{margin:0 0 .7em}
+  .f .ev ul{margin:.2em 0 .8em 1.1em;padding:0}
+  .f .ev li{margin:.25em 0}
+  .f .fix{border-left:2px solid var(--auto);padding:2px 0 2px 18px}
+  .f .fix .lbl{font-family:var(--mono);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--auto);margin-bottom:8px}
+  .f .fix p{font-size:14.5px;line-height:1.5;color:var(--ink-2);margin:0 0 .6em}
+  .f .fix .gain{font-family:var(--mono);font-size:11.5px;color:var(--ink-3);margin-top:8px}
+  .f .fix .gain b{color:var(--ink);font-weight:500}
+  .sev{display:inline-block;font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;padding:2px 7px;border-radius:2px;margin-left:10px;vertical-align:middle;border:1px solid}
+  .sev.cost{color:var(--human);border-color:var(--human)}
+  .sev.bug{color:var(--gate);border-color:var(--gate)}
+  .sev.shape{color:var(--council);border-color:var(--council)}
+  @media (max-width:900px){.f{grid-template-columns:1fr;gap:12px}.f .idx{font-size:28px}}
+
+  .ledger{margin-top:56px;display:grid;grid-template-columns:1fr 1fr;gap:0;border:1px solid var(--ink)}
+  .ledger > div{padding:26px 28px}
+  .ledger > div:first-child{border-right:1px solid var(--ink)}
+  .ledger h4{font-size:22px;font-weight:500;margin-bottom:12px}
+  .ledger h4 em{font-style:italic;font-weight:300;color:var(--ink-3)}
+  .ledger .row{display:flex;justify-content:space-between;gap:12px;font-family:var(--mono);font-size:12.5px;padding:7px 0;border-bottom:1px dashed var(--rule)}
+  .ledger .row:last-child{border-bottom:none}
+  .ledger .row b{font-weight:600}
+  .ledger .row.del{color:var(--ink-3);text-decoration:line-through}
+  .ledger .row.add{color:var(--auto)}
+  .ledger .tot{font-family:var(--display);font-size:34px;font-weight:300;margin-top:16px}
+  .ledger .tot small{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);display:block;margin-top:4px}
+  @media (max-width:800px){.ledger{grid-template-columns:1fr}.ledger > div:first-child{border-right:none;border-bottom:1px solid var(--ink)}}
+
+  footer{padding:50px 0 60px;border-top:1px solid var(--rule);margin-top:60px;color:var(--ink-3);font-size:14px;font-family:var(--mono)}
+  footer .wrap{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap}
+
+  /* reveal */
+  .rv{opacity:0;transform:translateY(14px);transition:opacity .7s ease,transform .7s ease}
+  .rv.in{opacity:1;transform:none}
+  @media (prefers-reduced-motion:reduce){.rv{opacity:1;transform:none;transition:none}}
+</style>
+</head>
+<body>
+
+<nav class="top">
+  <div class="wrap">
+    <a class="brand" href="#top">rar-skills <i>/ atlas</i></a>
+    <ul>
+      <li><a href="#catalogue"><b>I</b>Catalogue</a></li>
+      <li><a href="#links"><b>II</b>Links</a></li>
+      <li><a href="#optimize"><b>III</b>Optimization</a></li>
+    </ul>
+  </div>
+</nav>
+
+<header class="hero" id="top">
+  <div class="wrap">
+    <div class="grid">
+      <div>
+        <p class="kicker">Field guide · September 2026</p>
+        <h1>Sixty-eight skills,<br>one <em>workflow</em>,<br>and the seams between them.</h1>
+        <p class="lede">What each skill does, which ones <b>call each other by name</b>, which ones only meet when <b>you</b> put them in sequence, and where the collection would get lighter without getting weaker.</p>
+      </div>
+      <div class="stats">
+        <div class="stat"><div class="n">68</div><div class="l">invocable skills</div></div>
+        <div class="stat h"><div class="n">15</div><div class="l">entry points (user-only)</div></div>
+        <div class="stat a"><div class="n">11</div><div class="l">design lenses</div></div>
+        <div class="stat c"><div class="n">14</div><div class="l">runner seats</div></div>
+      </div>
+    </div>
+    <div class="legend">
+      <span><i class="sw h"></i>interactive · you are in the room</span>
+      <span><i class="sw a"></i>autonomous · runs after the approval gate</span>
+      <span><i class="sw c"></i>multi-model council &amp; seats</span>
+      <span><i class="sw g"></i>gates &amp; verdicts</span>
+      <span><i class="sw n"></i>standalone utility</span>
+      <span><i class="ln"></i>explicit call, named in the skill text</span>
+      <span><i class="ln dash"></i>logical link, only when you chain them</span>
+    </div>
+  </div>
+</header>
+
+<!-- ================= I. CATALOGUE ================= -->
+<section id="catalogue">
+  <div class="wrap">
+    <div class="sec-head rv">
+      <div class="num">I</div>
+      <div>
+        <h2>The catalogue, <em>by family</em></h2>
+        <p>One line per skill, in the words the skill would use about itself. The small mono line under each card lists the skills it names explicitly, most-cited first. <span class="badge entry" style="font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;padding:1px 5px;border:1px solid currentColor;border-radius:2px;text-transform:uppercase">entry</span> marks a skill only you can invoke (<code>disable-model-invocation</code>): no other skill can call it by name mid-run.</p>
+      </div>
+    </div>
+    <div class="tools rv">
+      <input id="q" type="search" placeholder="filter skills… e.g. review, runner, lens" aria-label="Filter skills">
+      <span class="count" id="qcount"></span>
+    </div>
+    <div id="families"></div>
+  </div>
+</section>
+
+<!-- ================= II. LINKS ================= -->
+<section id="links">
+  <div class="wrap">
+    <div class="sec-head rv">
+      <div class="num">II</div>
+      <div>
+        <h2>How they <em>connect</em></h2>
+        <p>Two kinds of link. A <b>solid</b> edge is an instruction inside a skill to invoke another skill: the pipeline runs on these without you. A <b>dashed</b> edge is a hand-off the docs recommend but nothing enforces: the next step only happens because you type it. Hover any skill to isolate its edges.</p>
+      </div>
+    </div>
+
+    <div class="mapwrap rv">
+      <div class="map" id="map">
+        <svg class="edges" id="edges"></svg>
+        <div class="col" data-col="0"><h4><i style="background:var(--human)"></i>Frame · specify · plan</h4>
+          <div class="node h" data-id="brainstorm">brainstorm</div>
+          <div class="node h" data-id="to-prototype">to-prototype</div>
+          <div class="node h" data-id="interview-me">interview-me</div>
+          <div class="node h" data-id="to-prd">to-prd</div>
+          <div class="node h" data-id="to-tasks">to-tasks</div>
+          <div class="gap"></div>
+          <div class="node g" data-id="security-gate">security-gate</div>
+          <div class="node n" data-id="test-lens">test-lens</div>
+          <div class="gap"></div>
+          <div class="node c" data-id="diverse-plan">diverse-plan</div>
+        </div>
+        <div class="col" data-col="1"><h4><i style="background:var(--ink)"></i>Conductors</h4>
+          <div class="node h" data-id="ship">ship <span class="k">entry</span></div>
+          <div class="node a" data-id="implement-feature">implement-feature</div>
+          <div class="gap"></div>
+          <div class="node n" data-id="dynamic-harness">dynamic-harness <span class="k">entry</span></div>
+          <div class="node n" data-id="peer-sessions">peer-sessions</div>
+          <div class="node n" data-id="cmux-cli">cmux-cli</div>
+          <div class="gap"></div>
+          <div class="node n" data-id="fable-mindset">fable-mindset <span class="k">entry</span></div>
+        </div>
+        <div class="col" data-col="2"><h4><i style="background:var(--auto)"></i>Design gate · build</h4>
+          <div class="node a" data-id="coding-design-plan">coding-design-plan</div>
+          <div class="node g" data-id="design-gate">design-gate</div>
+          <div class="gap"></div>
+          <div class="node a" data-id="implement-and-review">implement-and-review</div>
+          <div class="node a" data-id="collaborative-delivery">collaborative-delivery <span class="k">entry</span></div>
+          <div class="node a" data-id="tdd">tdd</div>
+          <div class="node a" data-id="safe-incremental-coding">safe-incremental-coding</div>
+          <div class="node a" data-id="diagnose">diagnose</div>
+          <div class="node a" data-id="clean-code">clean-code</div>
+          <div class="node a" data-id="worktree">worktree</div>
+        </div>
+        <div class="col" data-col="3"><h4><i style="background:var(--gate)"></i>Verify · deliver</h4>
+          <div class="node a" data-id="coding-review-simplify">coding-review-simplify</div>
+          <div class="node g" data-id="full-review">full-review</div>
+          <div class="node a" data-id="browser-smoke">browser-smoke</div>
+          <div class="node g" data-id="review-gate">review-gate <span class="k">entry</span></div>
+          <div class="node a" data-id="verify-changes">verify-changes</div>
+          <div class="gap"></div>
+          <div class="node a" data-id="open-pr">open-pr</div>
+          <div class="node a" data-id="resolve-pr-feedback">resolve-pr-feedback <span class="k">entry</span></div>
+          <div class="node a" data-id="session-handoff">session-handoff</div>
+          <div class="node n" data-id="summarize">summarize</div>
+          <div class="node a" data-id="capture-learning">capture-learning</div>
+        </div>
+        <div class="col" data-col="4"><h4><i style="background:var(--auto)"></i>Lenses (routed by design-gate)</h4>
+          <div class="node a" data-id="architecture-lens">architecture-lens</div>
+          <div class="node a" data-id="macro-architecture">macro-architecture</div>
+          <div class="node a" data-id="domain-driven-design">domain-driven-design</div>
+          <div class="node a" data-id="software-design-philosophy">software-design-philosophy</div>
+          <div class="node a" data-id="design-patterns">design-patterns</div>
+          <div class="node a" data-id="data-systems-coding-lens">data-systems-coding-lens</div>
+          <div class="node a" data-id="distributed-systems-patterns">distributed-systems-patterns</div>
+          <div class="node a" data-id="agent-architecture-lens">agent-architecture-lens</div>
+          <div class="node a" data-id="react-performance">react-performance</div>
+          <div class="node a" data-id="ui-ux-pro-max">ui-ux-pro-max</div>
+          <div class="node n" data-id="event-driven-microservices">event-driven-microservices</div>
+          <div class="node n" data-id="frontend-design">frontend-design</div>
+          <div class="node n" data-id="advanced-react">advanced-react</div>
+        </div>
+        <div class="col" data-col="5"><h4><i style="background:var(--council)"></i>Council · seats</h4>
+          <div class="node c" data-id="models-consensus">models-consensus</div>
+          <div class="node c" data-id="decide-about-disagreements">decide-about-disagreements <span class="k">entry</span></div>
+          <div class="node c" data-id="consensus-summary-html">consensus-summary-html <span class="k">entry</span></div>
+          <div class="gap"></div>
+          <div class="node c" data-id="claude-runner">claude-runner</div>
+          <div class="node c" data-id="codex-runner">codex-runner</div>
+          <div class="node c" data-id="gemini-runner">gemini-runner</div>
+          <div class="node c" data-id="grok-runner">grok-runner</div>
+          <div class="node c" data-id="pi-runner">pi-runner</div>
+          <div class="node c grp" data-id="pi-shims">kimi · glm · qwen · gemma</div>
+          <div class="node c" data-id="cline-runner">cline-runner</div>
+          <div class="node c grp" data-id="cline-shims">muse · minimax</div>
+          <div class="node c grp" data-id="other-runners">dcode · opencode</div>
+        </div>
+      </div>
+    </div>
+    <div class="map-controls">
+      <span>show</span>
+      <button class="act" data-mode="both">both</button>
+      <button data-mode="explicit">explicit only</button>
+      <button data-mode="logical">logical only</button>
+      <span class="hint">hover a skill · click to pin</span>
+    </div>
+    <div id="edgeInfo">Hover a skill to list what it calls and what calls it.</div>
+
+    <div class="const">
+      <div class="cst rv" data-n="constellation 01"><h4>The spine you drive</h4>
+        <div class="chain">brainstorm <em>→</em> interview-me <em>→</em> to-prd <em>→</em> to-tasks <em>→</em> ship</div>
+        <p>Each skill ends by naming the next ("run <code>to-prd</code>"), but none invokes it. Outside <code>ship</code>, the chain only exists if you keep typing. <code>ship</code> is the one place the whole spine is wired.</p></div>
+      <div class="cst rv" data-n="constellation 02"><h4>The test-first triangle</h4>
+        <div class="chain">safe-incremental-coding <em>⇄</em> tdd <em>⇄</em> diagnose <em>·</em> test-lens <em>·</em> clean-code</div>
+        <p>Tightly cross-referenced by "distinct from" clauses. <code>tdd</code> sends untested code to the characterization net and returns; a failure it cannot read at a glance goes to <code>diagnose</code>; <code>test-lens</code> judges what <code>tdd</code> wrote. Only <code>implement-and-review</code> wires them for you.</p></div>
+      <div class="cst rv" data-n="constellation 03"><h4>After the council</h4>
+        <div class="chain">models-consensus <em>→</em> decide-about-disagreements <em>·</em> consensus-summary-html <em>·</em> implement-feature --from-consensus</div>
+        <p>Three consumers of one report. Two of them are entry points, so the council can never hand off to them itself: you read the result, then decide whether to resolve, render, or build.</p></div>
+      <div class="cst rv" data-n="constellation 04"><h4>Memory and continuity</h4>
+        <div class="chain">summarize <em>→</em> session-handoff <em>·</em> capture-learning <em>→</em> CONCEPTS.md <em>←</em> interview-me <em>·</em> knowledge-graph</div>
+        <p><code>session-handoff</code> explicitly borrows <code>summarize</code>'s body. <code>capture-learning</code> and <code>interview-me</code> both write the glossary. <code>knowledge-graph</code> could feed on the same docs but nothing points it there.</p></div>
+      <div class="cst rv" data-n="constellation 05"><h4>Two ways to review a PR</h4>
+        <div class="chain">full-review <em>vs</em> review-gate <em>→</em> verify-changes <em>·</em> browser-smoke</div>
+        <p><code>full-review</code> is the human-facing deep review the pipeline calls. <code>review-gate</code> is a machine-verdict merge gate that owns the only call to <code>verify-changes</code>. They share seats and personas but not code.</p></div>
+      <div class="cst rv" data-n="constellation 06"><h4>Explaining a codebase</h4>
+        <div class="chain">explain-architecture <em>→</em> architecture-lens <em>·</em> html-explainer <em>·</em> agents-md-craft <em>→</em> skill-expert</div>
+        <p>Same input (a subsystem), two output shapes (prose vs drill-down HTML), no link between them. <code>agents-md-craft</code> and <code>skill-expert</code> maintain the collection itself.</p></div>
+      <div class="cst rv" data-n="constellation 07"><h4>The frontend cluster</h4>
+        <div class="chain">frontend-design <em>·</em> ui-ux-pro-max <em>·</em> react-performance <em>≈</em> advanced-react</div>
+        <p>Reached from <code>implement-and-review</code>'s frontend track and <code>design-gate</code>'s UI row. <code>advanced-react</code> and <code>react-performance</code> are drawn from the same book and trigger on the same phrases.</p></div>
+      <div class="cst rv" data-n="constellation 08"><h4>Fleets and terminals</h4>
+        <div class="chain">dynamic-harness <em>·</em> peer-sessions <em>·</em> cmux-cli <em>·</em> worktree</div>
+        <p>Orchestration below the skill layer. <code>models-consensus</code> uses <code>peer-sessions</code> for its cmux transport; <code>ship</code> escalates to <code>dynamic-harness</code> manager mode when a run outgrows one session.</p></div>
+    </div>
+
+    <details class="adj rv">
+      <summary><span>Full adjacency · every explicit mention, counted</span></summary>
+      <div class="adjtab"><table id="adj"><thead><tr><th>skill</th><th>names these skills (count of mentions across its files)</th></tr></thead><tbody></tbody></table></div>
+    </details>
+  </div>
+</section>
+
+<!-- ================= III. OPTIMIZATION ================= -->
+<section id="optimize">
+  <div class="wrap">
+    <div class="sec-head rv">
+      <div class="num">III</div>
+      <div>
+        <h2>Where it could get <em>lighter</em></h2>
+        <p>Twelve findings from reading the skill texts against each other. Each names the evidence in the files, then a concrete move. Tags: <span class="sev cost" style="margin:0">cost</span> spends tokens or model seats twice, <span class="sev bug" style="margin:0">contract</span> a rule that contradicts another rule, <span class="sev shape" style="margin:0">shape</span> two skills where one would do.</p>
+      </div>
+    </div>
+
+    <div class="findings">
+
+      <div class="f rv"><div class="idx">01</div>
+        <div><h3>One slice pays for <em>full-review</em> twice, sometimes three times<span class="sev cost">cost</span></h3>
+          <div class="ev">
+            <p><code>implement-and-review</code> Phase 3 runs <code>coding-review-simplify</code> and Phase 4 runs <code>full-review</code> on the integrated diff. <code>ship</code> phase 5 then runs the identical chain again on the same code: acceptance → <code>coding-review-simplify</code> → <code>full-review</code>. With <code>implement-feature</code> in the loop, a third feature-wide <code>full-review</code> follows.</p>
+            <p><code>full-review</code> is the most expensive skill in the collection (multi-model triangulation, execution-based verification, 28 files). Only <code>implement-feature</code> acknowledges the repeat ("targets the seams so you don't pay to re-review every task in full"); <code>ship</code> does not.</p>
+          </div></div>
+        <div class="fix"><div class="lbl">Move</div>
+          <p>Give <code>implement-and-review</code> a <code>--gate defer</code> input that ship's phase-4 brief sets. The build then stops at green + self-simplify, and phase 5 is the single gate. Standalone invocations keep the built-in gate.</p>
+          <p>Alternatively keep both but make phase 5 skip <code>full-review</code> when the run state records an APPROVE on an unchanged diff range.</p>
+          <div class="gain">saves <b>one multi-model review per slice</b></div></div></div>
+
+      <div class="f rv"><div class="idx">02</div>
+        <div><h3>The design lenses run <em>before</em> the build, then again <em>inside</em> it<span class="sev cost">cost</span></h3>
+          <div class="ev">
+            <p>Phase 3 dispatches <code>coding-design-plan</code> then <code>design-gate</code>, which runs up to three lenses as parallel reviewers and writes <code>03-design-gate.report.md</code>. Phase 4's <code>implement-and-review</code> then lists <code>coding-design-plan</code> again under "both tracks" and says of the planning lenses: "the orchestrator runs them in Phase 0 and their conclusions go into the briefs".</p>
+            <p>The station worker reads the phase-3 report, but nothing in <code>implement-and-review</code> says "if a design-gate report exists, lift it instead of re-running".</p>
+          </div></div>
+        <div class="fix"><div class="lbl">Move</div>
+          <p>Add a lift rule mirroring the one it already has for the Slice Contract: when the brief carries a design-gate report path, its findings become the brief constraints and Phase 0 runs no lenses. <code>design-gate</code>'s output contract already has the right shape for this.</p>
+          <div class="gain">saves <b>up to 3 lens passes per slice</b></div></div></div>
+
+      <div class="f rv"><div class="idx">03</div>
+        <div><h3>Ship names alternatives its workers <em>cannot invoke</em><span class="sev bug">contract</span></h3>
+          <div class="ev">
+            <p>Station dispatch rule 2: a skill carrying <code>disable-model-invocation: true</code> "never appears in a worker's skill list… In this pipeline that is <code>resolve-pr-feedback</code>". But the phase-4 row also offers <code>collaborative-delivery</code> as an alternative build engine, and it carries the same flag. So do <code>diverse-plan</code> and <code>review-gate</code>, both of which the docs position as pipeline-adjacent.</p>
+            <p>A worker asked to use <code>collaborative-delivery</code> will find nothing by that name.</p>
+          </div></div>
+        <div class="fix"><div class="lbl">Move</div>
+          <p>Either drop the flag on <code>collaborative-delivery</code> (it is a build engine, not a top-level entry) or extend rule 2 to list every flagged skill a station may name, with the read-the-file-and-follow-it instruction. A one-line test in <code>shared/tests</code> can assert that no skill named in a station row is flagged.</p>
+          <div class="gain">closes <b>a silent no-op path</b></div></div></div>
+
+      <div class="f rv"><div class="idx">04</div>
+        <div><h3>A lens nobody routes to<span class="sev bug">contract</span></h3>
+          <div class="ev">
+            <p><code>event-driven-microservices</code> is a full design lens (event-stream contracts, single-writer ownership, choreography vs orchestration) and <code>distributed-systems-patterns</code> cites it seven times. But <code>design-gate</code>'s routing table has no row for it, and <code>to-tasks</code> lifts its gate flags from that table. Under the "one user-called skill per step" principle, a lens the gate cannot reach only runs when you remember it exists.</p>
+          </div></div>
+        <div class="fix"><div class="lbl">Move</div>
+          <p>Add a routing row: "event streams, Kafka-style topics, choreography vs orchestration, event schema design → <code>event-driven-microservices</code>, <code>data-systems-coding-lens</code>". Or fold it into <code>distributed-systems-patterns</code> as a section, since the two already lean on each other.</p>
+          <div class="gain">makes the lens <b>reachable by contract</b></div></div></div>
+
+      <div class="f rv"><div class="idx">05</div>
+        <div><h3>Six runner skills are four-file <em>shims</em><span class="sev shape">shape</span></h3>
+          <div class="ev">
+            <p><code>kimi</code>, <code>glm</code>, <code>qwen</code>, <code>gemma</code> each say "execute through the shared <code>pi-runner</code> implementation" with one provider/model pair pinned. <code>muse</code> and <code>minimax</code> do the same over <code>cline-runner</code>. Each shim is a SKILL.md, a script, and tests: roughly 500 words of prose that restate the parent.</p>
+            <p>The seat names still matter: <code>discover_runners.py</code>, the roster, and every panel routing file address seats by these names.</p>
+          </div></div>
+        <div class="fix"><div class="lbl">Move</div>
+          <p>Keep the seats, drop the skills. <code>pi-runner --seat kimi</code> and <code>cline-runner --seat muse</code> read the pin from <code>model-roster.md</code>; the probe keeps the seat vocabulary as aliases. Six directories become two tables.</p>
+          <div class="gain"><b>68 → 62</b> skills, no seat lost</div></div></div>
+
+      <div class="f rv"><div class="idx">06</div>
+        <div><h3>Four copies of the same <em>panel</em><span class="sev shape">shape</span></h3>
+          <div class="ev">
+            <p><code>brainstorm</code>, <code>to-prd</code>, <code>to-tasks</code>, and <code>collaborative-delivery</code> each ship an <code>assets/*routing.toml</code> declaring the same four providers (Opus synthesis anchor, Codex adversarial anchor, Gemini broad context, Kimi feasibility) with the same runner args and the same comment block about isolating cline state. Only the roles-per-phase differ. The restructuring notes already flagged stale model ids in "four routing files" once.</p>
+          </div></div>
+        <div class="fix"><div class="lbl">Move</div>
+          <p>One <code>shared/assets/panel-providers.toml</code> for the provider table; each skill keeps a 20-line file with only its phases and role assignments. <code>panel_round.py</code> merges the two. The roster stays the single source of model ids.</p>
+          <div class="gain">one place to <b>rotate a seat</b></div></div></div>
+
+      <div class="f rv"><div class="idx">07</div>
+        <div><h3>The council's tail is three skills that can only run <em>after</em> it<span class="sev shape">shape</span></h3>
+          <div class="ev">
+            <p><code>decide-about-disagreements</code> and <code>consensus-summary-html</code> both begin by reading a finished <code>models-consensus</code> result and have no other input. Both are entry points, so the council cannot suggest them programmatically. <code>diverse-plan</code> is a fourth multi-model skill that explicitly "never calls the council" yet duplicates its seat probe, quorum rule, and degrade path.</p>
+          </div></div>
+        <div class="fix"><div class="lbl">Move</div>
+          <p>Make resolve and render two output modes of <code>models-consensus</code> (<code>--then resolve</code>, <code>--html</code>) that load the existing reference files; keep the old names as aliases for a release. Leave <code>diverse-plan</code> separate but have it import the council's preflight section instead of restating it.</p>
+          <div class="gain"><b>62 → 60</b> skills, council reports self-describe their next step</div></div></div>
+
+      <div class="f rv"><div class="idx">08</div>
+        <div><h3>Pairs that trigger on the same sentence<span class="sev shape">shape</span></h3>
+          <div class="ev">
+            <ul>
+              <li><code>advanced-react</code> / <code>react-performance</code>: both "Advanced React (Makarevich)", both list re-renders, memo traps, stale closures, portals, fetch races. One says plan-and-implement, the other says advise-and-review. Only the latter is routed by <code>design-gate</code>.</li>
+              <li><code>explain-architecture</code> / <code>html-explainer</code>: same question ("how does X work"), one answers in prose, one in a drill-down page.</li>
+              <li><code>summarize</code> / <code>session-handoff</code>: already layered by design, but the layering is one <code>--store</code> flag wide.</li>
+            </ul>
+          </div></div>
+        <div class="fix"><div class="lbl">Move</div>
+          <p>Merge each pair into one skill with a mode. React: <code>react-performance</code> with <code>mode: plan | review</code>. Explain: <code>explain-architecture</code> with <code>format: prose | html</code>, keeping the SVG-map reference. Leave summarize alone; its 34 lines are cheap and other skills borrow it by name.</p>
+          <div class="gain"><b>60 → 58</b> skills, two trigger collisions gone</div></div></div>
+
+      <div class="f rv"><div class="idx">09</div>
+        <div><h3>Two review orchestrators, one <em>verify</em> skill nobody else uses<span class="sev shape">shape</span></h3>
+          <div class="ev">
+            <p><code>full-review</code> (28 files, ~20k words) and <code>review-gate</code> (15 files, ~5k words) both partition a diff, fan out reviewer personas across runner seats, and run an adversarial verification pass. <code>review-gate</code> alone calls <code>verify-changes</code>, the skill that discovers a repo's build/lint/test surface. Meanwhile <code>ship</code> phase 5 "runs the acceptance contract" by hand and <code>implement-and-review</code> preflight "detects how this project tests" by hand.</p>
+          </div></div>
+        <div class="fix"><div class="lbl">Move</div>
+          <p>Two steps. First, route both <code>ship</code> phase 5 and <code>implement-and-review</code> preflight through <code>verify-changes</code>; it already emits the machine-readable <code>checks[]</code> they want. Second, make the coverage contract and result JSON a <code>gate</code> mode of <code>full-review</code>, so one orchestrator serves both the human and the machine.</p>
+          <div class="gain"><b>58 → 57</b>, and one verification vocabulary</div></div></div>
+
+      <div class="f rv"><div class="idx">10</div>
+        <div><h3>Three nested orchestrators, three <em>ledgers</em> per slice<span class="sev cost">cost</span></h3>
+          <div class="ev">
+            <p><code>ship</code> keeps a run state per slice. <code>implement-feature</code> keeps a feature-level run state "beside the per-task states each <code>implement-and-review</code> keeps". <code>implement-and-review</code> keeps its own under <code>.ai-workflow/impl-review/&lt;id&gt;/</code>, with its own attempts, side-effect keys, and status flips. Each follows the same <code>run-state-contract.md</code>, so the shapes agree, but a resumed run has to reconcile three files that describe one slice.</p>
+            <p>The worktree flow is similar: <code>worktree</code> is a skill, yet <code>implement-and-review</code> mentions "worktree" 58 times and keeps "its internal flow" per the trigger audit.</p>
+          </div></div>
+        <div class="fix"><div class="lbl">Move</div>
+          <p>One ledger per slice, owned by the innermost engine, with the conductors holding only an index of slice → ledger path. That is already the "hand off the path, not the payload" rule applied to state. Then let <code>implement-and-review</code> invoke <code>worktree</code> for isolation instead of carrying a second copy of the git recipe.</p>
+          <div class="gain">one resume protocol, <b>one recipe for git isolation</b></div></div></div>
+
+      <div class="f rv"><div class="idx">11</div>
+        <div><h3>The biggest skills load their <em>mechanics</em> up front<span class="sev cost">cost</span></h3>
+          <div class="ev">
+            <p>SKILL.md line counts: <code>full-review</code> 453, <code>fable-mindset</code> 393, <code>browser-smoke</code> 246, <code>capture-learning</code> 220, <code>decide-about-disagreements</code> 219, <code>dynamic-harness</code> 215. <code>skill-expert</code>, in this same repo, teaches progressive disclosure: a short SKILL.md that states the contract and loads references on demand. <code>fable-mindset</code> is meant to govern posture at the start of a turn, and it is the second-longest file in the collection.</p>
+          </div></div>
+        <div class="fix"><div class="lbl">Move</div>
+          <p>Cap SKILL.md at roughly 150 lines: triggers, inputs, workflow, output contract, gotchas. Move phase mechanics, personas, and rubrics into <code>references/</code> the workflow names at the step that needs them. <code>full-review</code> already has the folder; it is a matter of moving text.</p>
+          <div class="gain">less context <b>per invocation</b>, same behavior</div></div></div>
+
+      <div class="f rv"><div class="idx">12</div>
+        <div><h3>Orphans: skills with no path in and none out<span class="sev shape">shape</span></h3>
+          <div class="ev">
+            <p><code>html-explainer</code> names no other skill and is named by none. <code>knowledge-graph</code>, <code>cmux-cli</code>, <code>agents-md-craft</code>, <code>dcode-runner</code>, <code>opencode-runner</code>, and <code>advanced-react</code> are each reachable only if you remember them. That is fine for utilities, but the README presents the collection as one workflow, and the orphans are where new users get lost.</p>
+          </div></div>
+        <div class="fix"><div class="lbl">Move</div>
+          <p>Add a "standalone utilities" list to the README and mark those skills <code>disable-model-invocation: true</code> consistently, so entry-point status means one thing. Where a link is natural, wire it: <code>capture-learning</code> can offer <code>knowledge-graph</code> once <code>docs/solutions/</code> passes a size, and <code>explain-architecture</code> can offer the HTML format.</p>
+          <div class="gain">every skill is <b>either on the map or labeled off it</b></div></div></div>
+
+    </div>
+
+    <div class="ledger rv">
+      <div>
+        <h4>The count, <em>if all of it landed</em></h4>
+        <div class="row"><span>today</span><b>68</b></div>
+        <div class="row del"><span>pi shims (kimi, glm, qwen, gemma)</span><b>−4</b></div>
+        <div class="row del"><span>cline shims (muse, minimax)</span><b>−2</b></div>
+        <div class="row del"><span>decide-about-disagreements, consensus-summary-html → council modes</span><b>−2</b></div>
+        <div class="row del"><span>advanced-react → react-performance</span><b>−1</b></div>
+        <div class="row del"><span>html-explainer → explain-architecture</span><b>−1</b></div>
+        <div class="row del"><span>review-gate → full-review gate mode</span><b>−1</b></div>
+        <div class="tot">57 <small>skills, same capabilities, same seats</small></div>
+      </div>
+      <div>
+        <h4>What gets cheaper <em>per shipped slice</em></h4>
+        <div class="row"><span>full-review passes</span><b>2–3 → 1</b></div>
+        <div class="row"><span>coding-review-simplify passes</span><b>2 → 1</b></div>
+        <div class="row"><span>design-lens passes</span><b>up to 6 → up to 3</b></div>
+        <div class="row"><span>run-state files to reconcile on resume</span><b>3 → 1</b></div>
+        <div class="row"><span>routing files carrying model ids</span><b>5 → 1</b></div>
+        <div class="row add"><span>lenses reachable from design-gate</span><b>10 → 11</b></div>
+        <div class="tot" style="font-size:20px;line-height:1.35;font-weight:400;font-family:var(--body);color:var(--ink-2)">The gates stay. What goes is the second time each gate runs on code that has not changed since the first.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <span>rar-skills · docs/skills-atlas.html</span>
+    <span>counts from the SKILL.md files and cross-references at the time of writing · see workflow.md and pipeline.html for the run narrative</span>
+  </div>
+</footer>
+
+<script>
+/* ---------------- data ---------------- */
+const FAMILIES = [
+ {id:"spine", name:"The spine", sub:"frame · specify · plan", color:"var(--human)", tag:"interactive",
+  about:"The interactive half of the pipeline. Every human decision is collected here and written to disk; after to-tasks nothing asks you anything.",
+  skills:[
+   {n:"brainstorm", w:"Creative partner for a half-baked idea: motivation before mechanism, explores the code, widens the option space, ends with BUILD / DEFER / REDUCE SCOPE / REJECT. Opt-in panel mode fans it out to real seats.", badges:["panel"]},
+   {n:"to-prototype", w:"Throwaway spike for a design question only running code can settle: a single-file HTML demo or several UI variants on one route. Extract the decision, discard the code."},
+   {n:"interview-me", w:"Grills the idea against the code, CONCEPTS.md, and docs/adr/ in frontier rounds until nothing is silently assumed. Writes glossary entries and ADRs as decisions settle. Runs the security-gate checklist and names test seams."},
+   {n:"to-prd", w:"Synthesizes the conversation into .ai-workflow/work/&lt;slug&gt;/prd.md with Security Decisions and Testing Decisions folded in. No second interview. Panel mode drafts it with a multi-seat panel.", badges:["panel"]},
+   {n:"to-tasks", w:"Cuts the PRD into tracer-bullet vertical slices, each with a machine-checkable acceptance contract, design/security gate flags, HITL/AFK class, rollback note. One markdown file per slice. The last human gate.", badges:["panel"]},
+   {n:"security-gate", w:"Threat-model-lite checklist asked at spec time, plus a deterministic trigger list that decides which slices need the deep security pass in full-review. Never performs the deep review itself."},
+   {n:"coding-design-plan", w:"Shapes a coding plan before edits: scope gate, tracer-bullet vs prototype decision, named test scenarios. Used standalone or as the first half of ship's phase 3."},
+  ]},
+ {id:"conductors", name:"Conductors", sub:"the skills that call skills", color:"var(--ink)", tag:"orchestration",
+  about:"Thin routers. Each contains no phase knowledge of its own; every behavior is a referenced skill, and what crosses between phases is a file path plus a short envelope.",
+  skills:[
+   {n:"ship", w:"Idea → PR. Three interactive phases in your context, four autonomous phases each in its own station subagent. Escalates to models-consensus instead of asking you; hard-stops only for irreversible operations. Keeps a run state per slice.", badges:["entry"]},
+   {n:"implement-feature", w:"Builds a whole feature: decomposes via to-tasks, runs the task DAG with parallel worktrees and integration-head rebasing, calls implement-and-review per task, then one feature-wide full-review on the seams."},
+   {n:"implement-and-review", w:"One scoped task, two model tracks (frontend/backend) in isolated worktrees, test-first, where the implementer never reviews its own work. Loop implement → cross-review → fix (max 3), integrate, self-simplify, gate with full-review."},
+   {n:"collaborative-delivery", w:"The panel-audited alternative build: mandatory anchor review at every red-green-refactor phase, with recorded model participation left in the repo. Choose it when the audit trail matters more than speed.", badges:["entry","panel"]},
+   {n:"dynamic-harness", w:"Six orchestration patterns for many subagents (tournament, generate-and-filter, adversarial verification, classify-and-act, loop-until-done, fan-out-and-synthesize) plus a manager mode with a mission ledger.", badges:["entry"]},
+   {n:"peer-sessions", w:"Coordinates a bounded fleet of peer sessions through native delegation or a durable file mailbox; resumable replies, cross-session handoffs."},
+   {n:"cmux-cli", w:"Drives cmux workspaces, panels, terminal input, and notifications from the CLI. The visible-terminal transport other skills can ride on."},
+  ]},
+ {id:"gates", name:"Gates & verification", sub:"verdicts, not opinions", color:"var(--gate)", tag:"autonomous",
+  about:"Every gate returns a small vocabulary (proceed / revise, pass / fail, approve / request-changes) so a conductor can route on it without reading the body.",
+  skills:[
+   {n:"design-gate", w:"Turns 'which lens applies?' into a table lookup: selects at most three lenses by the surfaces a change touches, runs them as parallel read-only reviewers, merges into one proceed / revise verdict. Reviews nothing itself."},
+   {n:"full-review", w:"Deep, human-facing review: parallel specialists and personas, multi-model triangulation across the seat roster, execution-based bug verification, structural maintainability, optional deep security pass. Also reviews plans and PRDs."},
+   {n:"review-gate", w:"Machine-verdict merge gate: declares will-review / spot-check / won't-review coverage, fans out eight personas as multi-model seats, refutes candidates adversarially, verifies via verify-changes and the PR preview, emits schema-validated JSON.", badges:["entry"]},
+   {n:"coding-review-simplify", w:"Behavior-preserving tightening of a just-finished diff: reuse, dedupe, dead code, unnecessary abstraction, type and effect slop, compatibility cruft with no callers. Runs before the review gate while context is fresh."},
+   {n:"verify-changes", w:"Discovers the repo's own command surface (package scripts, Makefile, Cargo, Go, Gradle, pyproject) and runs install / build / typecheck / lint / test, scoped to touched workspaces. Emits a checks[] result."},
+   {n:"browser-smoke", w:"Diff-scoped smoke test: maps changed files to the routes that render them and drives a real browser through each affected page. Ship's phase-5 'drive the real app' step for web-facing changes."},
+  ]},
+ {id:"build", name:"Build & fix", sub:"test-first execution", color:"var(--auto)", tag:"autonomous",
+  about:"The loop itself and its neighbors. All four cross-reference each other with explicit 'distinct from' clauses, which is how they avoid trigger collisions.",
+  skills:[
+   {n:"tdd", w:"Red-green-refactor with the Iron Law: no production code without a failing test first. Smallest reversible move. Entry rule sends untested legacy code to safe-incremental-coding first, then returns."},
+   {n:"safe-incremental-coding", w:"Puts scary, untested code under a behavior-preserving characterization net so it becomes safe to change, then hands execution back to tdd. Distilled from Farley's guidebook."},
+   {n:"diagnose", w:"Procedural debugging: reproduce, minimize, read the actual error, differential hypotheses, instrument, fix the cause, encode the regression. mode:pipeline gives autonomous callers a structured return."},
+   {n:"clean-code", w:"Safe, behavior-preserving Clean Code refactoring with a named smell catalog (primitive obsession, data clump, feature envy…). The vocabulary coding-review-simplify borrows."},
+   {n:"test-lens", w:"Khorikov's four pillars for judging and writing tests: regression protection, refactoring resistance, fast feedback, maintainability. Observable behavior over implementation details; mock vs stub rules."},
+   {n:"worktree", w:"Creates or attaches an isolated git worktree: fresh branch for new work, or a PR/branch/commit checked out on a local branch. Both user-invoked and pipeline-invoked for single-slice isolation."},
+  ]},
+ {id:"deliver", name:"Deliver & remember", sub:"PRs, handoffs, learnings", color:"var(--auto)", tag:"autonomous",
+  about:"The end of a slice and the beginning of the next session. Continuity lives in files, never in a transcript.",
+  skills:[
+   {n:"open-pr", w:"Commits, pushes, and opens or updates a GitHub PR with a decision-cost-sized description. Ship delegates PR composition here and adds acceptance evidence, gate verdicts, and the decision log."},
+   {n:"resolve-pr-feedback", w:"Evaluates every review comment against the code, fixes the valid ones, commits and pushes, replies to each thread with quoted context, resolves the threads via the API. Judges centrally, fans out only the fixes.", badges:["entry"]},
+   {n:"session-handoff", w:"Immutable, per-repo handoff notes in a managed store, keyed by repository and topic so parallel sessions never clobber each other. Body per summarize's cold-start test; bounded resume flow."},
+   {n:"summarize", w:"A concise handoff summary from visible session context: paths, command names, exact error labels over quotation. 34 lines; the body contract session-handoff and knowledge-graph borrow."},
+   {n:"capture-learning", w:"Documents one solved problem as a solution doc in docs/solutions/ with searchable frontmatter, and adds new vocabulary to CONCEPTS.md. mode:headless for the pipeline's wrap-up."},
+   {n:"knowledge-graph", w:"Builds and queries a knowledge graph from documents with four prompts sharing one Pydantic schema: extraction, entity resolution, summarization, graph-grounded querying.", badges:["entry"]},
+  ]},
+ {id:"lenses", name:"Design lenses", sub:"routed by design-gate, never picked by hand", color:"var(--auto)", tag:"read-only reviewers",
+  about:"Each lens returns the same reviewer contract when run under design-gate (verdict, blocking findings, advisory findings, required changes) and reads as a coaching skill when invoked directly.",
+  skills:[
+   {n:"architecture-lens", w:"Code-level architecture: trade-off coaching, coupling and connascence, layer placement, cohesion, dependency direction, over-scoping. The gate's fallback row for anything significant but unroutable; owns the ADR template.", badges:["lens"]},
+   {n:"macro-architecture", w:"System-level style selection (monolith, microservices, event-driven, layered) and the hard decomposition trade-offs: data ownership, sagas, the Least Worst Rule.", badges:["lens"]},
+   {n:"domain-driven-design", w:"Strategic context shape (bounded contexts, ubiquitous language, ACL / open-host / conformist, outbox) down to tactical aggregate correctness and invariants.", badges:["lens"]},
+   {n:"software-design-philosophy", w:"Ousterhout 2nd ed.: deep modules, information hiding, strategic investment, comments as design, deciding what matters, plus Brooks' conceptual integrity.", badges:["lens"]},
+   {n:"design-patterns", w:"Recognizes when a Gang-of-Four pattern genuinely fits (sprawling conditionals, duplicated behavior, tangled notifications), names it, translates it without overengineering.", badges:["lens"]},
+   {n:"data-systems-coding-lens", w:"Stored state and async paths: databases, queues, caches, migrations, retries, idempotency, concurrency, consistency, observability. Implements and verifies what macro-architecture decides.", badges:["lens"]},
+   {n:"distributed-systems-patterns", w:"Burns' container and multi-node patterns: sidecar, ambassador, adapter, replicated serving, sharding, scatter/gather, FaaS fit, ownership election, work queues, coordinated batch.", badges:["lens"]},
+   {n:"event-driven-microservices", w:"Adopt / keep / migrate decisions for event-driven systems; reviews event-stream contracts, single-writer ownership, data liberation, choreography vs orchestration. Not in design-gate's table.", badges:["lens"]},
+   {n:"agent-architecture-lens", w:"For when the thing being built is an agent: loop vs explicit state graph, typed state, checkpoints, bounded retries, termination ceilings, idempotent steps, human gates.", badges:["lens"]},
+   {n:"react-performance", w:"Advanced React (Makarevich) as a review lens: re-renders, composition before memo, Context performance, stale closures, layout-effect flicker, fetch waterfalls, error boundaries.", badges:["lens"]},
+   {n:"advanced-react", w:"Advanced React (Makarevich) as a plan-implement-review skill: the same catalog, aimed at writing components rather than reviewing them."},
+   {n:"ui-ux-pro-max", w:"Searchable UI/UX database (styles, palettes, font pairings, UX rules, chart types, icons, stack practices) that generates a design system. design-gate's row for new user-facing surfaces.", badges:["lens"]},
+   {n:"frontend-design", w:"Bespoke aesthetic direction for a page or component: commit to one idea, then typography, color, motion, and composition that serve it. Supersedes the bundled plugin copy."},
+  ]},
+ {id:"council", name:"Council", sub:"what replaces asking you", color:"var(--council)", tag:"multi-model",
+  about:"Deliberation only. After the approval gate a contested decision goes here, then to the most reversible default, then (only for irreversible operations) to you.",
+  skills:[
+   {n:"models-consensus", w:"Three modes: poll (blind fan-out, five-dimension analysis, one gap-repair round, two judges, a synthesizer), debate (stance rebuttals, convergence verdict), personas (one model, five lenses). Degrades to personas below three seats. Never implements."},
+   {n:"diverse-plan", w:"Multi-model planning: several genuinely different approaches in parallel, pressure-tested, merged into one enriched plan. Self-contained; never calls the council.", badges:["entry"]},
+   {n:"decide-about-disagreements", w:"Takes a council result with contradictions or open divergence, shows every recorded opinion, lists all distinct options plus a combined one, and gets the human choice.", badges:["entry"]},
+   {n:"consensus-summary-html", w:"Renders a finished council result as a self-contained HTML decision brief: verdict, agreement map, divergence cards, evidence trace, one next step.", badges:["entry"]},
+  ]},
+ {id:"seats", name:"Runner seats", sub:"one CLI, one seat, one envelope", color:"var(--council)", tag:"transport",
+  about:"Every seat is a headless CLI call returning the shared runner envelope with an effective_model receipt. Missing CLI means seat_unavailable, never a substitute. Model ids live only in shared/references/model-roster.md.",
+  skills:[
+   {n:"claude-runner", w:"Claude CLI in headless print mode; fallback for the native opus / sonnet seats when a worker cannot nest the Agent tool."},
+   {n:"codex-runner", w:"Codex CLI exec mode. The default backend implementer and the adversarial anchor in the panels; also carries the code-specialized secondary seat."},
+   {n:"gemini-runner", w:"Antigravity CLI (agy) headless mode for the Gemini seat: broad-context and cross-file-consistency lens."},
+   {n:"grok-runner", w:"Grok CLI headless mode for the xAI seat: execution-path verification and provider diversity."},
+   {n:"pi-runner", w:"Pi coding-agent CLI with provider and model pinned per invocation (default OpenRouter). The shared implementation behind four seat shims."},
+   {n:"kimi-runner", w:"Shim over pi-runner pinning moonshotai/kimi-k3: long-horizon coding, 1M context. First fallback reviewer in implement-and-review.", badges:["shim"]},
+   {n:"glm-runner", w:"Shim over pi-runner pinning z-ai/glm-5.3-flash: edge-case lens, default outsider stance.", badges:["shim"]},
+   {n:"qwen-runner", w:"Shim over pi-runner pinning qwen/qwen3.8-max: optional council seat, 256K context.", badges:["shim"]},
+   {n:"gemma-runner", w:"Shim over pi-runner pinning google/gemma-4-31b-it: the cheapest roster seat.", badges:["shim"]},
+   {n:"cline-runner", w:"Cline CLI headless mode with NDJSON streaming; arbitrary provider/model pairs. Warns that --model mutates the user's persisted Cline config."},
+   {n:"muse-runner", w:"Shim over cline-runner for meta/muse-spark-1.1: agent-orchestration and computer-use lens, US-only access.", badges:["shim"]},
+   {n:"minimax-runner", w:"Shim over cline-runner for minimax/minimax-m2.7: backup seat.", badges:["shim"]},
+   {n:"dcode-runner", w:"DeepAgents CLI (dcode) non-interactive mode with the user's configured model: a LangChain seat.", badges:["entry"]},
+   {n:"opencode-runner", w:"Guides OpenCode CLI runs through the host approval flow; no bundled wrapper script.", badges:["entry"]},
+  ]},
+ {id:"meta", name:"Posture, explaining, maintaining", sub:"the skills about skills", color:"var(--ink-4)", tag:"standalone",
+  about:"Cross-cutting. fable-mindset governs how an agent reads a request and reports a result; the rest explain or maintain the collection and the repos it lives in.",
+  skills:[
+   {n:"fable-mindset", w:"Five moments of a working turn: intake (act or assess), diagnosis (evidence over recognition), decision (recommendation, not survey), implementation (native diffs), reporting (the final message). Posture, not procedure.", badges:["entry"]},
+   {n:"explain-architecture", w:"Audience-tuned explanation of a codebase or subsystem: layers, components, key flows, boundaries, and the why. 'Give me the lay of the land.'", badges:["entry"]},
+   {n:"html-explainer", w:"Drill-down HTML explainer for a subsystem: clickable SVG map, numbered sections, expandable panels with verbatim file:line snippets. Six to nine sections, no more.", badges:["entry"]},
+   {n:"skill-expert", w:"Create, audit, package, and debug portable skills: trigger metadata, progressive disclosure, bundled resources, acceptance contracts in the output contract."},
+   {n:"agents-md-craft", w:"Hand-craft and de-bloat AGENTS.md / CLAUDE.md files: WHAT/WHY/HOW framing, instruction budgets, progressive disclosure into agent_docs/, offload style rules to linters.", badges:["entry"]},
+   {n:"shared", w:"Not a skill. Contracts (handoff, run state, engineering rules, model roster, task-shaped routing), runner scripts, the panel runner, hooks, and tests that every other skill loads by path."},
+  ]},
+];
+
+/* explicit adjacency: mention counts across each skill's files (shared omitted) */
+const ADJ = {
+"advanced-react":{"react-performance":1},
+"agent-architecture-lens":{"knowledge-graph":2,"data-systems-coding-lens":1,"macro-architecture":1},
+"agents-md-craft":{"skill-expert":3,"capture-learning":1},
+"architecture-lens":{"clean-code":2,"domain-driven-design":2,"macro-architecture":2,"design-gate":1,"full-review":1},
+"brainstorm":{"interview-me":4,"claude-runner":2,"gemini-runner":2,"kimi-runner":2,"to-prd":2,"codex-runner":1,"glm-runner":1,"summarize":1},
+"browser-smoke":{"ship":3,"implement-and-review":2,"full-review":1},
+"capture-learning":{"ship":2,"worktree":2,"clean-code":1,"design-patterns":1,"security-gate":1,"session-handoff":1,"summarize":1},
+"claude-runner":{"codex-runner":3,"gemini-runner":1},
+"clean-code":{"safe-incremental-coding":1},
+"cline-runner":{"worktree":6,"glm-runner":2,"kimi-runner":2,"gemini-runner":1,"pi-runner":1,"qwen-runner":1},
+"codex-runner":{"claude-runner":3,"gemini-runner":1},
+"coding-design-plan":{"to-prototype":1},
+"coding-review-simplify":{"clean-code":2,"full-review":2,"architecture-lens":1,"data-systems-coding-lens":1},
+"collaborative-delivery":{"implement-and-review":3,"ship":2,"claude-runner":1,"gemini-runner":1,"kimi-runner":1},
+"consensus-summary-html":{"models-consensus":4},
+"data-systems-coding-lens":{"distributed-systems-patterns":1,"macro-architecture":1,"ship":1},
+"dcode-runner":{"claude-runner":2,"codex-runner":2,"kimi-runner":2,"qwen-runner":2},
+"decide-about-disagreements":{"models-consensus":5},
+"design-gate":{"architecture-lens":4,"domain-driven-design":2,"macro-architecture":2,"software-design-philosophy":2,"agent-architecture-lens":1,"data-systems-coding-lens":1,"design-patterns":1,"distributed-systems-patterns":1,"react-performance":1,"ship":1,"to-tasks":1,"ui-ux-pro-max":1},
+"design-patterns":{"macro-architecture":1,"software-design-philosophy":1},
+"diagnose":{"fable-mindset":3,"tdd":3,"full-review":1,"safe-incremental-coding":1},
+"distributed-systems-patterns":{"event-driven-microservices":7,"macro-architecture":6,"data-systems-coding-lens":5,"design-patterns":5,"design-gate":2,"agent-architecture-lens":1,"coding-design-plan":1},
+"diverse-plan":{"claude-runner":6,"clean-code":4,"codex-runner":4,"models-consensus":4,"architecture-lens":2,"gemini-runner":2,"glm-runner":2,"grok-runner":2,"kimi-runner":2,"software-design-philosophy":2,"test-lens":2,"agent-architecture-lens":1,"coding-design-plan":1,"data-systems-coding-lens":1,"design-gate":1,"security-gate":1},
+"domain-driven-design":{"architecture-lens":2,"macro-architecture":2},
+"dynamic-harness":{"worktree":2},
+"event-driven-microservices":{"macro-architecture":4,"data-systems-coding-lens":3,"domain-driven-design":3,"distributed-systems-patterns":2,"ship":2,"design-gate":1},
+"explain-architecture":{"architecture-lens":3},
+"fable-mindset":{"clean-code":3,"coding-design-plan":3,"diagnose":3,"architecture-lens":2,"brainstorm":2,"design-gate":2,"session-handoff":2,"summarize":2,"tdd":2,"macro-architecture":1},
+"frontend-design":{"ship":1,"ui-ux-pro-max":1},
+"full-review":{"claude-runner":7,"codex-runner":5,"clean-code":2,"gemini-runner":2,"gemma-runner":2,"glm-runner":2,"grok-runner":2,"kimi-runner":2,"minimax-runner":2,"qwen-runner":2,"ship":2,"browser-smoke":1,"coding-review-simplify":1,"frontend-design":1,"react-performance":1,"security-gate":1,"ui-ux-pro-max":1},
+"gemini-runner":{"codex-runner":3,"claude-runner":2,"kimi-runner":2,"qwen-runner":2},
+"gemma-runner":{"pi-runner":7,"cline-runner":2},
+"glm-runner":{"pi-runner":7,"cline-runner":1},
+"grok-runner":{"models-consensus":1},
+"html-explainer":{},
+"implement-and-review":{"worktree":58,"full-review":31,"codex-runner":16,"implement-feature":10,"claude-runner":8,"coding-review-simplify":6,"to-tasks":6,"domain-driven-design":5,"data-systems-coding-lens":4,"frontend-design":4,"security-gate":4,"coding-design-plan":3,"design-gate":3,"kimi-runner":3,"react-performance":3,"safe-incremental-coding":3,"tdd":3,"agent-architecture-lens":2,"architecture-lens":2,"clean-code":2,"design-patterns":2,"distributed-systems-patterns":2,"macro-architecture":2,"software-design-philosophy":2,"test-lens":2,"ui-ux-pro-max":2,"grok-runner":1},
+"implement-feature":{"implement-and-review":33,"to-tasks":10,"full-review":8,"ship":3,"models-consensus":2,"worktree":1},
+"interview-me":{"to-prd":8,"brainstorm":2,"security-gate":2,"test-lens":2,"architecture-lens":1,"capture-learning":1,"coding-design-plan":1,"diagnose":1,"to-tasks":1},
+"kimi-runner":{"pi-runner":7,"cline-runner":1},
+"knowledge-graph":{"summarize":3,"capture-learning":1},
+"macro-architecture":{"architecture-lens":5,"design-patterns":3,"domain-driven-design":2,"ship":2},
+"minimax-runner":{"cline-runner":7,"claude-runner":1},
+"models-consensus":{"peer-sessions":10,"codex-runner":9,"claude-runner":6,"gemma-runner":4,"glm-runner":4,"grok-runner":4,"kimi-runner":4,"pi-runner":4,"qwen-runner":4,"muse-runner":3,"gemini-runner":2,"cline-runner":1,"diverse-plan":1,"summarize":1},
+"muse-runner":{"cline-runner":3},
+"open-pr":{"implement-and-review":1,"ship":1,"worktree":1},
+"opencode-runner":{"models-consensus":1,"ship":1},
+"peer-sessions":{},
+"pi-runner":{"glm-runner":3,"kimi-runner":3},
+"qwen-runner":{"pi-runner":7,"cline-runner":3},
+"react-performance":{"architecture-lens":1,"design-patterns":1},
+"resolve-pr-feedback":{"full-review":2,"diagnose":1,"open-pr":1,"summarize":1},
+"review-gate":{"verify-changes":6,"claude-runner":4,"browser-smoke":1,"codex-runner":1,"full-review":1,"worktree":1},
+"safe-incremental-coding":{"tdd":10,"clean-code":2,"diagnose":2,"test-lens":2,"architecture-lens":1},
+"security-gate":{"full-review":6,"brainstorm":1,"interview-me":1,"to-tasks":1},
+"session-handoff":{"summarize":6,"worktree":6},
+"ship":{"design-gate":5,"full-review":5,"resolve-pr-feedback":5,"worktree":5,"implement-and-review":4,"interview-me":4,"open-pr":4,"diagnose":3,"security-gate":3,"session-handoff":3,"browser-smoke":2,"capture-learning":2,"coding-design-plan":2,"coding-review-simplify":2,"collaborative-delivery":2,"implement-feature":2,"models-consensus":2,"tdd":2,"to-prd":2,"to-tasks":2,"brainstorm":1,"claude-runner":1,"dynamic-harness":1,"safe-incremental-coding":1,"summarize":1,"to-prototype":1},
+"skill-expert":{},
+"software-design-philosophy":{"clean-code":5,"design-gate":5,"tdd":3,"design-patterns":2,"architecture-lens":1,"safe-incremental-coding":1},
+"summarize":{"session-handoff":2},
+"tdd":{"clean-code":3,"diagnose":3,"test-lens":3,"safe-incremental-coding":2,"data-systems-coding-lens":1},
+"test-lens":{"tdd":3,"clean-code":2,"safe-incremental-coding":2,"architecture-lens":1},
+"to-prd":{"to-tasks":11,"security-gate":7,"claude-runner":1,"gemini-runner":1,"implement-and-review":1,"interview-me":1,"kimi-runner":1,"test-lens":1},
+"to-prototype":{"coding-design-plan":2,"ship":2,"to-prd":2,"brainstorm":1,"tdd":1},
+"to-tasks":{"design-gate":3,"security-gate":2,"claude-runner":1,"gemini-runner":1,"implement-and-review":1,"kimi-runner":1,"test-lens":1,"to-prd":1},
+"ui-ux-pro-max":{"react-performance":3,"frontend-design":1},
+"verify-changes":{"diagnose":2,"review-gate":2,"browser-smoke":1,"worktree":1},
+"worktree":{"implement-and-review":2,"ship":2},
+"cmux-cli":{}, "shared":{}
+};
+
+/* map edges: explicit = the skill text instructs the invocation; logical = recommended hand-off only */
+const RUNNERS=["claude-runner","codex-runner","gemini-runner","grok-runner","pi-shims","cline-shims"];
+const LENSES=["architecture-lens","macro-architecture","domain-driven-design","software-design-philosophy","design-patterns","data-systems-coding-lens","distributed-systems-patterns","agent-architecture-lens","react-performance","ui-ux-pro-max"];
+const EDGES = [
+ // ship conductor
+ ...["brainstorm","to-prototype","interview-me","to-prd","to-tasks","implement-feature","coding-design-plan","design-gate","implement-and-review","collaborative-delivery","tdd","diagnose","worktree","coding-review-simplify","full-review","browser-smoke","open-pr","session-handoff","capture-learning","resolve-pr-feedback","models-consensus","dynamic-harness"].map(t=>["ship",t,"x","ship phase table / station dispatch"]),
+ ["implement-feature","to-tasks","x","Phase 0 decompose"],["implement-feature","implement-and-review","x","per task in the DAG"],["implement-feature","full-review","x","feature-wide seam review"],["implement-feature","models-consensus","x","--from-consensus input"],
+ ...["tdd","safe-incremental-coding","clean-code","test-lens","coding-design-plan","coding-review-simplify","full-review","security-gate","frontend-design","worktree","codex-runner","claude-runner","pi-shims","grok-runner"].map(t=>["implement-and-review",t,"x","hard rules / per-track skills / seats"]),
+ ...LENSES.filter(l=>l!=="ui-ux-pro-max"||true).map(t=>["implement-and-review",t,"x","per-track lens"]),
+ ...LENSES.map(t=>["design-gate",t,"x","routing table row"]),
+ ["design-gate","models-consensus","x","escalation on lens disagreement"],
+ ["coding-design-plan","to-prototype","x","tracer vs prototype rule"],
+ ["interview-me","security-gate","x","spec-time checklist"],["interview-me","test-lens","x","name the seams"],["interview-me","to-prd","l","closes with 'run to-prd'"],
+ ["brainstorm","interview-me","l","BUILD verdict names the next step"],["brainstorm","to-prototype","l","detour for a code-only unknown"],
+ ...["claude-runner","codex-runner","gemini-runner","pi-shims"].map(t=>["brainstorm",t,"x","panel mode seats"]),
+ ["to-prd","security-gate","x","Security Decisions section"],["to-prd","to-tasks","l","next step, user-typed"],
+ ...["claude-runner","gemini-runner","pi-shims"].map(t=>["to-prd",t,"x","panel mode seats"]),
+ ["to-tasks","design-gate","x","lifts gate flags from its table"],["to-tasks","security-gate","x","lifts deep-pass trigger list"],
+ ...["claude-runner","gemini-runner","pi-shims"].map(t=>["to-tasks",t,"x","panel mode seats"]),
+ ["tdd","safe-incremental-coding","x","entry rule on untested code"],["tdd","diagnose","l","failure not understood at a glance"],["tdd","test-lens","l","judge what was written"],["tdd","clean-code","l","refactor step vocabulary"],
+ ["safe-incremental-coding","tdd","x","hands execution back"],
+ ["diagnose","tdd","x","encode the regression"],["diagnose","fable-mindset","l","diagnosis posture"],
+ ["coding-review-simplify","clean-code","x","borrowed smell catalog"],["coding-review-simplify","full-review","l","runs before the gate"],
+ ...["claude-runner","codex-runner","gemini-runner","grok-runner","pi-shims","cline-shims"].map(t=>["full-review",t,"x","triangulation seats"]),
+ ["full-review","security-gate","x","deep pass when flagged"],["full-review","browser-smoke","l","then drive the app"],
+ ["review-gate","verify-changes","x","Phase 2 checks"],["review-gate","browser-smoke","x","preview walk"],["review-gate","claude-runner","x","persona seats"],["review-gate","codex-runner","x","persona seats"],
+ ["verify-changes","diagnose","l","a red check needs a cause"],
+ ["resolve-pr-feedback","diagnose","x","root-cause a valid finding"],["resolve-pr-feedback","open-pr","l","after the PR exists"],
+ ["session-handoff","summarize","x","body contract"],["session-handoff","worktree","x","resume into isolation"],
+ ["capture-learning","interview-me","l","both write CONCEPTS.md"],
+ ["summarize","session-handoff","l","store it"],
+ ...RUNNERS.map(t=>["models-consensus",t,"x","council seats"]),
+ ["models-consensus","peer-sessions","x","cmux transport"],
+ ["decide-about-disagreements","models-consensus","x","reads the result"],["consensus-summary-html","models-consensus","x","reads the result"],
+ ...["claude-runner","codex-runner","gemini-runner","grok-runner","pi-shims"].map(t=>["diverse-plan",t,"x","branch seats"]),
+ ["diverse-plan","to-tasks","l","plan → slices"],["diverse-plan","design-gate","x","check step"],
+ ["collaborative-delivery","implement-and-review","l","the alternative build"],...["claude-runner","codex-runner","gemini-runner","pi-shims"].map(t=>["collaborative-delivery",t,"x","panel seats"]),
+ ["pi-shims","pi-runner","x","shared implementation"],["cline-shims","cline-runner","x","shared implementation"],
+ ["dynamic-harness","worktree","x","write-scope isolation"],["dynamic-harness","peer-sessions","l","fleet transport"],["peer-sessions","cmux-cli","l","visible terminals"],
+ ["distributed-systems-patterns","event-driven-microservices","x","cited seven times"],
+ ["ui-ux-pro-max","frontend-design","l","database vs bespoke"],["advanced-react","react-performance","l","same book"],
+ ["fable-mindset","coding-design-plan","l","decision moment"],["fable-mindset","clean-code","l","implementation moment"],
+];
+
+/* ---------------- catalogue render ---------------- */
+const famEl=document.getElementById('families');
+const badgeName={entry:"entry",shim:"shim",lens:"lens",panel:"panel mode"};
+FAMILIES.forEach(f=>{
+  const sec=document.createElement('div');sec.className='family rv';sec.dataset.fam=f.id;
+  sec.innerHTML=`<div class="family-head"><h3>${f.name} <em>${f.sub}</em></h3><span class="tag"><i style="background:${f.color}"></i>${f.tag}</span></div><p class="about">${f.about}</p><div class="cards"></div>`;
+  const grid=sec.querySelector('.cards');
+  f.skills.forEach(s=>{
+    const adj=ADJ[s.n]||{};
+    const calls=Object.entries(adj).sort((a,b)=>b[1]-a[1]).slice(0,6).map(([k,v])=>`<span>${k}<i style="color:var(--ink-4)">·${v}</i></span>`).join('&nbsp; ');
+    const b=(s.badges||[]).map(x=>`<span class="badge ${x}">${badgeName[x]}</span>`).join('');
+    const c=document.createElement('div');c.className='card';c.dataset.name=s.n;c.dataset.text=(s.n+' '+s.w+' '+f.name+' '+f.sub+' '+(s.badges||[]).join(' ')).toLowerCase();
+    c.innerHTML=`<div class="name">${s.n}${b}</div><p class="what">${s.w}</p><div class="calls">${calls?'<b>names →</b> '+calls:'<b>names no other skill</b>'}</div>`;
+    grid.appendChild(c);
+  });
+  famEl.appendChild(sec);
+});
+const q=document.getElementById('q'),qc=document.getElementById('qcount');
+const allCards=[...document.querySelectorAll('.card')];
+function filter(){
+  const v=q.value.trim().toLowerCase();let n=0;
+  allCards.forEach(c=>{const hit=!v||c.dataset.text.includes(v);c.classList.toggle('dim',!hit);if(hit)n++;});
+  document.querySelectorAll('.family').forEach(f=>{f.classList.toggle('hidden',v&&![...f.querySelectorAll('.card')].some(c=>!c.classList.contains('dim')));});
+  const total=allCards.length-1; /* shared is a marker, not a skill */
+  qc.textContent=v?`${n} of ${total} skills`:`${total} skills + shared`;
+}
+q.addEventListener('input',filter);filter();
+
+/* ---------------- adjacency table ---------------- */
+const tb=document.querySelector('#adj tbody');
+Object.keys(ADJ).sort().forEach(k=>{
+  const row=Object.entries(ADJ[k]).sort((a,b)=>b[1]-a[1]).map(([t,c])=>`<span>${t}<i>·${c}</i></span>`).join('&nbsp;&nbsp; ');
+  tb.insertAdjacentHTML('beforeend',`<tr><td class="k">${k}</td><td class="v">${row||'<span style="color:var(--ink-4)">—</span>'}</td></tr>`);
+});
+
+/* ---------------- map edges ---------------- */
+const map=document.getElementById('map'),svg=document.getElementById('edges');
+const nodes={};document.querySelectorAll('.node').forEach(n=>nodes[n.dataset.id]=n);
+let mode='both',pinned=null;
+function center(el){const r=el.getBoundingClientRect(),m=map.getBoundingClientRect();return{x:r.left-m.left,y:r.top-m.top+r.height/2,w:r.width,h:r.height,col:+el.parentElement.dataset.col};}
+function draw(focus){
+  svg.setAttribute('viewBox',`0 0 ${map.scrollWidth} ${map.scrollHeight}`);
+  svg.setAttribute('width',map.scrollWidth);svg.setAttribute('height',map.scrollHeight);
+  let out='';
+  EDGES.forEach(([a,b,t])=>{
+    if(mode==='explicit'&&t!=='x')return;if(mode==='logical'&&t!=='l')return;
+    const A=nodes[a],B=nodes[b];if(!A||!B)return;
+    const ca=center(A),cb=center(B);
+    const left=ca.col<=cb.col;
+    const x1=left?ca.x+ca.w:ca.x, x2=left?cb.x:cb.x+cb.w;
+    const dx=Math.max(40,Math.abs(x2-x1)*.45)*(left?1:-1);
+    const same=ca.col===cb.col;
+    let d;
+    if(same){const bx=ca.x-18;d=`M${ca.x},${ca.y} C${bx},${ca.y} ${bx},${cb.y} ${cb.x},${cb.y}`;}
+    else d=`M${x1},${ca.y} C${x1+dx},${ca.y} ${x2-dx},${cb.y} ${x2},${cb.y}`;
+    const inv=focus&&(a===focus||b===focus);
+    const dimmed=focus&&!inv;
+    const stroke=t==='x'?(inv?'var(--ink)':'rgba(27,23,18,.22)'):(inv?'var(--human)':'rgba(194,58,28,.35)');
+    out+=`<path d="${d}" fill="none" stroke="${stroke}" stroke-width="${inv?1.8:1}" ${t==='l'?'stroke-dasharray="4 4"':''} opacity="${dimmed?.06:1}"/>`;
+    if(inv){out+=`<circle cx="${x2}" cy="${cb.y}" r="2.6" fill="${stroke}"/>`;}
+  });
+  svg.innerHTML=out;
+}
+const info=document.getElementById('edgeInfo');
+function focusNode(id){
+  Object.values(nodes).forEach(n=>n.classList.remove('on','near','far'));
+  if(!id){draw(null);info.textContent='Hover a skill to list what it calls and what calls it.';return;}
+  const outs=EDGES.filter(e=>e[0]===id&&(mode==='both'||(mode==='explicit'?e[2]==='x':e[2]==='l')));
+  const ins=EDGES.filter(e=>e[1]===id&&(mode==='both'||(mode==='explicit'?e[2]==='x':e[2]==='l')));
+  const near=new Set([...outs.map(e=>e[1]),...ins.map(e=>e[0])]);
+  Object.entries(nodes).forEach(([k,n])=>{n.classList.add(k===id?'on':near.has(k)?'near':'far');});
+  draw(id);
+  const fmt=e=>`${e[0]===id?e[1]:e[0]}${e[2]==='l'?`<span style="color:var(--human)"> ⟶ logical: ${e[3]}</span>`:''}`;
+  info.innerHTML=`<b>${id}</b> → calls ${outs.length?outs.map(fmt).join(', '):'<span style="color:var(--ink-4)">nothing</span>'}<br>${ins.length?'← called by '+ins.map(fmt).join(', '):'← <span style="color:var(--ink-4)">no caller: reachable only from you</span>'}`;
+}
+Object.entries(nodes).forEach(([id,n])=>{
+  n.addEventListener('mouseenter',()=>{if(!pinned)focusNode(id);});
+  n.addEventListener('mouseleave',()=>{if(!pinned)focusNode(null);});
+  n.addEventListener('click',()=>{pinned=pinned===id?null:id;focusNode(pinned);});
+});
+document.querySelectorAll('.map-controls button').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('.map-controls button').forEach(x=>x.classList.remove('act'));b.classList.add('act');mode=b.dataset.mode;focusNode(pinned);
+}));
+window.addEventListener('resize',()=>focusNode(pinned));
+document.fonts?document.fonts.ready.then(()=>draw(null)):draw(null);
+draw(null);
+
+/* ---------------- reveal ---------------- */
+const revealAll=()=>document.querySelectorAll('.rv').forEach(el=>el.classList.add('in'));
+if('IntersectionObserver' in window){
+  const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('in');io.unobserve(e.target);}}),{threshold:.08});
+  document.querySelectorAll('.rv').forEach(el=>io.observe(el));
+  setTimeout(revealAll,2500); /* safety: never leave content hidden (print, hidden tab, odd hosts) */
+  window.addEventListener('beforeprint',revealAll);
+}else revealAll();
+</script>
+</body>
+</html>

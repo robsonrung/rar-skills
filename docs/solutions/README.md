@@ -16,4 +16,4 @@ This store is a deliberate pilot: capture only. The refresh sibling — refresh-
 
 ---
 
-*Adapted from [compound-engineering-plugin](https://github.com/EveryInc/compound-engineering-plugin) (MIT). See NOTICE.*
+_Adapted from [compound-engineering-plugin](https://github.com/EveryInc/compound-engineering-plugin) (MIT). See NOTICE._

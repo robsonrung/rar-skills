@@ -1,6 +1,6 @@
 # Runner Common Reference
 
-Canonical, agent-facing rules shared by every runner skill: `claude-runner`, `codex-runner`, `gemini-runner`, `grok-runner`, `qwen-runner`, `cline-runner`, `pi-runner`, `dcode-runner`, plus the Pi-backed `kimi`, `glm`, `qwen`, and `gemma` shims and the Cline-backed `muse` and `minimax` shims. Each runner's SKILL.md points here for these shared blocks and keeps inline only its genuine deltas. Seat → model ids live in [model-roster.md](model-roster.md); seat availability comes from `shared/scripts/discover_runners.py`.
+Canonical, agent-facing rules shared by every runner skill: `claude-runner`, `codex-runner`, `gemini-runner`, `grok-runner`, `cline-runner`, `pi-runner`, `dcode-runner`, including the named seats `pi-runner` serves (`--seat kimi|glm|qwen|gemma`) and the ones `cline-runner` serves (`--seat muse|minimax`). Each runner's SKILL.md points here for these shared blocks and keeps inline only its genuine deltas. Seat → model ids live in [model-roster.md](model-roster.md); seat availability comes from `shared/scripts/discover_runners.py`.
 
 ## Seat fidelity
 
@@ -14,7 +14,7 @@ This is the core invariant every runner upholds. A runner never silently substit
 This is the one place the fallback split is defined; nothing else restates it.
 
 | Runner | On a missing / failing CLI |
-|---|---|
+| --- | --- |
 | `claude` | falls back → `codex` |
 | `codex` | falls back → `claude` |
 | `gemini` | falls back → `qwen`, `kimi`, `codex`, `claude` (in that order) |

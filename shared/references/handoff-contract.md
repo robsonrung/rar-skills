@@ -1,8 +1,8 @@
 # Handoff Contract
 
-Canonical, agent-facing rules for delegating one step of a long run to a subagent or a separate thread, and for what crosses back. Used by `ship` (one station per subagent), `dynamic-harness` (manager mode workstreams), and any orchestration skill that keeps its own context thin. Each skill points here and keeps inline only its own station/workstream names.
+Canonical, agent-facing rules for delegating one step of a long run to a subagent or a separate thread, and for what crosses back. Used by `implement-tasks` (one task build per worker), `dynamic-harness` (manager mode workstreams), and any orchestration skill that keeps its own context thin. Each skill points here and keeps inline only its own station/workstream names.
 
-The sibling contract is `run-state-contract.md`: that one governs what a run *records*, this one governs what a run *passes*. A step that is delegated writes both — a report doc here, and its `steps` entry there.
+The sibling contract is `run-state-contract.md`: that one governs what a run _records_, this one governs what a run _passes_. A step that is delegated writes both — a report doc here, and its `steps` entry there.
 
 ## The rule
 
@@ -34,7 +34,7 @@ All three live in the run's own directory, beside its `run-state.json`:
 One screen when possible. Ten fields:
 
 | Field | Content |
-|---|---|
+| --- | --- |
 | `run_id` | The run this step belongs to |
 | `run_state` | Path to `run-state.json` |
 | `step` | `<NN>-<step>` — the same string the report and envelope use |
@@ -56,42 +56,53 @@ The worker writes it before returning. Seven fixed sections, in this order, pres
 # <NN>-<step> — <run-id>[/<unit-id>]
 
 ## Verdict
+
 One line: the step's outcome in its own vocabulary (`proceed` / `revise`, `pass` / `fail`, `complete` / `blocked`).
 
 ## What ran
+
 Which skill, which seats, which mode. Enough to tell a reader what to re-run.
 
 ## Evidence
+
 Commands and their results. Actual output, not a claim about output.
 
 ## Decisions & assumptions
+
 Every call taken without asking, with its rationale. This is what the PR's decision log is built from.
 
 ## Findings not applied
+
 Anything raised and deliberately not acted on, with why. Never dropped silently.
 
 ## Inputs for the next step
+
 The specific facts the next step needs. Written to be lifted, not re-derived.
 
 ## Artifacts
+
 Paths to everything else this step produced.
 ```
 
-The sections are fixed so the *next* brief can cite a heading (`…/04-implement.report.md#inputs-for-the-next-step`) rather than the whole file. That citation is what keeps the next worker's read small too.
+The sections are fixed so the _next_ brief can cite a heading (`…/04-implement.report.md#inputs-for-the-next-step`) rather than the whole file. That citation is what keeps the next worker's read small too.
 
 ### 3. Envelope — worker → orchestrator
 
 The worker's final message, and the only thing that enters the orchestrator's context. Keep it under 15 lines:
 
 ```json
-{ "step": "05-verify",
+{
+  "step": "05-verify",
   "unit": "T3",
   "status": "complete",
   "verdict": "pass",
-  "report": ".ai-workflow/ship/20260731T0912Z-a3f9/T3/05-verify.report.md",
-  "artifacts": [".ai-workflow/ship/20260731T0912Z-a3f9/T3/full-review.json"],
+  "report": ".ai-workflow/impl-review/20260731T0912Z-a3f9/T3/report.md",
+  "artifacts": [
+    ".ai-workflow/impl-review/20260731T0912Z-a3f9/T3/full-review.json"
+  ],
   "next_inputs": ["2 residual findings, none blocking"],
-  "blockers": [] }
+  "blockers": []
+}
 ```
 
 `status` uses the run-state vocabulary (`complete`, `failed`, `ceiling_hit`, `awaiting_human`); `verdict` uses the step's own. A worker that returns prose instead of an envelope is re-prompted **once** with the output contract restated, then recorded as `failed` — an unparseable return is a step that did not report, not a step to interpret.

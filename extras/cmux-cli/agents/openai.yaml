@@ -1,0 +1,8 @@
+# Codex-host interface/registration config for this skill (display metadata and
+# default prompt shown in the Codex app). Not meant to be read at runtime.
+interface:
+  display_name: "cmux CLI"
+  short_description: "Control cmux workspaces, panels, terminal input, and notifications"
+  default_prompt: "Use $cmux-cli to inspect or manage cmux: create or target a workspace or panel, send text or keys, or report task status."
+policy:
+  allow_implicit_invocation: false

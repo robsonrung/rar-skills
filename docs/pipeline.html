@@ -214,7 +214,7 @@
       <article class="station" data-zone="human">
         <div class="rail"><span class="num">01</span></div>
         <div class="card">
-          <h3><span class="sk">interview</span></h3>
+          <h3><span class="sk">interview-me</span></h3>
           <p class="role">What exactly are we building?</p>
           <p>Reads the glossary, the ADRs, and the code <strong>before asking you anything</strong> — a question that exploration could answer is not a question for you. That reading is delegated to a read-only worker that returns <code>01-grounding.report.md</code>, so the conductor spends its context on the conversation and not on the repository. Then grills the angles that change what gets built: actors and permissions, edge cases, what's explicitly out of scope, data lifecycle, migration and rollback. It runs the security checklist while you're still here, and names the observable behaviour at the highest seam for each requirement.</p>
         </div>
@@ -232,7 +232,7 @@
       <article class="station" data-zone="human">
         <div class="rail"><span class="num">02</span></div>
         <div class="card">
-          <h3><span class="sk">to-spec</span></h3>
+          <h3><span class="sk">to-prd</span></h3>
           <p class="role">Write it down</p>
           <p>Does not interview you again — it synthesizes what station 01 already produced. This is the <strong>autonomy contract</strong>: the last artifact written while a human is in the room, so anything it omits becomes a question nobody downstream is allowed to ask.</p>
         </div>
@@ -242,7 +242,7 @@
         <div class="rail"></div>
         <div class="ho">
           <span class="lbl">hands off</span>
-          <span class="artifact">a PRD, published, labelled ready-for-agent</span>
+          <span class="artifact">a PRD file under .ai-workflow/work/, status ready-for-agent</span>
           <p>Two sections carry weight downstream: <span class="verb">Security Decisions</span> pre-marks which surfaces are sensitive, and <span class="verb">Testing Decisions</span> names the seams that become acceptance behaviours.</p>
         </div>
       </div>
@@ -289,7 +289,7 @@
         <div class="card">
           <h3><span class="sk">implement-and-review</span></h3>
           <p class="role">Build it, test-first</p>
-          <p><strong>Lifts the contract rather than re-deriving it:</strong> the <code>acceptance</code> commands <em>are</em> the definition of done, the behaviours are the test-first targets, and the <code>gates</code> flags select each track's lenses. Frontend and backend build in parallel isolated worktrees where <strong>the implementer never reviews its own track</strong>, with <code>/tdd</code> running the red-green-refactor loop inside each.</p>
+          <p><strong>Lifts the contract rather than re-deriving it:</strong> the <code>acceptance</code> commands <em>are</em> the definition of done, the behaviours are the test-first targets, the <code>gates</code> flags select each track's lenses and the security pass, the <em>expected review focus</em> steers every reviewer, and the <em>rollback note</em> is a boundary the build must not cross. Frontend and backend build in parallel isolated worktrees where <strong>the implementer never reviews its own track</strong>, with <code>/tdd</code> running the red-green-refactor loop inside each.</p>
           <p>Untested legacy code gets a characterization net from <code>/safe-incremental-coding</code> first. Bugs found mid-loop go to <code>/diagnose</code>, never to a guess.</p>
         </div>
       </article>

@@ -11,7 +11,7 @@ The `openhands` CLI cannot do this — its `acp` subcommand is the reverse
 direction (OpenHands serving as an ACP agent to Zed/Toad). Hence this script.
 
 Usage:
-    scripts/run-pipeline-acp.py <target-repo> -t "Follow the ship skill for: <idea>"
+    scripts/run-pipeline-acp.py <target-repo> -t "Read .claude/skills/interview-me/SKILL.md and follow it for: <idea>"
     scripts/run-pipeline-acp.py <target-repo> -f task.txt --agent codex
     scripts/run-pipeline-acp.py <target-repo> --resume <conversation-id> -t "continue"
 

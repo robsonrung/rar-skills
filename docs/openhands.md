@@ -1,13 +1,13 @@
 # Running the pipeline on OpenHands
 
-How to run the full delivery relay from [pipeline.html](pipeline.html) — brainstorm → interview → to-spec → to-tasks → approval gate → design-gate → implement-and-review → verify → open-pr — on OpenHands instead of Claude Code, with a live kanban of every run.
+How to run the full delivery relay from [pipeline.html](pipeline.html) — brainstorm → interview-me → to-prd → to-tasks → approval gate → design-gate → implement-and-review → verify → open-pr — on OpenHands instead of Claude Code, with a live kanban of every run.
 
 OpenHands (v1.x: the `openhands` CLI plus `openhands-sdk`) loads Agent Skills in exactly the format this repo uses — `SKILL.md` with `name`/`description` frontmatter, discovered from `.agents/skills/` in the project and `~/.agents/skills/` for the user, with progressive disclosure. Skills invoke each other by name in prose, run state is plain JSON, the runner skills wrap CLIs, and `open-pr` needs only `gh` — so the collection ports without rewrites.
 
 **Two ways to supply the model**, and the choice changes the setup:
 
-| | Who runs the model | Billing |
-|---|---|---|
+|  | Who runs the model | Billing |
+| --- | --- | --- |
 | **[CLI-only](#cli-only-no-api-keys)** (default here) | a CLI you already have — Claude Code or Codex — spawned over ACP | your CLI subscription; no API key anywhere |
 | [Direct API](#alternative-direct-api) | OpenHands calls the provider itself via LiteLLM | metered `LLM_API_KEY` |
 
@@ -40,7 +40,7 @@ Verified on 2026-07-31 against `openhands` 1.16.0 (which bundles `openhands-sdk`
 
 - `load_project_skills()` returns all 56 with no load failures, no truncation, and no phantom always-on skills, in both symlink and `--copy` mode.
 - A live API-mode headless run shows every pipeline station in the runtime `<available_skills>` block with full descriptions.
-- A live **CLI-only** ACP run with `ANTHROPIC_API_KEY`/`OPENAI_API_KEY`/`LLM_API_KEY` removed from the environment reaches the Claude Code CLI, reports `interview=Y to_tasks=Y design_gate=Y full_review=Y browser_smoke=Y`, and reads `ship/SKILL.md` correctly (7 phases, phase 4 → `implement-and-review`). OpenHands metered $0.00 for it — the CLI subscription carried the run.
+- A live **CLI-only** ACP run with `ANTHROPIC_API_KEY`/`OPENAI_API_KEY`/`LLM_API_KEY` removed from the environment reaches the Claude Code CLI, reports `interview=Y to_tasks=Y design_gate=Y full_review=Y browser_smoke=Y`, and read the then-current ship conductor correctly (since retired in favor of implement-tasks; its phase 4 → `implement-and-review`). OpenHands metered $0.00 for it — the CLI subscription carried the run.
 
 Two things the port had to fix, both now guarded by `shared/scripts/validate_skill_frontmatter.py`:
 
@@ -51,37 +51,37 @@ Two things the port had to fix, both now guarded by `shared/scripts/validate_ski
 
 ## 2. CLI-only (no API keys)
 
-The `openhands` CLI always calls a provider API directly — its own `acp` subcommand is the *reverse* direction (OpenHands serving as an ACP agent to Zed/Toad), so there is no flag that makes it consume a CLI. Driving a CLI as the agent needs the SDK, which is what [`scripts/run-pipeline-acp.py`](../scripts/run-pipeline-acp.py) wraps:
+The `openhands` CLI always calls a provider API directly — its own `acp` subcommand is the _reverse_ direction (OpenHands serving as an ACP agent to Zed/Toad), so there is no flag that makes it consume a CLI. Driving a CLI as the agent needs the SDK, which is what [`scripts/run-pipeline-acp.py`](../scripts/run-pipeline-acp.py) wraps:
 
 ```bash
 scripts/run-pipeline-acp.py /path/to/your-project \
-  -t "Read .claude/skills/ship/SKILL.md and follow it for: <feature idea>"
+  -t "Read .claude/skills/interview-me/SKILL.md and follow it for: <feature idea>"
 ```
 
 It spawns the CLI over ACP (`npx @agentclientprotocol/claude-agent-acp`, or `--agent codex` for `@zed-industries/codex-acp`), and the CLI brings its own model and subscription auth. The launcher strips `ANTHROPIC_API_KEY` / `OPENAI_API_KEY` / `LLM_API_KEY` from the environment before starting, so a stray key cannot quietly turn the run into a metered one; pass `--keep-api-keys` to opt out. Conversations persist under `.ai-workflow/openhands/`, and the script prints a `--resume <id>` line for long runs.
 
-**Invoke `ship` by file path, not by name.** `ship` (like the other entry-point skills) carries `disable-model-invocation: true`, so it is user-invocable only and never appears in the model's own skill list — asking the agent to "use the ship skill" finds nothing. Telling it to read `.claude/skills/ship/SKILL.md` works and is equivalent; skills that ship invokes downstream are model-invocable and resolve normally.
+**Invoke entry-point skills by file path, not by name.** A skill carrying `disable-model-invocation: true` (for example `resolve-pr-feedback`) is user-invocable only and never appears in the model's own skill list — asking the agent to "use the X skill" finds nothing. Telling it to read `.claude/skills/<name>/SKILL.md` works and is equivalent. Of the workflow steps, only `to-tasks` is model-invocable (`implement-tasks` calls it to decompose a bare plan); `brainstorm`, `interview-me`, `to-prd`, and `implement-tasks` are entry points, so name them by file path in a task prompt as shown above.
 
 What you give up under ACP: the external CLI owns its tools and model, so OpenHands' custom tools, MCP configuration, condensers, and critics do not apply. That matters in one place in this pipeline — `browser-smoke` expects a browser MCP, so under ACP it falls back to whatever browser tooling the CLI itself provides. Sandbox-level features (`.openhands/setup.sh`, hooks) are unaffected.
 
-## 3. The interactive half (stations 00–03)
+## 3. The interactive half (steps 1–3)
 
 Run these where you can answer, since the approval gate is here:
 
 ```bash
 scripts/run-pipeline-acp.py /path/to/your-project \
-  -t "Read .claude/skills/interview/SKILL.md and follow it for: <feature idea>"
+  -t "Read .claude/skills/interview-me/SKILL.md and follow it for: <feature idea>"
 ```
 
-Then continue through `to-spec` and `to-tasks` with `--resume <id>`. Questions arrive as numbered options in chat (the skills' documented fallback when a native question tool is absent). `to-spec`/`to-tasks` publish to GitHub Issues when `gh` is authed, else fall back to a repo-root PRD file and `TASKS.md`. The to-tasks approval quiz is the last human gate; ship records it in the run state's `gates`.
+Then continue through `to-prd` and `to-tasks` with `--resume <id>`. Questions arrive as numbered options in chat (the skills' documented fallback when a native question tool is absent). `to-prd`/`to-tasks` write markdown only: the PRD to `.ai-workflow/work/<feature-slug>/prd.md` and one file per slice under `.ai-workflow/work/<feature-slug>/tasks/`. The to-tasks approval quiz is the last human gate; `implement-tasks` records it in the run state's `gates`.
 
-## 4. The autonomous half (stations 04–07)
+## 4. The autonomous half (step 4)
 
-Resume in the same or a fresh session — the run state at `.ai-workflow/ship/<run-id>/run-state.json` carries the approval past restarts:
+Run `implement-tasks` in the same or a fresh session — its run state at `.ai-workflow/impl-review/<session-id>/run-state.json` carries the approval past restarts:
 
 ```bash
 scripts/run-pipeline-acp.py /path/to/your-project \
-  -t "Read .claude/skills/ship/SKILL.md and follow it from phase 3 for run <run-id>"
+  -t "Use implement-tasks on the queue under .ai-workflow/work/<feature-slug>/tasks/"
 ```
 
 Nothing after the gate asks a human: contested decisions go to `models-consensus`, and a genuine hard-stop surfaces as `status: awaiting_human` in the run state (the board highlights it) for you to resume. Approval prompts here come from the CLI's own permission mode, not from OpenHands' confirmation policy, since the CLI executes the tools.
@@ -99,7 +99,7 @@ For a machine-enforced completion gate in headless runs, add a Stop hook in the 
 
 Point `quality_gate.sh` at the slice's acceptance commands (and `.agents/skills/shared/scripts/validate_artifacts.py`).
 
-Parallel slices: OpenHands sub-agents are sequential, so skip `implement-feature`'s 3-in-flight default at first. When needed, launch one `run-pipeline-acp.py` process per slice worktree from a shell loop — the run-state contract (side-effect keys, per-slice run ids) and the `worktree` skill's `git worktree add` fallback make that safe.
+Parallel slices: OpenHands sub-agents are sequential, so skip `implement-tasks`'s 3-in-flight default at first. When needed, launch one `run-pipeline-acp.py` process per slice worktree from a shell loop — the run-state contract (side-effect keys, per-slice run ids) and the `worktree` skill's `git worktree add` fallback make that safe.
 
 ## 5. The kanban board
 
@@ -109,7 +109,7 @@ Each pipeline station is a column; cards are runs and task slices, placed by the
 python3 pipeline-board/serve.py /path/to/your-project
 ```
 
-Open http://localhost:8642. Columns: `00 Frame · 01 Specify · 02 Plan (gate) · 03 Design gate · 04 Implement · 05 Verify · 06 Deliver · Done`. Card color tracks `status` — `awaiting_human` is highlighted as *needs you*, `failed`/`ceiling_hit` red, `complete` lands in Done. The board is read-only over `.ai-workflow/**/run-state.json` (plus consensus session files and launch manifests); it polls every 3 s and needs no skill changes, because the run-state contract already records every phase transition.
+Open http://localhost:8642. Columns: `00 Frame · 01 Specify · 02 Plan (gate) · 03 Design gate · 04 Implement · 05 Verify · 06 Deliver · Done`. Card color tracks `status` — `awaiting_human` is highlighted as _needs you_, `failed`/`ceiling_hit` red, `complete` lands in Done. The board is read-only over `.ai-workflow/**/run-state.json` (plus consensus session files and launch manifests); it polls every 3 s and needs no skill changes, because the run-state contract already records every phase transition.
 
 ## 6. Model seats — also CLI-only
 
@@ -128,7 +128,7 @@ Seat fidelity still applies: a missing CLI is reported as `seat_unavailable`, ne
 ## Differences from Claude Code
 
 | Claude Code feature | On OpenHands | Consequence |
-|---|---|---|
+| --- | --- | --- |
 | `Agent` tool (parallel subagents) | `task` tool exists but is sequential | design-gate / full-review lens fan-out runs sequentially; or route opus/sonnet seats through `claude-runner` (`discover_runners.py probe --native-agent no`) |
 | `AskUserQuestion` | plain chat | skills already fall back to numbered options |
 | `EnterWorktree` | none | `worktree` skill falls back to `git worktree add` |
@@ -143,7 +143,7 @@ If you would rather have OpenHands call the provider itself — which buys back 
 ```bash
 export LLM_MODEL="anthropic/claude-sonnet-4-5-20250929"
 export LLM_API_KEY="sk-ant-..."
-openhands --headless --override-with-envs --json -t "Read .agents/skills/ship/SKILL.md and follow it"
+openhands --headless --override-with-envs --json -t "Use implement-tasks on the queue under .ai-workflow/work/<feature-slug>/tasks/"
 ```
 
 Two behaviors will trip you up here:

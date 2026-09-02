@@ -135,6 +135,10 @@ def resolve_runner_script(
             candidates.append(Path(base).expanduser() / tail)
         candidates.append(working_dir / ".agents" / "skills" / tail)
         candidates.append(get_collection_root() / tail)
+        # Nested source checkout: <root>/engineering/<group>/<runner>/scripts/run_<x>.py
+        tail_parts = Path(tail).parts
+        from skill_paths import skill_dir  # sibling module in shared/scripts
+        candidates.append(skill_dir(tail_parts[0], root=get_collection_root()).joinpath(*tail_parts[1:]))
     for candidate in candidates:
         if candidate.exists():
             return candidate
@@ -595,7 +599,7 @@ def main() -> int:
 
     context = read_context(args.context_file)
     native_response_overrides = parse_native_response_args(args.native_response)
-    base_out = Path(args.out or skill.get("artifact_dir") or ".codex_workflow/panel")
+    base_out = Path(args.out or skill.get("artifact_dir") or ".ai-workflow/panel")
     prompts_dir = base_out / "prompts"
     transcripts_dir = base_out / "transcripts"
     native_responses_dir = base_out / "native_responses"

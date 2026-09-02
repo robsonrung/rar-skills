@@ -93,50 +93,50 @@ SEAT_SPECS: tuple[SeatSpec, ...] = (
     ),
     SeatSpec(
         seat="kimi",
-        execution_path="kimi_runner_via_pi",
+        execution_path="pi_runner_seat",
         probe_cli="pi",
         depends_on=("pi",),
-        notes="pi-backed shim; pins --provider openrouter --model moonshotai/kimi-k3 (Kimi K3) per invocation, requires OPENROUTER_API_KEY (or an OpenRouter credential in Pi's auth store).",
+        notes="`pi-runner --seat kimi`; pins --provider openrouter --model moonshotai/kimi-k3 (Kimi K3) per invocation, requires OPENROUTER_API_KEY (or an OpenRouter credential in Pi's auth store).",
     ),
     SeatSpec(
         seat="glm",
-        execution_path="glm_runner_via_pi",
+        execution_path="pi_runner_seat",
         probe_cli="pi",
         depends_on=("pi",),
-        notes="pi-backed shim; pins --provider openrouter --model z-ai/glm-5.3-flash per invocation, requires OPENROUTER_API_KEY (or an OpenRouter credential in Pi's auth store).",
+        notes="`pi-runner --seat glm`; pins --provider openrouter --model z-ai/glm-5.3-flash per invocation, requires OPENROUTER_API_KEY (or an OpenRouter credential in Pi's auth store).",
     ),
     # Backup seats. Not part of the default council rosters — probed so skills
     # that name them explicitly (`--seat qwen`) resolve instead of exiting 2.
     SeatSpec(
         seat="qwen",
-        execution_path="qwen_runner_via_pi",
+        execution_path="pi_runner_seat",
         probe_cli="pi",
         depends_on=("pi",),
-        notes="Backup seat. pi-backed shim; pins --provider openrouter --model qwen/qwen3.8-max (Qwen3.8 Max, the open-weight VLM of the Qwen3.8 Max family) per invocation, requires OPENROUTER_API_KEY (or an OpenRouter credential in Pi's auth store).",
+        notes="Backup seat. `pi-runner --seat qwen`; pins --provider openrouter --model qwen/qwen3.8-max (Qwen3.8 Max, the open-weight VLM of the Qwen3.8 Max family) per invocation, requires OPENROUTER_API_KEY (or an OpenRouter credential in Pi's auth store).",
         tier="backup",
     ),
     SeatSpec(
         seat="muse",
-        execution_path="muse_runner_via_cline",
+        execution_path="cline_runner_seat",
         probe_cli="cline",
         depends_on=("cline",),
-        notes="Backup seat. cline-backed shim; forwards --model meta/muse-spark-1.1 to `cline`. OpenRouter limits access to users in the United States.",
+        notes="Backup seat. `cline-runner --seat muse`; pins --model meta/muse-spark-1.3. OpenRouter limits access to users in the United States.",
         tier="backup",
     ),
     SeatSpec(
         seat="gemma",
-        execution_path="gemma_runner_via_pi",
+        execution_path="pi_runner_seat",
         probe_cli="pi",
         depends_on=("pi",),
-        notes="Backup seat. pi-backed shim; pins --provider openrouter --model google/gemma-4-31b-it per invocation, requires OPENROUTER_API_KEY (or an OpenRouter credential in Pi's auth store).",
+        notes="Backup seat. `pi-runner --seat gemma`; pins --provider openrouter --model google/gemma-4-31b-it per invocation, requires OPENROUTER_API_KEY (or an OpenRouter credential in Pi's auth store).",
         tier="backup",
     ),
     SeatSpec(
         seat="minimax",
-        execution_path="minimax_runner_via_cline",
+        execution_path="cline_runner_seat",
         probe_cli="cline",
         depends_on=("cline",),
-        notes="Backup seat. cline-backed shim; forwards --model minimax/minimax-m2.7 to `cline`.",
+        notes="Backup seat. `cline-runner --seat minimax`; pins --model minimax/minimax-m2.7.",
         tier="backup",
     ),
 )
@@ -259,7 +259,7 @@ def count_distinct_models(probes: list[SeatProbe]) -> int:
     for p in probes:
         if not p.available:
             continue
-        # opus and sonnet ship via the same CLI but are distinct models in the
+        # opus and sonnet are served by the same CLI but are distinct models in the
         # roster sense. Count each seat once, but treat duplicate Claude seats
         # honestly — quorum logic in the calling skill decides what to do.
         seen.add(p.seat)

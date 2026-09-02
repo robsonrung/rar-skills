@@ -13,7 +13,9 @@ A watch loop delegates CI failures to the debugging skill in pipeline mode and p
   "root_cause": "<causal chain, brief>",
   "changed_files": ["..."],
   "head_sha": "<sha after push, when fixed-and-pushed>",
-  "residuals": [ { "title": "...", "decision_context": "...", "thread": "<url|null>" } ]
+  "residuals": [
+    { "title": "...", "decision_context": "...", "thread": "<url|null>" }
+  ]
 }
 ```
 
@@ -24,7 +26,7 @@ A watch loop delegates CI failures to the debugging skill in pipeline mode and p
 - **Idempotent ticks:** claim→act→confirm dedup so a crashed tick never double-acts; after any mutation, re-snapshot at the start of the next tick, not mid-tick.
 - **Watcher ownership:** latest-valid-watcher-wins with a generation counter carried on wakes and snapshots; a stale wake is discarded against a fresh snapshot.
 - **Settle window:** merge-ready is declared only after a quiet settle period (~5 min default), not on the first green poll.
-- **Trajectory facts (deterministic, never labeled by the watcher):** `recurring_checks`/`check_recur_max` (failed → cleared → failed again on a *new* head; same-head flapping excluded), `unresolved_trend` + `new_threads_this_tick`, `stream_alternations` (ci↔review bouncing), `heads_since_progress`. The *leaf* (debug/resolve delegate) judges convergence from these; the anti-cry-wolf line: progressive failure migration (A fixed → B appears once → done) is ordinary repair — keep fixing; oscillation (the same check returns after a fix aimed at it, defects cycle, fix size grows superlinearly) is non-convergence — park with a decision_context.
+- **Trajectory facts (deterministic, never labeled by the watcher):** `recurring_checks`/`check_recur_max` (failed → cleared → failed again on a _new_ head; same-head flapping excluded), `unresolved_trend` + `new_threads_this_tick`, `stream_alternations` (ci↔review bouncing), `heads_since_progress`. The _leaf_ (debug/resolve delegate) judges convergence from these; the anti-cry-wolf line: progressive failure migration (A fixed → B appears once → done) is ordinary repair — keep fixing; oscillation (the same check returns after a fix aimed at it, defects cycle, fix size grows superlinearly) is non-convergence — park with a decision_context.
 - **Success means:** every check terminal and none failing (at least one observed — an empty rollup is "CI hasn't started", not success), actionable backlog empty, mergeability certain and clean. Budget defaults: ~3 CI fix rounds per head-lineage, overall time cap; on exhaust, still-red checks become residuals.
 
-*Adapted from [compound-engineering-plugin](https://github.com/EveryInc/compound-engineering-plugin) (MIT). See NOTICE.*
+_Adapted from [compound-engineering-plugin](https://github.com/EveryInc/compound-engineering-plugin) (MIT). See NOTICE._
