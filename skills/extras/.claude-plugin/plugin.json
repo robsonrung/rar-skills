@@ -1,0 +1,4 @@
+{
+  "name": "extras",
+  "dependencies": ["shared", "engineering"]
+}
