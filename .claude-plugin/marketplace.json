@@ -1,0 +1,96 @@
+{
+  "name": "rar-skills",
+  "owner": {
+    "name": "robsonrung"
+  },
+  "plugins": [
+    {
+      "name": "engineering",
+      "source": "./skills/engineering",
+      "description": "The four-step development workflow and everything it calls.",
+      "skills": [
+        "./deliver/capture-learning",
+        "./deliver/open-pr",
+        "./deliver/resolve-pr-feedback",
+        "./deliver/session-handoff",
+        "./deliver/summarize",
+        "./engine/coding-design-plan",
+        "./engine/implement-and-review",
+        "./engine/worktree",
+        "./gates/design-gate",
+        "./gates/security-gate",
+        "./lenses/advanced-react",
+        "./lenses/agent-architecture-lens",
+        "./lenses/architecture-lens",
+        "./lenses/data-systems-coding-lens",
+        "./lenses/design-patterns",
+        "./lenses/distributed-systems-patterns",
+        "./lenses/domain-driven-design",
+        "./lenses/macro-architecture",
+        "./lenses/software-design-philosophy",
+        "./lenses/ui-ux-pro-max",
+        "./practice/clean-code",
+        "./practice/diagnose",
+        "./practice/frontend-design",
+        "./practice/safe-incremental-coding",
+        "./practice/tdd",
+        "./practice/test-lens",
+        "./review/coding-review-simplify",
+        "./review/full-review",
+        "./seats/claude-runner",
+        "./seats/cline-runner",
+        "./seats/codex-runner",
+        "./seats/dcode-runner",
+        "./seats/gemini-runner",
+        "./seats/grok-runner",
+        "./seats/opencode-runner",
+        "./seats/pi-runner",
+        "./workflow/brainstorm",
+        "./workflow/implement-tasks",
+        "./workflow/interview-me",
+        "./workflow/models-consensus",
+        "./workflow/to-prd",
+        "./workflow/to-prototype",
+        "./workflow/to-tasks"
+      ]
+    },
+    {
+      "name": "visualization",
+      "source": "./skills/visualization",
+      "description": "Skills whose deliverable is a rendered HTML page.",
+      "skills": [
+        "./consensus-summary-html",
+        "./explain-architecture",
+        "./html-explainer"
+      ]
+    },
+    {
+      "name": "shared",
+      "source": "./skills/shared",
+      "description": "Contracts, references, runner scripts, hooks, and tests every skill loads by path.",
+      "skills": [
+        "./"
+      ]
+    },
+    {
+      "name": "extras",
+      "source": "./skills/extras",
+      "description": "Standalone skills the workflow does not call.",
+      "skills": [
+        "./agents-md-craft",
+        "./browser-smoke",
+        "./cmux-cli",
+        "./collaborative-delivery",
+        "./decide-about-disagreements",
+        "./diverse-plan",
+        "./dynamic-harness",
+        "./fable-mindset",
+        "./knowledge-graph",
+        "./peer-sessions",
+        "./review-gate",
+        "./skill-expert",
+        "./verify-changes"
+      ]
+    }
+  ]
+}
