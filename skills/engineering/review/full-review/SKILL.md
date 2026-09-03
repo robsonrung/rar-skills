@@ -248,16 +248,16 @@ Role diversity follows the model's strengths: **the default Codex seat for recal
 | `sonnet` | native `Agent` subagent (`model: "sonnet"`) or `claude-runner --model sonnet` | `structural_maintainability` (the Sonnet seat owns maintainability) |
 | `gemini` | `gemini-runner` (Antigravity `agy`) | `cross_file_consistency` (the Gemini seat — broad, long context) |
 | `grok` | `grok-runner --effort high` | `logic_state` second seat — execution paths / CLI & tool invocation flows / integration behavior (Terminal-Bench-class agentic strength) |
-| `glm` | `pi-runner --seat glm` | `broad_sweep` (the GLM seat — edge cases / resource & failure paths) |
-| `kimi` | `pi-runner --seat kimi` | `broad_sweep` (broad pragmatic — input/auth) |
-| `codex-code` | `codex-runner --model gpt-5.3-codex --effort high` (see `shared/references/model-roster.md`) | `security_runtime` — code-specialized secondary Codex seat |
-| `gemma` | `pi-runner --seat gemma` | `broad_sweep` (regression/perf) backup |
-| `qwen` | `pi-runner --seat qwen` | `logic_state` backup |
-| `minimax` | `cline-runner --seat minimax` | `cross_file_consistency` backup |
+| `glm` | `pi-runner --seat glm --thinking medium` | `broad_sweep` (the GLM seat — edge cases / resource & failure paths) |
+| `kimi` | `pi-runner --seat kimi --thinking medium` | `broad_sweep` (broad pragmatic — input/auth) |
+| `codex-code` | `codex-runner --model gpt-5.6-terra --effort high` (see `shared/references/model-roster.md`) | `security_runtime` — review-specialized secondary Codex seat |
+| `gemma` | `pi-runner --seat gemma --thinking medium` | `broad_sweep` (regression/perf) backup |
+| `qwen` | `pi-runner --seat qwen --thinking medium` | `logic_state` backup |
+| `minimax` | `cline-runner --seat minimax --thinking medium` | `cross_file_consistency` backup |
 
-**Model ids are not pinned here.** `shared/references/model-roster.md` is the single source of truth for seat → model id. Invocations are alias-first where the CLI supports an alias (`claude-runner --model opus|sonnet`, the native `Agent` tool's `model:` field); otherwise the runner's own default carries the roster id and no `--model` flag is needed. The one deliberate exception is `--model gpt-5.3-codex`, which selects a _different seat_ on the same CLI rather than re-pinning the default one.
+**Model ids are not pinned here.** `shared/references/model-roster.md` is the single source of truth for seat → model id. Invocations are alias-first where the CLI supports an alias (`claude-runner --model opus|sonnet`, the native `Agent` tool's `model:` field); otherwise the runner's own default carries the roster id and no `--model` flag is needed. The one deliberate exception is `--model gpt-5.6-terra`, which selects a _different seat_ on the same CLI rather than re-pinning the default one (`gpt-5.3-codex` is retired under ChatGPT auth).
 
-`security_runtime` is a **Codex** lens: in `quality`/`security_focus` runs, fill it with the `codex-code` seat (`codex-runner --model gpt-5.3-codex`, the code-specialized security reviewer) alongside the default Codex `logic_state` seat — two distinct models on one transport, not one seat used twice.
+`security_runtime` is a **Codex** lens: in `quality`/`security_focus` runs, fill it with the `codex-code` seat (`codex-runner --model gpt-5.6-terra`, the review-specialized secondary Codex seat) alongside the default Codex `logic_state` seat — two distinct models on one transport, not one seat used twice.
 
 `logic_state` may likewise be double-seated (the shared-lens rule below already permits it): codex takes logic/state/concurrency on tight code slices, grok takes execution paths, CLI/tool invocation flows, and integration behavior — non-overlapping `{category_emphasis}` values.
 

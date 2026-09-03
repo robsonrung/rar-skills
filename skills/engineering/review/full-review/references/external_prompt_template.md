@@ -10,7 +10,7 @@ The orchestrator discovers available runners at preflight (see SKILL.md Phase 3 
 
 Role diversity follows model strengths: **the default Codex seat for recall and logic, Opus for precision and root cause validation, the code-specialized Codex seat for security, Sonnet for maintainability, Gemini for cross-file consistency, GLM for edge cases, Kimi for broad pragmatic review, and Grok for execution-path and agentic-flow verification.**
 
-Seat → model id mapping is **not pinned in this file** — `shared/references/model-roster.md` owns it. Invocations below are alias-first (`claude-runner --model opus|sonnet`) or rely on the runner's roster-backed default; the one explicit id is `--model gpt-5.3-codex`, which selects a distinct code-specialized seat rather than re-pinning the default Codex seat.
+Seat → model id mapping is **not pinned in this file** — `shared/references/model-roster.md` owns it. Invocations below are alias-first (`claude-runner --model opus|sonnet`) or rely on the runner's roster-backed default; the one explicit id is `--model gpt-5.6-terra`, which selects a distinct review-specialized seat rather than re-pinning the default Codex seat (`gpt-5.3-codex` is retired under ChatGPT auth).
 
 | Seat | Default lens | Why |
 | --- | --- | --- |
@@ -19,12 +19,12 @@ Seat → model id mapping is **not pinned in this file** — `shared/references/
 | `sonnet` (native Agent or `claude-runner --model sonnet`) | `structural_maintainability` | Strongest at clean-code / maintainability — applies `references/structural_quality_review.md` and names a safer refactor path |
 | `gemini` (`gemini-runner`) | `cross_file_consistency` | Broad, long context; feed whole touched files + dependents, not just the diff slice |
 | `grok` (`grok-runner --effort high`) | `logic_state` second seat | Terminal-Bench-class agentic strength — execution paths, CLI/tool invocation flows, integration behavior; non-overlapping emphasis with codex's logic/state/concurrency |
-| `glm` (`pi-runner --seat glm`) | `broad_sweep` | Edge cases, boundary conditions, resource/failure paths; assign a different category emphasis than kimi |
-| `kimi` (`pi-runner --seat kimi`) | `broad_sweep` | Fast, pragmatic — input-validation, exposure, resource leaks across the whole diff |
-| `codex-code` (`codex-runner --model gpt-5.3-codex --effort high`) | `security_runtime` | Code-specialized security, regression, and runtime reliability review |
-| `gemma` (`pi-runner --seat gemma`) | `broad_sweep` | Cheap third sweep — pair with kimi/glm to form a skeptic pool for adversarial verify |
-| `qwen` (`pi-runner --seat qwen`) | `logic_state` | Codex backup when codex is unavailable; otherwise lend to broad_sweep |
-| `minimax` (`cline-runner --seat minimax`) | `cross_file_consistency` | Gemini backup with long context; otherwise lend to broad_sweep |
+| `glm` (`pi-runner --seat glm --thinking medium`) | `broad_sweep` | Edge cases, boundary conditions, resource/failure paths; assign a different category emphasis than kimi |
+| `kimi` (`pi-runner --seat kimi --thinking medium`) | `broad_sweep` | Fast, pragmatic — input-validation, exposure, resource leaks across the whole diff |
+| `codex-code` (`codex-runner --model gpt-5.6-terra --effort high`) | `security_runtime` | Review-specialized security, regression, and runtime reliability review |
+| `gemma` (`pi-runner --seat gemma --thinking medium`) | `broad_sweep` | Cheap third sweep — pair with kimi/glm to form a skeptic pool for adversarial verify |
+| `qwen` (`pi-runner --seat qwen --thinking medium`) | `logic_state` | Codex backup when codex is unavailable; otherwise lend to broad_sweep |
+| `minimax` (`cline-runner --seat minimax --thinking medium`) | `cross_file_consistency` | Gemini backup with long context; otherwise lend to broad_sweep |
 
 The `gemma`, `qwen`, and `minimax` rows are ordinary probe results like every other row — `discover_runners.py` only covers them when they are named with `--seat` (see SKILL.md Phase 3), and their `available` field is read the same way. "Backup" describes their lens priority, not a different discovery mechanism.
 

@@ -6,6 +6,8 @@ Complete invocation patterns for every council seat, organized by host capabilit
 
 Model selection is not pinned here: pass the roster's alias (`--model opus`) or rely on the runner's default, and read `shared/references/model-roster.md` for the seat → model mapping. The only id that still appears below is Gemini's, where `--model` is a metadata label rather than a model switch.
 
+Kimi, GLM, Qwen, Gemma, and Muse are hybrid reasoning models served through `pi`/`cline`; unlike the native/CLI seats above, their reasoning depth defaults to the provider's own choice unless `--thinking` is passed explicitly. The opening-round invocations below pass `--thinking medium` so every seat's reasoning budget is a deliberate, recorded choice rather than a silent default. Raise it to `--thinking high` for organizer-grade or judge-grade work on these seats when one is pressed into that role.
+
 ## Table of Contents
 
 1. [Host Tool Mapping](#host-tool-mapping)
@@ -158,6 +160,7 @@ python3 .agents/skills/pi-runner/scripts/run_pi.py --seat kimi \
   --prompt-file .ai-workflow/consensus/{session_id}-round-{n}-kimi.md \
   --timeout 900 \
   --role implementer \
+  --thinking medium \
   --output-format stream-json \
   --json \
   --no-session-persistence \
@@ -176,6 +179,7 @@ python3 .agents/skills/pi-runner/scripts/run_pi.py --seat glm \
   --prompt-file .ai-workflow/consensus/{session_id}-round-{n}-glm.md \
   --timeout 900 \
   --role implementer \
+  --thinking medium \
   --json \
   --no-session-persistence \
   --restrict-tools \
@@ -193,6 +197,7 @@ python3 .agents/skills/pi-runner/scripts/run_pi.py --seat qwen \
   --prompt-file .ai-workflow/consensus/{session_id}-round-{n}-qwen.md \
   --timeout 900 \
   --role implementer \
+  --thinking medium \
   --json \
   --no-session-persistence \
   --restrict-tools \
@@ -210,6 +215,7 @@ python3 .agents/skills/pi-runner/scripts/run_pi.py --seat gemma \
   --prompt-file .ai-workflow/consensus/{session_id}-round-{n}-gemma.md \
   --timeout 900 \
   --role implementer \
+  --thinking medium \
   --json \
   --no-session-persistence \
   --restrict-tools \
@@ -227,6 +233,7 @@ python3 .agents/skills/cline-runner/scripts/run_cline.py --seat muse \
   --prompt-file .ai-workflow/consensus/{session_id}-round-{n}-muse.md \
   --timeout 900 \
   --role implementer \
+  --thinking medium \
   --json \
   --no-session-persistence \
   --restrict-tools \

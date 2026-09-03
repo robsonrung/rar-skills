@@ -50,19 +50,23 @@ WRITE_ROLES = {"implementer"}
 
 # Premium default: GPT 5.6 Sol is the flagship of OpenAI's GPT-5.6 family and
 # the best all-around engineering model for most coding, architecture, and
-# synthesis work. The code-specialized GPT 5.3 Codex (agentic coding,
-# regression, security review) is available via `--model codex` /
-# `--model gpt-5.3-codex`.
+# synthesis work. The secondary review-shaped seat is GPT 5.6 Terra, available
+# via `--model codex-code` / `--model gpt-5.6-terra`. `gpt-5.3-codex` is
+# retired under ChatGPT auth (400 invalid_request_error, confirmed
+# 2026-09-03) — the alias below is kept only so old invocations fail loudly
+# rather than silently reverting to the default model.
 DEFAULT_MODEL = "gpt-5.6-sol"
 
 MODEL_ALIASES = {
     "spark": "gpt-5.3-codex-spark",
     "codex": "gpt-5.3-codex",
+    "codex-code": "gpt-5.6-terra",
     "gpt-5.6-sol": "gpt-5.6-sol",
+    "gpt-5.6-terra": "gpt-5.6-terra",
     "gpt-5.3-codex": "gpt-5.3-codex",
 }
 
-EFFORT_LEVELS = ("none", "minimal", "low", "medium", "high", "xhigh")
+EFFORT_LEVELS = ("none", "minimal", "low", "medium", "high", "xhigh", "max")
 
 # Some models reject the `minimal` reasoning effort (they support only
 # none/low/medium/high/xhigh). For those, transparently map `minimal` -> `low`

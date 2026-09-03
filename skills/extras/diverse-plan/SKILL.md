@@ -23,15 +23,15 @@ Assign work to the model best suited to it. This is the default routing; fall ba
 | Branch: **most robust** | GLM 5.3 Flash | `pi-runner --seat glm --role planner` | edge cases, long-context / backend reasoning, failure modes |
 | Branch: **different boundary/placement** (optional 4th) | Grok 4.6 | `grok-runner --role planner --effort high` | independent lineage (xAI), deep execution-grounded agentic reasoning, token-efficient |
 | Lens: **architecture / module complexity** | Opus seat | native `Agent` running `architecture-lens` / `software-design-philosophy` | structural judgment and reconciliation |
-| Lens: **data-systems** (state, async, migrations, retries) | GPT 5.3 Codex | `codex-runner --model gpt-5.3-codex --role codereviewer --effort high` | correctness & concurrency rigor, regression analysis |
-| Lens: **security** (auth, input, secrets, untrusted data) | GPT 5.3 Codex | `codex-runner --model gpt-5.3-codex --role adversarial --effort high` | best code-focused adversarial/security reviewer |
+| Lens: **data-systems** (state, async, migrations, retries) | GPT 5.6 Terra | `codex-runner --model gpt-5.6-terra --role codereviewer --effort high` | correctness & concurrency rigor, regression analysis |
+| Lens: **security** (auth, input, secrets, untrusted data) | GPT 5.6 Terra | `codex-runner --model gpt-5.6-terra --role adversarial --effort high` | best code-focused adversarial/security reviewer |
 | Lens: **clean-code / readability / test coverage** | Sonnet 5 | native `Agent` `model:"sonnet"` running `clean-code` / `test-lens` | clean code, readability, and test quality are Sonnet's strength |
 | **Synthesis & enrichment** | Opus seat | native `Agent` `model:"opus"` `mode:"plan"` (else `claude-runner --model opus --role synthesizer --effort high`) | reconcile competing architectural judgment before execution |
 | **Execution completeness critic** | Codex seat | `codex-runner --role adversarial --effort high` | check the chosen plan against explicit scope, acceptance, commands, and verification |
 
 GLM 5.3 Flash anchors the **most robust** branch (edge cases / long context) and is also the spare diversity seat — use it as a fallback branch model or an extra critique angle when another seat is missing.
 
-**Model ids live in `shared/references/model-roster.md`, not here.** The names above are _seats_; the roster maps each seat to the id that currently serves it. Invocations are alias-first where the CLI supports an alias (`claude-runner --model opus|sonnet`, the native `Agent` tool's `model:` field); otherwise a runner with no `--model` flag uses its roster-backed default. The one explicit id below is `--model gpt-5.3-codex` (see the roster) — it selects the code-specialized secondary Codex seat, a _different seat_ on the same CLI, rather than re-pinning the default Codex seat used for synthesis.
+**Model ids live in `shared/references/model-roster.md`, not here.** The names above are _seats_; the roster maps each seat to the id that currently serves it. Invocations are alias-first where the CLI supports an alias (`claude-runner --model opus|sonnet`, the native `Agent` tool's `model:` field); otherwise a runner with no `--model` flag uses its roster-backed default. The one explicit id below is `--model gpt-5.6-terra` (see the roster) — it selects the review-specialized secondary Codex seat (`gpt-5.3-codex` is retired under ChatGPT auth), a _different seat_ on the same CLI, rather than re-pinning the default Codex seat used for synthesis.
 
 ## Step 0 — Preflight (probe seats once)
 
@@ -92,12 +92,12 @@ Pressure-test the branches from two kinds of lens. Run only the domain lenses th
 | coupling, layering, where code belongs | `architecture-lens` | Opus |
 | module complexity / information hiding | `software-design-philosophy` | Opus |
 | readability, naming, duplication, refactor | `clean-code` | Sonnet 5 |
-| stored state, queries, migrations, async, retries | `data-systems-coding-lens` | GPT 5.3 Codex |
+| stored state, queries, migrations, async, retries | `data-systems-coding-lens` | GPT 5.6 Terra |
 | agent control flow — loop vs graph, agent state, durable runs | `agent-architecture-lens` | Opus |
-| auth, input handling, secrets, untrusted data | `security-gate` | GPT 5.3 Codex |
+| auth, input handling, secrets, untrusted data | `security-gate` | GPT 5.6 Terra |
 | testability, coverage of the change | `test-lens` | Sonnet 5 |
 
-For a lens assigned to **Opus or Sonnet** on a Claude host, run the **actual lens skill** inside a native `Agent` of that model (richest result). For a lens assigned to **GPT 5.3 Codex** (or any runner-only model), launch that runner as a `codereviewer`/`adversarial` seat with the lens's focus inlined in the prompt — name the lens skill as the source of the criteria. If `design-gate` is available you may hand it the leading candidate to route the domain lenses automatically.
+For a lens assigned to **Opus or Sonnet** on a Claude host, run the **actual lens skill** inside a native `Agent` of that model (richest result). For a lens assigned to **GPT 5.6 Terra** (or any runner-only model), launch that runner as a `codereviewer`/`adversarial` seat with the lens's focus inlined in the prompt — name the lens skill as the source of the criteria. If `design-gate` is available you may hand it the leading candidate to route the domain lenses automatically.
 
 Capture, per branch: strongest aspect, biggest weakness, any fatal flaw.
 
@@ -136,7 +136,7 @@ Write a file only if the user asks.
 - **Self-contained.** Never call `models-consensus` — in any mode (poll, debate, personas). This skill owns its own loop.
 - **Multi-model by construction.** Branches run on distinct models via the runners (≥2 quorum); lenses and synthesis run on the model the routing table assigns. `--disable-fallback` on every runner; never substitute a provider silently.
 - **Blind branches, same brief.** Only the premise line differs across branches.
-- **Best model per task, but don't overspend.** Opus for architectural synthesis and deep design lenses, the default Codex seat for execution completeness, GPT 5.3 Codex for focused correctness/security lenses, Sonnet 5 for clean-code/tests, Kimi K3 / GLM 5.3 Flash / Grok 4.6 (Gemini 3.8 Flash as its fallback) for the branch seats. Run only the lenses the change touches.
+- **Best model per task, but don't overspend.** Opus for architectural synthesis and deep design lenses, the default Codex seat for execution completeness, GPT 5.6 Terra for focused correctness/security lenses, Sonnet 5 for clean-code/tests, Kimi K3 / GLM 5.3 Flash / Grok 4.6 (Gemini 3.8 Flash as its fallback) for the branch seats. Run only the lenses the change touches.
 - **One completeness round max.**
 - **Read `agent_message` from `--output-file`,** never raw stdout (Kimi appends a resume hint; Codex emits a transcript).
 - **This produces a plan, not code.** Hand the plan off to your implementation flow.
