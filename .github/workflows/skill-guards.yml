@@ -28,10 +28,10 @@ jobs:
         with:
           python-version: "3.x"
       - name: Cross-runner envelope parity
-        run: python3 shared/tests/test_runner_parity.py
+        run: python3 skills/shared/tests/test_runner_parity.py
       - name: Task shaped model routing
-        run: python3 shared/tests/test_model_routing.py
+        run: python3 skills/shared/tests/test_model_routing.py
       - name: Skill frontmatter + runner-dir parity
-        run: python3 shared/scripts/validate_skill_frontmatter.py
+        run: python3 skills/shared/scripts/validate_skill_frontmatter.py
       - name: Command guard denylist
-        run: shared/hooks/test-guard.sh
+        run: skills/shared/hooks/test-guard.sh

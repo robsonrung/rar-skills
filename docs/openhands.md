@@ -42,7 +42,7 @@ Verified on 2026-07-31 against `openhands` 1.16.0 (which bundles `openhands-sdk`
 - A live API-mode headless run shows every pipeline station in the runtime `<available_skills>` block with full descriptions.
 - A live **CLI-only** ACP run with `ANTHROPIC_API_KEY`/`OPENAI_API_KEY`/`LLM_API_KEY` removed from the environment reaches the Claude Code CLI, reports `interview=Y to_tasks=Y design_gate=Y full_review=Y browser_smoke=Y`, and read the then-current ship conductor correctly (since retired in favor of implement-tasks; its phase 4 → `implement-and-review`). OpenHands metered $0.00 for it — the CLI subscription carried the run.
 
-Two things the port had to fix, both now guarded by `shared/scripts/validate_skill_frontmatter.py`:
+Two things the port had to fix, both now guarded by `skills/shared/scripts/validate_skill_frontmatter.py`:
 
 - **Frontmatter must be strict YAML.** Claude Code tolerated unquoted descriptions containing `": "`; OpenHands parses with PyYAML and silently drops those skills (five of them, including `implement-and-review`). They now use `>-` block scalars. Skill names must also be lowercase-with-hyphens — `collaborative_delivery` was renamed `collaborative-delivery`.
 - **Descriptions are truncated at 1024 characters.** Seven skills exceeded it, so the "Use when … / Do not use …" tail that routing depends on was being cut. All seven were shortened — provenance and redundant prose came out, every trigger phrase and `Distinct from …` clause stayed — and the validator now warns if a description grows back over the limit.
@@ -118,7 +118,7 @@ The seats the pipeline escalates to were already CLI-based: every `*-runner` ski
 Check what the host offers:
 
 ```bash
-python3 shared/scripts/discover_runners.py probe --native-agent no
+python3 skills/shared/scripts/discover_runners.py probe --native-agent no
 ```
 
 On a machine with Claude Code, Codex, Antigravity, Grok, and Cline installed, that reports **7 available seats** — `opus` and `sonnet` via `claude`, `codex`, `gemini` via `agy`, `grok`, and `kimi` + `glm` via `cline` — comfortably past the ≥3 quorum, so `models-consensus` runs at full strength rather than degrading to single-model personas mode. Pass `--native-agent no` so the opus/sonnet seats route through `claude-runner` instead of expecting a host-native subagent tool.

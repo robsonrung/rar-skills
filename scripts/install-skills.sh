@@ -53,8 +53,9 @@ for dest in "${dests[@]}"; do
   count=0
   # A skill is a directory with SKILL.md; shared ships alongside them as-is,
   # because skills reference .../skills/shared/{references,scripts}/...
-  # Skills live nested in the source checkout (engineering/<group>/<skill>,
-  # visualization/<skill>, extras/<skill>); they install flat, by directory name. shared/ ships as-is.
+  # Skills live nested in the source checkout under skills/ (skills/engineering/<group>/<skill>,
+  # skills/visualization/<skill>, skills/extras/<skill>); they install flat, by directory name.
+  # skills/shared/ ships as-is.
   while IFS= read -r dir; do
     name="$(basename "$dir")"
     rm -rf "$dest/$name"
@@ -65,8 +66,8 @@ for dest in "${dests[@]}"; do
     fi
     count=$((count + 1))
   done < <(
-    printf '%s\n' "$SOURCE_DIR/shared"
-    find "$SOURCE_DIR/engineering" "$SOURCE_DIR/visualization" "$SOURCE_DIR/extras" -name SKILL.md -not -path '*/node_modules/*' -exec dirname {} \; | sort
+    printf '%s\n' "$SOURCE_DIR/skills/shared"
+    find "$SOURCE_DIR/skills/engineering" "$SOURCE_DIR/skills/visualization" "$SOURCE_DIR/skills/extras" -name SKILL.md -not -path '*/node_modules/*' -exec dirname {} \; | sort
   )
   echo "  $dest — $count entries"
   installed=$((installed + count))

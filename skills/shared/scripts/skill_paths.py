@@ -5,9 +5,10 @@ Two layouts exist:
 
 * **installed** — every skill is a flat sibling under `.agents/skills/` (or
   `.claude/skills/`), and `shared/` sits next to them;
-* **source checkout** — skills are grouped under `engineering/<group>/<skill>`,
-  `visualization/<skill>`,
-  and `extras/<skill>`, and `shared/` sits at the repository root.
+* **source checkout** — everything sits under `skills/`: skills are grouped as
+  `skills/engineering/<group>/<skill>`, `skills/visualization/<skill>`, and
+  `skills/extras/<skill>`, with `skills/shared/` next to them. `skills/` is the
+  skills root in this layout.
 
 Scripts must never assume a fixed number of `parents[]` between themselves and
 `shared/`. Walk up until the directory that owns `shared/scripts/` is found,

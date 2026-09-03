@@ -58,7 +58,7 @@ Whether a seat joins a default fan-out (`default`) or is probed only when named 
 
 A deliberately distinctive word planted in a skill's prose to make routing and provenance greppable. Registered in `leitworter.json`; guarded by `scripts/check_leitworter.py` in CI. Deleting one from its owning skill fails the build.
 
-### `shared/`
+### `shared/` (`skills/shared/` in the source checkout)
 
 The one sanctioned cross-skill directory: envelope schema, runner discovery, parity tests, common references. Everything else in a skill stays self-contained — no `../other-skill` paths.
 

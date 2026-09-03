@@ -22,30 +22,31 @@ Supporting casts: **design lenses** (`architecture-lens`, `macro-architecture`, 
 ## Repository layout
 
 ```
-engineering/           the workflow and everything it calls
-  workflow/            the engineer's toolbox — brainstorm · interview-me · to-prd · to-tasks · implement-tasks
-                       models-consensus · to-prototype; which tool you reach for depends on the task
-  engine/              implement-and-review · coding-design-plan · worktree
-  gates/               security-gate · design-gate
-  lenses/              architecture-lens · macro-architecture · domain-driven-design · software-design-philosophy
-                       design-patterns · data-systems-coding-lens · distributed-systems-patterns
-                       agent-architecture-lens · advanced-react · ui-ux-pro-max
-  practice/            tdd · safe-incremental-coding · clean-code · test-lens · diagnose · frontend-design
-  review/              coding-review-simplify · full-review
-  deliver/             open-pr · capture-learning · session-handoff · summarize · resolve-pr-feedback
-  seats/               claude-runner · codex-runner · gemini-runner · grok-runner
-                       pi-runner (--seat kimi|glm|qwen|gemma) · cline-runner (--seat muse|minimax) · dcode-runner · opencode-runner
-visualization/         skills whose deliverable is a rendered page: explain-architecture (orientation page)
-                       · html-explainer (drill-down) · consensus-summary-html — all load
-                       shared/references/html-page-conventions.md
-extras/                standalone skills the workflow does not call: diverse-plan, collaborative-delivery,
-                       review-gate, verify-changes, browser-smoke, knowledge-graph, dynamic-harness,
-                       peer-sessions, cmux-cli, fable-mindset, skill-expert, agents-md-craft,
-                       decide-about-disagreements
-shared/                contracts, references, runner scripts, hooks, and tests every skill loads by path
+skills/                everything the `skills` CLI installs (it walks this directory, three levels deep)
+  engineering/         the workflow and everything it calls
+    workflow/            the engineer's toolbox — brainstorm · interview-me · to-prd · to-tasks · implement-tasks
+                         models-consensus · to-prototype; which tool you reach for depends on the task
+    engine/              implement-and-review · coding-design-plan · worktree
+    gates/               security-gate · design-gate
+    lenses/              architecture-lens · macro-architecture · domain-driven-design · software-design-philosophy
+                         design-patterns · data-systems-coding-lens · distributed-systems-patterns
+                         agent-architecture-lens · advanced-react · ui-ux-pro-max
+    practice/            tdd · safe-incremental-coding · clean-code · test-lens · diagnose · frontend-design
+    review/              coding-review-simplify · full-review
+    deliver/             open-pr · capture-learning · session-handoff · summarize · resolve-pr-feedback
+    seats/               claude-runner · codex-runner · gemini-runner · grok-runner
+                         pi-runner (--seat kimi|glm|qwen|gemma) · cline-runner (--seat muse|minimax) · dcode-runner · opencode-runner
+  visualization/         skills whose deliverable is a rendered page: explain-architecture (orientation page)
+                         · html-explainer (drill-down) · consensus-summary-html — all load
+                         shared/references/html-page-conventions.md
+  extras/                standalone skills the workflow does not call: diverse-plan, collaborative-delivery,
+                         review-gate, verify-changes, browser-smoke, knowledge-graph, dynamic-harness,
+                         peer-sessions, cmux-cli, fable-mindset, skill-expert, agents-md-craft,
+                         decide-about-disagreements
+  shared/                contracts, references, runner scripts, hooks, and tests every skill loads by path
 ```
 
-The grouping is for reading the repository. Installed, every skill is a flat sibling under `.agents/skills/<name>/` (and `.claude/skills/<name>/`), with `shared/` next to them, so the paths skills use at runtime (`.agents/skills/shared/...`, `.agents/skills/pi-runner/...`) never change. Scripts that run from a source checkout locate `shared/` and sibling skills by name through `shared/scripts/skill_paths.py`.
+The grouping is for reading the repository. Installed, every skill is a flat sibling under `.agents/skills/<name>/` (and `.claude/skills/<name>/`), with `shared/` next to them, so the paths skills use at runtime (`.agents/skills/shared/...`, `.agents/skills/pi-runner/...`) never change. Scripts that run from a source checkout locate `shared/` and sibling skills by name through `skills/shared/scripts/skill_paths.py`.
 
 ## Quickstart
 
@@ -87,7 +88,7 @@ python3 pipeline-board/serve.py /path/to/your-project
 
 Most skills here are **pure-prompt** (the design lenses, reviews, and planning skills — e.g. `design-gate`, `architecture-lens`, `clean-code`, `tdd`, `coding-design-plan`). They need nothing beyond Claude Code itself, and the pipeline is self-contained: every skill the four steps invoke lives in this collection.
 
-The prerequisites below apply to the **multi-model and runner skills** — `models-consensus`, `diverse-plan`, `implement-and-review`, `implement-tasks`, `full-review`, `collaborative-delivery`, the panel modes of `brainstorm` / `to-prd` / `to-tasks`, and the `*-runner` skills they drive. You only need the pieces for the seats you actually want; these skills run on a **quorum** (typically ≥3 seats) and degrade gracefully when a CLI is missing — they report the absent seat rather than faking it (_seat fidelity_). Seat → model ids live in one place: [`shared/references/model-roster.md`](shared/references/model-roster.md).
+The prerequisites below apply to the **multi-model and runner skills** — `models-consensus`, `diverse-plan`, `implement-and-review`, `implement-tasks`, `full-review`, `collaborative-delivery`, the panel modes of `brainstorm` / `to-prd` / `to-tasks`, and the `*-runner` skills they drive. You only need the pieces for the seats you actually want; these skills run on a **quorum** (typically ≥3 seats) and degrade gracefully when a CLI is missing — they report the absent seat rather than faking it (_seat fidelity_). Seat → model ids live in one place: [`shared/references/model-roster.md`](skills/shared/references/model-roster.md).
 
 ### 1. Runtime
 
@@ -143,10 +144,10 @@ If a referenced skill is absent, the calling skill notes it and continues with t
 Runner skills launch CLI seats headless with auto-approve flags. `shared/hooks/` ships an opt-in guard that blocks catastrophic commands (rm on `/`/`~`, raw-disk writes, fork bombs, `curl | sh`, remote-history rewrites, `gh repo delete`, token exfiltration) before any seat runs them, while leaving recoverable commands alone. Install is manual — no skill ever wires it for you:
 
 ```bash
-mkdir -p ~/.agents/hooks && cp shared/hooks/deny-dangerous.sh shared/hooks/dangerous-patterns.txt ~/.agents/hooks/
+mkdir -p ~/.agents/hooks && cp skills/shared/hooks/deny-dangerous.sh skills/shared/hooks/dangerous-patterns.txt ~/.agents/hooks/
 ```
 
-Then register `~/.agents/hooks/deny-dangerous.sh` as a `PreToolUse` (matcher `Bash`) hook in each CLI that supports hooks — wiring details and per-CLI gotchas are in [`shared/references/runner-common.md`](shared/references/runner-common.md) under "Guardrails". After editing the patterns file, run `~/.agents/hooks/test-guard.sh` (copy it too) — it must end `failed: 0`.
+Then register `~/.agents/hooks/deny-dangerous.sh` as a `PreToolUse` (matcher `Bash`) hook in each CLI that supports hooks — wiring details and per-CLI gotchas are in [`shared/references/runner-common.md`](skills/shared/references/runner-common.md) under "Guardrails". After editing the patterns file, run `~/.agents/hooks/test-guard.sh` (copy it too) — it must end `failed: 0`.
 
 ## License
 

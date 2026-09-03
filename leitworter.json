@@ -2,7 +2,7 @@
   "_comment": "Machine-readable registry for the leitwörter convention (see LEITWORTER.md). The `guards` block is enforced by scripts/check_leitworter.py and the CI workflow: must_contain entries are deletion tripwires (the leitwort must still be present), must_not_contain entries are drift tripwires (an old generic phrasing must not return). The `canon` block is the cross-skill vocabulary, used by skill-expert and for warn-only drift hints. Matching is case-insensitive substring.",
   "guards": [
     {
-      "file": "engineering/practice/clean-code/SKILL.md",
+      "file": "skills/engineering/practice/clean-code/SKILL.md",
       "concept": "named smells / earned comment",
       "must_contain": [
         "Diagnose by name",
@@ -13,7 +13,7 @@
       "must_not_contain": []
     },
     {
-      "file": "engineering/lenses/software-design-philosophy/SKILL.md",
+      "file": "skills/engineering/lenses/software-design-philosophy/SKILL.md",
       "concept": "conceptual integrity / change ownership / smallest coherent shape / design it twice / stay strategic / decide what matters",
       "must_contain": [
         "conceptual integrity",
@@ -27,7 +27,7 @@
       "must_not_contain": []
     },
     {
-      "file": "engineering/practice/tdd/SKILL.md",
+      "file": "skills/engineering/practice/tdd/SKILL.md",
       "concept": "smallest reversible move / the Iron Law",
       "must_contain": [
         "smallest reversible move",
@@ -36,7 +36,7 @@
       "must_not_contain": []
     },
     {
-      "file": "engineering/gates/security-gate/SKILL.md",
+      "file": "skills/engineering/gates/security-gate/SKILL.md",
       "concept": "threat-model-lite / deep-pass trigger",
       "must_contain": [
         "threat-model-lite",
@@ -48,7 +48,7 @@
       ]
     },
     {
-      "file": "engineering/deliver/summarize/SKILL.md",
+      "file": "skills/engineering/deliver/summarize/SKILL.md",
       "concept": "cold-start test",
       "must_contain": [
         "cold-start test"
@@ -56,7 +56,7 @@
       "must_not_contain": []
     },
     {
-      "file": "engineering/workflow/brainstorm/SKILL.md",
+      "file": "skills/engineering/workflow/brainstorm/SKILL.md",
       "concept": "the why before the how / expand the solution space",
       "must_contain": [
         "the why before the how",
@@ -65,7 +65,7 @@
       "must_not_contain": []
     },
     {
-      "file": "engineering/review/coding-review-simplify/SKILL.md",
+      "file": "skills/engineering/review/coding-review-simplify/SKILL.md",
       "concept": "connascence",
       "must_contain": [
         "Connascence Pass",
@@ -78,7 +78,7 @@
       ]
     },
     {
-      "file": "shared/references/runner-common.md",
+      "file": "skills/shared/references/runner-common.md",
       "concept": "seat fidelity",
       "must_contain": [
         "seat fidelity"
@@ -86,7 +86,7 @@
       "must_not_contain": []
     },
     {
-      "file": "extras/skill-expert/SKILL.md",
+      "file": "skills/extras/skill-expert/SKILL.md",
       "concept": "acceptance contract",
       "must_contain": [
         "acceptance contract"
@@ -94,7 +94,7 @@
       "must_not_contain": []
     },
     {
-      "file": "visualization/consensus-summary-html/SKILL.md",
+      "file": "skills/visualization/consensus-summary-html/SKILL.md",
       "concept": "decision surface / lead with the outcome / selection over compression / evidence and independence",
       "must_contain": [
         "decision surface",
@@ -108,7 +108,7 @@
       "must_not_contain": []
     },
     {
-      "file": "extras/fable-mindset/SKILL.md",
+      "file": "skills/extras/fable-mindset/SKILL.md",
       "concept": "the five moments — intake (act or assess / the mandate), diagnosis (pattern-match is not diagnosis / artifact of proof), decision (recommendation, not survey / already decided), implementation (native diff / defensive theater), reporting (lead with the outcome / selection over compression)",
       "must_contain": [
         "act or assess",
@@ -133,7 +133,7 @@
       "must_not_contain": []
     },
     {
-      "file": "extras/knowledge-graph/SKILL.md",
+      "file": "skills/extras/knowledge-graph/SKILL.md",
       "concept": "the schema is the only training data / the graph accumulates / local vs global search / flag, never overwrite",
       "must_contain": [
         "the schema is the only training data",
@@ -145,7 +145,7 @@
       "must_not_contain": []
     },
     {
-      "file": "engineering/lenses/agent-architecture-lens/SKILL.md",
+      "file": "skills/engineering/lenses/agent-architecture-lens/SKILL.md",
       "concept": "the six signals / a graph is not an upgrade / three exits / the model never decides the retry / the ledger, not the transcript / crash-resume test",
       "must_contain": [
         "the six signals",
@@ -158,7 +158,7 @@
       "must_not_contain": []
     },
     {
-      "file": "engineering/workflow/implement-tasks/SKILL.md",
+      "file": "skills/engineering/workflow/implement-tasks/SKILL.md",
       "concept": "thin conductor / hand off the path, not the payload / the ledger, not the transcript",
       "must_contain": [
         "thin conductor",
@@ -168,7 +168,7 @@
       "must_not_contain": []
     },
     {
-      "file": "extras/peer-sessions/SKILL.md",
+      "file": "skills/extras/peer-sessions/SKILL.md",
       "concept": "durable peer coordination through the ledger, path handoffs, three exits, cold-start test, and acceptance contract",
       "must_contain": [
         "the ledger, not the transcript",
@@ -180,7 +180,7 @@
       "must_not_contain": []
     },
     {
-      "file": "shared/references/handoff-contract.md",
+      "file": "skills/shared/references/handoff-contract.md",
       "concept": "hand off the path, not the payload / fresh-reader test",
       "must_contain": [
         "hand off the path, not the payload",
@@ -189,7 +189,7 @@
       "must_not_contain": []
     },
     {
-      "file": "shared/references/run-state-contract.md",
+      "file": "skills/shared/references/run-state-contract.md",
       "concept": "the ledger, not the transcript / the model never decides the retry / three exits / crash-resume test",
       "must_contain": [
         "the ledger, not the transcript",
@@ -201,7 +201,7 @@
       "must_not_contain": []
     },
     {
-      "file": "extras/review-gate/SKILL.md",
+      "file": "skills/extras/review-gate/SKILL.md",
       "concept": "scope contract with honesty accounting / precision over volume / checks are facts",
       "must_contain": [
         "scope contract",
@@ -212,7 +212,7 @@
       "must_not_contain": []
     },
     {
-      "file": "extras/verify-changes/SKILL.md",
+      "file": "skills/extras/verify-changes/SKILL.md",
       "concept": "captured evidence, not narrative",
       "must_contain": [
         "only captured command results count as evidence"
@@ -220,7 +220,7 @@
       "must_not_contain": []
     },
     {
-      "file": "engineering/lenses/distributed-systems-patterns/SKILL.md",
+      "file": "skills/engineering/lenses/distributed-systems-patterns/SKILL.md",
       "concept": "coscheduled pair / container API / readiness, not liveness / need a master / data communication layer / single source of truth / single writer / event-first",
       "must_contain": [
         "coscheduled pair",
@@ -235,7 +235,7 @@
       "must_not_contain": []
     },
     {
-      "file": "engineering/workflow/to-prototype/SKILL.md",
+      "file": "skills/engineering/workflow/to-prototype/SKILL.md",
       "concept": "prototype code never graduates",
       "must_contain": [
         "prototype code never graduates"
@@ -243,7 +243,7 @@
       "must_not_contain": []
     },
     {
-      "file": "engineering/workflow/interview-me/SKILL.md",
+      "file": "skills/engineering/workflow/interview-me/SKILL.md",
       "concept": "spec-ready / design tree / the frontier / all three or no ADR / record on settle",
       "must_contain": [
         "spec-ready",
