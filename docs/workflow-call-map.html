@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="The five workflow skills in rar-skills, what each calls, under which condition, and the principle behind the decision.">
+<title>Workflow Call Map</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Source+Sans+3:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ground:#f4f6f3; --surface:#ffffff; --surface-2:#eaeeea; --ink:#141f1d; --ink-2:#3c4a47; --ink-3:#6b7a76; --rule:rgba(20,31,29,.14); --rule-2:rgba(20,31,29,.07);
+  --human:#9a6700; --human-soft:rgba(154,103,0,.10);
+  --auto:#0f6b6a; --auto-soft:rgba(15,107,106,.10);
+  --gate:#b3262e; --gate-soft:rgba(179,38,46,.10);
+  --council:#3f4fb0; --council-soft:rgba(63,79,176,.10);
+  --display:"Bricolage Grotesque","Helvetica Neue",Arial,sans-serif;
+  --body:"Source Sans 3","Segoe UI",Helvetica,Arial,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+  color-scheme:light dark;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --ground:#0f1615; --surface:#161f1e; --surface-2:#1d2827; --ink:#e6ece9; --ink-2:#b9c4c0; --ink-3:#86938f; --rule:rgba(230,236,233,.16); --rule-2:rgba(230,236,233,.08);
+  --human:#e0a832; --human-soft:rgba(224,168,50,.14); --auto:#4fc1bd; --auto-soft:rgba(79,193,189,.14); --gate:#ef6b72; --gate-soft:rgba(239,107,114,.14); --council:#8d9bf0; --council-soft:rgba(141,155,240,.14);
+}}
+:root[data-theme="dark"]{
+  --ground:#0f1615; --surface:#161f1e; --surface-2:#1d2827; --ink:#e6ece9; --ink-2:#b9c4c0; --ink-3:#86938f; --rule:rgba(230,236,233,.16); --rule-2:rgba(230,236,233,.08);
+  --human:#e0a832; --human-soft:rgba(224,168,50,.14); --auto:#4fc1bd; --auto-soft:rgba(79,193,189,.14); --gate:#ef6b72; --gate-soft:rgba(239,107,114,.14); --council:#8d9bf0; --council-soft:rgba(141,155,240,.14);
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.55;-webkit-font-smoothing:antialiased}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+a{color:inherit;text-decoration-color:var(--rule)}
+a:focus-visible,button:focus-visible{outline:2px solid var(--auto);outline-offset:2px}
+code{font-family:var(--mono);font-size:.86em;background:var(--surface-2);padding:.08em .38em;border-radius:4px}
+h1,h2,h3,h4{font-family:var(--display);text-wrap:balance;margin:0;line-height:1.15}
+h1{font-size:clamp(2rem,4.2vw,3.1rem);font-weight:640;letter-spacing:-.015em}
+h2{font-size:1.7rem;font-weight:600}
+h3{font-size:1.15rem;font-weight:600;margin-top:2rem;margin-bottom:.6rem}
+h4{font-size:.78rem;text-transform:uppercase;letter-spacing:.09em;color:var(--ink-3);font-weight:600;font-family:var(--body)}
+p{margin:0 0 1rem}
+.wrap{display:grid;grid-template-columns:minmax(0,1fr);gap:0 3rem;max-width:1360px;margin:0 auto;padding:2.5rem 1.5rem 5rem}
+@media (min-width:1000px){.wrap{grid-template-columns:210px minmax(0,1fr)}}
+nav.rail{display:none}
+@media (min-width:1000px){nav.rail{display:block;position:sticky;top:2rem;align-self:start;font-size:.9rem}}
+nav.rail ol{list-style:none;margin:0;padding:0;border-left:1px solid var(--rule)}
+nav.rail li a{display:block;padding:.3rem 0 .3rem .9rem;color:var(--ink-2);text-decoration:none;border-left:2px solid transparent;margin-left:-1px}
+nav.rail li a:hover{color:var(--ink);border-left-color:var(--ink-3)}
+nav.rail li.sub a{padding-left:1.6rem;font-family:var(--mono);font-size:.78rem}
+nav.rail .navlabel{font-size:.72rem;text-transform:uppercase;letter-spacing:.1em;color:var(--ink-3);margin:0 0 .6rem .9rem}
+main{min-width:0}
+.masthead{padding-bottom:2rem;border-bottom:1px solid var(--rule);margin-bottom:2.5rem}
+.masthead .kicker{font-family:var(--mono);font-size:.78rem;color:var(--ink-3);letter-spacing:.04em;margin-bottom:.9rem}
+.masthead p.lede{font-size:1.2rem;color:var(--ink-2);max-width:62ch;margin-top:1rem}
+.spine{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.6rem;margin:1.6rem 0 0;font-size:.86rem}
+.spine .s{padding:.7rem .8rem;border-radius:6px;border:1px solid var(--rule);background:var(--surface)}
+.spine .s code{background:transparent;padding:0;font-size:.82rem}
+.spine .s small{display:block;color:var(--ink-3);margin-top:.15rem}
+.spine .s.human{border-top:3px solid var(--human)}.spine .s.gate{border-top:3px solid var(--gate)}.spine .s.auto{border-top:3px solid var(--auto)}
+@media (max-width:640px){.spine{grid-template-columns:1fr 1fr}}
+.prose{max-width:72ch}
+figure{margin:1.5rem 0 2.5rem;}
+@media (min-width:1000px){figure{margin-left:calc(-210px - 3rem)}}
+figure{padding:1.2rem 1.2rem .9rem;background:var(--surface);border:1px solid var(--rule);border-radius:8px}
+figure .scroller{overflow-x:auto}
+figure svg{display:block;min-width:1100px;width:100%;height:auto;color:var(--ink);font-family:var(--body)}
+figcaption{font-size:.92rem;color:var(--ink-2);margin-top:.8rem;max-width:80ch}
+/* svg classes */
+.lane{font-family:var(--mono);font-size:12px;letter-spacing:.08em;fill:var(--ink-3)}
+.lane.human{fill:var(--human)}.lane.auto{fill:var(--auto)}
+.lanerule{stroke-width:1.5}.lanerule.human{stroke:var(--human)}.lanerule.auto{stroke:var(--auto)}
+.gateline{stroke:var(--gate);stroke-width:1.2;stroke-dasharray:3 5}
+.gatebox{fill:var(--gate-soft);stroke:var(--gate);stroke-width:1.5}
+.gatelabel{font-family:var(--display);font-weight:700;font-size:13px;fill:var(--gate);letter-spacing:.06em}
+.gatesub{font-size:10.5px;fill:var(--gate)}
+.gatecap{font-size:12px;fill:var(--gate);font-style:italic}
+.step{stroke-width:1.5;fill:var(--surface)}
+.step.human{stroke:var(--human);fill:var(--human-soft)}.step.auto{stroke:var(--auto);fill:var(--auto-soft)}
+.stepname{font-family:var(--mono);font-size:15px;font-weight:600;fill:var(--ink)}
+.stepsub{font-size:12px;fill:var(--ink-2)}
+.edge{stroke:currentColor;stroke-width:1.4;fill:none}
+.edge.always{stroke:var(--ink)}
+.edge.cond{stroke:var(--ink-2);stroke-dasharray:6 4}
+.edge.reads{stroke:var(--ink-3);stroke-dasharray:1.5 3.5}
+.edge.loop{stroke:var(--gate);stroke-dasharray:6 4}
+.trunk{stroke:var(--rule);stroke-width:1.4}
+.edgelab{font-size:11px;fill:var(--ink-2)}
+.acc{fill:var(--surface);stroke:var(--rule);stroke-width:1.2}
+.acc.always{stroke:var(--ink-2)}
+.acc.hi{fill:var(--auto-soft);stroke:var(--auto);stroke-width:1.6}
+.accname{font-family:var(--mono);font-size:11.5px;font-weight:600;fill:var(--ink)}
+.accname.hi{fill:var(--auto)}
+.accn{font-family:var(--mono);font-size:10.5px;fill:var(--auto)}
+.acccond{font-size:10.5px;fill:var(--ink-3)}
+.legend{font-size:11.5px;fill:var(--ink-2)}
+/* dossiers */
+.skill{margin:3.5rem 0 0;padding-top:2.5rem;border-top:1px solid var(--rule)}
+.skhead{display:grid;gap:.3rem;margin-bottom:1.2rem}
+.skhead .eyebrow{font-family:var(--mono);font-size:.74rem;letter-spacing:.1em;text-transform:uppercase}
+.tone-human .eyebrow{color:var(--human)}.tone-gate .eyebrow{color:var(--gate)}.tone-auto .eyebrow{color:var(--auto)}
+.skhead h2 code{background:transparent;padding:0;font-size:1em;font-weight:600}
+.skhead .tag{font-family:var(--display);font-size:1.15rem;color:var(--ink-2);margin:0}
+.role{max-width:72ch;font-size:1.05rem}
+.io{display:grid;grid-template-columns:1fr 1fr;gap:1.2rem;max-width:80ch;margin:1.2rem 0 0;padding:1rem 1.2rem;background:var(--surface);border:1px solid var(--rule);border-radius:6px;font-size:.92rem}
+.io ul{margin:.4rem 0 0;padding-left:1.1rem}.io li{margin:.15rem 0;font-family:var(--mono);font-size:.8rem;color:var(--ink-2)}
+@media (max-width:640px){.io{grid-template-columns:1fr}}
+.tablewrap{overflow-x:auto}
+table.calls{width:100%;border-collapse:collapse;font-size:.93rem;min-width:640px}
+table.calls th{text-align:left;font-family:var(--body);font-size:.74rem;text-transform:uppercase;letter-spacing:.09em;color:var(--ink-3);padding:.5rem .7rem;border-bottom:1px solid var(--rule)}
+table.calls td{padding:.7rem .7rem;border-bottom:1px solid var(--rule-2);vertical-align:top}
+table.calls td:first-child{white-space:nowrap;width:1%;border-left:3px solid var(--rule)}
+table.calls tr.k-always td:first-child{border-left-color:var(--ink)}
+table.calls tr.k-cond td:first-child{border-left-color:var(--ink-2);border-left-style:dashed}
+table.calls tr.k-reads td:first-child{border-left-color:var(--ink-3);border-left-style:dotted}
+table.calls td:nth-child(2){width:38%;color:var(--ink-2)}
+table.calls td code{white-space:normal}
+ul.principles{max-width:78ch;padding-left:1.2rem;margin:0}
+ul.principles li{margin:.45rem 0}
+.boundary{max-width:78ch;margin-top:1.4rem;padding:.8rem 1rem;border-left:3px solid var(--rule);color:var(--ink-2);font-size:.95rem}
+.qs{counter-reset:q;max-width:78ch;padding:0;margin:0;list-style:none}
+.qs li{position:relative;padding:.9rem 0 .9rem 3rem;border-bottom:1px solid var(--rule-2)}
+.qs li::before{counter-increment:q;content:counter(q);position:absolute;left:0;top:.75rem;width:2rem;height:2rem;border-radius:50%;display:grid;place-items:center;font-family:var(--display);font-weight:700;font-size:.95rem;background:var(--surface-2);color:var(--ink-2)}
+.qs li strong{font-family:var(--display);font-size:1.05rem}
+.qs li span{display:block;color:var(--ink-2);margin-top:.2rem}
+.foot{margin-top:4rem;padding-top:1.2rem;border-top:1px solid var(--rule);font-size:.85rem;color:var(--ink-3);max-width:78ch}
+</style>
+</head>
+<body>
+<div class="wrap">
+<nav class="rail" aria-label="Contents"><p class="navlabel">Contents</p><ol>
+<li><a href="#spine">The spine</a></li>
+<li><a href="#map">Call map</a></li>
+<li><a href="#worker">Inside a worker</a></li>
+<li><a href="#skills">The five skills</a></li>
+<li class="sub"><a href="#interview-me">interview-me</a></li>
+<li class="sub"><a href="#to-prd">to-prd</a></li>
+<li class="sub"><a href="#to-tasks">to-tasks</a></li>
+<li class="sub"><a href="#implement-tasks">implement-tasks</a></li>
+<li class="sub"><a href="#implement-and-review">implement-and-review</a></li>
+<li><a href="#questions">Nine questions behind every call</a></li>
+</ol></nav>
+<main>
+<header class="masthead" id="spine">
+<div class="kicker">rar-skills · engineering/workflow · engineering/engine</div>
+<h1>Workflow Call Map</h1>
+<p class="lede">Four skills you type, one build engine they hand to, and every skill those five call along the way: when the call happens, what condition triggers it, and the principle that decides it.</p>
+<div class="spine">
+<div class="s human"><code>interview-me</code><small>1 · grill until spec-ready</small></div>
+<div class="s human"><code>to-prd</code><small>2 · write the autonomy contract</small></div>
+<div class="s gate"><code>to-tasks</code><small>3 · slices + contracts · the last gate</small></div>
+<div class="s auto"><code>implement-tasks</code> → <code>implement-and-review</code><small>4 · conduct · build one task per worker</small></div>
+</div>
+</header>
+<section id="map" class="prose"><h2>Call map</h2><p>The spine runs left to right. Everything to the left of the gate may still ask the user; everything to the right must not. Beneath each step are the skills it calls. A solid edge always runs, a dashed edge runs only under the condition written on it, and a dotted edge means the step reads that skill's table or rules and records only the result.</p></section>
+<figure><div class="scroller"><svg viewBox="0 0 1320 690" role="img" aria-label="The four workflow steps left to right, the approval gate between to-tasks and implement-tasks, and beneath each step the skills it calls with the condition on each call" xmlns="http://www.w3.org/2000/svg">
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="currentColor"/></marker></defs>
+<text x="30" y="26" text-anchor="start" class="lane human" >HUMAN IN THE ROOM</text>
+<line x1="30" y1="34" x2="860" y2="34" class="lanerule human"/>
+<text x="960" y="26" text-anchor="start" class="lane auto" >AUTONOMOUS — nothing asks the user</text>
+<line x1="960" y1="34" x2="1290" y2="34" class="lanerule auto"/>
+<line x1="900" y1="46" x2="900" y2="600" class="gateline"/>
+<rect x="872" y="70" width="56" height="60" rx="8" class="gatebox"/>
+<text x="900" y="96" text-anchor="middle" class="gatelabel" >GATE</text>
+<text x="900" y="112" text-anchor="middle" class="gatesub" >approve</text>
+<text x="900" y="628" text-anchor="middle" class="gatecap" >to-tasks approval — the last human touchpoint</text>
+<rect x="30" y="70" width="230" height="60" rx="8" class="step human"/>
+<text x="46" y="96" text-anchor="start" class="stepname" >interview-me</text>
+<text x="46" y="116" text-anchor="start" class="stepsub" >1 · grill until spec-ready</text>
+<rect x="320" y="70" width="230" height="60" rx="8" class="step human"/>
+<text x="336" y="96" text-anchor="start" class="stepname" >to-prd</text>
+<text x="336" y="116" text-anchor="start" class="stepsub" >2 · synthesize the PRD</text>
+<rect x="610" y="70" width="230" height="60" rx="8" class="step human"/>
+<text x="626" y="96" text-anchor="start" class="stepname" >to-tasks</text>
+<text x="626" y="116" text-anchor="start" class="stepsub" >3 · cut slices + contracts</text>
+<rect x="960" y="70" width="300" height="60" rx="8" class="step auto"/>
+<text x="976" y="96" text-anchor="start" class="stepname" >implement-tasks</text>
+<text x="976" y="116" text-anchor="start" class="stepsub" >4 · conduct the build</text>
+<line x1="260" y1="100" x2="320" y2="100" class="edge always" marker-end="url(#arrow)"/>
+<text x="290.0" y="60" text-anchor="middle" class="edgelab" >decision record</text>
+<line x1="550" y1="100" x2="610" y2="100" class="edge always" marker-end="url(#arrow)"/>
+<text x="580.0" y="60" text-anchor="middle" class="edgelab" >prd.md</text>
+<line x1="840" y1="100" x2="872" y2="100" class="edge always" marker-end="url(#arrow)"/>
+<text x="856.0" y="60" text-anchor="middle" class="edgelab" >tasks/T*.md</text>
+<line x1="928" y1="100" x2="960" y2="100" class="edge always" marker-end="url(#arrow)"/>
+<text x="944" y="146" text-anchor="middle" class="edgelab" >approved queue</text>
+<line x1="52" y1="130" x2="52" y2="443" class="trunk"/>
+<line x1="52" y1="233" x2="74" y2="233" class="edge reads" marker-end="url(#arrow)"/>
+<rect x="74" y="210" width="230" height="46" rx="5" class="acc reads"/>
+<text x="84" y="229" text-anchor="start" class="accname" >security-gate</text>
+<text x="84" y="246" text-anchor="start" class="acccond" >threat-model rows for exposed surfaces</text>
+<line x1="52" y1="303" x2="74" y2="303" class="edge reads" marker-end="url(#arrow)"/>
+<rect x="74" y="280" width="230" height="46" rx="5" class="acc reads"/>
+<text x="84" y="299" text-anchor="start" class="accname" >test-lens</text>
+<text x="84" y="316" text-anchor="start" class="acccond" >observable behavior at the highest seam</text>
+<line x1="52" y1="373" x2="74" y2="373" class="edge cond" marker-end="url(#arrow)"/>
+<rect x="74" y="350" width="230" height="46" rx="5" class="acc cond"/>
+<text x="84" y="369" text-anchor="start" class="accname" >to-prototype</text>
+<text x="84" y="386" text-anchor="start" class="acccond" >only code can settle it ∧ it changes the spec</text>
+<line x1="52" y1="443" x2="74" y2="443" class="edge reads" marker-end="url(#arrow)"/>
+<rect x="74" y="420" width="230" height="46" rx="5" class="acc reads"/>
+<text x="84" y="439" text-anchor="start" class="accname" >capture-learning</text>
+<text x="84" y="456" text-anchor="start" class="acccond" >vocabulary rules, only if no CONCEPTS.md yet</text>
+<line x1="342" y1="130" x2="342" y2="373" class="trunk"/>
+<line x1="342" y1="233" x2="364" y2="233" class="edge reads" marker-end="url(#arrow)"/>
+<rect x="364" y="210" width="230" height="46" rx="5" class="acc reads"/>
+<text x="374" y="229" text-anchor="start" class="accname" >test-lens</text>
+<text x="374" y="246" text-anchor="start" class="acccond" >sketch the seams; confirm them with the user</text>
+<line x1="342" y1="303" x2="364" y2="303" class="edge cond" marker-end="url(#arrow)"/>
+<rect x="364" y="280" width="230" height="46" rx="5" class="acc cond"/>
+<text x="374" y="299" text-anchor="start" class="accname" >security-gate</text>
+<text x="374" y="316" text-anchor="start" class="acccond" >ask only the still-unanswered rows</text>
+<line x1="342" y1="373" x2="364" y2="373" class="edge cond" marker-end="url(#arrow)"/>
+<rect x="364" y="350" width="230" height="46" rx="5" class="acc cond"/>
+<text x="374" y="369" text-anchor="start" class="accname" >multi-model panel</text>
+<text x="374" y="386" text-anchor="start" class="acccond" >opt-in; replaces drafting only</text>
+<line x1="632" y1="130" x2="632" y2="443" class="trunk"/>
+<line x1="632" y1="233" x2="654" y2="233" class="edge reads" marker-end="url(#arrow)"/>
+<rect x="654" y="210" width="230" height="46" rx="5" class="acc reads"/>
+<text x="664" y="229" text-anchor="start" class="accname" >design-gate</text>
+<text x="664" y="246" text-anchor="start" class="acccond" >routing table → lens flags, never run here</text>
+<line x1="632" y1="303" x2="654" y2="303" class="edge reads" marker-end="url(#arrow)"/>
+<rect x="654" y="280" width="230" height="46" rx="5" class="acc reads"/>
+<text x="664" y="299" text-anchor="start" class="accname" >security-gate</text>
+<text x="664" y="316" text-anchor="start" class="acccond" >trigger list → security: deep | standard</text>
+<line x1="632" y1="373" x2="654" y2="373" class="edge reads" marker-end="url(#arrow)"/>
+<rect x="654" y="350" width="230" height="46" rx="5" class="acc reads"/>
+<text x="664" y="369" text-anchor="start" class="accname" >test-lens</text>
+<text x="664" y="386" text-anchor="start" class="acccond" >behaviors lifted from the PRD&#x27;s seams</text>
+<line x1="632" y1="443" x2="654" y2="443" class="edge cond" marker-end="url(#arrow)"/>
+<rect x="654" y="420" width="230" height="46" rx="5" class="acc cond"/>
+<text x="664" y="439" text-anchor="start" class="accname" >multi-model panel</text>
+<text x="664" y="456" text-anchor="start" class="acccond" >opt-in; replaces drafting, never the gate</text>
+<line x1="982" y1="130" x2="982" y2="583" class="trunk"/>
+<line x1="982" y1="233" x2="1004" y2="233" class="edge cond" marker-end="url(#arrow)"/>
+<rect x="1004" y="210" width="250" height="46" rx="5" class="acc cond"/>
+<text x="1014" y="229" text-anchor="start" class="accname" >to-tasks</text>
+<text x="1014" y="246" text-anchor="start" class="acccond" >input is a bare plan, not a queue</text>
+<line x1="982" y1="303" x2="1004" y2="303" class="edge always" marker-end="url(#arrow)"/>
+<rect x="1004" y="280" width="250" height="46" rx="5" class="acc always hi"/>
+<text x="1014" y="299" text-anchor="start" class="accname hi" >implement-and-review</text>
+<text x="1014" y="316" text-anchor="start" class="acccond" >per task · fresh worker thread · /goal first</text>
+<text x="1244" y="299" text-anchor="end" class="accn" >× N tasks</text>
+<line x1="982" y1="373" x2="1004" y2="373" class="edge always" marker-end="url(#arrow)"/>
+<rect x="1004" y="350" width="250" height="46" rx="5" class="acc always"/>
+<text x="1014" y="369" text-anchor="start" class="accname" >full-review</text>
+<text x="1014" y="386" text-anchor="start" class="acccond" >once, feature-wide, on the seams</text>
+<line x1="982" y1="443" x2="1004" y2="443" class="edge cond" marker-end="url(#arrow)"/>
+<rect x="1004" y="420" width="250" height="46" rx="5" class="acc cond"/>
+<text x="1014" y="439" text-anchor="start" class="accname" >models-consensus</text>
+<text x="1014" y="456" text-anchor="start" class="acccond" >contested decision → poll --auto</text>
+<line x1="982" y1="513" x2="1004" y2="513" class="edge cond" marker-end="url(#arrow)"/>
+<rect x="1004" y="490" width="250" height="46" rx="5" class="acc cond"/>
+<text x="1014" y="509" text-anchor="start" class="accname" >open-pr</text>
+<text x="1014" y="526" text-anchor="start" class="acccond" >unless git has no remote (local-only)</text>
+<line x1="982" y1="583" x2="1004" y2="583" class="edge cond" marker-end="url(#arrow)"/>
+<rect x="1004" y="560" width="250" height="46" rx="5" class="acc cond"/>
+<text x="1014" y="579" text-anchor="start" class="accname" >capture-learning · session-handoff</text>
+<text x="1014" y="596" text-anchor="start" class="acccond" >non-obvious solution · run outgrew session</text>
+<line x1="30" y1="666" x2="70" y2="666" class="edge always" marker-end="url(#arrow)"/>
+<text x="80" y="670" text-anchor="start" class="legend" >always runs</text>
+<line x1="190" y1="666" x2="230" y2="666" class="edge cond" marker-end="url(#arrow)"/>
+<text x="240" y="670" text-anchor="start" class="legend" >runs only when the condition holds</text>
+<line x1="500" y1="666" x2="540" y2="666" class="edge reads" marker-end="url(#arrow)"/>
+<text x="550" y="670" text-anchor="start" class="legend" >reads that skill&#x27;s table or rules; records the result, never copies or runs it</text>
+</svg></div><figcaption>The four steps and the approval gate. <code>implement-tasks</code> is the only step that spawns work: one fresh worker thread per task, each started with a <code>/goal</code>, each running <code>implement-and-review</code>. The feature-wide <code>full-review</code> runs once, on the seams the per-task reviews could not see.</figcaption></figure>
+<section id="worker" class="prose"><h2>Inside a worker</h2><p>Each task worker runs the full <code>implement-and-review</code> engine on exactly one task. Phases run left to right; the two crimson loops are the only places the engine goes backwards, and both are capped at three by a counter on disk.</p></section>
+<figure><div class="scroller"><svg viewBox="0 0 1320 580" role="img" aria-label="The five phases inside one implement-and-review worker, the bounded fix loops between them, and the skills each phase calls" xmlns="http://www.w3.org/2000/svg">
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="currentColor"/></marker></defs>
+<text x="30" y="26" text-anchor="start" class="lane auto" >ONE WORKER THREAD · one task · started by /goal · ends with an envelope</text>
+<line x1="30" y1="34" x2="1290" y2="34" class="lanerule auto"/>
+<rect x="30" y="90" width="220" height="60" rx="8" class="step auto"/>
+<text x="44" y="116" text-anchor="start" class="stepname" >Phase 0 · Plan</text>
+<text x="44" y="136" text-anchor="start" class="stepsub" >gate: approve split (or --auto)</text>
+<line x1="250" y1="120" x2="290" y2="120" class="edge always" marker-end="url(#arrow)"/>
+<rect x="290" y="90" width="220" height="60" rx="8" class="step auto"/>
+<text x="304" y="116" text-anchor="start" class="stepname" >Phase 1 · Implement</text>
+<text x="304" y="136" text-anchor="start" class="stepsub" >two tracks, test-first, parallel</text>
+<line x1="510" y1="120" x2="550" y2="120" class="edge always" marker-end="url(#arrow)"/>
+<rect x="550" y="90" width="220" height="60" rx="8" class="step auto"/>
+<text x="564" y="116" text-anchor="start" class="stepname" >Phase 2 · Cross-review</text>
+<text x="564" y="136" text-anchor="start" class="stepsub" >other seat reviews, read-only</text>
+<line x1="770" y1="120" x2="810" y2="120" class="edge always" marker-end="url(#arrow)"/>
+<rect x="810" y="90" width="220" height="60" rx="8" class="step auto"/>
+<text x="824" y="116" text-anchor="start" class="stepname" >Phase 3 · Integrate</text>
+<text x="824" y="136" text-anchor="start" class="stepsub" >merge, green, simplify</text>
+<line x1="1030" y1="120" x2="1070" y2="120" class="edge always" marker-end="url(#arrow)"/>
+<rect x="1070" y="90" width="220" height="60" rx="8" class="step auto"/>
+<text x="1084" y="116" text-anchor="start" class="stepname" >Phase 4 · Final review</text>
+<text x="1084" y="136" text-anchor="start" class="stepsub" >full-review gates final code</text>
+<path d="M 660 90 C 660 56, 400 56, 400 88" class="edge cond loop" marker-end="url(#arrow)"/>
+<text x="530" y="52" text-anchor="middle" class="edgelab" >needs-attention → same implementer fixes · ≤3 cycles, counted on disk</text>
+<path d="M 920 150 C 920 184, 400 184, 400 152" class="edge cond loop" marker-end="url(#arrow)"/>
+<text x="660" y="196" text-anchor="middle" class="edgelab" >red after merge → route to the responsible track · ≤3</text>
+<line x1="52" y1="150" x2="52" y2="517" class="trunk"/>
+<line x1="52" y1="253" x2="74" y2="253" class="edge always" marker-end="url(#arrow)"/>
+<rect x="74" y="230" width="200" height="46" rx="5" class="acc always"/>
+<text x="84" y="249" text-anchor="start" class="accname" >coding-design-plan</text>
+<text x="84" y="266" text-anchor="start" class="acccond" >shape the plan, name test scenarios</text>
+<line x1="52" y1="319" x2="74" y2="319" class="edge always" marker-end="url(#arrow)"/>
+<rect x="74" y="296" width="200" height="46" rx="5" class="acc always"/>
+<text x="84" y="315" text-anchor="start" class="accname" >design-gate → lenses</text>
+<text x="84" y="332" text-anchor="start" class="acccond" >≤3 lenses, chosen by the gates flags</text>
+<line x1="52" y1="385" x2="74" y2="385" class="edge cond" marker-end="url(#arrow)"/>
+<rect x="74" y="362" width="200" height="46" rx="5" class="acc cond"/>
+<text x="84" y="381" text-anchor="start" class="accname" >planning lenses</text>
+<text x="84" y="398" text-anchor="start" class="acccond" >only when gates flag them</text>
+<line x1="52" y1="451" x2="74" y2="451" class="edge cond" marker-end="url(#arrow)"/>
+<rect x="74" y="428" width="200" height="46" rx="5" class="acc cond"/>
+<text x="84" y="447" text-anchor="start" class="accname" >diagnose (Opus, read-only)</text>
+<text x="84" y="464" text-anchor="start" class="acccond" >bug without reproduction or plan</text>
+<line x1="52" y1="517" x2="74" y2="517" class="edge cond" marker-end="url(#arrow)"/>
+<rect x="74" y="494" width="200" height="46" rx="5" class="acc cond"/>
+<text x="84" y="513" text-anchor="start" class="accname" >to-prototype</text>
+<text x="84" y="530" text-anchor="start" class="acccond" >a slice hides a run-code-only question</text>
+<line x1="312" y1="150" x2="312" y2="451" class="trunk"/>
+<line x1="312" y1="253" x2="334" y2="253" class="edge always" marker-end="url(#arrow)"/>
+<rect x="334" y="230" width="200" height="46" rx="5" class="acc always"/>
+<text x="344" y="249" text-anchor="start" class="accname" >codex-runner</text>
+<text x="344" y="266" text-anchor="start" class="acccond" >default implementer, both tracks</text>
+<line x1="312" y1="319" x2="334" y2="319" class="edge cond" marker-end="url(#arrow)"/>
+<rect x="334" y="296" width="200" height="46" rx="5" class="acc cond"/>
+<text x="344" y="315" text-anchor="start" class="accname" >Agent opus / claude-runner</text>
+<text x="344" y="332" text-anchor="start" class="acccond" >visual_creative FE, or diagnosis</text>
+<line x1="312" y1="385" x2="334" y2="385" class="edge reads" marker-end="url(#arrow)"/>
+<rect x="334" y="362" width="200" height="46" rx="5" class="acc reads"/>
+<text x="344" y="381" text-anchor="start" class="accname" >tdd · clean-code · test-lens</text>
+<text x="344" y="398" text-anchor="start" class="acccond" >+ safe-incremental-coding; embedded as text</text>
+<line x1="312" y1="451" x2="334" y2="451" class="edge reads" marker-end="url(#arrow)"/>
+<rect x="334" y="428" width="200" height="46" rx="5" class="acc reads"/>
+<text x="344" y="447" text-anchor="start" class="accname" >track lenses (FE / BE)</text>
+<text x="344" y="464" text-anchor="start" class="acccond" >snippets per track, only those that fit</text>
+<line x1="572" y1="150" x2="572" y2="385" class="trunk"/>
+<line x1="572" y1="253" x2="594" y2="253" class="edge always" marker-end="url(#arrow)"/>
+<rect x="594" y="230" width="200" height="46" rx="5" class="acc always"/>
+<text x="604" y="249" text-anchor="start" class="accname" >opposite seat reviews</text>
+<text x="604" y="266" text-anchor="start" class="acccond" >Opus ↔ Codex, read-only</text>
+<line x1="572" y1="319" x2="594" y2="319" class="edge cond" marker-end="url(#arrow)"/>
+<rect x="594" y="296" width="200" height="46" rx="5" class="acc cond"/>
+<text x="604" y="315" text-anchor="start" class="accname" >pi-runner --seat kimi</text>
+<text x="604" y="332" text-anchor="start" class="acccond" >preferred reviewer unavailable</text>
+<line x1="572" y1="385" x2="594" y2="385" class="edge cond" marker-end="url(#arrow)"/>
+<rect x="594" y="362" width="200" height="46" rx="5" class="acc cond"/>
+<text x="604" y="381" text-anchor="start" class="accname" >grok-runner</text>
+<text x="604" y="398" text-anchor="start" class="acccond" >Codex and Kimi both missing (BE)</text>
+<line x1="832" y1="150" x2="832" y2="319" class="trunk"/>
+<line x1="832" y1="253" x2="854" y2="253" class="edge always" marker-end="url(#arrow)"/>
+<rect x="854" y="230" width="200" height="46" rx="5" class="acc always"/>
+<text x="864" y="249" text-anchor="start" class="accname" >merge both tracks</text>
+<text x="864" y="266" text-anchor="start" class="acccond" >side-effect key written first</text>
+<line x1="832" y1="319" x2="854" y2="319" class="edge always" marker-end="url(#arrow)"/>
+<rect x="854" y="296" width="200" height="46" rx="5" class="acc always"/>
+<text x="864" y="315" text-anchor="start" class="accname" >coding-review-simplify</text>
+<text x="864" y="332" text-anchor="start" class="acccond" >standard mode, before the gate, on green</text>
+<line x1="1092" y1="150" x2="1092" y2="385" class="trunk"/>
+<line x1="1092" y1="253" x2="1114" y2="253" class="edge always" marker-end="url(#arrow)"/>
+<rect x="1114" y="230" width="200" height="46" rx="5" class="acc always"/>
+<text x="1124" y="249" text-anchor="start" class="accname" >full-review</text>
+<text x="1124" y="266" text-anchor="start" class="acccond" >read-only, on the integrated diff</text>
+<line x1="1092" y1="319" x2="1114" y2="319" class="edge cond" marker-end="url(#arrow)"/>
+<rect x="1114" y="296" width="200" height="46" rx="5" class="acc cond"/>
+<text x="1124" y="315" text-anchor="start" class="accname" >security-gate</text>
+<text x="1124" y="332" text-anchor="start" class="acccond" >deep → security_focus; recheck if scope grew</text>
+<line x1="1092" y1="385" x2="1114" y2="385" class="edge cond" marker-end="url(#arrow)"/>
+<rect x="1114" y="362" width="200" height="46" rx="5" class="acc cond"/>
+<text x="1124" y="381" text-anchor="start" class="accname" >full-review again</text>
+<text x="1124" y="398" text-anchor="start" class="acccond" >after any CRITICAL/HIGH fix</text>
+<line x1="30" y1="562" x2="70" y2="562" class="edge always" marker-end="url(#arrow)"/>
+<text x="80" y="566" text-anchor="start" class="legend" >always</text>
+<line x1="150" y1="562" x2="190" y2="562" class="edge cond" marker-end="url(#arrow)"/>
+<text x="200" y="566" text-anchor="start" class="legend" >conditional</text>
+<line x1="310" y1="562" x2="350" y2="562" class="edge reads" marker-end="url(#arrow)"/>
+<text x="360" y="566" text-anchor="start" class="legend" >embedded as text into a seat&#x27;s brief, not invoked</text>
+<text x="1290" y="566" text-anchor="end" class="legend" >Phase 5: report.md · flip slice Status · return the ≤15-line envelope</text>
+</svg></div><figcaption>One <code>implement-and-review</code> run. The gate in Phase 0 is the plan approval (skipped under <code>--auto</code>, never for a HITL slice). Methodology skills are embedded into seat briefs as text because runner and subagent seats cannot load skills; the orchestrator invokes <code>coding-design-plan</code>, <code>design-gate</code>, <code>coding-review-simplify</code>, and <code>full-review</code> itself.</figcaption></figure>
+<div id="skills">
+<section class="skill tone-human" id="interview-me">
+<header class="skhead"><div class="eyebrow">Step 1</div><h2><code>interview-me</code></h2><p class="tag">Grill the idea until nothing is silently assumed</p></header>
+<p class="role">Stress-tests a feature idea against the code, the glossary in <code>CONCEPTS.md</code>, and past decisions in <code>docs/adr/</code>, in <em>frontier rounds</em>: every question that can be asked now without guessing at an unheard answer goes in one round, each with a recommended answer. Decisions are recorded the moment they settle. It ends when the frontier is empty and the spec-ready test passes: every question the autonomous phases would otherwise ask is answered, an explicit assumption with a default, or descoped.</p>
+<div class="io"><div><h4>Reads</h4><ul><li>CONCEPTS.md</li><li>docs/adr/</li><li>the code the feature touches</li></ul></div><div><h4>Writes</h4><ul><li>glossary entries in CONCEPTS.md</li><li>ADRs in docs/adr/ (only when a decision passes all three tests)</li><li>a decision record in the conversation</li></ul></div></div>
+<h3>What it calls, and why</h3>
+<div class="tablewrap"><table class="calls"><thead><tr><th>Calls</th><th>When</th><th>Principle behind the call</th></tr></thead><tbody>
+<tr class="k-reads"><td><code>security-gate</code></td><td>The feature exposes a security surface. Runs the threat-model-lite rows that skill owns.</td><td><strong>Compose, don't duplicate.</strong> The rows live in one skill and are referenced; only the answers are recorded, so <code>to-prd</code> can lift them.</td></tr>
+<tr class="k-reads"><td><code>test-lens</code></td><td>For every major requirement.</td><td><strong>Observable behavior at the highest seam.</strong> The seams named here become the PRD's Testing Decisions and, later, slice acceptance behaviors.</td></tr>
+<tr class="k-cond"><td><code>to-prototype</code></td><td><em>Both</em> tests hold: only running code can settle the question, <em>and</em> the answer changes what gets built. The detour pauses only the branch that hangs off the question.</td><td><strong>Facts are your job, decisions are the user's.</strong> Never guess a prototype question; never prototype what reading could answer. A prototype whose answer would not change the spec is a curiosity recorded as an assumption.</td></tr>
+<tr class="k-reads"><td><code>capture-learning</code></td><td>Only when <code>CONCEPTS.md</code> does not exist yet and the first entry is ready to write.</td><td>The vocabulary rules have one owner. Read them there once, at creation time.</td></tr>
+<tr class="k-cond"><td><code>extraction subagent</code></td><td>A frontier question needs a fact not yet found in the repo.</td><td><strong>The user's time is the bottleneck.</strong> A question exploration could answer is never asked; only the questions downstream of that fact wait.</td></tr>
+</tbody></table></div>
+<h3>Principles it works by</h3><ul class="principles"><li><strong>Frontier rounds.</strong> Two questions that could reshape each other are never in the same round; a question that depends on another still open waits for the next round.</li><li><strong>Recommendation, not survey.</strong> Each question carries a recommended answer with a one-line reason.</li><li><strong>Already decided.</strong> An ADR is an input, not a question; it re-opens only with new evidence.</li><li><strong>All three or no ADR.</strong> Hard to reverse, surprising without context, a real trade-off. Most simple features produce none.</li><li><strong>Record on settle.</strong> Docs are written when a node settles, not at the end, while the Consequences are fresh.</li></ul>
+<p class="boundary">Not <code>brainstorm</code> (decides <em>whether</em> to build, before this), not <code>coding-design-plan</code> (file-level planning, after the spec), not <code>diagnose</code> (root-causes a bug). Hands off with “run <code>to-prd</code>”.</p>
+</section>
+<section class="skill tone-human" id="to-prd">
+<header class="skhead"><div class="eyebrow">Step 2</div><h2><code>to-prd</code></h2><p class="tag">Write the autonomy contract</p></header>
+<p class="role">Synthesizes the PRD from the conversation without a second interview and writes it to <code>.ai-workflow/work/&lt;feature-slug&gt;/prd.md</code>. It is the last artifact written while the human is in the room, so two sections are load-bearing downstream: <strong>Security Decisions</strong>, which pre-mark security-sensitive surfaces, and <strong>Testing Decisions</strong>, which name the seams and the observable behavior at each.</p>
+<div class="io"><div><h4>Reads</h4><ul><li>the step-1 conversation and decision record</li><li>CONCEPTS.md and docs/adr/ for the area touched</li><li>the code, if not already explored</li></ul></div><div><h4>Writes</h4><ul><li>.ai-workflow/work/&lt;slug&gt;/prd.md with Status: ready-for-agent</li></ul></div></div>
+<h3>What it calls, and why</h3>
+<div class="tablewrap"><table class="calls"><thead><tr><th>Calls</th><th>When</th><th>Principle behind the call</th></tr></thead><tbody>
+<tr class="k-reads"><td><code>test-lens</code></td><td>Always, in step 2: sketch the seams and check them with the user.</td><td><strong>Highest seam, fewest seams.</strong> Prefer existing seams; the ideal is one. Each named behavior becomes a slice's acceptance behavior in <code>to-tasks</code>.</td></tr>
+<tr class="k-cond"><td><code>security-gate</code></td><td>Only for rows the feature exposes that the conversation left <em>unanswered</em>. Rows an <code>interview-me</code> run already settled are distilled, not re-asked.</td><td><strong>The one permitted break of the no-interview rule.</strong> A security answer can only be collected while the human is present; a missing one becomes an unanswerable gap in an autonomous phase.</td></tr>
+<tr class="k-cond"><td><code>multi-model panel</code></td><td>Opt-in: the user asks for a multi-model PRD, or the domain, interface, and backend contracts are consequential enough to earn independent seats.</td><td><strong>The panel replaces drafting, never the contract.</strong> The seam sketch, Security Decisions, no-file-paths rule, and output path all still hold.</td></tr>
+</tbody></table></div>
+<h3>Principles it works by</h3><ul class="principles"><li><strong>No second interview.</strong> Work from what is already known; synthesize, don't ask.</li><li><strong>No file paths or code in the PRD.</strong> They go stale. The one exception is a prototype snippet that encodes a decision more precisely than prose.</li><li><strong>Ubiquitous language.</strong> The PRD speaks the glossary's vocabulary and respects existing ADRs.</li></ul>
+<p class="boundary">The PRD is the input to <code>to-tasks</code>, which sets each slice's <code>security</code> flag and acceptance behaviors directly from these two sections.</p>
+</section>
+<section class="skill tone-gate" id="to-tasks">
+<header class="skhead"><div class="eyebrow">Step 3</div><h2><code>to-tasks</code></h2><p class="tag">Cut slices that carry their own contract — the last human gate</p></header>
+<p class="role">Breaks the PRD into tracer-bullet vertical slices, each cutting through every layer and demoable alone. Every slice carries a <strong>Slice Contract</strong>: exact acceptance commands verified to exist in the repo, observable behaviors, design-lens flags, a <code>security: deep | standard</code> flag, HITL or AFK class, a rollback note, an expected review focus, and a parallelization statement. The user approves the breakdown once. <strong>After this, nothing asks the user anything.</strong></p>
+<div class="io"><div><h4>Reads</h4><ul><li>the PRD (or a plan file or URL)</li><li>CONCEPTS.md, docs/adr/</li><li>the repo&#x27;s real test, lint, build, typecheck commands</li></ul></div><div><h4>Writes</h4><ul><li>one file per slice: .ai-workflow/work/&lt;slug&gt;/tasks/T&lt;N&gt;-&lt;slug&gt;.md, blockers first</li><li>never an issue tracker, never a combined file</li></ul></div></div>
+<h3>What it calls, and why</h3>
+<div class="tablewrap"><table class="calls"><thead><tr><th>Calls</th><th>When</th><th>Principle behind the call</th></tr></thead><tbody>
+<tr class="k-reads"><td><code>design-gate</code></td><td>For every slice, by the surfaces it touches.</td><td><strong>Read the routing table, record only the flags.</strong> No lens runs here. Choosing among ten lenses is itself a mid-flight question; the flag turns it into a lookup the builder honors as-is.</td></tr>
+<tr class="k-reads"><td><code>security-gate</code></td><td>For every slice. When the PRD has a Security Decisions section, the flag is lifted from there rather than re-derived.</td><td><strong>Lift, don't re-derive.</strong> Re-deriving what an approved artifact already states invites drift.</td></tr>
+<tr class="k-reads"><td><code>test-lens</code></td><td>When the source is a <code>to-prd</code> PRD: behaviors are lifted from its Testing Decisions and named at the highest seam.</td><td><strong>Machine-checkable done.</strong> “Tests pass” alone is never acceptance for a feature-bearing slice; the behavior is named.</td></tr>
+<tr class="k-cond"><td><code>multi-model panel</code></td><td>Opt-in: the user asks for a multi-model task plan, or the architecture and test strategy are consequential enough.</td><td><strong>The panel replaces steps 3–4 (drafting), never step 5 (the approval quiz).</strong></td></tr>
+</tbody></table></div>
+<h3>Principles it works by</h3><ul class="principles"><li><strong>The contract is the boundary.</strong> A slice marked ready-for-agent carries everything needed to finish it unattended; a slice that needs a decision the contract does not answer is never marked AFK.</li><li><strong>Stable IDs.</strong> T-IDs are never renumbered; splits take the next unused number; gaps are fine.</li><li><strong>HITL first, prefactoring first.</strong> Human touchpoints cluster at the start; a behavior-preserving prefactor lands before the slice that needs the easier shape.</li><li><strong>Wide refactors are expand → migrate → contract</strong>, never forced into a vertical slice.</li><li><strong>Contract integrity.</strong> Never delete, skip, weaken, or mock-away tests to make the contract pass. A wrong contract is reported, not edited around.</li></ul>
+<p class="boundary">Does not edit the parent PRD and never rewrites a slice an executor has already moved past <code>ready-for-agent</code>.</p>
+</section>
+<section class="skill tone-auto" id="implement-tasks">
+<header class="skhead"><div class="eyebrow">Step 4</div><h2><code>implement-tasks</code></h2><p class="tag">The thin conductor</p></header>
+<p class="role">Turns the approved queue into an integrated, reviewed, delivered change without asking anything further. It owns scheduling, integration, the feature-wide review, and delivery, and nothing else: per-task building is <code>implement-and-review</code>'s job. Every task runs in a <strong>newly created worker</strong> (a subagent, or a new thread on the Codex / ChatGPT app) that is first given a checkable <code>/goal</code>, then its brief, and is archived once its envelope is recorded. The orchestrator thread is named <code>ORCHESTRATOR · implement-tasks · &lt;feature&gt;</code> and pinned.</p>
+<div class="io"><div><h4>Reads</h4><ul><li>the task queue (or a plan, or a models-consensus report via --from-consensus)</li><li>git remote, once — no remote means local-only for the whole run</li><li>the seat probe: Codex, Opus, Kimi</li></ul></div><div><h4>Writes</h4><ul><li>impl/feature-&lt;id&gt; integration branch</li><li>run-state.json with gates, side_effects, steps, threads</li><li>docs/residual-review-findings/&lt;sha&gt;.md</li><li>the PR, or local commits in local-only mode</li></ul></div></div>
+<h3>What it calls, and why</h3>
+<div class="tablewrap"><table class="calls"><thead><tr><th>Calls</th><th>When</th><th>Principle behind the call</th></tr></thead><tbody>
+<tr class="k-cond"><td><code>to-tasks</code></td><td>The input is a bare plan or spec rather than a published queue.</td><td><strong>The task queue is the input.</strong> A genuinely single task skips the DAG and goes straight to <code>implement-and-review</code>.</td></tr>
+<tr class="k-always"><td><code>implement-and-review</code></td><td>Every task, as soon as its blockers are integrated, up to the concurrency cap (default 3). Always in a fresh worker with a <code>/goal</code> whose clauses are checkable from disk and shell.</td><td><strong>One task, one worker, one goal.</strong> Hand off the path, not the payload: what crosses back is a report on disk plus a ≤15-line envelope. The orchestrator never builds inline and never reuses a worker.</td></tr>
+<tr class="k-always"><td><code>full-review</code></td><td>Once, after every task integrates, on the diff against the feature base, focused on cross-task seams. <code>security_focus=true</code> if any task was <code>security: deep</code>.</td><td><strong>Each gate runs once.</strong> Per-task reviews already ran inside each worker; the feature pass pays only for what they could not see.</td></tr>
+<tr class="k-cond"><td><code>models-consensus</code></td><td>A task build or the seam review hits a contested or irreversible decision. Poll mode, <code>--auto</code>. Also accepted as an intake source.</td><td><strong>Escalation ladder replaces mid-flight questions.</strong> Deliberation only, never code. Unresolved → most reversible default, recorded in the decision log. Hard-stop for a human only on destructive or irreversible operations.</td></tr>
+<tr class="k-cond"><td><code>open-pr</code></td><td>Phase 3, unless <code>git remote</code> returned nothing at preflight.</td><td><strong>Local-only is a terminal state, not an error.</strong> Zero push or PR retries; the commits, the residual record, and the handoff note are the deliverable.</td></tr>
+<tr class="k-cond"><td><code>capture-learning</code></td><td>The run solved a non-obvious problem. Headless mode.</td><td>Knowledge compounds only when it is written down where the next run can find it.</td></tr>
+<tr class="k-cond"><td><code>session-handoff</code></td><td>The run outgrew its session.</td><td><strong>Progress lives in the ledger, not the transcript.</strong> A run survives compaction and restart from run-state, not memory.</td></tr>
+<tr class="k-cond"><td><code>resolve-pr-feedback</code></td><td>Later, when review comments arrive on the PR.</td><td>The human merges; the loop closes on their comments.</td></tr>
+</tbody></table></div>
+<h3>Principles it works by</h3><ul class="principles"><li><strong>Nothing asks the user after the approval.</strong> The <code>to-tasks</code> approval is recorded in <code>gates</code>; a resumed run that finds it never re-asks.</li><li><strong>Evidence or no delivery.</strong> A task reported built without verification evidence gets exactly one recovery re-invocation, counted on disk; then it is hard-blocked.</li><li><strong>Integrate in dependency order.</strong> Each task builds on the current integration head, not the stale base; a task must pass its acceptance before dependents start.</li><li><strong>Side effects are keyed before they happen</strong> (<code>merge:</code>, <code>archive:</code>, <code>commit:</code>, <code>pr:</code>, <code>ticket:</code>), so a resumed run merges once and files each ticket once.</li><li><strong>Residual findings become durable</strong> as tickets plus a committed record, never a PR-body ledger.</li><li><strong>Never fabricate a seat; degrade</strong> and say so.</li></ul>
+<p class="boundary">Does not reimplement <code>implement-and-review</code>: the FE/BE split, TDD, cross-review, self-simplify, and the per-task <code>full-review</code> all live there.</p>
+</section>
+<section class="skill tone-auto" id="implement-and-review">
+<header class="skhead"><div class="eyebrow">Engine</div><h2><code>implement-and-review</code></h2><p class="tag">Build one task with two seats that review each other</p></header>
+<p class="role">Implements one scoped task through two model tracks, frontend and backend, that build test-first in isolated worktrees and review each other's work, then converge on one integrated, reviewed, green change. The orchestrator classifies the task shape and dispatches seats; it never writes a track itself. It runs standalone on a bare prompt, and when the task is a <code>to-tasks</code> slice it <strong>lifts the Slice Contract whole</strong>: type, acceptance, gates, expected review focus, and rollback note each have a consumer.</p>
+<div class="io"><div><h4>Reads</h4><ul><li>the task (prompt, tracker brief, or Slice Contract)</li><li>the seat probe: Codex, Opus, Kimi, Grok</li><li>how the project runs a single test — TDD needs a fast inner loop</li></ul></div><div><h4>Writes</h4><ul><li>impl/&lt;T&gt;-backend-&lt;id&gt; and impl/&lt;T&gt;-frontend-&lt;id&gt; worktrees, then an integration branch</li><li>launch-manifest.json extended with run-state keys</li><li>report.md and the envelope; the slice&#x27;s Status line</li></ul></div></div>
+<h3>What it calls, and why</h3>
+<div class="tablewrap"><table class="calls"><thead><tr><th>Calls</th><th>When</th><th>Principle behind the call</th></tr></thead><tbody>
+<tr class="k-always"><td><code>coding-design-plan</code></td><td>Phase 0, always: shape the plan and name the test scenarios.</td><td>Design informs the briefs; it is not a deliverable.</td></tr>
+<tr class="k-always"><td><code>design-gate</code></td><td>Phase 0. With a Slice Contract, the flags set by <code>to-tasks</code> are used as-is, capped at three lenses.</td><td><strong>Lift the approved flags.</strong> The lenses run once, here, as parallel read-only reviewers returning one proceed / revise verdict.</td></tr>
+<tr class="k-cond"><td><code>macro-architecture · software-design-philosophy · design-patterns · distributed-systems-patterns</code></td><td>Only when a slice's <code>gates</code> flag them.</td><td>Planning lenses are expensive; their conclusions enter the briefs as constraints.</td></tr>
+<tr class="k-cond"><td><code>diagnose (Opus, read-only)</code></td><td>A difficult bug arrives without a reproduction or diagnostic plan.</td><td><strong>Close the chain before executing.</strong> Codex implements only after the root cause is established.</td></tr>
+<tr class="k-always"><td><code>codex-runner</code></td><td>Phase 1: the default implementer for backend and standard product-interface frontend, write-enabled, after the Phase 0 approval.</td><td><strong>Route by task shape</strong> (<code>shared/references/task-shaped-model-routing.md</code>). Writes are gated behind the approval.</td></tr>
+<tr class="k-cond"><td><code>Agent model:opus / claude-runner</code></td><td>Frontend classified <code>visual_creative</code> (visual reconstruction, games, animation, 3D, original creative direction), or the diagnosis seat.</td><td>The seat that best fits the shape implements; the other reviews.</td></tr>
+<tr class="k-reads"><td><code>tdd · safe-incremental-coding · clean-code · test-lens · track lenses</code></td><td>Embedded into every implementer brief as methodology snippets.</td><td><strong>Skills do not load inside runner or subagent seats.</strong> The orchestrator invokes what it can; the rest travels as text.</td></tr>
+<tr class="k-always"><td><code>the opposite seat, read-only</code></td><td>Phase 2, every cycle: Opus reviews Codex work, Codex reviews Opus work, through the track's lens checklist and the slice's expected review focus.</td><td><strong>Cross-model review is mandatory.</strong> An implementer never reviews its own track. The same implementer fixes its own findings; the reviewer re-checks.</td></tr>
+<tr class="k-cond"><td><code>pi-runner --seat kimi</code></td><td>The preferred reviewer is unavailable.</td><td>Kimi is the first fallback reviewer, never the default; substitutions are reported.</td></tr>
+<tr class="k-cond"><td><code>grok-runner</code></td><td>Codex is missing as backend implementer and Kimi is missing too.</td><td>Cross-vendor diversity is preserved as long as possible; losing it lowers confidence one band.</td></tr>
+<tr class="k-always"><td><code>coding-review-simplify</code></td><td>Phase 3, standard mode, on the integrated diff, once green, <em>before</em> the final gate.</td><td><strong>Ordering is load-bearing.</strong> <code>full-review</code> gates the final code, so no mutating pass may follow it unreviewed.</td></tr>
+<tr class="k-always"><td><code>full-review</code></td><td>Phase 4, on the integrated diff against the base, read-only. Re-run (or <code>quick_mode</code>) after any CRITICAL or HIGH fix.</td><td><strong>The gate runs on the code that ships.</strong> Findings are applied by the responsible implementer, with a test per behavioral fix.</td></tr>
+<tr class="k-cond"><td><code>security-gate</code></td><td>The slice is <code>security: deep</code> (→ <code>security_focus=true</code> against the PRD's recorded decisions), or the build grew beyond the declared scope.</td><td><strong>Flags only escalate, never downgrade.</strong></td></tr>
+</tbody></table></div>
+<h3>Principles it works by</h3><ul class="principles"><li><strong>Bounded fix loops, counted on disk.</strong> At most three review→fix cycles per track and three integration fixes; the counter is incremented before the attempt, so the model never decides the retry.</li><li><strong>Definition of done is green, and green is earned.</strong> Never delete, skip, weaken, or mock-away tests to reach it.</li><li><strong>Ambiguity in a Slice Contract is a contract defect.</strong> A decision the contract does not answer is escalated with the gap named, even under <code>--auto</code>; assumption-and-proceed is for bare prompts only.</li><li><strong>HITL slices never run under --auto.</strong> They park at <code>awaiting_human</code> until the decision is in <code>gates</code>.</li><li><strong>Evidence contract.</strong> Each track captures the red baseline before touching production code and reports it; a track reporting a behavior change without it gets one recovery pass.</li></ul>
+<p class="boundary">Scope is one task. A whole feature, plan, or task list belongs to <code>implement-tasks</code>, which calls this skill per task.</p>
+</section>
+</div>
+<section id="questions" class="skill"><header class="skhead"><div class="eyebrow" style="color:var(--council)">Principles</div><h2>Nine questions behind every call</h2><p class="tag">The same few tests decide every conditional edge above.</p></header><ol class="qs">
+<li><strong>Is the human still in the room?</strong><span>Steps 1–3 may ask; step 4 may not. That is why to-prd asks unanswered security rows, and why implement-tasks escalates to models-consensus instead.</span></li>
+<li><strong>Could reading answer it?</strong><span>If the code, the glossary, or an ADR settles a question, it is read, not asked, and never prototyped. Only a question that reading cannot settle earns a to-prototype detour, and only when the answer changes what gets built.</span></li>
+<li><strong>Was this already approved?</strong><span>A Slice Contract field, a gate in run-state, an ADR: these are inputs. They are lifted as-is, never re-derived, and re-opened only with new evidence. Re-deriving invites drift between what was approved and what gets built.</span></li>
+<li><strong>Does the knowledge have one owner?</strong><span>security-gate&#x27;s rows, design-gate&#x27;s routing table, test-lens&#x27;s seam rule, capture-learning&#x27;s vocabulary rules: each is read where it lives and only the resulting answer or flag is recorded. Nothing is copied into another skill.</span></li>
+<li><strong>Has the code changed since the last gate?</strong><span>design-gate runs once in Phase 0; coding-review-simplify runs once, before full-review; full-review gates the final code and re-runs only on what changed. No orchestrator re-reviews unchanged code, and no mutating pass follows the final review unreviewed.</span></li>
+<li><strong>Can the seat load a skill?</strong><span>The orchestrator invokes skills. Runner and subagent seats cannot, so methodology travels into their briefs as text, and the reviewer is always a different seat from the implementer.</span></li>
+<li><strong>Is the retry counted somewhere the model cannot forget?</strong><span>Every bounded loop increments a counter on disk before the attempt: fix cycles, integration fixes, evidence recovery. At the ceiling the route is escalation, not another attempt.</span></li>
+<li><strong>Is the operation reversible?</strong><span>Merges, commits, tickets, PRs, and thread archives are keyed before they happen so a resumed run does them once. Only destructive or irreversible operations hard-stop for a human; everything else takes the most reversible default and records the assumption.</span></li>
+<li><strong>Is the seat actually available?</strong><span>Codex, Opus, Kimi, Grok are probed once. A missing seat is degraded honestly with the substitution reported and confidence lowered a band; a seat is never fabricated or silently swapped.</span></li>
+</ol></section>
+<p class="foot">Source of truth: each skill's <code>SKILL.md</code> under <code>skills/engineering/workflow/</code> and <code>skills/engineering/engine/</code>, plus <code>docs/workflow.md</code>, <code>shared/references/handoff-contract.md</code>, and <code>shared/references/run-state-contract.md</code>. Generated from the skill files as of September 2026.</p>
+</main></div>
+</body>
+</html>
