@@ -3,6 +3,6 @@
 interface:
   display_name: "Implement Tasks"
   short_description: "Build the approved task queue with implement-and-review per task, review the seams, and open the PR"
-  default_prompt: "Use $implement-tasks to build every slice in the approved task queue with implement-and-review (parallel where independent), integrate in dependency order, run the feature-wide full-review, make residual findings durable, and open the PR."
+  default_prompt: "Use $implement-tasks. This thread is the orchestrator: name it ORCHESTRATOR · implement-tasks · <feature> and pin it. Build every slice in the approved task queue by opening one new thread per task, sending it a checkable /goal and then its brief, running implement-and-review there (parallel where independent), and archiving each thread once its envelope is recorded. Integrate in dependency order, run the feature-wide full-review, make residual findings durable, and open the PR."
 policy:
   allow_implicit_invocation: false
