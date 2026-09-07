@@ -1,18 +1,18 @@
-# docs/solutions/ — the knowledge store
+# Solution documents
 
-Durable, searchable documentation of solved problems and hard-won practices, written by the `capture-learning` skill (and editable by hand). Each doc lives in a category subdirectory (e.g. `runtime-errors/`, `tooling-decisions/`) and records one problem: what broke, what didn't work, the verified fix, and how to prevent recurrence — so the next occurrence takes minutes instead of research.
+Use `capture-learning` to record one verified, non-obvious solution. Each document lives in a category directory such as `runtime-errors/` or `tooling-decisions/`. It explains the problem, cause, verified fix, and conditions where the fix applies.
 
 ## Frontmatter contract
 
-Every doc carries YAML frontmatter so agents can grep by field before reading bodies. The canonical contract — required fields, enum values, track rules (bug vs knowledge), and the problem_type → directory mapping — is `capture-learning/references/schema.yaml`, with a quick reference in `capture-learning/references/yaml-schema.md`. Hand-written docs must follow the same contract.
+Every document carries YAML frontmatter for searching by field. The [schema](../../skills/engineering/deliver/capture-learning/references/schema.yaml) defines required fields, values, track rules, and destination directories. The [quick reference](../../skills/engineering/deliver/capture-learning/references/yaml-schema.md) explains the same contract. Manually written documents follow these rules too.
 
 ## One learning per run
 
-Each `capture-learning` run documents exactly one solved problem. Multiple learnings from one session mean multiple sequential runs — never one batched doc or stitched cross-references between drafts.
+Each run creates or updates one solution document. Update an existing document when the problem, cause, and solution match. Separate problems need separate documents. A run without enough verified evidence reports that documentation was skipped.
 
-## Pilot status and graduation signal
+## Related project knowledge
 
-This store is a deliberate pilot: capture only. The refresh sibling — refresh-learnings, which would consolidate overlapping docs, fix drift, and bootstrap repo-wide vocabulary — gets built only after captured learnings are demonstrably retrieved and grounding later work (roughly within 30 days). Until then, capture-learning records refresh recommendations in its run reports and nothing acts on them automatically.
+The same run may add a missing term to an existing `CONCEPTS.md` when that term belongs to the learning. It does not create a glossary, change project instructions, or start a documentation audit. Follow the current [capture-learning workflow](../../skills/engineering/deliver/capture-learning/SKILL.md) for validation.
 
 ---
 

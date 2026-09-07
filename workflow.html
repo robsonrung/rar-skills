@@ -59,7 +59,7 @@
   .gatecol span{font-family:var(--mono);font-size:11px;color:#ffe3e8;text-align:center;letter-spacing:1px;line-height:1.4}
 
   /* ---------- pipeline ---------- */
-  .pipe{display:grid;grid-template-columns:repeat(7,1fr);gap:10px}
+  .pipe{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
   .phase{position:relative;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 13px 15px;display:flex;flex-direction:column;min-height:198px}
   .phase.human{border-top:3px solid var(--human)}
   .phase.gate{border-top:3px solid var(--gate);box-shadow:0 0 0 1px var(--gate-dim),0 8px 30px -16px var(--gate)}
@@ -134,13 +134,13 @@
 <header class="hero">
   <div class="wrap">
     <p class="eyebrow">rar-skills · composable agent skills</p>
-    <h1>One workflow,<br><span class="g">idea → spec → tasks → shipped PR.</span></h1>
-    <p class="lede">A collection of ~50 Claude Code skills for design review, multi-model orchestration, and coding. They aren't a grab-bag — they <b>compose into a single pipeline</b> where every human decision is collected up front, and everything after the approval gate runs autonomously while still optimizing architecture, tests, simplicity, and security.</p>
+    <h1>One workflow,<br><span class="g">idea → PRD → tasks → verified result.</span></h1>
+    <p class="lede">A collection of engineering skills with a clear path from discovery to a verified local result. Task approval and implementation-model approval are separate decisions. Delivery stays local until you authorize it.</p>
 
     <div class="principles">
       <div class="principle"><div class="n">01</div><h4>Compose, don't duplicate</h4><p>Conductor skills are thin routers. Each behavior lives in exactly one skill and is referenced, never copied.</p></div>
-      <div class="principle"><div class="n">02</div><h4>Front-load judgment</h4><p>Every question an agent might ask mid-flight is answered while the human is still in the room — then encoded.</p></div>
-      <div class="principle"><div class="n">03</div><h4>The contract is the boundary</h4><p>A task marked <span style="font-family:var(--mono);color:var(--auto)">ready-for-agent</span> carries everything needed to finish it unattended.</p></div>
+      <div class="principle"><div class="n">02</div><h4>Ask useful questions</h4><p>The interview investigates first and asks exactly five independent questions when five exist, otherwise fewer, never more.</p></div>
+      <div class="principle"><div class="n">03</div><h4>Keep approvals distinct</h4><p>The task queue defines the work. A later model plan defines the implementation and review route.</p></div>
       <div class="principle"><div class="n">04</div><h4>Vertical slices</h4><p>The unit of work cuts through every layer, is demoable alone, and ships with a machine-checkable acceptance contract.</p></div>
     </div>
   </div>
@@ -149,64 +149,60 @@
 <!-- ============ PIPELINE ============ -->
 <section>
   <div class="wrap">
-    <div class="sec-head"><h2>The pipeline</h2><span class="tag">skill: ship</span></div>
-    <p class="sec-sub">Three interactive phases, one approval gate, four autonomous phases. <code style="font-family:var(--mono);color:var(--accent)">ship</code> conducts it and holds no logic of its own — every box below is a call into the named skill.</p>
+    <div class="sec-head"><h2>The pipeline</h2><span class="tag">four skills, four artifacts</span></div>
+    <p class="sec-sub">Each stage has one responsibility and hands a clear artifact to the next. The <a href="skills/shared/references/workflow-stage-routing.md">shared routing reference</a> selects the engineering practices at the right moment.</p>
 
     <div class="zones">
-      <div class="zone h"><span class="lbl">◐ Interactive — human in the loop</span><span class="d">Framing, specification, planning. All judgment is collected here.</span></div>
-      <div class="gatecol"><span>APPROVAL<br>GATE</span></div>
-      <div class="zone a"><span class="lbl">Autonomous — per task, in a worktree ◑</span><span class="d">Design → build → verify → deliver. Escalates to multi-model consensus instead of asking you.</span></div>
+      <div class="zone h"><span class="lbl">◐ Discovery and planning</span><span class="d">You settle product decisions and approve the PRD and task queue.</span></div>
+      <div class="gatecol"><span>MODEL PLAN<br>APPROVAL</span></div>
+      <div class="zone a"><span class="lbl">Implementation and review ◑</span><span class="d">Work starts only after the selected models and effort are approved.</span></div>
     </div>
 
     <div class="pipe">
-      <div class="phase human"><div class="ph">phase 0</div><h3>Frame</h3><div class="role">Optional. Sharpen a fuzzy idea or settle an unknown only running code can answer.</div><div class="chips"><span class="chip opt">brainstorm</span><span class="chip opt">prototype</span></div></div>
+      <div class="phase human"><div class="ph">stage 1</div><h3>Interview</h3><div class="role">Read first. Ask exactly five independent questions when five exist, otherwise fewer, never more. Use security review or one broad lens only when it changes the next question. An empty frontier makes the record ready for the PRD.</div><div class="chips"><span class="chip">interview-me</span><span class="chip">security-gate</span><span class="chip">selected broad lens</span></div></div>
 
-      <div class="phase human"><div class="ph">phase 1</div><h3>Specify</h3><div class="role">Stress-test against the codebase, fold in the security threat-model, write the PRD.</div><div class="chips"><span class="chip">interview</span><span class="chip">security-gate</span><span class="chip">to-prd</span></div></div>
+      <div class="phase human"><div class="ph">stage 2</div><h3>PRD</h3><div class="role">Synthesize the decision record. The PRD moves from draft to approved after review.</div><div class="chips"><span class="chip">to-prd</span></div></div>
 
-      <div class="phase gate"><div class="gatebadge">LAST HUMAN GATE</div><div class="ph">phase 2</div><h3>Plan</h3><div class="role">Break the PRD into tracer-bullet slices, each with its contract. You approve the breakdown.</div><div class="chips"><span class="chip">to-tasks</span><span class="chip opt">panel mode</span></div></div>
+      <div class="phase gate"><div class="gatebadge">TASK APPROVAL</div><div class="ph">stage 3</div><h3>Tasks</h3><div class="role">Create a task draft with acceptance evidence and engineering checks. Publish slices after approval.</div><div class="chips"><span class="chip">to-tasks</span><span class="chip">workflow-stage-routing</span></div></div>
 
-      <div class="phase auto"><div class="ph">phase 3</div><h3>Design gate</h3><div class="role">Shape the plan, then run only the design lenses the slice's flags select.</div><div class="chips"><span class="chip">coding-design-plan</span><span class="chip">design-gate</span></div></div>
-
-      <div class="phase auto"><div class="ph">phase 4</div><h3>Implement</h3><div class="role">Test-first. Characterization net first on legacy. Diagnose bugs as they surface.</div><div class="chips"><span class="chip">implement-and-review</span><span class="chip">tdd</span><span class="chip">safe-incremental-coding</span><span class="chip">diagnose</span></div></div>
-
-      <div class="phase auto"><div class="ph">phase 5</div><h3>Verify</h3><div class="role">Fail-fast: acceptance → simplify → multi-model review gate → run the real app.</div><div class="chips"><span class="chip">coding-review-simplify</span><span class="chip">full-review</span><span class="chip">browser-smoke</span></div></div>
-
-      <div class="phase auto"><div class="ph">phase 6</div><h3>Deliver</h3><div class="role">Open the PR with acceptance evidence and the decision log. The human merges.</div><div class="chips"><span class="chip">PR + triage</span><span class="chip">summarize</span></div></div>
+      <div class="phase auto"><div class="gatebadge">MODEL PLAN APPROVAL</div><div class="ph">stage 4</div><h3>Implement</h3><div class="role">Show the strongest suitable models, runners, lowest sufficient effort, and model-verification policy before dispatch. Then build, verify, and report a local result.</div><div class="chips"><span class="chip">implement-tasks</span><span class="chip">implement-and-review</span><span class="chip">full-review</span></div></div>
     </div>
 
-    <div class="flowline"><span>brainstorm</span><span class="seg"></span><span>approve once</span><span class="seg"></span><span>green PR</span></div>
+    <div class="flowline"><span>decision record</span><span class="seg"></span><span>approved PRD</span><span class="seg"></span><span>approved tasks</span><span class="seg"></span><span>approved model plan</span><span class="seg"></span><span>verified local result</span></div>
   </div>
 </section>
 
 <!-- ============ CONTRACT ============ -->
 <section style="background:var(--bg2);border-top:1px solid var(--line2);border-bottom:1px solid var(--line2)">
   <div class="wrap">
-    <div class="sec-head"><h2>The autonomy contract</h2><span class="tag">the spine of the trio</span></div>
-    <p class="sec-sub">What makes the autonomous half possible: each skill <b>lifts</b> what the previous one decided rather than re-deriving it. The spec names the security surface and the test seams; the planner turns them into a machine-checkable contract; the builder treats that contract as its definition of done.</p>
+    <div class="sec-head"><h2>The handoff contracts</h2><span class="tag">decide once, carry forward</span></div>
+    <p class="sec-sub">Each stage uses the evidence from the previous one. The PRD names the behavior and constraints. The task queue makes acceptance and engineering checks explicit. The implementation plan adds the models and effort before work starts.</p>
 
     <div class="contract">
       <div class="cstep">
         <div class="skill">to-prd</div>
         <h4>Synthesize the PRD</h4>
-        <p>No new interview — distills what you discussed into a PRD that answers everything the autonomous phases would otherwise ask.</p>
-        <div class="field"><b>Security Decisions</b> — threat-model-lite answers, recorded while you're here</div>
-        <div class="field"><b>Testing seams</b> — observable behavior at the highest seam (test-lens)</div>
+        <p>No new interview. It turns the decision record into a draft PRD for user review.</p>
+        <div class="field"><b>Security Decisions</b> record the relevant threat-model decisions</div>
+        <div class="field"><b>Success conditions</b> name the observable behavior that the task must preserve</div>
         <div class="arrow">→</div>
       </div>
       <div class="cstep">
         <div class="skill">to-tasks</div>
         <h4>Cut vertical slices</h4>
-        <p>Each slice is a tracer bullet through every layer, carrying a Slice Contract lifted straight from the PRD.</p>
-        <div class="field g"><b>acceptance</b> — exact commands + behaviors = "done"</div>
-        <div class="field g"><b>gates</b> — design lenses + security: deep | standard</div>
+        <p>Tasks begin in a draft. User approval publishes task slices that carry the PRD's requirements forward.</p>
+        <div class="field g"><b>acceptance</b> gives observable behaviors and evidence</div>
+        <div class="field g"><b>engineering checks</b> select the gates, lenses, and practice skills</div>
         <div class="arrow">→</div>
       </div>
       <div class="cstep">
-        <div class="skill">implement-and-review</div>
-        <h4>Build it</h4>
-        <p>Lifts the contract: <code style="font-family:var(--mono);color:var(--auto)">acceptance</code> becomes the done-gate, <code style="font-family:var(--mono);color:var(--auto)">gates</code> select the lenses. Runs standalone on a bare prompt too.</p>
-        <div class="field">FE + BE tracks build in parallel worktrees</div>
-        <div class="field">cross-model review — the writer never reviews itself</div>
+        <div class="skill">implement-tasks</div>
+        <h4>Approve the model plan, then build</h4>
+        <p>The task approval does not select the models. The implementation plan names the requested implementation and review models, runners, effort, model-verification policy, and any unavailable seat.</p>
+        <div class="field"><code>model_verification</code> requires a verified receipt or permits an approved unverified route</div>
+        <div class="field">a configured model name is not proof that it served the run</div>
+        <div class="field">native subagents complete bounded work after approval</div>
+        <div class="field">a local verified result is the default delivery point</div>
       </div>
     </div>
   </div>
@@ -216,7 +212,7 @@
 <section>
   <div class="wrap">
     <div class="sec-head"><h2>The design-gate router</h2><span class="tag">judgment → lookup</span></div>
-    <p class="sec-sub">"Which design lens applies?" is itself a mid-flight question waiting to happen. <code style="font-family:var(--mono);color:var(--accent)">design-gate</code> turns it into a table: it reads the surfaces a change touches (or the slice's pre-set flags), runs at most three lenses as parallel read-only reviewers, and returns one <b>proceed / revise</b> verdict.</p>
+    <p class="sec-sub">"Which design lens applies?" is itself a mid-flight question waiting to happen. <code style="font-family:var(--mono);color:var(--accent)">design-gate</code> turns it into a table: it reads the surfaces a change touches, runs at most three lenses as parallel read-only reviewers, and returns <b>proceed</b>, <b>revise</b>, or <b>decision_required</b>.</p>
     <table>
       <thead><tr><th class="touch">When the change touches…</th><th>Lens skill(s)</th></tr></thead>
       <tbody>
@@ -227,7 +223,7 @@
         <tr><td class="touch">Layer placement, cohesion, dependency direction, scope creep</td><td><span class="lens">architecture-lens</span></td></tr>
         <tr><td class="touch">Module / class / API interface — depth, information hiding, complexity</td><td><span class="lens">software-design-philosophy</span></td></tr>
         <tr><td class="touch">Stored state, queues, caches, migrations, retries, concurrency, external APIs</td><td><span class="lens">data-systems-coding-lens</span></td></tr>
-        <tr><td class="touch">React components, hooks, contexts, rendering performance</td><td><span class="lens">react-performance</span></td></tr>
+        <tr><td class="touch">React components, hooks, contexts, rendering performance</td><td><span class="lens">advanced-react</span></td></tr>
         <tr><td class="touch">Architecturally significant but no single lens fits → trade-off pass + ADR</td><td><span class="lens">architecture-lens</span></td></tr>
       </tbody>
     </table>
@@ -237,25 +233,25 @@
 <!-- ============ ENGINES ============ -->
 <section style="background:var(--bg2);border-top:1px solid var(--line2);border-bottom:1px solid var(--line2)">
   <div class="wrap">
-    <div class="sec-head"><h2>Build engines</h2><span class="tag">one task → one feature → consensus-first</span></div>
-    <p class="sec-sub">The same TDD + cross-model-review core, wrapped at three scopes. Each outer engine <b>calls</b> the inner one — it never re-implements it.</p>
+    <div class="sec-head"><h2>Implementation and review</h2><span class="tag">route by task shape</span></div>
+    <p class="sec-sub">The shared routing rules select the right engineering practice. The model plan names the requested implementation and review routes and their receipt requirements before any worker starts.</p>
     <div class="engines">
       <div class="engine">
         <div class="nm">implement-and-review</div>
         <div class="scope">scope · one task</div>
-        <p>Splits a task into frontend (Opus subagent, Kimi reviews) and backend (Codex builds, Opus reviews) tracks in parallel worktrees, loops implement → cross-review → fix, integrates, then runs full-review. Works on a bare prompt or a Slice Contract.</p>
-        <div class="calls">applies <code>tdd · clean-code · architecture-lens · ddd · data-systems-coding-lens · test-lens</code></div>
+        <p>Completes one scoped task with the selected gates, lenses, practice skills, tests, and review. It produces evidence for the task acceptance contract.</p>
+        <div class="calls">applies <code>coding-design-plan · design-gate · tdd · full-review</code> when the task needs them</div>
       </div>
       <div class="engine">
-        <div class="nm">implement-feature</div>
-        <div class="scope">scope · many tasks</div>
-        <p>Decomposes a plan with <code style="font-family:var(--mono)">to-tasks</code>, runs the dependency DAG (independent tasks in parallel), integrates in order, and closes with a feature-wide review focused on the cross-task seams.</p>
-        <div class="calls">calls <code>to-tasks → implement-and-review (per task) → full-review</code></div>
+        <div class="nm">implement-tasks</div>
+        <div class="scope">scope · approved task queue</div>
+        <p>First shows the model and effort plan. After approval, it delegates bounded tasks to native subagents and verifies the local result. Integration requires separate authorization.</p>
+        <div class="calls">calls <code>implement-and-review</code> for each approved task</div>
       </div>
       <div class="engine">
         <div class="nm">models-consensus</div>
-        <div class="scope">scope · what the autonomous phases ask instead of you</div>
-        <p>A contested or irreversible decision escalates here rather than interrupting you: a blind poll of every available seat, five-dimension reconciliation, one gated gap-repair round, two judges, then a dedicated synthesizer. Read-only, and it never starts implementing.</p>
+        <div class="scope">scope · explicit request for more opinions</div>
+        <p>A user-invoked, deliberation-only council. No workflow or model invokes it. It previews the seats and effort, waits for roster approval, then returns a decision record. Routine reviews do not invoke it.</p>
         <div class="calls">modes <code>poll · debate · personas</code></div>
       </div>
     </div>
@@ -272,19 +268,19 @@
       <div class="cluster">
         <h4><span class="dot" style="background:var(--human)"></span>Frame &amp; specify</h4>
         <p class="desc">Turn a fuzzy idea into an approved, contract-bearing plan — the interactive half.</p>
-        <div class="tags"><span class="t">brainstorm</span><span class="t">interview-me</span><span class="t">to-prd</span><span class="t">to-tasks</span><span class="t">security-gate</span><span class="t">prototype</span></div>
+        <div class="tags"><span class="t">brainstorm</span><span class="t">interview-me</span><span class="t">to-prd</span><span class="t">to-tasks</span><span class="t">security-gate</span><span class="t">to-prototype</span></div>
       </div>
 
       <div class="cluster">
         <h4><span class="dot" style="background:var(--violet)"></span>Design &amp; architecture lenses</h4>
         <p class="desc">Read-only reviewers routed by design-gate; each names one risk and returns proceed / revise.</p>
-        <div class="tags"><span class="t">design-gate</span><span class="t">coding-design-plan</span><span class="t">architecture-lens</span><span class="t">macro-architecture</span><span class="t">domain-driven-design</span><span class="t">design-patterns</span><span class="t">software-design-philosophy</span><span class="t">data-systems-coding-lens</span><span class="t">agent-architecture-lens</span><span class="t">react-performance</span><span class="t">explain-architecture</span></div>
+        <div class="tags"><span class="t">design-gate</span><span class="t">coding-design-plan</span><span class="t">architecture-lens</span><span class="t">macro-architecture</span><span class="t">domain-driven-design</span><span class="t">design-patterns</span><span class="t">software-design-philosophy</span><span class="t">data-systems-coding-lens</span><span class="t">agent-architecture-lens</span><span class="t">advanced-react</span><span class="t">explain-architecture</span></div>
       </div>
 
       <div class="cluster">
         <h4><span class="dot" style="background:var(--auto)"></span>Build &amp; coding practice</h4>
-        <p class="desc">The autonomous craft: test-first, safe on legacy, clean as you go, debug methodically.</p>
-        <div class="tags"><span class="t">implement-and-review</span><span class="t">implement-feature</span><span class="t">tdd</span><span class="t">safe-incremental-coding</span><span class="t">diagnose</span><span class="t">clean-code</span><span class="t">test-lens</span><span class="t">fable-mindset</span></div>
+        <p class="desc">Test-first coding, safe legacy changes, focused cleanup, and evidence-led diagnosis.</p>
+        <div class="tags"><span class="t">implement-tasks</span><span class="t">implement-and-review</span><span class="t">tdd</span><span class="t">safe-incremental-coding</span><span class="t">diagnose</span><span class="t">clean-code</span><span class="t">test-lens</span><span class="t">fable-mindset</span></div>
       </div>
 
       <div class="cluster">
@@ -294,15 +290,15 @@
       </div>
 
       <div class="cluster">
-        <h4><span class="dot" style="background:var(--accent)"></span>Multi-model orchestration</h4>
-        <p class="desc">When one model isn't enough — blind polls, stance-driven debate, panel-gated delivery. Replaces asking the user during autonomous phases.</p>
+        <h4><span class="dot" style="background:var(--accent)"></span>Optional multi-model work</h4>
+        <p class="desc"><code>models-consensus</code> runs only when the user asks for more opinions and its roster is approved first. Other multi-model workflows have their own explicit entry and route approval.</p>
         <div class="tags"><span class="t">models-consensus</span><span class="t">diverse-plan</span><span class="t">collaborative-delivery</span><span class="t">dynamic-harness</span></div>
       </div>
 
       <div class="cluster">
         <h4><span class="dot" style="background:#c0cad8"></span>Runner seats &amp; meta</h4>
         <p class="desc">Thin CLI shims that give the multi-model skills their seats — plus skills for context economy and authoring skills themselves.</p>
-        <div class="tags"><span class="t">claude-runner</span><span class="t">codex-runner</span><span class="t">gemini-runner</span><span class="t">kimi-runner</span><span class="t">qwen-runner</span><span class="t">glm-runner</span><span class="t">gemma-runner</span><span class="t">minimax-runner</span><span class="t">opencode-runner</span><span class="t">dynamic-harness</span><span class="t">worktree</span><span class="t">skill-expert</span><span class="t">summarize</span><span class="t">session-handoff</span><span class="t">capture-learning</span></div>
+        <div class="tags"><span class="t">claude-runner</span><span class="t">codex-runner</span><span class="t">gemini-runner</span><span class="t">grok-runner</span><span class="t">pi-runner</span><span class="t">cline-runner</span><span class="t">opencode-runner</span><span class="t">dynamic-harness</span><span class="t">worktree</span><span class="t">skill-expert</span><span class="t">summarize</span><span class="t">session-handoff</span><span class="t">capture-learning</span></div>
       </div>
     </div>
   </div>
@@ -312,11 +308,11 @@
   <div class="wrap">
     <div class="legend">
       <span><span class="sw" style="background:var(--human)"></span>Interactive — human judgment</span>
-      <span><span class="sw" style="background:var(--gate)"></span>Approval gate — the last touchpoint</span>
-      <span><span class="sw" style="background:var(--auto)"></span>Autonomous — runs unattended</span>
+      <span><span class="sw" style="background:var(--gate)"></span>Separate task and model-plan approvals</span>
+      <span><span class="sw" style="background:var(--auto)"></span>Verified local work after approval</span>
       <span><span class="sw" style="background:var(--violet)"></span>Design lens (read-only reviewer)</span>
     </div>
-    <p style="margin:0">rar-skills — design review, multi-model orchestration, and coding workflows for Claude Code. The whole point: <b style="color:var(--txt)">approve once, then merge a green PR.</b></p>
+    <p style="margin:0">rar-skills is an engineering skill library. The workflow ends at a verified local result unless you authorize delivery.</p>
   </div>
 </footer>
 

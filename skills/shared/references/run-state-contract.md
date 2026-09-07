@@ -52,7 +52,7 @@ This is the path for a skill adopting the contract fresh. A skill that already h
 
 `status` is one of: `running`, `awaiting_human`, `complete`, `failed`, `ceiling_hit`, `cancelled`. These are the only values; a resume protocol that branches on `status` branches on this set.
 
-Extra skill-specific keys are fine. The eight above are the contract.
+Extra skill-specific keys are allowed. Keep the fields shown above and their types.
 
 ## The rules
 
@@ -80,21 +80,24 @@ A ceiling lives in `ceilings` and is counted without the model's cooperation —
 
 A human decision recorded only in conversation is gone after a restart: the run either re-asks (annoying) or proceeds as if approved (dangerous). Append to `gates` when the user decides, then set `status` back to `running`.
 
-While waiting, `status` is `awaiting_human`. On resume, a gate already present in `gates` is **already decided** — do not re-ask. A gate absent from `gates` was never granted, whatever the transcript appears to say.
+While waiting, `status` is `awaiting_human`. On resume, a gate already present in `gates` is **already decided** — do not re-ask. Reuse a gate only when its recorded scope, input revision, model assignments, and permitted actions still match. If current user authorization is clear in the session but missing from the file, record it before proceeding. Missing records are not permission to invent approval.
 
-### Side effects — decide, then execute
+### Side effects: prepare, execute, confirm
 
-Separate the decision from the act. Deciding is safe to replay; acting is not.
+A side-effect key identifies an operation; its presence alone does not prove completion.
 
-Before any write outside the run — a commit, a merge, a PR, a ticket, a message, a deploy — append its stable key to `side_effects`, then perform it. At the top of any step that could replay, check `side_effects` for the key and skip if present. Write the key first: a crash lands between the record and the effect either way, and recording first means the replay skips rather than duplicates.
+1. Prepare: verify authorization, then persist a stable key, `status: pending`, intended target, input revision, and an idempotency key when supported.
+2. Execute the operation once.
+3. Confirm: inspect its result and persist `status: done`, `done_at`, and the resulting revision or external ID.
+4. Resume: skip only a confirmed `done` operation whose result still exists. For `pending`, inspect the actual repository or service. If it succeeded, confirm it. If it did not run, execute it. If its outcome is uncertain, reconcile before retrying; do not duplicate it or silently skip it.
 
-Stable keys are derived from the work, not from a counter: `pr:<branch>`, `commit:<slice-id>`, `ticket:<finding-id>`.
+Legacy records with `done_at` and no status mean confirmed completion. Stable keys derive from the work, for example `pr:<branch>`, `commit:<slice-id>`, and `ticket:<finding-id>`. Creating a record never grants permission for the operation.
 
 ### Steps — the replay trace
 
 Append one entry per completed step: the step name, its result, and the path to its artifact. This is what answers "what ran, in what order, and where is the output" after the run is over. Append; never rewrite history.
 
-A step that was **delegated** records its `brief` and `report` paths alongside `result` (shapes in `handoff-contract.md`), so a resumed run recovers the step's reasoning and not only its name. Those two paths are also the completion signal: a step whose report exists is done, and is re-dispatched only when its `result` says it failed.
+A step that was **delegated** records its `brief` and `report` paths alongside `result` (shapes in `handoff-contract.md`), so a resumed run recovers the step's reasoning and not only its name. The report is evidence to inspect, not a completion flag. Mark the step complete only when its recorded result, acceptance evidence, and input/output revisions agree. A partial report or obsolete revision cannot release dependent work.
 
 ### Cadence
 
@@ -106,9 +109,9 @@ At the start of a run, if a `run-state.json` exists for the target run id with `
 
 1. Load it. Do not restart from the beginning.
 2. Resume at `phase`, with `attempts` intact — a crash does not reset a counter.
-3. Skip every step already in `steps` and every effect already in `side_effects`.
-4. Treat every gate in `gates` as already decided.
+3. Skip only completed steps with current evidence and confirmed effects. Reconcile pending effects before retrying.
+4. Treat matching gates as already decided. Obtain approval only for new or changed scope, models, or actions.
 
 ## Verification — the crash-resume test
 
-A resume path that was never exercised does not work. Once per skill that adopts this contract, kill a run mid-flight, restart it, and assert three things: it resumes at the right `phase`, `attempts` survived, and no entry in `side_effects` executed twice. This is a required check, not an optional one.
+A resume path that was never exercised does not work. Once per skill that adopts this contract, exercise crashes before an effect, after the effect but before confirmation, and after confirmation. Assert that the run resumes at the correct `phase`, counters survive, pending effects reconcile, and no operation is lost or duplicated. Use a fake or disposable target; do not interrupt a real publication to test recovery. This is a required check, not an optional one.

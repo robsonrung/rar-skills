@@ -1,5 +1,10 @@
 # Trigger-collision audit — compound-engineering-plugin ports
 
+> Historical governance record. This file retains audit evidence from earlier
+> ports and restructuring passes. It does not define the current workflow,
+> model routing, council behavior, approval points, or delivery policy. Read
+> [workflow.md](workflow.md) and the current `SKILL.md` files for those rules.
+
 Phase A governance record (2026-07-22). Every new skill or graft from the porting effort was checked against the repo's existing skills and the installed user-level (`~/.claude/skills`) set for routing collisions before landing. De-confliction lives in each skill's own `description:`; this file records the audit outcome. Re-run this audit for any future addition (rule: a new skill may not land without a row here or in a successor record).
 
 | New skill | Nearest existing triggers | De-confliction |
@@ -130,3 +135,16 @@ Convention made uniform: every skill keeps its working files under the repositor
 ## Entry-point flags (same pass)
 
 Every skill that no other skill invokes now carries `disable-model-invocation: true` with `allow_implicit_invocation: false` in `agents/openai.yaml`. Newly flagged: `brainstorm`, `interview-me`, `to-prd`, `implement-tasks` (the engineer types the toolbox steps; each hands off to the next through the user) and `cmux-cli` (no caller). `to-tasks` stays invocable because `implement-tasks` decomposes a bare plan through it; `to-prototype`, `models-consensus`, `skill-expert`, `browser-smoke`, `verify-changes`, and `peer-sessions` stay invocable because another skill names them mid-run. Trade-off accepted: a flagged skill does not auto-trigger from natural language on hosts that hide it; the slash command and the file-path route still work.
+
+## Current correction — 2026-09-06
+
+`models-consensus` is now user-invoked only and carries
+`disable-model-invocation: true`. Workflow skills do not call it as an
+automatic escalation. It shows its selected seats, model mapping, and reasoning
+effort before dispatch, then waits for the user to approve or change the
+roster. The former planning-panel routes are historical and are not current
+behavior for `brainstorm`, `to-prd`, or `to-tasks`.
+
+The former browser-smoke log path under `.ai-workflow/` is also historical.
+Current browser smoke work uses a temporary directory outside the target
+project.

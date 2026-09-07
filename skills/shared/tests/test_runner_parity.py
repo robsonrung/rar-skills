@@ -62,6 +62,9 @@ REQUIRED_KEYS = (
     "runner",
     "effective_runner",
     "effective_model",
+    "requested_model",
+    "configured_model",
+    "model_receipt",
     "effective_provider",
     "auth_ok",
     "fallback_reason",
@@ -121,32 +124,37 @@ class MissingCliEnvelopeParityTests(unittest.TestCase):
                     f"{name}: a missing CLI is untested auth (null), never false",
                 )
                 self.assertEqual(env["runner"], name)
+                self.assertEqual(env["model_receipt"]["status"], "unverified")
+                self.assertIsNone(
+                    env["effective_model"],
+                    f"{name}: a requested or configured model must not be called served",
+                )
                 if name == "qwen":
                     self.assertEqual(env["effective_runner"], "pi")
-                    self.assertEqual(env["effective_model"], "qwen/qwen3.8-max")
+                    self.assertEqual(env["configured_model"], "qwen/qwen3.8-max")
                     self.assertEqual(env["effective_provider"], "qwen")
                     self.assertIn("Pi CLI not found", env["stderr"])
                 if name == "kimi":
                     self.assertEqual(env["effective_runner"], "pi")
-                    self.assertEqual(env["effective_model"], "moonshotai/kimi-k3")
+                    self.assertEqual(env["configured_model"], "moonshotai/kimi-k3")
                     self.assertEqual(env["effective_provider"], "moonshotai")
                     self.assertIn("Pi CLI not found", env["stderr"])
                 if name == "glm":
                     self.assertEqual(env["effective_runner"], "pi")
-                    self.assertEqual(env["effective_model"], "z-ai/glm-5.3-flash")
+                    self.assertEqual(env["configured_model"], "z-ai/glm-5.3-flash")
                     self.assertEqual(env["effective_provider"], "z-ai")
                     self.assertIn("Pi CLI not found", env["stderr"])
                 if name == "gemma":
                     self.assertEqual(env["effective_runner"], "pi")
-                    self.assertEqual(env["effective_model"], "google/gemma-4-31b-it")
+                    self.assertEqual(env["configured_model"], "google/gemma-4-31b-it")
                     self.assertEqual(env["effective_provider"], "google")
                 if name == "muse":
                     self.assertEqual(env["effective_runner"], "cline")
-                    self.assertEqual(env["effective_model"], "meta/muse-spark-1.3")
+                    self.assertEqual(env["configured_model"], "meta/muse-spark-1.3")
                     self.assertEqual(env["effective_provider"], "meta")
                 if name == "minimax":
                     self.assertEqual(env["effective_runner"], "cline")
-                    self.assertEqual(env["effective_model"], "minimax/minimax-m2.7")
+                    self.assertEqual(env["configured_model"], "minimax/minimax-m2.7")
                     self.assertEqual(env["effective_provider"], "minimax")
 
 

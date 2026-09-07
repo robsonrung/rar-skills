@@ -31,7 +31,7 @@ All three live in the run's own directory, beside its `run-state.json`:
 
 ### 1. Brief — orchestrator → worker
 
-One screen when possible. Ten fields:
+Keep the brief to one screen when possible. Include:
 
 | Field | Content |
 | --- | --- |
@@ -43,7 +43,8 @@ One screen when possible. Ten fields:
 | Constraints and non-goals | What the worker must not do (write scope, files it may not touch, decisions already made elsewhere) |
 | Deliverable | The report doc's path, and the skill the worker invokes to produce it |
 | Required verification | The commands whose output must appear under `Evidence` |
-| Escalation | Where an unresolvable decision goes (for the autonomous half: `models-consensus`, never the user) |
+| Escalation | Return unresolved decisions to the orchestrator, which obtains any required user decision. Only an explicit user request can start `models-consensus`. |
+| Model approval | Approved route and scope fingerprints, model/runner/effort, and allowed fallback; the worker cannot expand this plan. |
 | Output contract | The envelope shape below, stated verbatim |
 
 A brief that quotes a prior report's body instead of citing its path has broken the contract, whatever else it gets right.
@@ -112,8 +113,8 @@ The worker's final message, and the only thing that enters the orchestrator's co
 1. **Write the brief before dispatching.** A verbal assignment leaves no artifact for a resumed run to re-dispatch from.
 2. **Read the envelope, not the report.** Open a report body only when a decision the orchestrator itself must make depends on the detail — routing, integration, or a conflict between two steps. Reading every report to "stay informed" is the failure this contract exists to prevent.
 3. **Record both paths** in the run state's `steps` entry, so a resumed run recovers the reasoning and not just the phase.
-4. **Never re-run a step whose report exists** unless its `status` says it failed. The report is the completion signal.
-5. **Degrade honestly.** With no subagent tool available, run the step inline — but still write the brief and the report, and say in the final report that no worker was spawned. The file-based handoff is the part that survives; the isolation is the part that is host-dependent.
+4. **Reuse only current, complete evidence.** A report path is not a completion signal. Check its status, acceptance evidence, input scope, and output revision before releasing dependent work. Recheck changed inputs or integration results; do not repeat valid work without a reason.
+5. **Degrade honestly.** With no subagent tool available, use inline execution only if it is an approved route. Otherwise obtain approval for the route change. Keep the brief and report, and state that no worker was spawned. The file-based handoff is the part that survives; the isolation is the part that is host-dependent.
 
 ## Verification — the fresh-reader test
 

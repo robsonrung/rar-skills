@@ -1,6 +1,7 @@
-# Codex-host interface/registration config for this skill (display metadata and
-# default prompt shown in the Codex app). Not meant to be read at runtime.
+# Host interface metadata. This skill is user-invocable only.
 interface:
   display_name: "Models Consensus"
-  short_description: "One council, three modes: blind poll, stance debate, or five-lens personas"
-  default_prompt: "Use $models-consensus to run a multi-model council on this. Default to poll mode (fan the raw prompt out blind to every available seat, organizer five-dimension analysis, one gated gap-repair round, two judges, a dedicated synthesizer); use debate mode for stance-driven rounds with anonymized digests, or personas mode for a five-lens council with anonymized peer review and a chairman. Deliberation only — it answers and decides, it never implements."
+  short_description: "User-approved council of independent model opinions"
+  default_prompt: "Use $models-consensus to gather extra model opinions on this decision. First show the exact seats, requested model labels, receipt requirement, roles, efforts, transport, and call budget. Wait for my approval before any model call."
+policy:
+  allow_implicit_invocation: false

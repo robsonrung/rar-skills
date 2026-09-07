@@ -1,6 +1,6 @@
 ---
 name: frontend-design
-description: Create distinctive, production-grade frontend interfaces with high design quality. Use this skill when the user asks to build web components, pages, artifacts, posters, or applications (examples include websites, landing pages, dashboards, React components, HTML/CSS layouts, or when styling/beautifying any web UI). Generates creative, polished code and UI design that avoids generic AI aesthetics.
+description: Create a distinctive, production-grade frontend interface from a chosen bespoke visual direction. Use when the user asks for a high-craft custom page, component, site, dashboard, poster, or UI implementation with a clear aesthetic point of view. For reusable design systems, palette or typography research, cross-screen UX review, or chart selection, use ui-ux-pro-max; for React behavior use advanced-react.
 license: Complete terms in LICENSE.txt
 ---
 

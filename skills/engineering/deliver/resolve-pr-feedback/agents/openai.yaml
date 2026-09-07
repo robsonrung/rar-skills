@@ -1,4 +1,3 @@
-# Codex agent interface metadata; consumed by the Codex host, not read at runtime by the model.
 interface:
   display_name: "Resolve PR Feedback"
   short_description: "Evaluate, fix, reply to, and resolve PR review threads end to end"

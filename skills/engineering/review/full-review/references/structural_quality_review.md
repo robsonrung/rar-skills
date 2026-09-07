@@ -12,9 +12,9 @@ Do not stop at "this could be cleaner." Look for ways to preserve behavior while
 
 When a finding is one of the named slop categories, use the shared vocabulary from `coding-review-simplify`'s Slop Taxonomy (helper slop, type slop, memo/callback slop, effect slop, compatibility cruft, diff churn) — one owner for the taxonomy, referenced here rather than restated.
 
-## Blocking Bar
+## High signal bar
 
-Treat these as presumptive blockers unless the author has a clear reason:
+Treat these as candidate high severity only when the changed code has exact evidence and a concrete consequence:
 
 1. The PR pushes a file from below 1000 lines to above 1000 lines.
 2. The PR adds ad hoc special cases into an already busy flow.
@@ -42,7 +42,7 @@ Ask these before approving maintainability sensitive changes:
 
 ## What To Flag
 
-Flag aggressively when the changed code introduces:
+Flag only when the changed code introduces:
 
 1. A complicated implementation where a clearer framing could delete large pieces of complexity.
 2. Refactors that move complexity around without reducing the number of concepts a reader must hold.

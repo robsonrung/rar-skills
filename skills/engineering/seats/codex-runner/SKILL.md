@@ -7,7 +7,7 @@ description: Execute prompts using Codex CLI in non-interactive exec mode. Use w
 
 Execute prompts via Codex CLI `exec` mode with role overlays, native session resume, background jobs, and continuation support.
 
-Roles, the output-envelope key contract, presenting-results rules, the background-jobs CLI, and the **seat fidelity** invariant are shared across runners — see `../shared/references/runner-common.md`. Only this runner's deltas are inline below.
+Roles, the output-envelope key contract, presenting-results rules, the background-jobs CLI, and the **seat fidelity** invariant are shared across runners — see `shared/references/runner-common.md`. Only this runner's deltas are inline below.
 
 ## Runtime Compatibility
 
@@ -26,10 +26,11 @@ This skill invokes the local Codex CLI from the current machine. Prompt text, pr
 
 ## Output Envelope
 
-The required key contract is shared — see `../shared/references/runner-common.md`. Envelopes also include execution metadata (command, working directory, role, sandbox, and related fields). Codex-specific extensions:
+The required key contract is shared — see `shared/references/runner-common.md`. Envelopes also include execution metadata (command, working directory, role, sandbox, and related fields). Codex-specific extensions:
 
 - `agent_message` — the clean final answer from Codex (captured via `--output-last-message`), free of the activity transcript in `stdout`.
 - `session_id` — the Codex session id when detectable, so the run can be continued with `--resume <id>` (or reopened interactively with `codex resume <id>`).
+- Current headless output does not expose a serving-model identifier. The wrapper records a forwarded model as `configured_model` and marks `model_receipt.status` `unverified` unless a future native receipt supplies the identifier.
 
 ## Usage
 
@@ -37,7 +38,9 @@ The required key contract is shared — see `../shared/references/runner-common.
 python3 .agents/skills/codex-runner/scripts/run_codex.py "your prompt here"
 ```
 
-Paths in the examples use the installed `.agents/skills/` layout; when running from this source repo, skills live at the repo root, so invoke `codex-runner/scripts/run_codex.py` instead.
+Paths in the examples use the installed `.agents/skills/` layout. In this
+source checkout, invoke
+`skills/engineering/seats/codex-runner/scripts/run_codex.py` instead.
 
 For repository-aware tasks, prefer `--working-dir` set to the repository root so Codex picks up the applicable local instructions.
 
@@ -50,8 +53,8 @@ Before composing non-trivial prompts (reviews, implementations, research seats),
 | `--timeout`, `-t` | Timeout in seconds | 3600 |
 | `--working-dir`, `-w` | Working directory | Current dir |
 | `--json`, `-j` | Wrap runner output in JSON | False |
-| `--model`, `-m` | Codex model. Default `gpt-5.6-sol` (flagship of the GPT-5.6 family; best all-around: architecture, coding, synthesis, adversarial reasoning). Alias `codex` -> `gpt-5.3-codex` (code-specialized: agentic coding, regression, security review); `spark` -> `gpt-5.3-codex-spark` | `gpt-5.6-sol` |
-| `--effort`, `-e` | Reasoning effort: `none`, `minimal`, `low`, `medium`, `high`, `xhigh`. `gpt-5.6-sol` doesn't accept `minimal`, so the runner maps `minimal` -> `low` for it (the envelope reports the effective `low`). | CLI default |
+| `--model`, `-m` | Model. Default `gpt-6-astra`. Aliases: `astra`/`codex` -> `gpt-6-astra`; `sol` -> `gpt-5.6-sol`; `terra`/`codex-code` -> `gpt-5.6-terra`; `spark` -> `gpt-5.3-codex-spark`. | `gpt-6-astra` |
+| `--effort`, `-e` | Reasoning effort: `none`, `minimal`, `low`, `medium`, `high`, `xhigh`, `max`, or `ultra`. Direct calls clamp an unsupported known value and report `requested_effort`, `effort`, and `effort_clamped`. Approved routing plans validate instead of clamping. | CLI default |
 | `--sandbox`, `-s` | Codex sandbox mode override | CLI default |
 | `--restrict-tools` | Force `--sandbox read-only` | True for analysis roles |
 | `--allow-write` | Opt an analysis role out of the read-only default | False |
@@ -76,7 +79,7 @@ When `--json` and `--output-file` are combined, stdout becomes a compact pointer
 
 ## Roles
 
-The role list and the analysis-seat read-only default are shared — see `../shared/references/runner-common.md`. For Codex, analysis roles default to the Codex read-only sandbox; pass `--allow-write` (or an explicit `--sandbox`/`--full-auto`) to opt out.
+The role list and the analysis-seat read-only default are shared — see `shared/references/runner-common.md`. For Codex, analysis roles default to the Codex read-only sandbox; pass `--allow-write` (or an explicit `--sandbox`/`--full-auto`) to opt out.
 
 ## Session Continuation
 
@@ -99,11 +102,11 @@ python3 .agents/skills/codex-runner/scripts/run_codex.py "Review the staged diff
 
 ## Background Jobs
 
-`--background` runs as a tracked job (job dir holds the manifest, log, and final envelope as `result.json`); manage it with the shared jobs CLI (`list --runner codex` / `status` / `result` / `cancel`) — see `../shared/references/runner-common.md`.
+`--background` runs as a tracked job (job dir holds the manifest, log, and final envelope as `result.json`); manage it with the shared jobs CLI (`list --runner codex` / `status` / `result` / `cancel`) — see `shared/references/runner-common.md`.
 
 ## Presenting Results
 
-Shared rules (prefer `agent_message`, severity-ordered findings, evidence boundaries, never auto-apply, **seat fidelity** on failure) live in `../shared/references/runner-common.md`. Codex-specific additions:
+Shared rules (prefer `agent_message`, severity-ordered findings, evidence boundaries, never auto-apply, **seat fidelity** on failure) live in `shared/references/runner-common.md`. Codex-specific additions:
 
 - If Codex made edits, say so explicitly and list the touched files.
 - Fallback applies only when the Codex CLI is missing, and it is always labeled via `fallback_from`/`fallback_reason`.

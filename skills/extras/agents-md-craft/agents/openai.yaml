@@ -2,6 +2,6 @@
 interface:
   display_name: "Agents Md Craft"
   short_description: "Hand craft or audit AGENTS.md and CLAUDE.md agent memory files"
-  default_prompt: "Use $agents-md-craft to create or audit this project's AGENTS.md/CLAUDE.md using the good-CLAUDE.md principles — WHAT/WHY/HOW framing, instruction and length budgets, progressive disclosure — proposing a draft or diff without writing until approved."
+  default_prompt: "Use $agents-md-craft to create, update, or audit this project's AGENTS.md and CLAUDE.md. Keep root instructions short and universal, move conditional detail into agent_docs, and verify every command and pointer."
 policy:
   allow_implicit_invocation: false

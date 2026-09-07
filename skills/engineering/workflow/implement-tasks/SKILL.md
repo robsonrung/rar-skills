@@ -1,141 +1,84 @@
 ---
 name: implement-tasks
-description: Build every task in an approved task queue and deliver the result as a PR — step 4 of the workflow (interview-me → to-prd → to-tasks → implement-tasks). Given the to-tasks slices (or a plan to decompose through it), execute the dependency DAG by opening one fresh goal-driven worker per task (a subagent or new Codex app thread) that runs implement-and-review in an isolated worktree and is archived when done, integrate in dependency order, run one feature-wide full-review on the seams, make unapplied review findings durable, and open the PR with acceptance evidence and the decision log. Autonomous after the task approval — contested decisions go to models-consensus, never to the user, except for destructive or irreversible operations. Use when the user says implement the tasks, build the task queue, build and deliver this feature, or wants everything after the approved plan built and shipped. For a single scoped task call implement-and-review directly; models-consensus deliberates only.
+description: Execute an approved task queue through implement-and-review, integrate dependencies, and verify the result. Step 4 after interview-me, to-prd, and to-tasks. Present exact implementation and review models, effort levels, and task assignments for user approval before dispatch. Use when the user asks to implement the tasks or build an approved feature. A single task uses the same model approval and then implement-and-review. Commit, push, and PR creation require user authorization.
 disable-model-invocation: true
 ---
 
 # Implement Tasks
 
-The fourth and last step of the workflow. Steps 1–3 (`interview-me`, `to-prd`, `to-tasks`) collect every human decision and write it to disk; this skill turns the approved task queue into an integrated, reviewed, delivered change without asking anything further. You are a **thin conductor** (the main agent, the Opus seat — model ids live only in `shared/references/model-roster.md`): you own scheduling, integration, the feature-wide review, and delivery. Per-task building — the FE/BE split, TDD, cross-model review, self-simplify, and the per-task `full-review` gate — is `implement-and-review`'s job. **Call it; don't reimplement it.**
+Turn an approved queue into a verified change. Be a **thin conductor**: own model selection, scheduling, integration, and the final result. `implement-and-review` owns each task's design check, implementation, focused review, and acceptance evidence.
 
-Pipeline: **task queue → one fresh worker per task running `implement-and-review` (parallel where independent) → integrate in dependency order → feature-wide `full-review` on the seams → residual findings made durable → `open-pr`.**
+Sequence: inspect the queue → approve models → build ready tasks → integrate and verify → review cross-task seams → deliver within the user's authorization.
 
-Two rules from `shared/references/handoff-contract.md` and `shared/references/run-state-contract.md` govern everything below: **hand off the path, not the payload** (what crosses between you and a task build is a file path plus a short envelope, never a pasted report), and progress lives in **the ledger, not the transcript** (a run that crosses a compaction or a restart resumes from the run state, not from memory). Scheduling and integration commands, plus the worker-thread lifecycle (goal, naming, archiving): [references/feature-orchestration.md](references/feature-orchestration.md). Residual-findings durability: [references/residual-findings.md](references/residual-findings.md).
+## 1. Prepare the execution plan
 
-## Hard Rules
+1. Read the queue under `.ai-workflow/work/<feature-slug>/tasks/`, its `tasks-draft.md`, and its PRD. Verify that both approval records are present and still describe the queue; drafts cannot start implementation. For a bare plan, obtain an approved PRD through `to-prd`, then use `to-tasks`. For one complete task, keep the model approval below and skip graph scheduling.
+2. Check stable task IDs, missing dependencies, cycles, acceptance commands, HITL decisions, and write conflicts. Resolve facts from the project before asking for a decision. Do not launch a task with unresolved requirements or missing access.
+3. Read `shared/references/workflow-stage-routing.md`. Reuse earlier decisions and lens findings. Each worker uses `coding-design-plan` to apply inherited gate constraints. Call `design-gate` again only when new evidence changes the design surface; do not repeat an earlier architecture study.
+4. Resolve roles through `shared/references/task-shaped-model-routing.md` and `shared/references/model-roster.md`. If `.rar-skills/config.local.yaml` exists, read its advisory `seats` and `models` only while forming this preview, as `shared/references/local-config.md` defines. Validate every value against the roster and runner, let direct user instructions win, and never reread it after approval. Check installed runners and model catalogs without starting model jobs. Select the strongest known suitable model for each implementation and review role, then the lowest sufficient supported effort. Separate task-fit recommendations from measured benchmark results.
+5. Inspect git state and preserve unrelated edits. Record the base revision, acceptance commands, available runners, concurrency, and delivery authorization. Use isolated worktrees when commits and integration are authorized. Otherwise use one sequential writer in the working tree.
+6. Save the human preview as `model-plan.md` and progress as `run-state.json`. Create the executable `routing-plan.json` only after approval. Keep these files under `.ai-workflow/impl-review/<session_id>/`. Use `shared/references/implementation-routing-plan.schema.json` for routing and `shared/references/run-state-contract.md` for progress. Include the PRD and every executable task in `scope.inputs` with their canonical `content_sha256`; bind each route to its task through `input_path`. Use the shared normalization rule so task status updates preserve approval, while changes to scope or acceptance invalidate it.
 
-1. **The task queue is the input.** Slices come from `to-tasks` (one file per slice under `.ai-workflow/work/<feature-slug>/tasks/`, each with an acceptance contract, gate flags, `blocked_by`, and HITL/AFK class). A bare plan is decomposed through `to-tasks` first; a genuinely single task skips the DAG and goes straight to `implement-and-review`.
-2. **One fresh worker per task, running `implement-and-review`.** Every task gets its own newly created worker context — a native subagent, or on the Codex / ChatGPT desktop app a newly created thread — that runs `implement-and-review` for exactly that task and nothing else. Hand it the task file path, a per-task `--slice` namespace, and the current integration head as `--base`; it lifts the Slice Contract itself. The orchestrator never builds a task inline and never reuses one worker for a second task (see [Worker threads](#worker-threads)).
-3. **Every worker starts with a checkable goal.** The first thing a worker receives is a `/goal` whose done-condition can be verified from disk and the shell — envelope written, acceptance commands green, report present with evidence — so the worker keeps working until the goal holds or a ceiling is hit, never until it merely feels finished.
-4. **Nothing asks the user after the approval.** The `to-tasks` approval (or this skill's Phase 0 approval) is the last human gate; record it in the run state's `gates`. Afterwards a contested or irreversible decision follows the [escalation ladder](#escalation-ladder-replaces-mid-flight-questions).
-5. **Integrate in dependency order.** A task must pass its acceptance contract before its dependents start.
-6. **`full-review` gates final code.** It runs per task inside `implement-and-review` and once more feature-wide on the seams. No mutating pass may follow a `full-review` unreviewed; a fix after it re-runs the review (or its `quick_mode`).
-7. **Evidence or no delivery.** A task reported `built` without coherent verification evidence gets exactly one recovery re-invocation; still no evidence → the task is hard-blocked, never delivered (see [Evidence gate](#evidence-gate)).
-8. **Residual findings become durable before delivery.** Review findings not applied are filed and recorded per `references/residual-findings.md` — never tracked as a PR-body ledger.
-9. **Local-only mode.** Run `git remote` once at the start. No remote → make every commit the phases call for, but skip every push, PR create/edit, and CI attempt — zero retries. A missing remote is a terminal state, not an error; in local-only mode do not invoke `open-pr`.
-10. **Bounded + escalate.** A task whose `implement-and-review` hits its 3-cycle cap is escalated; it blocks only its dependents.
-11. **Never fabricate a seat; degrade** per [Degrade Gracefully](#degrade-gracefully).
+Resolve `shared/` from the installed skill library as the `shared` skill describes. Resolve worker skills from their loaded locations; never assume a `.agents/skills` installation path.
 
-## Preflight
+## 2. Approve models before dispatch
 
-1. **Host, git, remote.** Worktrees (and thus parallel tasks) need git; no git → sequential fallback. Run `git remote` once and record `local_only: true|false` in the run state.
-2. **Seats.** Shared probe: `python3 .agents/skills/shared/scripts/discover_runners.py probe --native-agent yes --seat codex --seat opus --seat kimi --format json`. Each task's `implement-and-review` needs the default Codex seat and a native or runner-backed Opus seat; Kimi is the first fallback reviewer. Mark missing seats and degrade.
-3. **Verification commands.** Detect the project's feature-wide test/build commands; the slices' acceptance commands must exist in the repo.
-4. **Concurrency cap.** Default **3 tasks in flight**; lower it when seats or cost are tight.
-5. **Base & artifacts.** Record `HEAD` as the feature `<base>`; create the feature integration branch; keep the run state and report under `.ai-workflow/impl-review/<session_id>/`.
-6. **Orchestrator thread identity.** This thread is the conductor for the whole run; make that visible in the host UI before any worker exists. Name it `ORCHESTRATOR · implement-tasks · <feature-slug>` and pin it. On the Codex / ChatGPT app use the thread's rename and pin controls; where the host exposes no such control to the agent, put the one-line request ("pin this thread and name it …") in the Phase 0 approval message so it rides the existing human gate instead of adding one. Record the name in the run state (`threads.orchestrator`).
-7. **Engine routing.** An explicit "implement with X" directive, or `work_engine_preferences` in the local config (`shared/references/local-config.md`), selects the per-stage engine; sanitize the directive out of anything a task build reads as product content.
+Show this table with real resolved values, grouped only when tasks use the same route:
 
-## Phase 0 — Intake (gate)
+| Tasks or scope | Role | Model and runner | Effort | Model receipt | Reason |
+| --- | --- | --- | --- | --- | --- |
+| Task IDs | Implementation | Exact model ID and runner | Supported level | Required or unverified allowed | Task-specific fit |
+| Same IDs | Independent review | Exact model ID and runner | Supported level | Required or unverified allowed | Main risk to inspect |
+| Integration seams | Final review | Exact models and runners | Supported levels | Required or unverified allowed | Cross-task coverage |
 
-1. **Intake.** Sources, in order of preference: an existing `.ai-workflow/work/<feature-slug>/tasks/` queue; a plan or spec the user gives (decompose it with `to-tasks`); or a `models-consensus` poll-mode report passed as `--from-consensus <path>` — take its _Consensus answer_ as the plan and resolve its _Open caveats_ first. With a consensus report, frame the council blind (the raw request, never your interpretation), thread one session id through both runs, and stop here if the answer is a decision rather than work to build.
-2. **Present** the task list (titles, deps, acceptance, gates, HITL/AFK) and the verification commands. **Get approval before any code is written** unless the queue already carries the `to-tasks` approval or `--auto` is set. Never `--auto` a HITL task.
+Also show the coordinator model, concurrency cap, review/fix limit, and proposed fallbacks. Use an independent review context; prefer another model family when it meets the quality requirement. Include design-lens workers and specialist reviewers that will run, so no hidden panel follows approval. Represent these as reviewer routes with clear scope and track names. Give review-only passes their own scope IDs, so they do not appear as build tracks; name the integration scope explicitly. The coordinator is recorded in the human preview and run state.
 
-## Phase 1 — Schedule & Build the DAG
+Explain any receipt limit in plain terms: the runner may confirm the configured model without proving which model served the request. Record `model_verification: allow_unverified` only when the user approves that limit; otherwise use `required`. Show runtime-controlled effort as such, without inventing a fixed level.
 
-Build the dependency graph from `blocked_by`. Then:
+Ask: **"Approve this model plan, including effort and receipt limits, or specify changes?"** Wait for the answer. Record the user response reference, approval time, and canonical scope and route digests in `routing-plan.json`. Save a matching `gates` entry with `gate: model_plan_approval`, `decision: approved`, and the approval time. The launcher verifies the fingerprints and input files before side effects; the host remains responsible for recording only actual user approval.
 
-- Schedule **HITL** tasks first and attended; run **AFK** tasks unattended.
-- Run all currently-unblocked tasks **concurrently, up to the cap**, each in **its own fresh worker** that runs **`implement-and-review`** with the task path, `--slice <T>`, and `--base` = the current integration head. Open the worker, send its `/goal`, then its brief — in that order (see [Worker threads](#worker-threads)). Commands: [references/feature-orchestration.md](references/feature-orchestration.md).
-- As each task's build passes **its acceptance contract**, integrate it in dependency order, recompute readiness, and pull the next ready tasks into flight.
-- Continue until every task is done, blocked, or escalated. Never silently drop a task.
+Task approval from `to-tasks` does not approve the model plan. `--auto`, a default selection, or silence cannot approve it. Reuse approval only when the user already approved this exact scope and plan in the session. Do not start implementation, reviewer, council, or model probe jobs before this gate.
 
-### Worker threads
+Carry the approved model and effort into every worker and runner call. Check configured values and serving-model receipts against the approved receipt policy. Any change to model, runner, mode, role, effort, or receipt policy requires approval of the changed rows unless that exact fallback was already approved. A missing model or unsupported effort blocks its route. Never silently use a cheaper model or the host model instead. On resume, compare saved scope and routes before reusing approval.
 
-One task, one worker, one goal. The worker is a **new** context every time — never the orchestrator itself, never a worker recycled from a finished task, never a fork of the orchestrator's context (`shared/references/handoff-contract.md`: a clean worker seeded by a compact brief beats a fork carrying everything already spent).
+## 3. Build and integrate
 
-**Lifecycle, in order:**
+Read `references/feature-orchestration.md` for the worker brief and integration rules.
 
-1. **Create** the worker. Native `Agent` tool → one subagent per task. Codex / ChatGPT desktop app → a **newly created thread** per task, named `<T> · <feature-slug> · implement-and-review`. No host worker tool → fall back per [Degrade Gracefully](#degrade-gracefully) and say so; never imply a thread exists that nobody opened.
-2. **Send the `/goal` first.** The goal is a done-condition, not a task description, and every clause must be checkable without reading the transcript:
-   - the `implement-and-review` envelope for `<T>` exists at its report path with `status: complete` (or a recorded `failed` / `ceiling_hit`);
-   - the task's acceptance commands (named verbatim) exit green on the task's branch;
-   - the report's `Evidence` section is non-empty and lists the tests inspected, added, and run.
-   The goal closes with the standing instruction: keep working until every clause holds or a ceiling is hit, then return the envelope and stop. Template in [references/feature-orchestration.md](references/feature-orchestration.md#worker-thread-lifecycle). A worker whose goal cannot be phrased as checks is a task that `to-tasks` left under-specified — route it back, do not launch it.
-3. **Send the brief** (handoff-contract shape: paths only) as the second message. The goal says when the worker is done; the brief says what to do.
-4. **Wait on the envelope**, not the transcript. Poll the report path or the launcher's `poll --wait`; read the envelope only.
-5. **Close** the worker as soon as its envelope is recorded in the run state. On the Codex / ChatGPT app, **archive the thread in the UI** (`codex archive "<thread name>"` when the UI is not reachable from the agent); a native subagent simply ends. Write `side_effects` key `archive:<T>` before archiving so a resumed run does not look for a thread that is already gone. An `escalated` or `failed` worker is archived too — its report is the durable artifact, the thread is not.
+1. Start tasks whose dependencies passed acceptance on the integration state. Attend HITL tasks when their recorded decision is needed. Keep independent tasks moving when another task is blocked.
+2. Use one fresh task context per task, with `implement-and-review`, the task path, approved route, write scope, current integration revision, and report path. **Hand off the path, not the payload**: pass artifact paths and a short brief. Do not create host goals or user-owned tasks unless requested.
+3. Limit concurrency by write ownership, runner capacity, and the approved cap. Default to at most three tasks in flight; use one writer without isolation. Split frontend and backend work only when both can proceed independently against an agreed interface.
+4. Require captured command results and observable behavior in each task report. Missing evidence allows one recovery pass over the existing work. Record the attempt before dispatch; a second result without evidence blocks the task.
+5. Integrate authorized task commits in dependency order, or accept sequential working-tree changes. Run task acceptance on the combined result before marking it `done` or releasing dependents. Review conflict resolutions as changed code.
 
-**The orchestrator stays pinned and named.** Only the conductor thread carries the `ORCHESTRATOR` name and the pin; worker threads are transient and never pinned. If a resumed run finds the orchestrator thread unnamed, restore the name before scheduling anything.
+Progress lives in **the ledger, not the transcript**. Store worker IDs, task states, reviewed revisions, effective models, acceptance results, and attempt counts. Worker completion is not task completion until integration checks pass. Use the shared prepare/execute/confirm rule for side effects; a pending record is not proof of success.
 
-**Registry.** Every worker gets a `threads.workers[<T>]` entry in the run state: host (`claude-code` / `codex-app` / `cmux`), thread or agent id, thread name, the goal text, `opened_at`, and `closed_at` once archived. This is what lets a resumed run tell an open worker from a finished one.
+## 4. Verify the complete change
 
-### Evidence gate
+Run the feature's acceptance commands. For several tasks, call `full-review` once on the combined change, focused on integration seams, shared contracts, migration order, and gaps in task reviews. Use the approved reviewer plan and `security_focus=true` when a task has deep security exposure.
 
-Every task envelope must carry its verification evidence: which existing tests were inspected, which were added or run, and what they proved (`implement-and-review` writes this in its report's _Evidence_ section). A task that reports a behavior change without it is re-invoked **exactly once** in recovery mode — same task, same scope, reconcile the evidence from the already-implemented work without reimplementing. "Exactly once" is `attempts.evidence_recovery` against a ceiling of 1, incremented in the run state _before_ the re-invocation — the model never decides the retry. A second return without evidence hard-blocks the task.
+A single task with a complete scoped review does not need a duplicate full panel. Reuse task evidence when the code and assumptions still match. After a fix, rerun affected checks and review changed paths; broaden only when the change or a failure requires it. Never weaken acceptance checks to obtain a pass.
 
-### Run state
+Record unapplied findings using `references/residual-findings.md`. A blocking defect stays blocked; recording it does not complete the feature.
 
-Follow `shared/references/run-state-contract.md`; only the keys specific to this skill are stated here:
+## 5. Deliver and report
 
-- **`ceilings.max_in_flight`** — the concurrency cap. Count what is actually in flight.
-- **`gates.task_approval`** — the last human gate. A resumed run that cannot find it stops and asks; one that finds it treats it as decided and never re-asks.
-- **`side_effects`** keys are written _before_ the effect and skipped when already present: `merge:<task-id>`, `archive:<task-id>`, `commit:<task-id>`, `pr:<branch>`, `ticket:<finding-id>`, `record:<sha>`. This is what stops a resumed run from merging twice or filing every residual ticket twice.
-- **`threads`** — `threads.orchestrator` (the pinned conductor thread's name and id) and `threads.workers[<T>]` per task as described in [Worker threads](#worker-threads). Closing a worker writes `side_effects` key `archive:<T>` first, then archives.
-- **The integration head is the resume anchor.** `steps` are keyed by stable T-ID; a task in `steps` is done. On resume, re-read the integration head, recompute readiness from the ledger, and schedule only what is left.
-- **Three exits per task:** `complete`, `failed` (hard-block or exhausted ladder), or `ceiling_hit`. A blocked task is a recorded exit, not a silent skip.
+Deliver the verified local diff by default. If the user authorized commit, push, or a PR, perform those actions; use `open-pr` for an authorized PR. A configured remote does not grant publication permission. Reuse prior authorization without asking again.
 
-## Phase 2 — Feature-wide Review
+Write `report.md` in the run directory. Include:
 
-After all tasks integrate, run **`full-review`** across the whole feature (diff vs `<base>`), focused on **cross-task seams** and what the per-task reviews could not see; `security_focus=true` if any task was `security: deep`. Apply findings through the owning task's implementer or a scoped fix, re-run the review on what changed, and re-verify the full suite **green**. Every finding _not_ applied goes to the residual list for Phase 3.
+1. Result: `complete`, `partial`, `failed`, or `ceiling_hit`; local diff or authorized delivery link.
+2. Tasks: stable ID, status, dependency, integration result, and acceptance evidence.
+3. Models: approved and configured models, observed serving models when available, receipt limits, effort, and approved substitutions.
+4. Review: scope, reviewed revision, applied findings, residual record, and unverified checks.
+5. Decisions: assumptions within scope, blocked decisions, and required next actions.
 
-## Phase 3 — Deliver
+The queue is complete only when every task is done and final acceptance passes. `partial` is a report outcome; run state uses the shared status enum. Use `capture-learning` for a reusable project finding or `session-handoff` when work must resume, within the original authorization.
 
-1. **Commit** the integrated feature branch (key `commit:<task-id>` per task, or one feature commit when the tasks were squashed by design).
-2. **Residual findings.** Follow [references/residual-findings.md](references/residual-findings.md): file tickets through the detected sink (probed once per run), always commit the `docs/residual-review-findings/<branch-or-head-sha>.md` record, back-fill the PR URL best-effort.
-3. **Open the PR** with `open-pr` (skipped in local-only mode). PR composition is `open-pr`'s job; this skill adds the sections the workflow requires: **acceptance evidence** (commands run, output), **design-gate and review verdicts** per task, the **decision log** with every assumption the escalation ladder recorded, and **remaining risks**. Report outcomes faithfully — a failed or skipped check is stated, never smoothed over.
-4. **Continuity.** When the run solved a non-obvious problem, invoke `capture-learning` in headless mode; when the run outgrew the session, store a `session-handoff` note. The human merges; `resolve-pr-feedback` closes the loop when review comments arrive.
+## Decisions and failures
 
-## Escalation ladder (replaces mid-flight questions)
-
-When a task build or the seam review hits a contested or irreversible decision:
-
-1. Run `models-consensus` in poll mode with `--auto` (budget preset for routine escalations). It deliberates only; it never starts implementation.
-2. Still unresolved: take the most reversible default, record assumption and rationale in the decision log carried into the PR body, proceed.
-3. Hard-stop and wait for the human **only** for destructive or irreversible operations: data deletion, force-push, external publication, irreversible migration against real data. Record `status: awaiting_human` in the run state.
-
-## Report
-
-Deliver inline and write `.ai-workflow/impl-review/<session_id>/report.md`:
-
-1. **Feature** and final status (`delivered` / `local-only` / `partial` / `escalated`).
-2. **Tasks** — task, deps, status, acceptance result, review cycles, evidence, which ran in parallel.
-3. **Workers** — per task: host, thread name or agent id, the goal, whether the thread was archived; and the orchestrator thread's name.
-4. **Integration** — order merged, conflicts resolved.
-5. **Feature-wide full-review** — verdict, findings by severity, what was fixed.
-6. **Residuals** — filed tickets, the committed record path, `no_sink` items.
-7. **Delivery** — PR URL or the local commits; the decision log.
-8. **Escalations and blocked tasks** — with the open findings or the missing evidence.
-
-## Degrade Gracefully
-
-- **Not a git repo:** run tasks sequentially in the working tree via `implement-and-review`'s no-git fallback; no parallelism, no PR. Still one fresh worker and one `/goal` per task.
-- **No worker tool (no `Agent`, no thread creation, no runner):** run each task inline, one at a time, but still write the brief, the goal text, and the report per task, and state in the final report that no worker was spawned. Never present an inline build as a worker thread.
-- **Few seats / tight cost:** lower the cap toward 1.
-- **Single task:** skip the DAG — call `implement-and-review` and deliver its result.
-- **A task escalates or blocks:** keep building independents; list it in the report.
-- **`open-pr` unavailable or no remote:** local-only exit — commits, the residual record, and the handoff note are the deliverable.
-
-## Gotchas
-
-- **Don't reimplement `implement-and-review`.** This skill is DAG + integration + seam review + delivery only.
-- **Don't build a task in the orchestrator thread**, even a "tiny" one. The conductor's context is the scarce resource; a task built inline is a task with no goal, no envelope, and no archive.
-- **Don't reuse a worker.** A second task in a finished worker inherits the first task's context and breaks the one-task-one-thread registry. Open a new one.
-- **A goal that is not checkable is not a goal.** "Implement T3 well" cannot end a `/goal`; "envelope at <path> says complete and `npm test` is green on `impl/T3-backend-<id>`" can.
-- **Archive, don't delete.** Worker threads are archived when their envelope is recorded; deletion is destructive and needs the human.
-- Each task builds on the **current integration head**, not the stale base; serialize tasks likely to touch the same files with a `blocked_by`.
-- Per-task `full-review` already ran inside each build; the feature-wide pass targets the **seams** so you don't pay to re-review every task in full.
-- Do not read a task's report body to stay informed — the envelope is the interface. Open a report only to route a failure, assemble the final report, or reconcile two tasks that disagree.
-- Do not paste a report's content into the next task's brief. Cite the path.
-- Do not retry pushes or PR actions in local-only mode — one `git remote` check decides the whole run.
-- Do not let a routing directive leak into task briefs or review inputs.
+1. Use the approved PRD, task contract, code, and targeted tests to resolve implementation details. Record reversible assumptions within scope.
+2. If new evidence changes product behavior, security, data ownership, an accepted architecture decision, or an irreversible operation, pause the affected task for that decision. Continue independent work.
+3. Never call `models-consensus` automatically. Use it only when the user asks for additional opinions, with its own model approval. An existing council report is input, not authorization for another council or code changes.
+4. Keep the `implement-and-review` limit of three review/fix cycles and one evidence recovery. Exhausted attempts block that task. Model or effort escalation follows the saved approval.
+5. Without a worker tool, propose sequential inline execution in the model plan and report that no worker was created. Do not rename, pin, create, or archive user-owned tasks as routine implementation work.

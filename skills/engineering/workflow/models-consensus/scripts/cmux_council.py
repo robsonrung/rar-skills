@@ -1,17 +1,12 @@
 #!/usr/bin/env python3
-"""Interactive cmux transport for models-consensus.
-
-Creates one cmux workspace per terminal agent, sends literal input to the
-recorded surface, and collects the agent's JSON artifact. cmux does not expose
-terminal output capture, so artifacts are the response channel.
-"""
+"""Adopt an approved cmux peer fleet and relay council artifacts."""
 
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import re
-import shlex
 import subprocess
 import sys
 import tempfile
@@ -21,6 +16,7 @@ from typing import Any
 
 SESSION_PREFIX = "consensus-"
 SAFE_TOKEN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.:-]*$")
+FINGERPRINT = re.compile(r"^[0-9a-f]{64}$")
 
 
 class UsageError(ValueError):
@@ -37,73 +33,171 @@ def session_name(session_id: str) -> str:
     return f"{SESSION_PREFIX}{require_token(session_id, 'session id')}"
 
 
-def require_interactive_command(command: Sequence[str]) -> None:
-    if not command or not all(isinstance(part, str) and part for part in command):
-        raise UsageError("each seat command must be a non-empty argv array")
-    binary = Path(command[0]).name
-    args = set(command[1:])
-    if binary == "claude" and ({"-p", "--print"} & args):
-        raise UsageError("claude command must be interactive, not --print")
-    if binary == "codex" and "exec" in args:
-        raise UsageError("codex command must be interactive, not codex exec")
-    if binary == "grok" and ({"-p", "--single", "agent"} & args):
-        raise UsageError("grok command must be interactive, not single-turn or agent mode")
-    if binary == "cline":
-        if "--tui" not in args:
-            raise UsageError("cline command must include --tui for interactive mode")
-        if {"--json", "--acp", "--zen"} & args:
-            raise UsageError("cline command must be interactive, not JSON, ACP, or Zen mode")
-    if binary == "agy":
-        if "--prompt-interactive" not in args:
-            raise UsageError("agy command must include --prompt-interactive")
-        if {"-p", "--print", "--prompt"} & args:
-            raise UsageError("agy command must be interactive, not print mode")
+def require_fingerprint(value: str, label: str) -> str:
+    if not isinstance(value, str) or not FINGERPRINT.fullmatch(value):
+        raise UsageError(f"{label} must be a SHA-256 fingerprint")
+    return value
 
 
-def validate_manifest(manifest: dict[str, Any]) -> tuple[str, Path, list[dict[str, Any]]]:
-    if not isinstance(manifest, dict):
-        raise UsageError("manifest must be a JSON object")
-    session_id = manifest.get("session_id")
-    workspace = manifest.get("workspace")
-    seats = manifest.get("seats")
-    session_name(session_id)
-    if not isinstance(workspace, str) or not workspace:
-        raise UsageError("manifest.workspace must be a non-empty path")
+def validate_model_receipt(value: Any, requested_model: str, label: str) -> str:
+    if not isinstance(value, dict):
+        raise UsageError(f"{label} must contain a model receipt")
+    status = value.get("status")
+    source = value.get("source")
+    observed_model = value.get("observed_model")
+    if status not in {"verified", "unverified"}:
+        raise UsageError(f"{label} model receipt must state verified or unverified")
+    if source not in {"native_event", "provider_event", "configured_model", "not_observed"}:
+        raise UsageError(f"{label} model receipt has an unknown source")
+    if status == "verified":
+        if source not in {"native_event", "provider_event"}:
+            raise UsageError(f"{label} verified receipt must use a native or provider source")
+        if observed_model != requested_model:
+            raise UsageError(f"{label} verified model differs from the approved requested model")
+    elif source not in {"configured_model", "not_observed"} or observed_model is not None:
+        raise UsageError(f"{label} unverified receipt must not claim an observed model")
+    return status
+
+
+def selected_seat_ids(preview: dict[str, Any]) -> list[str]:
+    seats = preview.get("seats")
     if not isinstance(seats, list) or not seats:
-        raise UsageError("manifest.seats must be a non-empty array")
-    normalized: list[dict[str, Any]] = []
-    seat_ids: set[str] = set()
-    for seat in seats:
-        if not isinstance(seat, dict):
-            raise UsageError("each manifest seat must be an object")
-        seat_id = require_token(seat.get("id"), "seat id")
-        if seat_id in seat_ids:
-            raise UsageError("manifest seat ids must be unique")
-        seat_ids.add(seat_id)
-        command = seat.get("command")
-        if not isinstance(command, list):
-            raise UsageError(f"seat {seat_id} command must be an argv array")
-        require_interactive_command(command)
-        normalized.append({"id": seat_id, "command": list(command)})
-    return session_id, Path(workspace).expanduser(), normalized
+        raise UsageError("approval preview must name at least one seat")
+    selected: list[str] = []
+    for entry in seats:
+        if not isinstance(entry, dict):
+            raise UsageError("each approved seat must be an object")
+        seat_id = require_token(entry.get("id"), "approved seat id")
+        requested_model = entry.get("requested_model")
+        provider = entry.get("provider")
+        if not isinstance(requested_model, str) or not requested_model:
+            raise UsageError(f"approved seat {seat_id} must name its requested model")
+        if not isinstance(provider, str) or not provider:
+            raise UsageError(f"approved seat {seat_id} must name its provider")
+        validate_model_receipt(entry.get("model_receipt"), requested_model, f"approved seat {seat_id}")
+        if seat_id in selected:
+            raise UsageError("approval preview seat ids must be unique")
+        selected.append(seat_id)
+    return selected
 
 
-def build_start_plan(manifest: dict[str, Any], cmux_bin: str = "cmux") -> list[list[str]]:
-    _, _, seats = validate_manifest(manifest)
-    plan: list[list[str]] = []
-    for seat in seats:
-        plan.extend(
-            [
-                [cmux_bin, "list-workspaces", "--json"],
-                [cmux_bin, "new-workspace"],
-                [cmux_bin, "list-workspaces", "--json"],
-                [cmux_bin, "select-workspace", "--workspace", "<new-workspace>"],
-                [cmux_bin, "identify", "--json"],
-                [cmux_bin, "send", shlex.join(seat["command"])],
-                [cmux_bin, "send-key", "enter"],
-            ]
-        )
-    return plan
+def approved_seat_models(preview: dict[str, Any]) -> dict[str, str]:
+    selected_seat_ids(preview)
+    return {entry["id"]: entry["requested_model"] for entry in preview["seats"]}
+
+
+def validate_effort(value: Any, control: Any, label: str) -> tuple[str | None, str]:
+    if control == "runtime":
+        if value is not None:
+            raise UsageError(f"{label} must be null when effort control is runtime")
+        return None, control
+    if control == "configured":
+        if not isinstance(value, str) or not value:
+            raise UsageError(f"{label} must name configured effort")
+        return value, control
+    raise UsageError(f"{label} must state configured or runtime effort control")
+
+
+def validate_role_scope(preview: dict[str, Any]) -> None:
+    seat_models = approved_seat_models(preview)
+    receipt_requirement = preview.get("serving_receipt")
+    if receipt_requirement not in {"required", "explicitly_allowed_unverified"}:
+        raise UsageError("approval preview must state its serving-receipt requirement")
+    if receipt_requirement == "required" and any(
+        entry["model_receipt"]["status"] != "verified" for entry in preview["seats"]
+    ):
+        raise UsageError("approval preview requires verified serving-model receipts")
+    roles = preview.get("roles")
+    if not isinstance(roles, list) or not roles:
+        raise UsageError("approval preview must contain at least one role")
+    calls: dict[str, tuple[str | None, str]] = {}
+    for entry in roles:
+        if not isinstance(entry, dict):
+            raise UsageError("each approved role must be an object")
+        call = require_token(entry.get("call"), "approved role call")
+        role = entry.get("role")
+        seat = require_token(entry.get("seat"), "approved role seat")
+        model = entry.get("requested_model")
+        effort = entry.get("effort")
+        effort_control = entry.get("effort_control")
+        if not isinstance(role, str) or not role:
+            raise UsageError(f"approved role {call} must name its role")
+        if seat not in seat_models:
+            raise UsageError(f"approved role {call} names an unselected seat")
+        if model != seat_models[seat]:
+            raise UsageError(f"approved role {call} requested model does not match its seat")
+        if call in calls:
+            raise UsageError("approved role calls must be unique")
+        calls[call] = validate_effort(effort, effort_control, f"approved role {call} effort")
+
+    effort_entries = preview.get("effort")
+    if not isinstance(effort_entries, list) or not effort_entries:
+        raise UsageError("approval preview must contain effort for every role call")
+    recorded_effort: dict[str, tuple[str | None, str]] = {}
+    for entry in effort_entries:
+        if not isinstance(entry, dict):
+            raise UsageError("each effort entry must be an object")
+        call = require_token(entry.get("call"), "effort call")
+        effort = entry.get("effort")
+        effort_control = entry.get("effort_control")
+        if call in recorded_effort:
+            raise UsageError("effort calls must be unique")
+        recorded_effort[call] = validate_effort(effort, effort_control, f"effort entry {call}")
+    if recorded_effort != calls:
+        raise UsageError("effort entries must exactly match the approved role calls")
+
+
+def approval_scope_payload(state: dict[str, Any]) -> dict[str, Any]:
+    if not isinstance(state, dict):
+        raise UsageError("approval state must be a JSON object")
+    session_id = require_token(state.get("session_id"), "approval session id")
+    question = state.get("question")
+    mode = state.get("mode")
+    preview = state.get("preview")
+    if not isinstance(question, str) or not question:
+        raise UsageError("approval state must contain a question")
+    if not isinstance(mode, str) or not mode:
+        raise UsageError("approval state must contain a mode")
+    if not isinstance(preview, dict):
+        raise UsageError("approval state must contain a preview object")
+    if preview.get("transport") != "cmux":
+        raise UsageError("approval preview transport must be cmux")
+    validate_role_scope(preview)
+    try:
+        normalized_preview = json.loads(json.dumps(preview, ensure_ascii=False))
+    except (TypeError, ValueError) as exc:
+        raise UsageError(f"approval preview is not JSON serializable: {exc}") from exc
+    normalized_preview.pop("scope_fingerprint", None)
+    return {
+        "session_id": session_id,
+        "question": question,
+        "mode": mode,
+        "preview": normalized_preview,
+    }
+
+
+def approval_scope_fingerprint(state: dict[str, Any]) -> str:
+    payload = approval_scope_payload(state)
+    canonical = json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+
+def approved_plan(state: dict[str, Any], expected_session_id: str | None = None) -> tuple[str, str, list[str]]:
+    payload = approval_scope_payload(state)
+    if expected_session_id is not None and payload["session_id"] != require_token(expected_session_id, "session id"):
+        raise UsageError("approval state belongs to a different session")
+    preview = state["preview"]
+    expected = approval_scope_fingerprint(state)
+    preview_fingerprint = require_fingerprint(preview.get("scope_fingerprint"), "approval preview fingerprint")
+    if preview_fingerprint != expected:
+        raise UsageError("approval preview fingerprint does not match its scope")
+    approval = state.get("approval")
+    if not isinstance(approval, dict) or approval.get("status") != "approved":
+        raise UsageError("council plan is not approved")
+    approval_fingerprint = require_fingerprint(approval.get("scope_fingerprint"), "approval fingerprint")
+    if approval_fingerprint != expected:
+        raise UsageError("approval fingerprint does not match the preview scope")
+    return payload["session_id"], expected, selected_seat_ids(preview)
 
 
 def build_send_plan(surface_id: str, message: str, cmux_bin: str = "cmux") -> list[list[str]]:
@@ -123,78 +217,9 @@ def run_cmux(command: list[str], check: bool = True) -> subprocess.CompletedProc
         raise UsageError(f"cmux executable not found: {command[0]}") from exc
 
 
-def parse_identify(raw: str) -> dict[str, str | None]:
-    try:
-        payload = json.loads(raw)
-    except json.JSONDecodeError as exc:
-        raise UsageError(f"cmux identify did not return valid JSON: {exc}") from exc
-
-    def entity_id(entity: str) -> str | None:
-        direct = payload.get(f"{entity}_id") if isinstance(payload, dict) else None
-        if isinstance(direct, str):
-            return direct
-        nested = payload.get(entity) if isinstance(payload, dict) else None
-        if isinstance(nested, dict) and isinstance(nested.get("id"), str):
-            return nested["id"]
-        return None
-
-    return {"workspace_id": entity_id("workspace"), "surface_id": entity_id("surface")}
-
-
-def workspace_ids(raw: str) -> set[str]:
-    try:
-        payload = json.loads(raw)
-    except json.JSONDecodeError as exc:
-        raise UsageError(f"cmux list-workspaces did not return valid JSON: {exc}") from exc
-    entries = payload.get("workspaces") if isinstance(payload, dict) else None
-    if not isinstance(entries, list):
-        raise UsageError("cmux list-workspaces JSON has no workspaces array")
-    ids = {entry.get("id") for entry in entries if isinstance(entry, dict) and isinstance(entry.get("id"), str)}
-    if len(ids) != len(entries):
-        raise UsageError("cmux list-workspaces JSON contains a workspace without an id")
-    return ids
-
-
-def new_workspace_id(before: str, after: str) -> str:
-    created = workspace_ids(after) - workspace_ids(before)
-    if len(created) != 1:
-        raise UsageError("cmux new-workspace must create exactly one discoverable workspace")
-    return created.pop()
-
-
-def start_session(manifest: dict[str, Any], cmux_bin: str = "cmux") -> dict[str, Any]:
-    session_id, workspace, seats = validate_manifest(manifest)
-    if not workspace.is_dir():
-        raise UsageError(f"workspace does not exist or is not a directory: {workspace}")
-    state: dict[str, Any] = {
-        "session_id": session_id,
-        "transport": "cmux_interactive",
-        "workspace": str(workspace),
-        "seats": [],
-    }
-    for seat in seats:
-        before = run_cmux([cmux_bin, "list-workspaces", "--json"], check=True)
-        run_cmux([cmux_bin, "new-workspace"], check=True)
-        after = run_cmux([cmux_bin, "list-workspaces", "--json"], check=True)
-        workspace_id = new_workspace_id(before.stdout, after.stdout)
-        run_cmux([cmux_bin, "select-workspace", "--workspace", workspace_id], check=True)
-        identify = run_cmux([cmux_bin, "identify", "--json"], check=True)
-        context = parse_identify(identify.stdout)
-        if not context["surface_id"]:
-            raise UsageError("cmux identify did not provide a focused surface id")
-        if context["workspace_id"] != workspace_id:
-            raise UsageError("cmux focused workspace differs from the newly created workspace")
-        run_cmux([cmux_bin, "send", shlex.join(seat["command"])], check=True)
-        run_cmux([cmux_bin, "send-key", "enter"], check=True)
-        state["seats"].append({"id": seat["id"], **context})
-    return state
-
-
-def send_message(surface_id: str, message: str, cmux_bin: str = "cmux") -> list[list[str]]:
-    plan = build_send_plan(surface_id, message, cmux_bin=cmux_bin)
+def dispatch_plan(plan: Sequence[list[str]]) -> None:
     for command in plan:
         run_cmux(command, check=True)
-    return plan
 
 
 def collect_artifact(seat: str, round_number: int, output_path: Path) -> dict[str, Any]:
@@ -214,6 +239,11 @@ def collect_artifact(seat: str, round_number: int, output_path: Path) -> dict[st
         "effective_runner": "cmux",
         "effective_provider": None,
         "effective_model": None,
+        "model_receipt": {
+            "status": "unverified",
+            "source": "not_observed",
+            "observed_model": None,
+        },
         "auth_ok": None,
         "fallback_reason": None,
         "success": True,
@@ -248,6 +278,14 @@ def load_json(path: str, label: str) -> Any:
         raise UsageError(f"{label} not found: {path}") from exc
     except json.JSONDecodeError as exc:
         raise UsageError(f"{label} is not valid JSON: {exc}") from exc
+
+
+def load_approved_plan(path: str) -> tuple[dict[str, Any], str, str, list[str]]:
+    state = load_json(path, "approval state")
+    if not isinstance(state, dict):
+        raise UsageError("approval state must be a JSON object")
+    session_id, fingerprint, seats = approved_plan(state)
+    return state, session_id, fingerprint, seats
 
 
 def adopt_peer_fleet(
@@ -315,22 +353,68 @@ def adopt_peer_fleet(
     }
 
 
+def adopt_approved_peer_fleet(
+    approval_state: str,
+    peer_run: str,
+    terminal_state: str,
+) -> dict[str, Any]:
+    _, session_id, fingerprint, seats = load_approved_plan(approval_state)
+    adopted = adopt_peer_fleet(session_id, peer_run, terminal_state, seats)
+    adopted["approval_scope_fingerprint"] = fingerprint
+    adopted["approved_seats"] = sorted(seats)
+    return adopted
+
+
+def approved_surface(approval_state: str, adopted_state: str, seat_id: str) -> str:
+    _, session_id, fingerprint, selected_seats = load_approved_plan(approval_state)
+    seat = require_token(seat_id, "approved seat id")
+    if seat not in selected_seats:
+        raise UsageError("seat is not in the approved council plan")
+
+    adopted = load_json(adopted_state, "adopted state")
+    if not isinstance(adopted, dict):
+        raise UsageError("adopted state must be a JSON object")
+    if adopted.get("session_id") != session_id:
+        raise UsageError("adopted state belongs to a different council session")
+    if adopted.get("transport") != "cmux_interactive":
+        raise UsageError("adopted state must use cmux interactive transport")
+    if adopted.get("approval_scope_fingerprint") != fingerprint:
+        raise UsageError("adopted state does not match the approved council plan")
+
+    approved_seats = adopted.get("approved_seats")
+    if not isinstance(approved_seats, list):
+        raise UsageError("adopted state has no approved seat roster")
+    adopted_roster = sorted(require_token(value, "adopted approved seat id") for value in approved_seats)
+    if adopted_roster != sorted(selected_seats):
+        raise UsageError("adopted state roster does not match the approved council plan")
+
+    records = adopted.get("seats")
+    if not isinstance(records, list):
+        raise UsageError("adopted state has no terminal records")
+    recorded_ids = [require_token(record.get("id"), "adopted seat id") for record in records if isinstance(record, dict)]
+    if len(recorded_ids) != len(records) or sorted(recorded_ids) != sorted(selected_seats):
+        raise UsageError("adopted terminal records do not match the approved council roster")
+    matches = [record for record in records if isinstance(record, dict) and record.get("id") == seat]
+    if len(matches) != 1:
+        raise UsageError("adopted state must record exactly one surface for the approved seat")
+    return require_token(matches[0].get("surface_id"), "approved surface id")
+
+
 def parse_args(argv: Sequence[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--cmux-bin", default="cmux")
     subparsers = parser.add_subparsers(dest="command", required=True)
-    start = subparsers.add_parser("start", help="create a cmux workspace for each interactive seat")
-    start.add_argument("--manifest", required=True)
-    start.add_argument("--state-file")
-    start.add_argument("--dry-run", action="store_true")
+    fingerprint = subparsers.add_parser("fingerprint", help="calculate an approval-preview scope fingerprint")
+    fingerprint.add_argument("--approval-state", required=True)
     adopt = subparsers.add_parser("adopt", help="adopt a coordinator-mode peer-sessions cmux fleet")
-    adopt.add_argument("--session-id", required=True)
+    adopt.add_argument("--approval-state", required=True)
     adopt.add_argument("--peer-run", required=True)
     adopt.add_argument("--terminal-state", required=True)
-    adopt.add_argument("--seat", action="append", required=True, help="selected council seat id; repeat for each seat")
-    adopt.add_argument("--state-file")
-    send = subparsers.add_parser("send", help="send one literal message to a recorded surface")
-    send.add_argument("--surface", required=True)
+    adopt.add_argument("--state-file", required=True)
+    send = subparsers.add_parser("send", help="send one literal message to an approved recorded surface")
+    send.add_argument("--approval-state", required=True)
+    send.add_argument("--adopted-state", required=True)
+    send.add_argument("--seat", required=True)
     send.add_argument("--message-file", required=True)
     send.add_argument("--dry-run", action="store_true")
     collect = subparsers.add_parser("collect", help="read one JSON response artifact")
@@ -343,31 +427,25 @@ def parse_args(argv: Sequence[str]) -> argparse.Namespace:
 def main(argv: Sequence[str] | None = None) -> int:
     try:
         args = parse_args(argv if argv is not None else sys.argv[1:])
-        if args.command == "start":
-            manifest = load_json(args.manifest, "manifest")
-            plan = build_start_plan(manifest, args.cmux_bin)
-            if args.dry_run:
-                result: dict[str, Any] = {"session": session_name(manifest["session_id"]), "plan": plan}
-            else:
-                result = start_session(manifest, args.cmux_bin)
-                result["session"] = session_name(manifest["session_id"])
-                if args.state_file:
-                    atomic_write_json(Path(args.state_file).expanduser(), result)
-            print(json.dumps(result, indent=2, ensure_ascii=False))
+        if args.command == "fingerprint":
+            state = load_json(args.approval_state, "approval state")
+            if not isinstance(state, dict):
+                raise UsageError("approval state must be a JSON object")
+            print(json.dumps({"scope_fingerprint": approval_scope_fingerprint(state)}, indent=2, ensure_ascii=False))
         elif args.command == "adopt":
-            result = adopt_peer_fleet(args.session_id, args.peer_run, args.terminal_state, args.seat)
-            if args.state_file:
-                atomic_write_json(Path(args.state_file).expanduser(), result)
+            result = adopt_approved_peer_fleet(args.approval_state, args.peer_run, args.terminal_state)
+            atomic_write_json(Path(args.state_file).expanduser(), result)
             print(json.dumps(result, indent=2, ensure_ascii=False))
         elif args.command == "send":
             try:
                 message = Path(args.message_file).expanduser().read_text(encoding="utf-8")
             except FileNotFoundError as exc:
                 raise UsageError(f"message file not found: {args.message_file}") from exc
-            plan = build_send_plan(args.surface, message, args.cmux_bin)
+            surface = approved_surface(args.approval_state, args.adopted_state, args.seat)
+            plan = build_send_plan(surface, message, args.cmux_bin)
             if not args.dry_run:
-                send_message(args.surface, message, args.cmux_bin)
-            print(json.dumps({"surface": args.surface, "plan": plan}, indent=2, ensure_ascii=False))
+                dispatch_plan(plan)
+            print(json.dumps({"seat": args.seat, "surface": surface, "plan": plan}, indent=2, ensure_ascii=False))
         elif args.command == "collect":
             print(json.dumps(collect_artifact(args.seat, args.round, Path(args.output_file)), indent=2, ensure_ascii=False))
         return 0

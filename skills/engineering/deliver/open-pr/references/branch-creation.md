@@ -1,58 +1,10 @@
-# Branch creation from default branch
+# Branch creation from the default branch
 
-Local `<base>` may have stale commits (another session/worktree advanced it) or commits the user authored intending to branch from later. Local git can't distinguish these — ask when unpushed commits are present.
+Use this only when the requested pull request starts from the default branch or detached HEAD.
 
-## Decision flow
+1. Fetch the remote default branch when available.
+2. If the local default branch contains commits absent from the remote, show those commits and ask whether the new branch should include them. There is no safe default because the answer changes the pull request's scope.
+3. Create the feature branch from the selected base and confirm the current branch.
+4. If local changes would be overwritten, stop and report the conflict. Do not stash, reset, discard, or replay work automatically.
 
-### 1. Fetch fresh remote base
-
-```bash
-git fetch --no-tags origin <base>
-```
-
-If fetch fails (network, auth, no remote), use the fallback at the bottom.
-
-### 2. Check for unpushed local commits on `<base>`
-
-```bash
-git log origin/<base>..HEAD --oneline
-```
-
-- **Empty output:** set `BASE_REF=origin/<base>` and proceed to step 3.
-- **Non-empty output:** show the commit list and ask (per the "Asking the user" convention in `SKILL.md`):
-
-  > "Local `<base>` has N unpushed commits not on `origin/<base>`. Carry them onto the new feature branch, or leave them on local `<base>`?"
-  - **Carry forward** → `BASE_REF=HEAD`. The new branch starts from local HEAD, preserving the commits.
-  - **Leave on `<base>`** → `BASE_REF=origin/<base>`. The new branch starts clean; commits remain on local `<base>`.
-
-  Never default silently — carrying foreign commits into a PR is worse than asking again.
-
-### 3. Create the feature branch
-
-```bash
-git checkout -b <branch-name> "$BASE_REF"
-```
-
-If checkout fails because uncommitted changes would be overwritten, stash and retry:
-
-```bash
-git stash push -u -m "open-pr: pre-branch <branch-name>"
-git checkout -b <branch-name> "$BASE_REF"
-git stash pop
-```
-
-If `git stash pop` reports conflicts, surface the conflict output and the stash ref to the user — do not auto-resolve.
-
-## Fetch failure fallback
-
-If `git fetch` fails, branch from current local HEAD:
-
-```bash
-git checkout -b <branch-name>
-```
-
-Note in the user-facing summary that base freshness was not verified. Skip the unpushed-commits check — without a fresh `origin/<base>`, the answer is unreliable.
-
----
-
-_Adapted from [compound-engineering-plugin](https://github.com/EveryInc/compound-engineering-plugin) (MIT). See NOTICE._
+When the remote base cannot be fetched, branch from the current checked-out commit and state that base freshness was not verified. Creation may continue, but pull-request creation still requires a reachable remote.

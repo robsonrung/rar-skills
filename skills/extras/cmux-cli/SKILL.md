@@ -45,7 +45,7 @@ cmux send-key --surface <surface-id> enter
 
 ### Status, Progress, Logs, and Notifications
 
-Use a unique, task-scoped key for status. Clear only state owned by that key.
+Use a unique, task-scoped key for status. Clear only state owned by that key. Set status, progress, or logs only when the user asked to report task state. Create a notification only on an explicit notification request.
 
 ```bash
 cmux set-status task-build "running" --icon hammer --color "#ff9500" --priority 80

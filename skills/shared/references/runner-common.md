@@ -1,6 +1,6 @@
 # Runner Common Reference
 
-Canonical, agent-facing rules shared by every runner skill: `claude-runner`, `codex-runner`, `gemini-runner`, `grok-runner`, `cline-runner`, `pi-runner`, `dcode-runner`, including the named seats `pi-runner` serves (`--seat kimi|glm|qwen|gemma`) and the ones `cline-runner` serves (`--seat muse|minimax`). Each runner's SKILL.md points here for these shared blocks and keeps inline only its genuine deltas. Seat → model ids live in [model-roster.md](model-roster.md); seat availability comes from `shared/scripts/discover_runners.py`.
+Canonical, agent-facing rules shared by every runner skill: `claude-runner`, `codex-runner`, `gemini-runner`, `grok-runner`, `cline-runner`, `pi-runner`, `dcode-runner`, including the named seats `pi-runner` serves (`--seat kimi|glm|qwen|gemma`) and the ones `cline-runner` serves (`--seat muse|minimax`). The Astra and Fable seats select their model through the Codex and Claude runners. Each runner's SKILL.md points here for these shared blocks and keeps inline only its genuine deltas. Seat → model ids live in [model-roster.md](model-roster.md); seat availability comes from `shared/scripts/discover_runners.py`.
 
 ## Seat fidelity
 
@@ -23,6 +23,47 @@ This is the one place the fallback split is defined; nothing else restates it.
 
 A fallback is always labeled (`fallback_from`, `fallback_reason`), and every fallback chain passes `--disable-fallback` to the runner it delegates to so chains cannot loop. Either way the seat's identity is never faked.
 
+## Approved-route execution
+
+An implementation or council route selected by a user-approved routing plan is
+stricter than an ad hoc runner call. It passes `--disable-fallback`, names its
+model and effort explicitly, and accepts output only when the envelope's
+`effective_runner` and `configured_model` match the approved route. It also
+uses the route's `model_verification` policy. `required` needs a matching
+verified serving-model receipt. `allow_unverified` is valid only when the user
+approved it and the report labels the serving model unverified. A verified
+receipt for a different model always blocks, including on an
+`allow_unverified` route.
+
+When an approved route is unavailable, block unless its `unavailable` field
+contains one exact alternate route approved in the same plan. Invoke that
+alternate as a new route with `--disable-fallback`; do not rely on a runner's
+automatic fallback chain. A runtime-controlled effort is reported as such and
+does not satisfy a route that promised a configured effort.
+
+## Model provenance
+
+Every envelope separates three model values:
+
+- `requested_model` is what the caller asked for.
+- `configured_model` is what the wrapper forwarded or set when known.
+- `effective_model` is populated only when a native or provider event reports
+  the serving model.
+
+`model_receipt.status` is `verified` only for an observed native or provider
+model. It is `unverified` when a wrapper has a configured label or no observed
+model. Do not report `requested_model` or `configured_model` as confirmed
+model access.
+
+## Effort control
+
+Codex, Claude, Grok, Pi, and Cline can enforce a selected effort and use
+`effort_control: "runner"`. Gemini uses `effort_control: "runtime"` with a
+null effort. Dcode is not eligible for approved implementation or review
+routes because it cannot forward an exact model. Grok accepts at most `high`;
+an approved route must select a supported effort rather than rely on a
+direct-call clamp.
+
 ## Output envelope (required keys)
 
 All `--json` responses conform to `shared/runner-envelope.schema.json` (bundled in this repo; installed at `.agents/skills/shared/runner-envelope.schema.json`).
@@ -32,13 +73,16 @@ Required top-level keys, always emitted on every exit path:
 - `runner`
 - `effective_runner`
 - `effective_model`
+- `requested_model`
+- `configured_model`
+- `model_receipt`
 - `effective_provider`
 - `auth_ok` (auth preflight result: `true` on a successful run; `null` when auth was never exercised — missing CLI, invalid input, or a failure before auth; `false` only when an authentication failure was actually detected)
 - `fallback_reason`
 - `success`
 - `return_code`
 
-The envelope also carries `stdout`, `stderr`, and execution metadata. The clean final answer is exposed as `agent_message` — orchestrators should read that field instead of parsing `stdout`. Individual runners extend this contract with their own keys (e.g. `session_id`, `status`, `fallback_from`, `fallback_attempts`); see each runner's SKILL.md for its extensions.
+The envelope also carries `stdout`, `stderr`, and execution metadata. The clean final answer is exposed as `agent_message`; orchestrators should read that field instead of parsing `stdout`. Individual runners extend this contract with their own keys such as `session_id`, `status`, `fallback_from`, and `fallback_attempts`; see each runner's SKILL.md for its extensions.
 
 ## Roles
 
@@ -59,6 +103,8 @@ Every role except `implementer` is an analysis seat and defaults to read-only mo
 - Prefer `agent_message` over `stdout`; the raw payload is for debugging.
 - For reviews, keep findings ordered by severity and preserve file paths and line numbers exactly as reported.
 - Preserve evidence boundaries: if the model marked something as an inference or open question, keep that distinction.
+- State `model_receipt.status` when a result identifies its model. Never call an
+  unverified configured label a served-model receipt.
 - Never auto-apply review findings; present them and ask which to fix.
 - If a run fails, report the failure with the most actionable stderr lines — do not silently substitute another model's answer (seat fidelity). Any fallback run is always labeled via `fallback_from`/`fallback_reason`.
 

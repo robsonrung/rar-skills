@@ -18,7 +18,7 @@ Principles
 
 Delivery-specific obligations
 
-1. The panel is not optional in this skill. Every one of the seven phases is a gate, and `delivery_review` is required in all of them.
+1. The panel is not optional in this skill. Every one of the seven phases is a gate. The synthesis and adversarial anchors are required in all of them; `delivery_review` is required at intake, review, and handoff. Add `backend` or `interface` through a phase role override when that surface is material to the slice.
 2. Code edits belong to the host session. External roles review, challenge, and shape decisions unless the routing explicitly changes that.
 3. Red, green, refactor is the execution shape. Do not record a green phase whose failing test was never observed failing for the expected reason.
 4. Verification evidence is an artifact, not a claim: record commands, outputs, skipped checks, and the reason for each skip.

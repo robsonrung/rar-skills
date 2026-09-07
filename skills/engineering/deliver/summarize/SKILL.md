@@ -1,34 +1,28 @@
 ---
 name: summarize
-description: Create a concise handoff summary from visible session context. Use when the user asks to summarize the session or current work, compact the session, prepare a handoff, or write continuity notes for resuming later. Not for summarizing documents, articles, or code unrelated to the active session.
+description: Create a concise continuity summary from the active session. Use when the user asks to summarize current work, prepare a handoff, or compact session context. Do not use to summarize an unrelated document or to store a handoff.
 ---
 
 # Summarize
 
-Create a short handoff from information already visible in the active session, written so a fresh agent session can resume the work without other context.
+Create a concise summary from information already visible in this session. The next consumer is a fresh session. The acceptance contract is the **cold-start test**: a reader with only this summary can name the goal, current state, evidence, and next action without guessing.
 
-The bar is the **cold-start test**: a fresh agent that has only this summary — no transcript, no memory of the session — must be able to pick the work back up and take the next action without guessing. Write to that reader, and check each section against the cold-start test before you finish: if a cold-start agent would still have to ask "what was the goal?" or "what was already verified?", the summary is not done.
+## Boundary
 
-## Privacy Boundary
-
-Use only conversation context, command results, and files that were already opened or produced during the active work. Do not search unrelated local files. Do not include secrets, tokens, private keys, credentials, personal identifiers, or hidden system details. Replace any sensitive value with a short redacted label.
+Use only conversation context, captured command results, and files already opened or produced during this work. Do not search unrelated files. Redact secrets, credentials, personal information, and hidden system details.
 
 ## Output
 
-Output the summary directly in the reply; only write it to a file if the user asks, defaulting to `./HANDOFF.md`.
+Return the summary in the reply. Write a file only when the user names a destination. Persistent storage belongs to `session-handoff`.
 
-**Durable storage of a handoff belongs to `session-handoff`** — the managed store, the immutable per-topic path, and the frontmatter contract are its job. This skill produces the body; when the user wants the handoff kept and rediscoverable later, hand this body to `session-handoff` rather than inventing a storage location here.
-
-Write a compact Markdown summary with these sections when relevant:
+Include only relevant sections:
 
 1. Goal
 2. Current status
 3. Decisions and constraints
 4. Files changed
-5. Verification already run
-6. Next steps
-7. Open risks or blockers
+5. Verification captured
+6. Next action
+7. Open risk or blocker
 
-Keep it brief. Prefer paths, command names, and exact error labels over long quotations.
-
-If no files changed, omit that section. If the session is short, say so plainly and avoid filler.
+Prefer exact paths, command names, and error labels to long quotations. Omit empty sections and filler.

@@ -1,38 +1,16 @@
-# Per-checkout, user-local preferences for the multi-model skills.
-# Copy to .rar-skills/config.local.yaml (gitignored) and edit.
+# Optional per-checkout preferences used only while building a model preview.
+# Copy to .rar-skills/config.local.yaml (gitignored). Every key is optional.
+# A direct user instruction wins. This file never changes an approved route.
 #
-# Invariants (see shared/references/local-config.md):
-#   - every key is optional; missing or invalid values fall through to defaults
-#   - never credentials or raw CLI flags in this file
-#   - config always loses to direct instructions given in chat
-#
-# Adapted from compound-engineering-plugin's config.local pattern (MIT). See NOTICE.
+# Use known seat ids and model ids from shared/references/model-roster.md.
+# Do not put credentials, runner paths, command flags, or effort overrides here.
 
-# Seats multi-model skills should prefer or skip entirely.
-# Seat ids match discover_runners.py: opus, sonnet, codex, gemini, grok, kimi, glm.
 seats:
-  preferred: []        # e.g. [opus, codex, gemini]
-  excluded: []         # e.g. [glm]
+  preferred: []  # Example: [astra, fable, gemini]
+  excluded: []   # Example: [glm]
 
-# Per-seat model overrides (forwarded to the runner's --model when supported).
+# Optional exact model ids to propose for a selected seat. They are validated
+# against the roster and must appear in the approval preview.
 models: {}
-  # kimi: moonshotai/kimi-k3
-  # codex: gpt-5.5
-
-# Advisory quorum thresholds consumed by council-style skills.
-quorum:
-  light: 2
-  quality: 3
-
-# Ordered candidates for which engine implements coding work, with strength.
-# mode: off | prefer | require. skip_if_equivalent_to_host avoids paying for a
-# delegate that resolves to the same model the host is already running.
-work_engine_preferences: []
-  # - harness: codex
-  #   model: gpt-5.5
-  #   mode: prefer
-  #   skip_if_equivalent_to_host: true
-
-# Base path override for runner scripts when this repo's skills are invoked
-# from another checkout (defaults to this repository root).
-runner_base_path: null
+  # astra: gpt-6-astra
+  # fable: claude-fable-5-1

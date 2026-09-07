@@ -1,6 +1,6 @@
 ---
 name: review-gate
-description: "Gate-style PR review returning a machine-consumable approve/request-changes verdict backed by a declared coverage contract. The orchestrator never reads the whole diff: it partitions changed files into will-review / spot-check / won't-review with honesty accounting, fans out 8 reviewer personas as parallel multi-model seats (correctness, security & tenancy, contract breakage, performance, test quality, spec, business logic, plus an adversarial verifier that refutes candidate findings before they are filed), verifies with the repo's own checks via verify-changes and a deployed PR preview when one exists, and emits one schema-validated result JSON an automated follow-up run can consume. Use when the user says run the review gate, gate this PR, is this mergeable, or a pipeline needs a machine review verdict. Distinct from full-review: that is the deep human-facing review (bughunt, security audit, ultrareview); review-gate is the merge gate with declared coverage and a verdict."
+description: "Return a machine-readable approve or request-changes verdict for a PR or branch. Declare the review scope, delegate focused persona reviews, verify with the repository's own checks, and emit schema-validated evidence. Use when the user asks to gate a PR, check whether a branch is mergeable, or needs an automated follow-up verdict. For a deep human-facing review, use full-review."
 allowed-tools:
   - Bash
   - Read
@@ -53,31 +53,23 @@ You do not read the whole diff yourself. Spawn the 8 personas from `references/p
 
 ### Seat discovery
 
-At preflight, run the shared probe and record the seat table:
+At preflight, run the collection's shared seat probe and record the seat table. Resolve current models through the shared roster and use the shared task-shaped routing. This workflow names review shapes; the route selects the effective seat.
 
-```bash
-python3 .agents/skills/shared/scripts/discover_runners.py probe \
-  --native-agent yes \
-  --seat opus --seat sonnet --seat codex --seat gemini --seat grok --seat kimi --seat glm \
-  --format json
-```
-
-`shared` scripts live at `.agents/skills/shared/...` in an installed skill tree and at `shared/...` in this source checkout — use whichever layout resolves. Model ids are not pinned here; `shared/references/model-roster.md` is the single source of truth for seat → model id, and the assignments below follow `shared/references/task-shaped-model-routing.md`.
-
-| Persona | Seat | Fallback |
-| --- | --- | --- |
-| Correctness auditor | `codex` (high effort) | native `Agent`, `model: "opus"` |
-| Security & tenancy reviewer | `codex-code`, else `codex` | native `Agent`, `model: "sonnet"` |
-| Contract-breakage tracer | `gemini` | native `Agent`, `model: "sonnet"` |
-| Performance inspector | `grok` | native `Agent`, `model: "sonnet"` |
-| Test-quality reviewer | native `Agent`, `model: "sonnet"` | `sonnet` via `claude-runner` |
-| Spec assessor | `kimi` | native `Agent`, `model: "sonnet"` |
-| Business-logic assessor | native `Agent`, `model: "opus"` | `opus` via `claude-runner` |
-| Adversarial verifier | `opus`, **fresh context** | native `Agent`, `model: "opus"` — never the orchestrator's own context |
+| Persona | Required review shape |
+| --- | --- |
+| Correctness auditor | Primary code review route |
+| Security and tenancy reviewer | Security and data review route |
+| Contract-breakage tracer | Cross-file consistency route |
+| Performance inspector | Execution-path review route |
+| Test-quality reviewer | Maintainability and test review route |
+| Spec assessor | Requirements and feasibility review route |
+| Business-logic assessor | Repository-scale judgment route |
+| Adversarial verifier | Independent review route in fresh context |
 
 Seat rules:
 
-- A seat with `available: false` degrades to its fallback with the same brief; record the effective execution path in `scope.agents[]`. With fewer than 3 distinct external seats, run all personas native and record `methodology: "single-model degraded"`. Never fail the gate because a runner is missing — degrade to native, never to silence.
+- An unavailable planned route is an **observable failure**. Use only a configured alternate route and record its effective execution path in `scope.agents[]`. Without one, mark the persona failed and its assigned coverage as `skipped`; never silently substitute a provider.
+- With fewer than three distinct routes, continue only as a reduced-diversity review when the user selected `seats:native` or approved the exact alternate routes. Record `methodology: "reduced-diversity"` and do not claim independent corroboration.
 - Runner invocations pass `--disable-fallback` (seat fidelity, per `shared/references/runner-common.md`); read `agent_message` from the runner envelope, never raw stdout.
 - Launch personas in batches respecting `concurrency` (personas 1–4, then 5–7 plus any extras); the adversarial verifier runs alone after all others return.
 
@@ -106,7 +98,7 @@ Persona 8 receives the `$FINDINGS_DIR` path (not the findings pasted inline) and
 Skip only when `verify: false`.
 
 1. **Deterministic checks.** Invoke the `verify-changes` skill with `mode:pipeline`, scoped to the diff's affected workspaces, and embed its returned `checks[]` verbatim in the result. If that skill is not installed on the host, read `verify-changes/references/command-discovery.md` by path and follow it directly — the command-discovery knowledge lives there, not here.
-2. **Preview walk** (`preview: auto`). Search the PR for a deployed preview URL (`gh pr checks`, `gh pr view --json statusCheckRollup,comments`). If one is up, drive it with the harness browser per `browser-smoke`'s Browser Driver Policy — as a subagent, not the orchestrator — and walk the specific feature this PR changes. What you see is first-class evidence. If the preview is down or absent, say so in `previewVerification` and move on; never fabricate UI observations.
+2. **Preview walk** (`preview: auto`). Search the PR for a deployed preview URL (`gh pr checks`, `gh pr view --json statusCheckRollup,comments`). If one is up, use `browser-smoke`'s driver-selection workflow in a scoped worker and walk the specific feature this PR changes. What you see is first-class evidence. If the preview is down or absent, say so in `previewVerification` and move on; never fabricate UI observations.
 
 Every check you ran goes in `checks[]` with its command and result — and never claim a check ran that didn't.
 
@@ -131,5 +123,5 @@ Full rules in `references/reporting-calibration.md`. In brief: report defects in
 1. The orchestrator reads file lists and stats, not hunks — close reading at orchestrator prices repeats the subagents' work.
 2. The merge is mechanical; re-judging findings there is a second review the contract forbids.
 3. Extra personas are capped at 3 and must have a reason the standard 8 don't cover.
-4. A missing runner degrades to a native seat, never to a silently thinner review.
+4. A missing route is recorded as failed coverage unless an exact alternate route is selected.
 5. Everything this skill writes goes under `output_dir`/`$TMPDIR` — nothing in the project tree.

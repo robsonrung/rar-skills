@@ -2,6 +2,10 @@
 
 Checked on 2026-08-19. This document is a recommendation only. It does not change any configuration.
 
+> Historical research note. It does not define current workflow routing,
+> approval points, model selection, council behavior, or delivery policy. Read
+> [workflow.md](workflow.md) and the current `SKILL.md` files for those rules.
+
 ## Decision
 
 Create a small user scoped role layer after a short pilot. These skills run in many repositories, so role files under `~/.codex/agents/` give them one shared role catalog. Use project scoped roles only when one repository needs different instructions or tool access. Do not use either layer to replace the repository's runner based model panels or its existing worktree isolation.

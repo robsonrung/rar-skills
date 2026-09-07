@@ -1,6 +1,6 @@
 ---
 name: dcode-runner
-description: Execute prompts using DeepAgents CLI (`dcode`) non-interactive mode with the user's already-configured model and credentials. Use when users explicitly request dcode or DeepAgents execution, when a workflow needs a DeepAgents/LangChain seat, or when a cross-runner workflow selects dcode as the preferred provider.
+description: Execute prompts using DeepAgents CLI (`dcode`) non-interactive mode with the user's already-configured model and credentials. Use only when the user explicitly requests dcode or DeepAgents execution. It is not an approved implementation or review route.
 disable-model-invocation: true
 ---
 
@@ -8,7 +8,7 @@ disable-model-invocation: true
 
 Execute prompts via DeepAgents CLI (`dcode`) non-interactive mode with role overlays and continuation support. The CLI's pre-configured model and credentials are used as-is — the runner never selects a model or touches `~/.deepagents/`.
 
-Roles, the output-envelope key contract, presenting-results rules, the background-jobs CLI, and the **seat fidelity** invariant are shared across runners — see `../shared/references/runner-common.md`. Only this runner's deltas (including its extended envelope keys and `auth_ok` semantics) are inline below.
+Roles, the output-envelope key contract, presenting-results rules, the background-jobs CLI, and the **seat fidelity** invariant are shared across runners — see `shared/references/runner-common.md`. Only this runner's deltas (including its extended envelope keys and `auth_ok` semantics) are inline below.
 
 ## Runtime Compatibility
 
@@ -23,7 +23,15 @@ This is **seat fidelity**: the dcode seat's output is only ever that seat's, or 
 
 ## Configuration Model
 
-The runner deliberately **does not** select a model, configure providers, or write to `~/.deepagents/`. `dcode` uses whatever default model and credentials the user has already wired up via `/model`, `/auth`, `~/.deepagents/config.toml`, `~/.deepagents/.env`, or a project-local `.env`. `--model` on this wrapper is metadata only and is **not** forwarded to `dcode`; it surfaces in `effective_model` for logs and is otherwise ignored. To change which model dcode uses, change it in dcode itself.
+The runner deliberately **does not** select a model, configure providers, or write to `~/.deepagents/`. `dcode` uses whatever default model and credentials the user has already wired up via `/model`, `/auth`, `~/.deepagents/config.toml`, `~/.deepagents/.env`, or a project-local `.env`. `--model` on this wrapper is a request label only and is **not** forwarded to `dcode`. The envelope marks that label unverified unless a native receipt identifies the serving model. To change which model dcode uses, change it in dcode itself.
+
+## Routing limit
+
+Do not place dcode in an approved implementation or review routing plan. The
+wrapper cannot forward or bind an exact model, so even an unverified route
+cannot prove that it used the user-approved configured model. Use it only for
+a manual, explicitly requested run, and report that the serving model is not
+verified.
 
 ## Security Model
 
@@ -35,7 +43,7 @@ Precedence when both overlay flags are passed: an explicit `--restrict-tools` al
 
 ## Output Envelope
 
-The required key contract is shared — see `../shared/references/runner-common.md`. Every exit path (success, timeout, input error, missing CLI, fallback) is normalized — the same keys are present whether the wrapper is invoked via the CLI or imported and called programmatically. `agent_message` holds the trimmed `dcode -n -q --no-stream` response; `dcode` does not print a session id to stdout, so `session_id` stays null.
+The required key contract is shared — see `shared/references/runner-common.md`. Every exit path (success, timeout, input error, missing CLI, fallback) is normalized — the same keys are present whether the wrapper is invoked via the CLI or imported and called programmatically. `agent_message` holds the trimmed `dcode -n -q --no-stream` response; `dcode` does not print a session id to stdout, so `session_id` stays null.
 
 Dcode-specific extended keys that may appear:
 
@@ -59,7 +67,9 @@ With `--output-file` set, the `--json` stdout pointer is `{success, return_code,
 python3 .agents/skills/dcode-runner/scripts/run_dcode.py "your prompt here"
 ```
 
-Paths in the examples use the installed `.agents/skills/` layout. When running from this source repo, skills live at the repo root, so invoke `dcode-runner/scripts/run_dcode.py` instead.
+Paths in the examples use the installed `.agents/skills/` layout. In this
+source checkout, invoke
+`skills/engineering/seats/dcode-runner/scripts/run_dcode.py` instead.
 
 ## Options
 
@@ -86,15 +96,15 @@ Paths in the examples use the installed `.agents/skills/` layout. When running f
 
 ## Roles
 
-The role list and the analysis-seat read-only default are shared — see `../shared/references/runner-common.md`. For dcode, analysis roles default to a read-only prompt overlay (a soft constraint, not a sandbox — see Security Model); pass `--allow-write` to opt out.
+The role list and the analysis-seat read-only default are shared — see `shared/references/runner-common.md`. For dcode, analysis roles default to a read-only prompt overlay (a soft constraint, not a sandbox — see Security Model); pass `--allow-write` to opt out.
 
 ## Background Jobs
 
-`--background` runs as a tracked job; manage it with the shared jobs CLI (`list`/`status`/`result`/`cancel`) — see `../shared/references/runner-common.md`. `--background` requires the shared jobs module `shared/scripts/runner_jobs.py`. It ships in this source repo; if a slimmed install lacks `shared/`, `--background` exits with a clear error and the foreground modes are unaffected. (The shared launcher strips `--background`/`--json`/`--output-file` from the re-invoked argv, so the detached child runs in the foreground without recursing.)
+`--background` runs as a tracked job; manage it with the shared jobs CLI (`list`/`status`/`result`/`cancel`) — see `shared/references/runner-common.md`. `--background` requires the shared jobs module `shared/scripts/runner_jobs.py`. It ships in this source repo; if a slimmed install lacks `shared/`, `--background` exits with a clear error and the foreground modes are unaffected. (The shared launcher strips `--background`/`--json`/`--output-file` from the re-invoked argv, so the detached child runs in the foreground without recursing.)
 
 ## Presenting Results
 
-Shared rules (prefer `agent_message`, severity-ordered findings, evidence boundaries, never auto-apply, **seat fidelity** on failure — fallback runs labeled via `fallback_from`/`fallback_reason`) live in `../shared/references/runner-common.md`.
+Shared rules (prefer `agent_message`, severity-ordered findings, evidence boundaries, never auto-apply, **seat fidelity** on failure — fallback runs labeled via `fallback_from`/`fallback_reason`) live in `shared/references/runner-common.md`.
 
 ## Examples
 
@@ -112,7 +122,7 @@ python3 .agents/skills/dcode-runner/scripts/run_dcode.py "Tight loop cap" --max-
 1. Executes `dcode -n -q --no-stream --timeout <Ns> [-y] [--max-turns N] [-r [ID]] "<prompt>"`. The dcode `--timeout` is set slightly below the wrapper's `--timeout` so `dcode` self-terminates (and returns its own 124 exit code) before the hard subprocess timeout would kill it; a genuine wrapper timeout still reports `return_code -1` / `status: timeout`. A `dcode` 124 with `--max-turns` set is annotated `max_turns_exceeded: true`.
 2. Does not request a permission bypass unless `--auto-approve` is passed (which forwards `-y`).
 3. Keeps `runner=dcode` for workflow compatibility and sets `effective_runner=dcode` when the CLI produced the output.
-4. Does not pass unsupported flags such as `--model`, `--output-format`, or a read-only convenience mode to `dcode`. `--model` is metadata only; when supplied it is reflected in `effective_model`, otherwise `effective_model` is the `dcode-configured-model` placeholder.
+4. Does not pass unsupported flags such as `--model`, `--output-format`, or a read-only convenience mode to `dcode`. `--model` is a request label only. The envelope keeps `effective_model` null and marks the route unverified unless dcode exposes a native serving-model receipt.
 5. Resolves relative `--prompt-file`/`--session-file` paths against `--working-dir` (not the process cwd).
 
 ### Continuation caveat

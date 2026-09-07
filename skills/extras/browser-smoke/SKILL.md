@@ -1,250 +1,82 @@
 ---
 name: browser-smoke
-description: "Diff-scoped browser smoke test: map the files changed by a branch or PR to the routes that render them, then drive a real browser through each affected page to verify it loads and works. Use when the user asks to smoke test this branch/PR in the browser, test the affected pages, or run a diff-scoped browser test; also invocable by an orchestrator in pipeline mode for web-facing changes. Scope is the diff, not the product: this is not whole-product release QA (persona journeys, full regression passes across untouched areas) — it only smoke-tests the pages the diff touches."
+description: "Smoke-test the routes a branch or PR changes in a real browser. Use when the user asks to smoke-test a branch or PR, test affected pages, or run a diff-scoped browser test. It tests changed routes, not whole-product release QA."
 argument-hint: "[PR number, branch name, 'current', or --port PORT]"
 ---
 
 # Browser Smoke Test
 
-Run end-to-end browser checks on the pages affected by a PR or branch, using the best browser driver available in the active harness.
+Produce browser evidence for the routes a change can affect. This is a diff-scoped check. It does not repair code or replace release QA.
+
+## Outcome
+
+Result: a route table with captured browser evidence.
+
+Done: every mapped route is Pass, Fail, or Skip with a reason. A run that exercises no route is `SKIP`, never `PASS`.
 
 ## Modes
 
-- **Manual (default):** the user controls the dev server.
-- **Pipeline (`mode:pipeline`):** invoked by an automated pipeline — in this repo that is a verify step an orchestrator adds for web-facing changes, run with `mode:pipeline` (`implement-and-review` does not call this skill; its verification is tests/build plus `full-review`). The run is unattended — never block on a question. Read `references/pipeline-orchestration.md` from this skill's directory and follow it; it overrides the dev-server verification (step 5) and any interactive prompts. It still uses the preferred port that step 4 computes.
-
-## Browser Driver Policy
-
-Select the driver before the first browser action:
-
-1. **Prefer the in-app Browser tools** — the harness-native browser pane driven by `mcp__Claude_Browser__navigate`, `mcp__Claude_Browser__read_page`, `mcp__Claude_Browser__computer`, plus `read_console_messages`, `read_network_requests`, and `find`. It can navigate local URLs, inspect rendered and interactive state, click/fill/press, capture screenshots, and read console errors — everything this skill needs — and the user can watch progress in the pane.
-2. **Otherwise fall back to the playwright MCP** (`mcp__playwright__browser_navigate`, `browser_snapshot`, `browser_click`, `browser_type`, `browser_take_screenshot`, `browser_console_messages`, ...). If these tools are deferred, load them with a single `ToolSearch` call before starting.
-3. **Do not introduce a third browser stack.** Never install standalone Playwright/Puppeteer, or substitute other ad hoc browser automation. (A standalone `agent-browser` CLI, if the user has one installed and asks for it, is an optional last resort — not a default.)
-
-Use one driver for the entire run. Switching drivers is allowed only if initialization fails before the first route is tested. After testing begins, do not mix driver sessions, element references, screenshots, or authentication state.
+1. Manual is the default. The user starts and controls the local server.
+2. Pipeline is a non-interactive caller. Read `references/pipeline-orchestration.md` from this skill's directory. Do not ask questions in this mode.
 
 ## Workflow
 
-### 1. Select the Browser Driver
+### 1. Select one browser driver
 
-Apply the Browser Driver Policy above and record the selected driver. This skill also requires a git repository with changes to test.
+Use the first available driver that can navigate, inspect rendered state, interact, and read console errors. Prefer the host browser surface, then the established browser automation available in the harness. Do not install a new browser stack.
 
-### 2. Determine Test Scope
+Use one driver for the whole run. Switch only if initialization fails before the first route is tested. Record the driver in the result.
 
-**If PR number provided:**
+If no available driver meets this contract, stop with `SKIP` and name the missing capability.
 
-```bash
-gh pr view [number] --json files -q '.files[].path'
-```
+### 2. Identify the changed routes
 
-**Otherwise resolve the default branch first — never hardcode `main`.** A repo whose trunk is `master`, `develop`, or `trunk` would otherwise diff against a nonexistent ref (or, worse, a stale local `main`) and silently produce an empty or wrong file list. Resolve it and take the diff in **one** shell block, since shell variables do not survive between separate Bash calls:
+For a PR, get its changed files from the code host. Otherwise resolve the default branch in this order: local `origin/HEAD`, code-host metadata, then `main`. Diff the requested branch against that branch. When the request targets the current worktree, include staged and unstaged changes too.
 
-```bash
-# origin/HEAD → gh → main
-DEFAULT_BRANCH=$(git symbolic-ref --quiet --short refs/remotes/origin/HEAD 2>/dev/null)
-DEFAULT_BRANCH="${DEFAULT_BRANCH#origin/}"
-if [ -z "$DEFAULT_BRANCH" ]; then
-  DEFAULT_BRANCH=$(gh repo view --json defaultBranchRef -q .defaultBranchRef.name 2>/dev/null)
-fi
-DEFAULT_BRANCH="${DEFAULT_BRANCH:-main}"
-echo "Default branch: ${DEFAULT_BRANCH}"
+Map each changed file to the routes that render it. Read the project's routing and component usage when the path alone is not enough. A layout or shared style change needs at least the root page and each directly affected route. A change with no browser-facing route is `SKIP` with that reason.
 
-# 'current' or empty → the working branch; or substitute the branch the user named
-TARGET="${TARGET:-HEAD}"
-git diff --name-only "${DEFAULT_BRANCH}...${TARGET}"
-```
+If the diff is empty, stop with `SKIP`. Do not report a pass for an empty scope.
 
-Note the branch this echoes and use that literal ref in any later diff command — `$DEFAULT_BRANCH` is gone by the next Bash call. If the diff is empty, there is nothing to smoke-test: stop and report `Result: SKIP` with that reason (step 10) — a run that tested nothing is never reported as a pass.
+### 3. Reach the local server
 
-### 3. Map Changed Files to Routes
+Select the port in this order: explicit `--port`, active project instructions, project server configuration, environment configuration, then `3000`.
 
-Map each changed file to the route(s) that render it, then build the list of URLs to test. The table below is a starting point of common patterns, not an exhaustive rule set — apply judgment for the project's actual layout:
+In manual mode, check that the selected port is listening. If it is not, stop with `SKIP`, name the port and untested route count, and tell the user to start the documented local server command.
 
-| File Pattern | Route(s) |
-| --- | --- |
-| `app/views/users/*` | `/users`, `/users/:id`, `/users/new` |
-| `app/controllers/settings_controller.rb` | `/settings` |
-| `app/javascript/controllers/*_controller.js` | Pages using that Stimulus controller |
-| `app/components/*_component.rb` | Pages rendering that component |
-| `app/views/layouts/*` | All pages (test homepage at minimum) |
-| `app/assets/stylesheets/*` | Visual regression on key pages |
-| `app/helpers/*_helper.rb` | Pages using that helper |
-| `src/app/*` (Next.js) | Corresponding routes |
-| `src/components/*` | Pages using those components |
+In pipeline mode, use the local procedure in `references/pipeline-orchestration.md`. Record the actual port it starts.
 
-### 4. Determine the Dev Server Port
+### 4. Exercise the routes
 
-Determine the preferred port using this priority:
+Open the root page first. Confirm that the server returns rendered content before testing mapped routes.
 
-1. **Explicit argument** — if the user passed `--port 5000`, use that directly.
-2. **In-context project instructions** — if your active project instructions already in context explicitly state the dev-server port, use it. Don't grep instruction files for a port: prose mentions (docs, examples, troubleshooting) are unreliable and false-positive-prone — config files and `.env` are the trustworthy sources.
-3. **package.json** — check dev/start scripts for `--port` flags.
-4. **Environment files** — check `.env`, `.env.local`, `.env.development` for `PORT=`.
-5. **Default** — fall back to `3000`.
+For each route, capture fresh state and check:
 
-```bash
-# If your in-context project instructions state the dev-server port, set EXPLICIT_PORT first.
-PORT="${EXPLICIT_PORT:-}"
-if [ -z "$PORT" ]; then
-  PORT=$(grep -Eo '\-\-port[= ]+[0-9]{4,5}' package.json 2>/dev/null | grep -Eo '[0-9]{4,5}' | head -1)
-fi
-if [ -z "$PORT" ]; then
-  PORT=$(grep -h '^PORT=' .env .env.local .env.development 2>/dev/null | tail -1 | cut -d= -f2)
-fi
-PORT="${PORT:-3000}"
-echo "Preferred dev server port: $PORT"
-```
+1. The page heading or title is present.
+2. The primary content renders.
+3. No visible application error or new console error is caused by the flow.
+4. A changed form or interaction works when the diff affects it.
 
-Manual mode uses this preferred port as-is — the user controls their own server, so do not scan for alternatives. In pipeline mode, `references/pipeline-orchestration.md` takes the preferred port value printed here and scans upward to a genuinely free port.
+Derive targets from the current inspected state. Do not reuse stale element references or guess selectors. Capture a screenshot when a failure, changed visual surface, or later reviewer needs it.
 
-### 5. Verify the Dev Server Is Running
+For OAuth, email, payment, SMS, or another external action, ask the user for the required confirmation in manual mode. In pipeline mode, mark that route `Skip` and state the missing external action.
 
-The shell block only _reports_ whether the port is listening; **you** decide what happens next. Do not put `exit` in it: `exit` inside a tool-invoked shell block ends that block's own subshell and nothing else — the skill keeps running, so an `exit 0` here would fall straight through into route testing with no server behind it and finish looking like a success.
+### 5. Record failures
 
-```bash
-if lsof -i ":${PORT}" -sTCP:LISTEN -t >/dev/null 2>&1; then
-  echo "SERVER_UP on port ${PORT}"
-else
-  echo "SERVER_DOWN on port ${PORT}"
-fi
-```
+For each failure, record the route, reproduction steps, rendered error, and relevant console output. Continue with independent routes.
 
-Act on the printed result:
+Do not modify code during this skill. Route a repair request to `diagnose` or the active implementation workflow after the result is delivered.
 
-- **`SERVER_UP`** → continue to step 6.
-- **`SERVER_DOWN`, manual mode** → **stop the workflow here.** Do not navigate, do not test routes, and do not emit a passing summary. Report the run as **Skip** using the step 10 summary with `Result: SKIP`, the reason (`no dev server listening on port <PORT>`), and the count of affected routes that went untested — a run that tested nothing is never a success, silent or otherwise. Then tell the user how to start a server and re-run:
+### 6. Report
 
-  ```text
-  Rails:        bin/dev   or   rails server -p <PORT>
-  Node/Next.js: npm run dev
-  Custom port:  run this skill again with --port <your-port>
-  ```
+Return this table and a result:
 
-- **`SERVER_DOWN`, pipeline mode** → do not stop; `references/pipeline-orchestration.md` claims a free port and auto-starts the server in the background instead. If that startup also fails, the run is likewise reported as `Result: SKIP` with the reason and the server log tail — never as a pass.
+| Route | Status | Evidence | Notes |
+| --- | --- | --- | --- |
+| `/example` | Pass | Rendered state | Primary action completed |
 
-### 6. Verify the Root
+Use `PASS` only when every exercised route passed. Use `FAIL` when a route failed. Use `PARTIAL` when some routes passed and others were skipped. Use `SKIP` when no route was exercised.
 
-No visibility question is needed: the in-app Browser pane is always visible to the user (keep it non-blocking and do not repeatedly steal focus as routes change), and the playwright MCP fallback runs its own managed browser.
-
-Use the selected driver to navigate to `http://localhost:<port>`, capture its rendered or interactive state (`read_page` / `browser_snapshot`), and confirm the root is served before iterating.
-
-### 7. Test Each Affected Page
-
-For each affected route, use the selected driver to navigate and capture fresh rendered or interactive state.
-
-**Verify key elements:**
-
-- Page title/heading present
-- Primary content rendered
-- No error messages visible
-- Forms have expected fields
-- No new console errors attributable to the tested flow
-
-**Test critical interactions:** derive locators or element references from the selected driver's latest inspected state (`ref_N` from `read_page`/`find`, or snapshot refs in playwright), perform the click/fill/press action, then inspect the resulting state. Do not guess selectors or reuse stale references.
-
-**Take screenshots:** capture viewport and full-page evidence when the selected driver supports it. Materialize screenshots as local artifacts when a later workflow or report needs file paths; otherwise in-app evidence is sufficient.
-
-### 8. Human Verification (When Required)
-
-Pause for human input when testing touches flows that require external interaction. **Pipeline mode:** do not pause — log each such flow as Skip with the reason and continue.
-
-| Flow Type     | What to Ask                                               |
-| ------------- | --------------------------------------------------------- |
-| OAuth         | "Please sign in with [provider] and confirm it works"     |
-| Email         | "Check your inbox for the test email and confirm receipt" |
-| Payments      | "Complete a test purchase in sandbox mode"                |
-| SMS           | "Verify you received the SMS code"                        |
-| External APIs | "Confirm the [service] integration is working"            |
-
-Ask the user with the harness's blocking question tool (in Claude Code, `AskUserQuestion` — load via `ToolSearch` with `select:AskUserQuestion` if its schema isn't loaded; otherwise present numbered options in chat and wait):
-
-```
-Human Verification Needed
-
-This test touches [flow type]. Please:
-1. [Action to take]
-2. [What to verify]
-
-Did it work correctly?
-1. Yes - continue testing
-2. No - describe the issue
-```
-
-### 9. Handle Failures
-
-When a test fails (**pipeline mode:** do not ask how to proceed — capture the error screenshot and repro steps, log the failure, and continue):
-
-1. **Document the failure:**
-   - Capture a screenshot of the error state with the selected driver
-   - Note the exact reproduction steps
-
-2. **Ask the user how to proceed:**
-
-   ```
-   Test Failed: [route]
-
-   Issue: [description]
-   Console errors: [if any]
-
-   How to proceed?
-   1. Fix now - debug and fix the failing test
-   2. Skip - continue testing other pages
-   ```
-
-3. **If "Fix now":** investigate, propose a fix, apply, re-run the failing test
-4. **If "Skip":** log as skipped, continue
-
-### 10. Test Summary
-
-After all tests complete, present a summary:
-
-```markdown
-## Browser Test Results
-
-**Test Scope:** PR #[number] / [branch name] **Server:** http://localhost:${PORT}
-
-### Pages Tested: [count]
-
-| Route        | Status | Notes                        |
-| ------------ | ------ | ---------------------------- |
-| `/users`     | Pass   |                              |
-| `/settings`  | Pass   |                              |
-| `/dashboard` | Fail   | Console error: [msg]         |
-| `/checkout`  | Skip   | Requires payment credentials |
-
-### Console Errors: [count]
-
-- [List any errors found]
-
-### Human Verifications: [count]
-
-- OAuth flow: Confirmed
-- Email delivery: Confirmed
-
-### Failures: [count]
-
-- `/dashboard` - [issue description]
-
-### Result: [PASS / FAIL / PARTIAL / SKIP]
-```
-
-`SKIP` is the required result whenever **no** route was actually exercised (no dev server, an empty diff, no affected routes) — state the reason and how many affected routes went untested. `PARTIAL` is for a run that tested some routes and skipped others. Never report `PASS` for a run that tested nothing.
-
-## Quick Usage Examples
-
-```bash
-# Test current branch changes (auto-detects port)
-/browser-smoke
-
-# Test specific PR
-/browser-smoke 847
-
-# Test specific branch
-/browser-smoke feature/new-dashboard
-
-# Test on a specific port
-/browser-smoke --port 5000
-```
+Name the tested scope, server URL, selected driver, console-error count, human confirmations, and untested routes. Never claim that a route passed without captured browser state.
 
 ---
 

@@ -54,4 +54,4 @@ A list of components without a flow leaves the reader unable to reason about run
 
 - `html-explainer` is the **descend** step: 6–9 sections and many verbatim panels on one subsystem. This skill is the **glance and scan** page that points into it.
 - `architecture-lens` **judges** quality (coupling, boundaries, trade-offs) — this skill orients.
-- `init` generates a `CLAUDE.md` — use that if the user wants a committed prose doc; the page produced here can feed it.
+- For a committed prose document, use the project's documentation workflow. This page can provide its evidence and structure.

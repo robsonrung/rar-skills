@@ -1,23 +1,27 @@
 # Local config: `.rar-skills/config.local.yaml`
 
-Per-checkout, user-local preferences for multi-model skills (councils, roundtables, review panels, implementation pipelines). Committed example: `.rar-skills/config.local.example.yaml`. The real file is gitignored.
+Per-checkout, user-local preferences for model previews. Committed example:
+`.rar-skills/config.local.example.yaml`. The real file is gitignored.
 
 ## Contract
 
-- **Every key is optional.** A missing file, missing key, or invalid value falls through to the skill's built-in default — never an error.
+- **Every key is optional.** A missing file, missing key, or invalid value uses the skill's built-in recommendation before approval. It cannot change an approved route.
 - **Never credentials.** Auth stays with each CLI's own login; this file carries preferences only. Raw CLI flags don't belong here either.
 - **Chat wins.** A direct instruction in the conversation ("use only codex and gemini") overrides anything in this file for that run.
-- **One home.** Seat preference/exclusion tables previously duplicated across skill references belong here; skills read this file instead of maintaining their own copies.
+- **Preview only.** Read this file while forming an implementation or council preview. Do not read it again for dispatch, fallback, retry, or resume.
 
 ## Keys
 
 | Key | Consumed by | Meaning |
 | --- | --- | --- |
-| `seats.preferred` / `seats.excluded` | models-consensus, full-review, diverse-plan, panel modes | Seat ids to favor / never launch (ids per `discover_runners.py`). |
-| `models.<seat>` | runner-backed seats | Per-seat model override forwarded to the runner's `--model` when supported. |
-| `quorum.light` / `quorum.quality` | seat-discovery consumers | Advisory quorum thresholds (defaults 2 / 3). |
-| `work_engine_preferences` | implement-and-review, implement-tasks | Ordered harness+model candidates with `mode: off\|prefer\|require` and `skip_if_equivalent_to_host`. |
-| `runner_base_path` | any skill invoking runner scripts from another checkout | Overrides the default repo-root-relative runner script location. |
+| `seats.preferred` / `seats.excluded` | implement-tasks, models-consensus | Seat ids to propose or exclude before approval. Seat ids come from `discover_runners.py`. |
+| `models.<seat>` | implement-tasks, models-consensus | Exact model id to propose for a selected seat. It must be valid for that runner and appear in the approval preview. |
+
+## Migration
+
+`quorum`, `work_engine_preferences`, and `runner_base_path` are no longer read.
+Remove them from local files. Older `models` entries remain advisory only and
+must be validated against the current roster before they appear in a preview.
 
 ## Cline lanes
 
@@ -25,6 +29,9 @@ Concurrent Cline lanes deliberately do **not** live in this YAML. The built-in `
 
 ## Reading it
 
-Skills should treat parsing failures as "no config" (log one line, continue with defaults) and must state in their output when a config value changed seat selection, so the user can see why a seat was skipped.
+Skills should treat parsing failures as "no config" and report the ignored file
+once. State when a value changes the proposed seat or model. After approval,
+the saved routing plan controls dispatch; local preferences never authorize a
+substitution or a new call.
 
 _Pattern adapted from [compound-engineering-plugin](https://github.com/EveryInc/compound-engineering-plugin) (MIT). See NOTICE._

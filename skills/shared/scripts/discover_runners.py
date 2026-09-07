@@ -53,8 +53,8 @@ class SeatSpec:
     fallback_version_args: tuple[tuple[str, ...], ...] = (("-V",), ("version",))
     notes: str = ""
     # "default" seats form the roster a council fans out to when no --seat filter
-    # is given. "backup" seats are probed only when named explicitly, so adding
-    # one never silently enlarges (or re-prices) an existing fan-out.
+    # is given. Frontier, backup, and legacy seats are probed only when named
+    # explicitly, so adding one never silently enlarges an existing fan-out.
     tier: str = "default"
 
 
@@ -62,6 +62,20 @@ class SeatSpec:
 # each seat live in shared/references/model-roster.md. Keep in sync with
 # full-review SKILL.md Phase 3 and models-consensus SKILL.md preflight.
 SEAT_SPECS: tuple[SeatSpec, ...] = (
+    SeatSpec(
+        seat="astra",
+        execution_path="codex_runner",
+        probe_cli="codex",
+        notes="Frontier seat. Probe confirms the CLI only; only a verified model receipt can confirm gpt-6-astra access.",
+        tier="frontier",
+    ),
+    SeatSpec(
+        seat="fable",
+        execution_path="claude_runner",
+        probe_cli="claude",
+        notes="Frontier seat. Probe confirms the CLI only; only a verified model receipt can confirm Claude Fable 5.1 access.",
+        tier="frontier",
+    ),
     SeatSpec(
         seat="opus",
         execution_path="claude_runner",
@@ -78,6 +92,8 @@ SEAT_SPECS: tuple[SeatSpec, ...] = (
         seat="codex",
         execution_path="codex_runner",
         probe_cli="codex",
+        notes="Legacy seat label. New routing plans select astra, sol, or terra explicitly.",
+        tier="legacy",
     ),
     SeatSpec(
         seat="gemini",
@@ -141,7 +157,27 @@ SEAT_SPECS: tuple[SeatSpec, ...] = (
     ),
 )
 
+# The host-native seat path is verified only for Opus and Sonnet. Fable uses
+# the Claude runner probe until a host exposes an explicit native Fable seat.
 CLAUDE_SEATS = frozenset({"opus", "sonnet"})
+
+# Seat labels can point at the same configured model. This table keeps quorum
+# accounting honest without claiming model access before a receipt exists.
+SEAT_IDENTITIES = {
+    "astra": "astra",
+    "codex": "astra",
+    "fable": "fable",
+    "opus": "opus",
+    "sonnet": "sonnet",
+    "gemini": "gemini",
+    "grok": "grok",
+    "kimi": "kimi",
+    "glm": "glm",
+    "qwen": "qwen",
+    "muse": "muse",
+    "gemma": "gemma",
+    "minimax": "minimax",
+}
 
 
 @dataclass
@@ -254,15 +290,12 @@ def filter_specs(seat_filter: set[str] | None) -> tuple[SeatSpec, ...]:
 
 
 def count_distinct_models(probes: list[SeatProbe]) -> int:
-    """Count distinct model identities (opus + sonnet collapse into one model family for quorum)."""
+    """Count configured seat identities without treating legacy labels as a second model."""
     seen: set[str] = set()
     for p in probes:
         if not p.available:
             continue
-        # opus and sonnet are served by the same CLI but are distinct models in the
-        # roster sense. Count each seat once, but treat duplicate Claude seats
-        # honestly — quorum logic in the calling skill decides what to do.
-        seen.add(p.seat)
+        seen.add(SEAT_IDENTITIES.get(p.seat, p.seat))
     return len(seen)
 
 

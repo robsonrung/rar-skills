@@ -1,5 +1,10 @@
 # Restructuring — 2026-07-30
 
+> Historical record. This document describes the July 2026 restructuring and
+> preserves its decisions at that time. It does not define the current workflow,
+> approval points, model routing, council behavior, or delivery policy. Read
+> [workflow.md](workflow.md) and the current `SKILL.md` files for those rules.
+
 A repo-wide consolidation pass. Goal: one workflow, the fewest user-called skills per step, no duplicated knowledge, and a pipeline that runs entirely on skills in this collection.
 
 **Net: 68 → 56 skills.** 17 removed, 5 added, 165 files changed (+3,211 / −7,987). Decision rationale per merge is in [porting-trigger-audit.md](porting-trigger-audit.md); the workflow narrative is in [workflow.md](workflow.md).

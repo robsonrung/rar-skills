@@ -40,7 +40,7 @@ Every run disables Pi's extension, skill, prompt-template, and theme discovery a
 
 ## Shared Wrapper Reference
 
-Supported options, roles, the `--json` output envelope key contract, return codes, and gotchas follow the shared wrapper family — read [`shared/references/runner-common.md`](../shared/references/runner-common.md). The envelope reports `runner=pi` (or the `--seat` name), `effective_runner=pi`, and `effective_provider` inferred from the model id's vendor prefix (`moonshotai/kimi-k3` → `moonshotai`); `native_provider` carries the serving gateway (`openrouter`) from the stream receipt.
+Supported options, roles, the `--json` output envelope key contract, return codes, and gotchas follow `shared/references/runner-common.md`. The envelope reports `runner=pi` (or the `--seat` name), `effective_runner=pi`, and `effective_provider` inferred from the model id's vendor prefix (`moonshotai/kimi-k3` → `moonshotai`). Its terminal stream can supply `native_model_id`, which produces a verified model receipt.
 
 ## Usage
 

@@ -151,9 +151,13 @@ class MissingCliEnvelopeTests(unittest.TestCase):
         with mock.patch("run_gemini.shutil.which", return_value=None):
             env = run_gemini.run_gemini(
                 prompt="hi", model="gemini-3.8-flash", disable_fallback=True
-            )
+        )
         self.assertEqual(env["return_code"], -2)
-        self.assertEqual(env["effective_model"], "gemini-3.8-flash")
+        self.assertEqual(env["requested_model"], "gemini-3.8-flash")
+        self.assertIsNone(env["configured_model"])
+        self.assertIsNone(env["effective_model"])
+        self.assertEqual(env["model_receipt"]["status"], "unverified")
+        self.assertEqual(env["model_receipt"]["source"], "not_observed")
         self.assertIsNone(env["auth_ok"])
         self.assertEqual(env["effective_provider"], "google")
         self.assertEqual(run_gemini.validate_envelope(env), [])

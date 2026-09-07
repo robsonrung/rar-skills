@@ -35,6 +35,13 @@ def _skill_dir(name: str) -> Path:
         return root / name
     return skill_dir(name, root=root)
 
+
+_SHARED_SCRIPTS = _skills_root() / "shared" / "scripts"
+if str(_SHARED_SCRIPTS) not in sys.path:
+    sys.path.insert(0, str(_SHARED_SCRIPTS))
+
+from model_receipt import attach_model_receipt
+
 ROLE_INSTRUCTIONS = {
     "planner": "Act as a planning specialist. Break work into phases, call out risks, and keep the output actionable.",
     "codereviewer": "Act as a rigorous code reviewer. Prioritize correctness, regressions, missing tests, and concrete evidence.",
@@ -48,30 +55,37 @@ ROLE_INSTRUCTIONS = {
 # Roles that modify the workspace; every other role defaults to a read-only sandbox.
 WRITE_ROLES = {"implementer"}
 
-# Premium default: GPT 5.6 Sol is the flagship of OpenAI's GPT-5.6 family and
-# the best all-around engineering model for most coding, architecture, and
-# synthesis work. The secondary review-shaped seat is GPT 5.6 Terra, available
-# via `--model codex-code` / `--model gpt-5.6-terra`. `gpt-5.3-codex` is
-# retired under ChatGPT auth (400 invalid_request_error, confirmed
-# 2026-09-03) — the alias below is kept only so old invocations fail loudly
-# rather than silently reverting to the default model.
-DEFAULT_MODEL = "gpt-5.6-sol"
+# Direct calls use the current frontier default. Workflow routes always pass a
+# model explicitly and record the requested and effective values in their
+# approval and receipt artifacts.
+DEFAULT_MODEL = "gpt-6-astra"
 
 MODEL_ALIASES = {
+    "astra": "gpt-6-astra",
+    "codex": "gpt-6-astra",
+    "sol": "gpt-5.6-sol",
+    "terra": "gpt-5.6-terra",
     "spark": "gpt-5.3-codex-spark",
-    "codex": "gpt-5.3-codex",
     "codex-code": "gpt-5.6-terra",
+    "gpt-6-astra": "gpt-6-astra",
     "gpt-5.6-sol": "gpt-5.6-sol",
     "gpt-5.6-terra": "gpt-5.6-terra",
-    "gpt-5.3-codex": "gpt-5.3-codex",
 }
 
-EFFORT_LEVELS = ("none", "minimal", "low", "medium", "high", "xhigh", "max")
+EFFORT_LEVELS = ("none", "minimal", "low", "medium", "high", "xhigh", "max", "ultra")
 
-# Some models reject the `minimal` reasoning effort (they support only
-# none/low/medium/high/xhigh). For those, transparently map `minimal` -> `low`
-# so callers can keep passing `minimal` without a 400 from the API.
-MODELS_WITHOUT_MINIMAL_EFFORT = {"gpt-5.6-sol"}
+# Known effort ranges from the current local model catalog. Keep direct calls
+# compatible by clamping obsolete settings, while approved routes reject an
+# unsupported setting before dispatch.
+MODEL_EFFORT_LEVELS = {
+    "gpt-6-astra": ("low", "medium", "high", "xhigh", "max", "ultra"),
+    "gpt-5.6-sol": ("low", "medium", "high", "xhigh", "max", "ultra"),
+    "gpt-5.6-terra": ("low", "medium", "high", "xhigh", "max", "ultra"),
+    "gpt-5.6-luna": ("low", "medium", "high", "xhigh", "max"),
+    "gpt-5.5": ("low", "medium", "high", "xhigh"),
+    "gpt-5.4-mini": ("low", "medium", "high", "xhigh"),
+    "gpt-5.3-codex-spark": ("low", "medium", "high", "xhigh"),
+}
 
 DEFAULT_CONTINUE_PROMPT = (
     "Continue from the current thread state. Pick the next highest-value step "
@@ -107,8 +121,11 @@ def normalize_envelope(
     result["runner"] = requested_runner
     result["effective_runner"] = effective_runner
 
-    if result.get("effective_model") is None:
-        result["effective_model"] = result.get("model") or requested_model
+    attach_model_receipt(
+        result,
+        requested_model,
+        observed_source="not_observed",
+    )
 
     result.setdefault("fallback_reason", None)
 
@@ -175,13 +192,21 @@ def resolve_model(model: str | None) -> str | None:
 
 
 def resolve_effort(model: str | None, effort: str | None) -> str | None:
-    """Adjust the reasoning effort for models that reject some levels.
+    """Clamp only direct calls that request an unsupported known effort.
 
-    `model` is the already-resolved model id (see `resolve_model`).
+    Approved workflow routes validate this combination before dispatch. The
+    clamp keeps older direct callers from receiving an avoidable provider error.
     """
-    if effort == "minimal" and model in MODELS_WITHOUT_MINIMAL_EFFORT:
-        return "low"
-    return effort
+    supported = MODEL_EFFORT_LEVELS.get(model or "")
+    if not supported or effort is None or effort in supported or effort not in EFFORT_LEVELS:
+        return effort
+    if effort in {"none", "minimal"}:
+        return supported[0]
+    requested_index = EFFORT_LEVELS.index(effort)
+    for candidate in reversed(supported):
+        if EFFORT_LEVELS.index(candidate) <= requested_index:
+            return candidate
+    return supported[0]
 
 
 def resolve_restrict_tools(
@@ -470,7 +495,9 @@ def _run_codex(
         "runner": "codex",
         "effective_runner": "codex",
         "model": resolved_model,
+        "requested_effort": effort,
         "effort": resolved_effort,
+        "effort_clamped": effort is not None and effort != resolved_effort,
         "role": role,
         "session_file": session_file,
         "prompt_file": prompt_files[0] if prompt_files and len(prompt_files) == 1 else None,
@@ -616,7 +643,7 @@ def main():
         "-m",
         type=str,
         default=None,
-        help="Codex model (default: gpt-5.6-sol). Aliases: 'codex' -> gpt-5.3-codex (code-specialized: agentic coding, regression, security review), 'spark' -> gpt-5.3-codex-spark.",
+        help="Model (default: gpt-6-astra). Aliases: astra/codex -> gpt-6-astra; sol -> gpt-5.6-sol; terra/codex-code -> gpt-5.6-terra; spark -> gpt-5.3-codex-spark.",
     )
     parser.add_argument(
         "--effort",
@@ -624,7 +651,7 @@ def main():
         type=str,
         choices=EFFORT_LEVELS,
         default=None,
-        help="Model reasoning effort override",
+        help="Reasoning effort override. Direct calls clamp unsupported known values; approved routes must validate them before dispatch.",
     )
     parser.add_argument(
         "--sandbox",

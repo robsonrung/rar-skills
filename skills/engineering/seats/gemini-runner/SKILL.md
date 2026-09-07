@@ -7,7 +7,7 @@ description: Execute prompts using Antigravity CLI (`agy`) headless print mode f
 
 Execute prompts via Antigravity CLI (`agy`) headless print mode with role overlays and continuation support.
 
-Roles, the output-envelope key contract, presenting-results rules, the background-jobs CLI, and the **seat fidelity** invariant are shared across runners — see `../shared/references/runner-common.md`. Only this runner's deltas (including its extended envelope keys and `auth_ok` semantics) are inline below.
+Roles, the output-envelope key contract, presenting-results rules, the background-jobs CLI, and the **seat fidelity** invariant are shared across runners — see `shared/references/runner-common.md`. Only this runner's deltas (including its extended envelope keys and `auth_ok` semantics) are inline below.
 
 ## Runtime Compatibility
 
@@ -30,7 +30,7 @@ Precedence when both overlay flags are passed: an explicit `--restrict-tools` al
 
 ## Output Envelope
 
-The required key contract is shared — see `../shared/references/runner-common.md`. Every exit path (success, timeout, input error, missing CLI, fallback) is normalized — the same keys are present whether the wrapper is invoked via the CLI or imported and called programmatically. `agent_message` holds the trimmed `agy` print-mode response; `agy` exposes no session id, so `session_id` stays null.
+The required key contract is shared — see `shared/references/runner-common.md`. Every exit path (success, timeout, input error, missing CLI, fallback) is normalized — the same keys are present whether the wrapper is invoked via the CLI or imported and called programmatically. `agent_message` holds the trimmed `agy` print-mode response; `agy` exposes no session id, so `session_id` stays null.
 
 Gemini-specific extended keys that may appear:
 
@@ -38,7 +38,7 @@ Gemini-specific extended keys that may appear:
 - `fallback_from` / `fallback_reason` — present when a fallback runner produced the output (`fallback_from: gemini`).
 - `fallback_attempts` — the siblings tried and skipped before the returned result (including `not_installed` siblings), so the attempt log is always complete, even when every fallback was unavailable.
 - `output_json_valid` — for `--output-format json`, whether the (fence-stripped) `agent_message` parsed as JSON.
-- Plus non-contractual diagnostic keys (`requested_model`, `model_forwarded`, `output_format_forwarded`, `agy_print_timeout`, `agy_continue`, `agy_continue_requested`, `fallback_model_forwarded`, `fallback_ignored_options`) — read them for debugging, do not build orchestration logic on them.
+- Plus non-contractual diagnostic keys (`model_forwarded`, `output_format_forwarded`, `agy_print_timeout`, `agy_continue`, `agy_continue_requested`, `fallback_model_forwarded`, `fallback_ignored_options`) — read them for debugging, do not build orchestration logic on them.
 
 ### `auth_ok` semantics
 
@@ -54,7 +54,9 @@ With `--output-file` set, the `--json` stdout pointer is `{success, return_code,
 python3 .agents/skills/gemini-runner/scripts/run_gemini.py "your prompt here"
 ```
 
-Paths in the examples use the installed `.agents/skills/` layout. When running from this source repo, skills live at the repo root, so invoke `gemini-runner/scripts/run_gemini.py` instead.
+Paths in the examples use the installed `.agents/skills/` layout. In this
+source checkout, invoke
+`skills/engineering/seats/gemini-runner/scripts/run_gemini.py` instead.
 
 ## Options
 
@@ -63,7 +65,7 @@ Paths in the examples use the installed `.agents/skills/` layout. When running f
 | `--timeout`, `-t` | Maximum execution time in seconds | 3600 |
 | `--working-dir`, `-w` | Working directory | Current directory |
 | `--json`, `-j` | Wrap runner output in JSON | False |
-| `--model`, `-m` | Compatibility metadata label. `agy` uses its configured model from `/model` or settings — this label is reflected in `effective_model` but not forwarded. The Gemini seat always runs `gemini-3.8-flash` (Gemini 3.8 Flash (High)). | `gemini-3.8-flash` |
+| `--model`, `-m` | Compatibility request label. `agy` uses its configured model from `/model` or settings. The wrapper does not forward this option, so it remains unverified unless a native receipt identifies the serving model. | `gemini-3.8-flash` |
 | `--output-format`, `-o` | Response format hint: `text`, `json`, or `stream-json`. **Advisory only** — `agy` print mode has no output-format launch flag, so the wrapper just asks the model for the format in the prompt. For `json` it does a best-effort fence-strip and reports `output_json_valid`; it does not guarantee or re-shape the output. | `text` |
 | `--prompt-file` | Read the prompt from a file (repeatable; files are concatenated in order) | None |
 | `--role` | Apply a role overlay | None |
@@ -78,15 +80,15 @@ Paths in the examples use the installed `.agents/skills/` layout. When running f
 
 ## Roles
 
-The role list and the analysis-seat read-only default are shared — see `../shared/references/runner-common.md`. For Gemini, analysis roles default to a read-only prompt overlay (a soft constraint, not a sandbox — see Security Model); pass `--allow-write` to opt out.
+The role list and the analysis-seat read-only default are shared — see `shared/references/runner-common.md`. For Gemini, analysis roles default to a read-only prompt overlay (a soft constraint, not a sandbox — see Security Model); pass `--allow-write` to opt out.
 
 ## Background Jobs
 
-`--background` runs as a tracked job; manage it with the shared jobs CLI (`list`/`status`/`result`/`cancel`) — see `../shared/references/runner-common.md`. `--background` requires the shared jobs module `shared/scripts/runner_jobs.py`. It ships in this source repo; if a slimmed install lacks `shared/`, `--background` exits with a clear error and the foreground modes are unaffected. (The shared launcher strips `--background`/`--json`/`--output-file` from the re-invoked argv, so the detached child runs in the foreground without recursing.)
+`--background` runs as a tracked job; manage it with the shared jobs CLI (`list`/`status`/`result`/`cancel`) — see `shared/references/runner-common.md`. `--background` requires the shared jobs module `shared/scripts/runner_jobs.py`. It ships in this source repo; if a slimmed install lacks `shared/`, `--background` exits with a clear error and the foreground modes are unaffected. (The shared launcher strips `--background`/`--json`/`--output-file` from the re-invoked argv, so the detached child runs in the foreground without recursing.)
 
 ## Presenting Results
 
-Shared rules (prefer `agent_message`, severity-ordered findings, evidence boundaries, never auto-apply, **seat fidelity** on failure — fallback runs labeled via `fallback_from`/`fallback_reason`) live in `../shared/references/runner-common.md`.
+Shared rules (prefer `agent_message`, severity-ordered findings, evidence boundaries, never auto-apply, **seat fidelity** on failure — fallback runs labeled via `fallback_from`/`fallback_reason`) live in `shared/references/runner-common.md`.
 
 ## Examples
 
@@ -103,7 +105,7 @@ python3 .agents/skills/gemini-runner/scripts/run_gemini.py "Continue the previou
 1. Executes `agy [--continue] --print-timeout <Ns> --print "<prompt>"`. The `--print-timeout` is set slightly below the wrapper's `--timeout` so `agy` self-terminates (and returns its own exit code) before the hard subprocess timeout would kill it; a genuine wrapper timeout still reports `return_code -1` / `status: timeout`.
 2. Does not request a permission bypass.
 3. Keeps `runner=gemini` for workflow compatibility and sets `effective_runner=agy` when Antigravity CLI produced the output.
-4. Does not pass unsupported Gemini CLI flags such as `--model`, `--output-format`, `--thinking-budget`, or a read-only convenience mode to `agy`. `--model` is metadata only; when supplied it is reflected in `effective_model`, otherwise `effective_model` is the `gemini-3.8-flash` seat label (agy uses its own configured model — set its `/model` picker to Gemini 3.8 Flash (High)).
+4. Does not pass unsupported Gemini CLI flags such as `--model`, `--output-format`, `--thinking-budget`, or a read-only convenience mode to `agy`. `--model` is a request label only; the envelope records `model_receipt.status: unverified` unless a native receipt identifies the serving model. Configure agy's `/model` picker to Gemini 3.8 Flash (High) when that route is selected.
 5. Resolves relative `--prompt-file`/`--session-file` paths against `--working-dir` (not the process cwd).
 
 ### Continuation caveat
@@ -124,4 +126,4 @@ python3 .agents/skills/gemini-runner/scripts/run_gemini.py "Continue the previou
 
 - Antigravity CLI (`agy`) installed and available in PATH
 - Authentication configured for Antigravity CLI
-- Model selection configured in `agy` itself (the wrapper's `--model` is a non-forwarded label). List the models `agy` accepts with `agy models`; the Gemini seat always runs **`Gemini 3.8 Flash (High)`**. Select it via `/model` in an interactive `agy` session or in `~/.gemini/antigravity-cli/settings.json` — the wrapper's `--model gemini-3.8-flash` only sets the `effective_model` label.
+- Model selection is configured in `agy` itself. The wrapper's `--model` is not forwarded. List models with `agy models`, then select Gemini 3.8 Flash (High) through `/model` or `~/.gemini/antigravity-cli/settings.json`. The route remains unverified until a native receipt identifies the serving model.

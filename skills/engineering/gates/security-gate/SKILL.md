@@ -5,13 +5,13 @@ description: Shift security left in a development workflow — ask a threat-mode
 
 # Security Gate
 
-Two small jobs: (1) run the **threat-model-lite** at spec time, while the human is still in the room, to collect the security answers autonomous phases would otherwise have to guess; (2) run the **deep-pass trigger list** at verify time to decide deterministically whether a change gets the deep security pass. This skill never performs the review — `full-review` does.
+Two small jobs: (1) run the **threat-model-lite** while the user is still choosing the feature, so later phases do not guess security decisions; (2) apply the **deep-pass trigger list** to each slice, then verify deep slices against those decisions. This skill never performs the review — `full-review` does.
 
 The two leitwörter below are what you name as you work: a **threat-model-lite** question is something you ask the human now; a **deep-pass trigger** is a property of the change that forces a deeper review later.
 
 ## Threat-model-lite — spec-time checklist (interactive)
 
-Run this inside the requirements interview — the `interview-me` skill, or `brainstorm`'s panel-mode discovery. Ask only the questions relevant to the feature; skip rows with no exposure. Record every answer in the PRD's Security Decisions section so the autonomous phases never have to ask.
+Run this inside the requirements interview. Ask only the questions relevant to the feature; skip rows with no exposure. Record every answer in the decision record and PRD's Security Decisions section so later phases never have to ask.
 
 1. **Actors & auth**: who can invoke this? What roles/permissions gate each action? What happens for unauthenticated or wrong-role access?
 2. **Untrusted input**: what data arrives from users or external systems? Where is it validated, and what is rejected?
@@ -24,7 +24,7 @@ Run this inside the requirements interview — the `interview-me` skill, or `bra
 
 ## Deep-pass triggers (deterministic)
 
-At planning time (the `to-tasks` Slice Contract), mark a slice `security: deep` when it touches any of:
+At task planning time, mark a slice `security: deep` when it touches any of:
 
 - authentication, authorization, session, or permission logic
 - parsing or deserializing untrusted input (request bodies, file uploads, webhooks, query params used in queries)
@@ -38,7 +38,9 @@ At planning time (the `to-tasks` Slice Contract), mark a slice `security: deep` 
 
 Otherwise mark `security: standard`.
 
-At verify time: `deep` slices run `full-review` with `security_focus=true`, passing the threat-model-lite answers as the recorded security decisions to verify against (the implementation must match the recorded auth, validation, logging, and tenancy decisions). `standard` slices rely on `full-review`'s normal security coverage with no extra pass.
+At verification, cover every `deep` slice with `full-review` and `security_focus=true`, passing its recorded security decisions. Include this focused review in the approved reviewer plan. It can run at task completion or in the feature review when that review covers the same final code and risks; do not duplicate it without changed evidence. `standard` slices use the normal scoped review, without an extra panel. If implementation expands a slice, recheck the triggers; flags can escalate but never downgrade.
+
+For the stage boundary, read `shared/references/workflow-stage-routing.md`: interview collects decisions, the PRD preserves them, task planning classifies slices, and implementation verifies the result.
 
 ## Output contract
 
@@ -49,4 +51,3 @@ At spec time, return the answered checklist as `security_decisions` for the PRD.
 1. Do not ask all eight checklist questions ritually — only the ones the feature exposes.
 2. Do not downgrade a `deep` flag during autonomous phases; flags only escalate after planning.
 3. Do not duplicate review content here — findings, exploits, and fixes belong to `full-review`.
-4. A slice that grows scope mid-implementation re-checks the trigger list before verify.

@@ -1,50 +1,37 @@
-# Evidence strategy and safety checks for implementation tracks
+# Implementation Evidence
 
-Contract-level guidance for the implementer seats (both tracks) and the orchestrator. The load-bearing rule: **red-before-implementation evidence exists only in the worker's report** — it cannot be reconstructed from the tree after the fact, so every implementer must capture it as it goes and return it in the `verification_evidence` field of its report (schema: `shared/runner-envelope.schema.json`).
+Evidence follows the changed behavior. The worker captures the red baseline before production code changes because it cannot be reconstructed later.
 
-## verification_evidence report contract
+## Choose One Evidence Route
 
-Every implementation run that changes behavior reports:
-
-- `behavior_changed` — true unless the change was a pure refactor/analysis.
-- `existing_tests_inspected` — tests read to locate coverage for the touched behavior.
-- `tests_added_or_changed` — tests this run created or modified.
-- `red_baseline` — the observed failing output (or characterization baseline) captured **before** production code changed: a verbatim excerpt or file:line pointer.
-- `evidence_strategy` — which route below was taken.
-- `no_test_reason` — required for the no-test exception: why no automated test was meaningful plus the replacement verification performed. Never invent a hollow test to avoid writing this.
-
-The orchestrator persists these with the track results; a report claiming `behavior_changed: true` with no coherent evidence gets one recovery re-invocation to reconcile evidence without reimplementing, then blocks.
-
-## Evidence Strategy — test discovery decides where proof belongs
-
-| Situation | Action |
+| Situation | Required evidence |
 | --- | --- |
-| Existing test already fails for the intended behavior | Use it as the red evidence; do not add a duplicate test |
-| Existing test covers the contract but asserts the old/wrong expectation | Update that test, run it, verify the expected failure before implementation |
-| Existing test is over-mocked or misses the real chain | Strengthen/refactor it narrowly, then verify it fails for the right reason |
-| No existing test covers the behavior | Add the smallest focused failing test or characterization test proving the behavior slice |
-| Testing is inappropriate for the task | Record the no-test exception and replacement verification before marking done |
+| An existing test exposes the intended behavior | Capture its failing result before the change. |
+| A nearby test asserts the old behavior | Change its expectation and capture the failure before implementation. |
+| Existing coverage misses the real path | Add the smallest focused failing test or **characterization test**. |
+| Automated testing is not meaningful | Record the reason and a direct replacement check before marking the task complete. |
 
-## System-Wide Test Check — before marking a task done
+For every behavior change, report:
 
-| Question | What to do |
-| --- | --- |
-| **What fires when this runs?** Callbacks, middleware, observers, event handlers — trace two levels out. | Read the actual code (not docs) for callbacks on touched models, middleware in the request chain, `after_*` hooks. |
-| **Do my tests exercise the real chain?** All-mocked tests prove isolation, not interaction. | At least one integration test through the full callback/middleware chain with real objects. |
-| **Can failure leave orphaned state?** State persisted before an external call that can fail. | Trace the failure path with real objects; test cleanup or idempotent retry. |
-| **What other interfaces expose this?** Mixins, DSLs, alternative entry points. | Grep for the behavior in related classes; add parity now, not as a follow-up. |
-| **Do error strategies align across layers?** Retry middleware + app fallback + framework handling. | List the error classes per layer; verify the rescue list matches what the lower layer raises. |
+1. `existing_tests_inspected`
+2. `tests_added_or_changed`
+3. `red_baseline`
+4. `verification_commands`
+5. `verification_result`
 
-Skip only for leaf-node changes with no callbacks, no state persistence, no parallel interfaces.
+For a no-test route, report `no_test_reason` and the replacement verification. Do not add a hollow test only to satisfy a process step.
 
-## Parallel Safety Check — before dispatching tracks/waves concurrently
+If required evidence is missing, reserve one evidence recovery in the run state
+before dispatching it. If the recovery still lacks evidence, stop the task with
+the missing proof recorded.
 
-File overlap is necessary but not sufficient. Before running implementers in parallel:
+## System Boundary Check
 
-1. Dependencies of each unit already committed; peers in the layer don't depend on each other.
-2. Reason beyond declared files: shared types/APIs/interfaces, migrations, lockfiles, generated artifacts/clients, registry/config/schema surfaces, and environment singletons (one dev server/port, shared DB, browser session, package install, rate limit) all create contention.
-3. Estimate expected merge + verification cost — isolated workers still serialize when they share a contract or when reconciling outputs isn't obviously cheaper than serial authoring.
-4. **Decline parallelism on uncertainty.** Speed is optional; every concurrent worker needs an isolated workspace (this skill's worktree flow); a shared-workspace worker runs serially regardless of file disjointness.
-5. Cap concurrency at ~3–5 workers. Abort criteria: broad unplanned edits, semantic overlap, out-of-scope failures, or repeated collisions disable further waves — finish affected work serially.
+Run this only when the changed behavior crosses a callback, middleware, event, storage, external call, or alternate entry point.
 
-_Adapted from [compound-engineering-plugin](https://github.com/EveryInc/compound-engineering-plugin) (MIT). See NOTICE._
+1. Trace the real execution chain far enough to find side effects.
+2. Verify error handling and retry behavior at the boundary.
+3. Test an interaction path that mocks alone cannot prove.
+4. Check another public entry point when the behavior has one.
+
+This is **observable behavior**, not structural test coverage. A leaf change without those boundaries does not need this extra pass.

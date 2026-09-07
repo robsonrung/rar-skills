@@ -33,6 +33,13 @@ def _skill_dir(name: str) -> Path:
         return root / name
     return skill_dir(name, root=root)
 
+
+_SHARED_SCRIPTS = _skills_root() / "shared" / "scripts"
+if str(_SHARED_SCRIPTS) not in sys.path:
+    sys.path.insert(0, str(_SHARED_SCRIPTS))
+
+from model_receipt import attach_model_receipt
+
 ROLE_INSTRUCTIONS = {
     "planner": "Act as a planning specialist. Break work into phases, call out risks, and keep the output actionable.",
     "codereviewer": "Act as a rigorous code reviewer. Prioritize correctness, regressions, missing tests, and concrete evidence.",
@@ -73,8 +80,11 @@ def normalize_envelope(
     result["runner"] = requested_runner
     result["effective_runner"] = effective_runner
 
-    if result.get("effective_model") is None:
-        result["effective_model"] = result.get("model") or requested_model
+    attach_model_receipt(
+        result,
+        requested_model,
+        observed_source="not_observed",
+    )
 
     result.setdefault("fallback_reason", None)
 
@@ -670,7 +680,7 @@ Examples:
         "-m",
         type=str,
         default=None,
-        help="Claude model alias ('opus', 'sonnet') or a full model id; aliases are preferred so the seat tracks shared/references/model-roster.md",
+        help="Claude model alias ('fable', 'opus', 'sonnet') or a full model id; approved routes use the pin in shared/references/model-roster.md",
     )
     parser.add_argument(
         "--output-format",

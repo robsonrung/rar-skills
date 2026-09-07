@@ -5,7 +5,7 @@ Usage: python3 validate_explainer.py <file.html> [--template]
 
 Checks (each prints PASS/FAIL; exit 0 only if all pass):
   1. <title> present and not a template placeholder
-  2. Self-contained: no external http(s) resources except Google Fonts
+  2. Self-contained: no external http(s) resources
   3. At least one inline <svg>
   4. At least 3 <section class="card"> with ids (1 in --template mode)
   5. Every TOC anchor (href="#...") resolves to an element id
@@ -50,11 +50,8 @@ def main() -> int:
     title = re.search(r"<title>(.*?)</title>", html, re.DOTALL)
     check("title present", bool(title and title.group(1).strip()))
 
-    ext = [
-        u for u in re.findall(r'(?:src|href)="(https?://[^"]+)"', html)
-        if "fonts.googleapis.com" not in u and "fonts.gstatic.com" not in u
-    ]
-    check("self-contained (fonts only)", not ext, f"external refs: {ext[:5]}")
+    ext = re.findall(r'(?:src|href)="(https?://[^"]+)"', html)
+    check("self-contained", not ext, f"external refs: {ext[:5]}")
 
     check("has inline SVG", "<svg" in html)
 

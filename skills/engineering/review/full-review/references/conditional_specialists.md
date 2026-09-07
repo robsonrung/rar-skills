@@ -1,6 +1,6 @@
 # Conditional Specialist Prompts
 
-Activate these reviewers only when the diff matches their trigger patterns. Each specialist receives the relevant diff subset plus `rules_compact`.
+Use a specialist only when the approved plan names it and the diff matches its trigger. Each specialist receives the relevant diff subset plus `rules_compact`.
 
 ## Database Migration Reviewer
 
@@ -111,7 +111,7 @@ Activation: user-facing markup or styling changes — component templates, HTML/
 - New UI must follow the repo's existing design system (tokens, spacing scale, type scale, color palette, component library) rather than introducing one-off values.
 - Interactive elements need visible focus states, accessible names, sufficient contrast, and touch/click targets consistent with the rest of the app.
 - Async UI needs deliberate loading, empty, and error states; forms need inline validation feedback and preserved input on failure.
-- Flag generic AI-slop aesthetics: default-looking cards, uniform border-radius + shadow on everything, purple-gradient defaults, placeholder-quality copy.
+- Flag generic interface aesthetics: default-looking cards, uniform border-radius + shadow on everything, purple-gradient defaults, placeholder-quality copy.
 - When browser-smoke screenshots are provided alongside the diff, review the rendered result, not just the code. </grounding_rules>
 
 <finding_bar> Flag as HIGH: an unusable or inaccessible interactive element (no focus state, missing accessible name, failing contrast on a primary action), a destructive action without confirmation affordance, or a missing error state that leaves the user stranded. Flag as MEDIUM: design-system violations (hardcoded one-off colors/spacing where tokens exist), missing loading/empty states, inconsistent typography or spacing rhythm, or generic aesthetics on a prominent surface. </finding_bar>

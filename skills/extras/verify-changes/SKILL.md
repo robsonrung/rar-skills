@@ -1,6 +1,6 @@
 ---
 name: verify-changes
-description: "Run a target repository's own deterministic verification checks — install, build, typecheck, lint, test — by discovering its command surface (package.json scripts and packageManager, Makefile, justfile, Cargo, Go, Gradle/Maven, pyproject) instead of assuming a toolchain, scoped to the workspaces a diff touches when the repo supports it. Emits a machine-readable checks[] result plus a human pass/fail table; only captured command results count as evidence — narrative doesn't. Use when the user asks to verify this branch, run the repo's checks, or prove the build and tests pass, and as review-gate's verification phase in mode:pipeline. It never fixes anything: failures route to diagnose, it never modifies tests to make verification pass, and it never touches lockfiles or CI config. Not for launching the app interactively (run) or browser testing (browser-smoke)."
+description: "Run a repository's deterministic checks from its own command surface. Use when the user asks to verify a branch, run repository checks, or prove that build and tests pass. It captures command evidence, does not repair code, and does not replace browser testing."
 ---
 
 # Verify Changes
@@ -9,8 +9,8 @@ Produce hard evidence that a change passes the repository's own gates. This skil
 
 ## Modes
 
-- **Manual (default):** interactive. You may ask which checks matter when the repo's surface is ambiguous, and you present the human table as the primary output.
-- **Pipeline (`mode:pipeline`):** invoked by an automated caller — in this repo that is `review-gate`'s Phase 2. Never ask a question. Return only the structured result (the `checks[]` JSON per `references/checks-schema.json`) plus the one-line verdict. An ambiguous surface is resolved by the discovery precedence below, not by asking.
+1. **Manual (default):** run every discovered gate and present the human table. Ask only when the user explicitly limits the check set.
+2. **Pipeline (`mode:pipeline`):** a non-interactive caller. Never ask a question. Return the structured result from `references/checks-schema.json` and one verdict. Resolve an ambiguous surface with the discovery precedence.
 
 ## Workflow
 
@@ -25,7 +25,7 @@ Follow `references/command-discovery.md`. In brief:
 
 ### 2. Scope to the diff
 
-Compute the workspaces/packages the diff touches (`git diff --name-only <base>...HEAD` mapped onto workspace roots). When the repo has a native scoping mechanism, use it — `npm --workspace` / `pnpm --filter` / `yarn workspace`, `turbo run --filter`, `nx affected`, per-crate `cargo -p`, per-module Go package paths. When it doesn't, run whole-repo and record `workspacesScoped.supported: false`. Resolve the base branch from `origin/HEAD`, then `gh repo view --json defaultBranchRef`, then `main` — never hardcode it.
+Compute the workspaces/packages the branch diff touches. For the current worktree, include staged and unstaged changes. When the repo has a native scoping mechanism, use it. Otherwise run the whole repo and record `workspacesScoped.supported: false`. Resolve the base branch from `origin/HEAD`, then code-host metadata, then `main`.
 
 ### 3. Execute
 
@@ -33,7 +33,7 @@ Run in canonical order: **install → build → typecheck → lint → test**.
 
 - Skip a rung only when the repo has no such command; record it as `not-applicable`, never omit it.
 - A rung you deliberately chose not to run (e.g. caller passed a subset) is `skipped` with a note — a check that is absent from the report reads as "covered", and it wasn't.
-- Capture each command's exit code, duration, and output tail to files under `${TMPDIR:-/tmp}/verify-changes-$(date +%s)` — never into the project tree.
+- Capture each command's exit code, duration, and output tail in a temporary directory outside the project.
 - Apply a per-check timeout ceiling (default 15 minutes; callers may override). A timed-out check is recorded with `result: timeout` and counts as a failure.
 
 ### 4. Report
@@ -49,11 +49,11 @@ Emit:
 - **Only captured command results count as evidence — narrative doesn't.** Writing "tests pass" proves nothing; the captured command, exit code, and duration are the result, and prose that disagrees with them is discarded.
 - Never claim a check ran that you did not run.
 - Never modify tests, source, lockfiles, or CI config to make a check pass. Fixing anything is out of scope; report the failure and stop.
-- The working tree must be byte-identical after the run, apart from build artifacts and caches the repo's own commands produce. Verify with `git status --porcelain` and record `treeClean`.
+- Capture the tracked working-tree baseline before the run and compare it after the run. `treeClean` reports whether the tree is clean after the run. `treeChanged` reports whether verification added tracked changes relative to the baseline. Do not make the tree clean by stashing, resetting, or cleaning it.
 
 ## Gotchas
 
-1. A dirty working tree is run as-is and noted in the report — never stash, reset, or `git clean`.
+1. A dirty working tree is run as-is and recorded as the baseline. Never stash, reset, or `git clean`.
 2. Monorepos with multiple build systems get each surface run and reported; don't pick a favourite.
 3. Install steps honour the repo's own lockfile-respecting command (`npm ci`, `pnpm install --frozen-lockfile`, `yarn install --immutable`) when one exists; the lockfile itself is never modified.
 4. Long output goes to the evidence dir; the report carries the tail, not the transcript.

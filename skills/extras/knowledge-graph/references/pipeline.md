@@ -1,15 +1,13 @@
 # The Four Prompts: Schemas, Prompt Text, Code
 
-Everything here shares one interface: `client.messages.parse()` with a Pydantic model as `output_format`. The response validates against the schema and comes back as a typed object with attribute access — no free-form text to parse, coerce, or retry. Ten thousand documents produce ten thousand valid objects with zero parse errors. That contract is what makes the schema the only training data.
+Use a structured-output client with a Pydantic output schema. The response is a typed object or a validation failure, not free-form text to parse. That contract is what makes the schema the only training data.
 
 ```python
-from anthropic import Anthropic
 from pydantic import BaseModel
 from typing import Literal
 
-client = Anthropic()
-EXTRACTION_MODEL = "claude-haiku-4-5"   # cheap/fast tier
-JUDGMENT_MODEL = "claude-sonnet-5"      # judgment tier
+# Pass the host's configured extraction-tier alias to extraction calls and
+# generation-tier alias to resolution, summarization, and query calls.
 ```
 
 ## Prompt 1 — Extraction
@@ -56,9 +54,9 @@ Guidelines:
 Document:
 {text}"""
 
-def extract(text: str) -> ExtractedGraph:
+def extract(text: str, client, extraction_model: str) -> ExtractedGraph:
     response = client.messages.parse(
-        model=EXTRACTION_MODEL,
+        model=extraction_model,
         max_tokens=2048,
         messages=[{"role": "user",
                    "content": EXTRACTION_PROMPT.format(text=text)}],
@@ -71,7 +69,7 @@ The evidence span is what a later reader checks the edge against: it lets a grou
 
 Do not add a `confidence` float alongside it, tempting as the field is. A self-reported score is uncalibrated, and once it exists downstream code filters on it, which converts a number the model made up into a quality gate. The span is verifiable; the score is not.
 
-Why the cheap tier: extraction is high-volume and schema-constrained — the schema defines the entity types, enforces the structure, and eliminates parsing errors, so the model has little judgment left to exercise. 10,000 documents at ~2,000 tokens each cost single-digit dollars at Haiku rates, before prompt caching and batching (see [scaling-production.md](scaling-production.md)).
+Why the extraction tier: extraction is high-volume and schema-constrained. The schema defines entity types and structure, so it needs less judgment than resolution or synthesis. Use prompt caching and batching when the corpus is large (see [scaling-production.md](scaling-production.md)).
 
 ## Prompt 2 — Entity resolution
 

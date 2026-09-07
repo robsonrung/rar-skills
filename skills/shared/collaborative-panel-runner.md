@@ -2,18 +2,13 @@
 
 This file is the single source for the multi-model **panel** scaffolding: the routing contract, the panel scripts, the status taxonomy, and the completion gate. Each panel-capable skill keeps only its own description, purpose, phase list, role list, and required outputs, and points here for everything below.
 
-## Panel-capable skills
+## Caller
 
-Panel mode is **opt-in** everywhere except `collaborative-delivery`. The pipeline skills each own an interactive single-model spine and fan out to seats only when the user asks for a panel:
+`collaborative-delivery` uses this engine when the user explicitly requests its panel workflow. Its routing file is `assets/routing.toml` in that skill and its artifacts live under `.ai-workflow/panel/delivery`.
 
-| Skill | Panel entry point | Routing file | Artifact dir |
-| --- | --- | --- | --- |
-| `brainstorm` | "Panel mode" section — divergence + cross-critique fan out | `brainstorm/assets/panel-routing.toml` | `.ai-workflow/panel/brainstorm` |
-| `to-prd` | `references/panel-mode.md` — 7 definition phases | `to-prd/assets/panel-routing.toml` | `.ai-workflow/panel/prd` |
-| `to-tasks` | `references/panel-mode.md` — 5 planning phases | `to-tasks/assets/panel-routing.toml` | `.ai-workflow/panel/tasks` |
-| `collaborative-delivery` | the whole skill — panel gates are mandatory | `collaborative-delivery/assets/routing.toml` | `.ai-workflow/panel/delivery` |
+The standard `brainstorm`, `to-prd`, and `to-tasks` workflows do not run panels. Additional opinions go through an explicitly requested `models-consensus` run, which owns its model approval and council protocol.
 
-`collaborative-delivery` is the audit-trail delivery variant, so its panel is not optional. Read `collaborative-delivery/references/workflow_contract.md` when porting or reconfiguring it; for `brainstorm` the panel contract lives in its SKILL.md "Panel mode" section; `to-prd` and `to-tasks` keep theirs in `references/panel-mode.md`.
+Before any panel dispatch, the caller shows all roles, resolved model IDs, effort levels, and scope for approval. Reuse an unchanged approved plan; changes require approval. The panel engine is not a substitute for that gate.
 
 ## Inputs
 
@@ -23,9 +18,9 @@ Panel mode is **opt-in** everywhere except `collaborative-delivery`. The pipelin
 
 ## Routing and configurability
 
-Each panel-capable skill owns its routing file (see the table above); the default model mapping is editable there. Model ids come from `shared/references/model-roster.md` — when a provider ships a new model, update the roster and the routing files that name it.
+The caller owns its routing file; the default model mapping is editable there. Model ids come from `shared/references/model-roster.md` — when a provider ships a new model, update the roster and the routing files that name it.
 
-Do not hardcode model choices in the workflow. Use the role names the calling skill declares (always including `synthesis_anchor` and `adversarial_anchor`). The mapping is task shaped and editable in the routing file: ambiguous planning may use the Opus seat for synthesis and the Codex seat for structured challenge, while explicit task planning and delivery may reverse those anchors. Other seats such as Gemini and Kimi remain assigned to specialist roles.
+Do not hardcode model choices in the workflow. Use the role names the calling skill declares (always including `synthesis_anchor` and `adversarial_anchor`). Resolve the mapping with the shared task-shaped routing reference, then bind the actual role/model/effort assignments to the user-approved plan.
 
 Read `shared/references/task-shaped-model-routing.md` before changing a model assignment. It defines the shared task categories, prompt shape, effort policy, and evaluation contract.
 
@@ -42,7 +37,8 @@ The three panel scripts are shared, not per-skill: they live in `shared/scripts/
 Run one panel phase (replace `<phase>`, `<routing-file>`, `<artifact-dir>`, and goal/context with the calling skill's values):
 
 ```bash
-python3 shared/scripts/panel_round.py \
+SHARED_DIR="<absolute directory of the loaded shared skill>";
+python3 "$SHARED_DIR/scripts/panel_round.py" \
   --phase <phase> \
   --routing <routing-file> \
   --goal "describe the current goal" \
@@ -55,7 +51,7 @@ python3 shared/scripts/panel_round.py \
 
 - `--phase` (required) — the phase name from the routing file.
 - `--goal` (required) — short statement of the current goal.
-- `--routing` — path to the skill's routing TOML. Required for any skill whose routing is not `<skill_root>/assets/routing.toml`, which is every skill in the table above except `collaborative-delivery`. The calling skill's root is taken to be the routing file's grandparent directory.
+- `--routing` — path to the skill's routing TOML. Defaults to `<skill_root>/assets/routing.toml`; pass an explicit absolute path when invoking from a project directory. The calling skill's root is taken to be the routing file's grandparent directory.
 - `--context-file` — repeatable; one or more context files to feed the panel.
 - `--out` — artifact directory (defaults to the routing file's `artifact_dir`).
 - `--working-dir` — working directory (defaults to the current directory).
@@ -80,7 +76,8 @@ Set `RUNNER_BASE_PATH` when the runner skills are installed somewhere other than
 For each native role, read the generated prompt in `<artifact-dir>/prompts/`, produce the native response, then record it:
 
 ```bash
-python3 shared/scripts/record_native_response.py \
+SHARED_DIR="<absolute directory of the loaded shared skill>";
+python3 "$SHARED_DIR/scripts/record_native_response.py" \
   --phase <phase> \
   --routing <routing-file> \
   --role <native-role> \
@@ -107,7 +104,8 @@ A generated native prompt or handoff file is never enough by itself.
 Before finalizing, run:
 
 ```bash
-python3 shared/scripts/validate_artifacts.py \
+SHARED_DIR="<absolute directory of the loaded shared skill>";
+python3 "$SHARED_DIR/scripts/validate_artifacts.py" \
   --routing <routing-file> \
   --artifact-dir <artifact-dir>
 ```

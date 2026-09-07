@@ -10,7 +10,7 @@ Produce one self-contained HTML file that teaches a reader how a real system wor
 
 **Outcome spine**
 
-- **Result:** a single `.html` file (inline CSS/JS, Google Fonts as the only external resource) explaining the subject at three depths.
+- **Result:** a single `.html` file with inline CSS, JavaScript, and SVG that explains the subject at three depths.
 - **Next consumer:** the user and their teammates, opening the file directly in a browser — no server, no build step.
 - **Done:** the file exists at the agreed path, `scripts/validate_explainer.py` exits 0, and the file was delivered/rendered to the user.
 - **Intent:** the page is trusted because every code snippet is real. Readers use the `path:line` bars to jump into the repo.
@@ -26,7 +26,7 @@ Produce one self-contained HTML file that teaches a reader how a real system wor
 
 Pin down: the subject (one subsystem/service/flow — split unrelated subjects into separate pages), the audience, and the questions the page must answer.
 
-Pick the audience as one of `explain-architecture`'s viewpoints — read `../explain-architecture/references/viewpoints.md` (resolved from this skill's directory): _newcomer_ keeps sections few and ledes plain, _implementer_ foregrounds extension points and conventions, _reviewer_ foregrounds boundaries, invariants, and dependency direction. When `explain-architecture` already produced an orientation page for this subject, reuse its scope, viewpoint, and dossiers instead of re-exploring, and link the two pages.
+Choose one audience: a _newcomer_ needs a map and plain ledes; an _implementer_ needs extension points and conventions; a _reviewer_ needs boundaries, invariants, and dependency direction. When an orientation page already exists for this subject, reuse its scope and evidence instead of re-exploring.
 
 Default question set when the user just says "explain how X works": architecture + technologies and where each lives in code, the end-to-end data flow (input → output), authorization/tenancy, and logging/observability. Honor any additions the user named.
 
@@ -34,7 +34,7 @@ Default output path: `docs/<topic>-explainer.html` in the project repo. Only ask
 
 ### 2. Evidence pass
 
-The evidence rules live in `../shared/references/grounded-evidence.md` (resolved from this skill's directory) — read it, then build one **evidence dossier** per subsystem as it defines (mechanism, 2–5 verbatim snippets with exact `path:line`, caveats and war stories from code comments) before writing any HTML.
+The evidence rules live in `shared/references/grounded-evidence.md`. Read it, then build one **evidence dossier** per subsystem as it defines: mechanism, 2–5 verbatim snippets with exact `path:line`, caveats, and war stories from code comments before writing any HTML.
 
 Typical decomposition (adapt to the subject): entry/infrastructure + deployment, the main processing pipeline, data access + safety mechanisms, observability/logging. When the harness supports delegating work to subagents, dispatch the dossiers in parallel — one subagent per subsystem, each instructed to return verbatim snippets with `path:line`. Without delegation, explore inline, capped at what the three-depth page actually needs: for each planned section, stop reading once you hold its lede, its diagram facts, and 2–5 snippets.
 
@@ -42,7 +42,7 @@ Trust dossiers for structure, but the snippets you publish are covered by verbat
 
 ### 3. Assemble
 
-Copy `assets/template.html` (from this skill's directory) to the output path, then replace its placeholder slots. Read `../shared/references/html-page-conventions.md` first (the floor every page skill shares: self-containment, three depths, escaping, verification), then `references/page-anatomy.md` — it defines each slot, the SVG diagram mechanics (arrow z-order, masking, spacing, clickable groups, palette), and the snippet-escaping rules.
+Copy `assets/template.html` from this skill's directory to the output path, then replace its placeholder slots. Read `shared/references/html-page-conventions.md` first for self-containment, three depths, escaping, and verification. Then read `references/page-anatomy.md` for each slot, the SVG diagram mechanics, and the snippet-escaping rules.
 
 Ordering that matters:
 

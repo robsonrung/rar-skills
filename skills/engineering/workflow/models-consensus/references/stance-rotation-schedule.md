@@ -1,66 +1,44 @@
-# Stance Rotation Schedule
+# Debate Protocol and Stance Rotation
 
-Rotate stances across iterations to reduce model-position bias. The moderator applies this schedule per seat based on the round number.
+Use only after the user approves a `debate` preview. The preview fixes the selected seats, their efforts, the moderator, and a ceiling of one to three rounds. Do not add a round or a seat after approval.
 
-## Round 1: Natural Stances
+## Protocol
 
-Each model starts in its natural role:
+1. Send the neutral question and assigned stance to each opening seat. Do not show peer outputs.
+2. The approved moderator produces an anonymized digest: agreements, disagreements, options, evidence gaps, and follow-up questions.
+3. For each later approved round, send the digest and a new stance. Each seat must rebut, concede, refine, or integrate.
+4. Classify the result as `full_agreement`, `converging`, `material_disagreement`, or `blocked_on_context`.
+5. Return the recommended direction with the dissent and evidence gap. A ceiling hit remains a reported disagreement; it never grants another round.
 
-| Seat | Round 1 Stance | Runner Role |
-| --- | --- | --- |
-| Claude Opus | `critical_with_responsibility` | `codereviewer` or `adversarial` |
-| Claude Sonnet | `supportive_with_integrity` | `planner` or `implementer` |
-| Codex | `devils_advocate` | `challenger` |
-| Gemini | `balanced_synthesis` | `synthesizer` |
-| Grok | `pragmatic_engineering` | `implementer` |
-| Kimi | `pragmatic_engineering` | `implementer` |
-| GLM | `pragmatic_engineering` | `implementer` |
-| Qwen | `pragmatic_engineering` | `implementer` |
-| Gemma | `supportive_with_integrity` | `planner` |
-| Muse | `pragmatic_engineering` | `implementer` |
+Use `schemas/round1-response.schema.json` for the opening and `schemas/later-round-response.schema.json` later. Keep every digest anonymized. The moderator does not replace a failed seat.
 
-The three optional seats appear in the tables above only when the probe reports them available and the selection includes them. Their stances follow their strengths: **Qwen** (coding-first, strong SWE-bench/CoWorkBench agentic scores) brings a long-horizon, execution-feasibility read; **Gemma** — a mid-tier, multilingual model lineage — brings a grounded, evidence-checked affirmative position least shaped by frontier-consensus training; **Muse** (an agentic-orchestration model) reads execution plans for agent, tooling, and computer-use realism.
+## Stance rotation
 
-The Runner Role column above is the canonical stance-to-runner-role mapping (`supportive_with_integrity` -> `planner` or `implementer`, `critical_with_responsibility` -> `codereviewer` or `adversarial`, `balanced_synthesis` -> `synthesizer`, `devils_advocate` -> `challenger`, `pragmatic_engineering` -> `implementer`, `outsider_fresh_eyes` -> `reviewer` with no repo context). For `blocked_on_context` investigation rounds, use the `researcher` runner role.
+| Seat | Round 1 | Round 2 | Round 3 |
+| --- | --- | --- | --- |
+| `astra` | `balanced_synthesis` | `critical_with_responsibility` | `pragmatic_engineering` |
+| `fable` | `critical_with_responsibility` | `balanced_synthesis` | `pragmatic_engineering` |
+| `grok` | `pragmatic_engineering` | `devils_advocate` | `balanced_synthesis` |
+| `qwen` | `pragmatic_engineering` | `balanced_synthesis` | `critical_with_responsibility` |
+| `opus` | `critical_with_responsibility` | `balanced_synthesis` | `pragmatic_engineering` |
+| `gemini` | `balanced_synthesis` | `pragmatic_engineering` | `critical_with_responsibility` |
+| `sonnet` | `supportive_with_integrity` | `critical_with_responsibility` | `balanced_synthesis` |
+| `kimi` | `pragmatic_engineering` | `balanced_synthesis` | `critical_with_responsibility` |
+| `glm` | `outsider_fresh_eyes` | `balanced_synthesis` | `critical_with_responsibility` |
+| `gemma` | `supportive_with_integrity` | `critical_with_responsibility` | `balanced_synthesis` |
+| `muse` | `pragmatic_engineering` | `devils_advocate` | `balanced_synthesis` |
 
-When 5 or more seats are available, reassign **GLM** to the `outsider_fresh_eyes` stance for Round 1 (give it the brief with repo glossary/ADR context stripped) so the panel always carries one curse-of-knowledge check — GLM is the deterministic pick because it otherwise duplicates Kimi's and Grok's `pragmatic_engineering` coverage. If GLM is absent from the panel, reassign Kimi instead; if both are absent, reassign the lowest seat in the table that still leaves every other stance covered. With 4 or fewer seats, keep the natural-stance table above and reserve `outsider_fresh_eyes` for a later round only if no seat has surfaced a clarity/assumption objection.
+For a panel smaller than six, the preview assigns each selected seat one distinct opening stance. Prefer `outsider_fresh_eyes` for a seat that receives no repository context. Do not create a duplicate seat to fill a missing stance.
 
-## Round 2: Cross-Stance Pressure
+## Read-only runner roles
 
-Each seat adopts a stance that challenges its Round 1 position:
+| Stance | Runner role |
+| --- | --- |
+| `supportive_with_integrity` | `planner` |
+| `critical_with_responsibility` | `codereviewer` |
+| `balanced_synthesis` | `synthesizer` |
+| `devils_advocate` | `adversarial` |
+| `pragmatic_engineering` | `challenger` |
+| `outsider_fresh_eyes` | `researcher` |
 
-| Seat | Round 2 Stance | Purpose |
-| --- | --- | --- |
-| Claude Opus | `balanced_synthesis` | Step back and weigh alternatives fairly |
-| Claude Sonnet | `critical_with_responsibility` | Stress-test the supportive position |
-| Codex | `critical_with_responsibility` | Ground devil's advocacy in constructive critique |
-| Gemini | `pragmatic_engineering` | Move from synthesis to actionable evaluation |
-| Grok | `devils_advocate` | Pressure the leading option with execution-grounded objections |
-| Kimi | `balanced_synthesis` | Evaluate tradeoffs beyond implementation details |
-| GLM | `balanced_synthesis` | Evaluate own pragmatism against alternatives |
-| Qwen | `balanced_synthesis` | Evaluate tradeoffs beyond coding feasibility |
-| Gemma | `critical_with_responsibility` | Stress-test the supportive position with evidence-checked objections |
-| Muse | `devils_advocate` | Pressure the leading option with agent/tooling execution objections |
-
-## Round 3: Convergence / Integration
-
-Final round focuses on integration or decisive critique:
-
-| Seat | Round 3 Stance | Purpose |
-| --- | --- | --- |
-| Claude Opus | `pragmatic_engineering` | Recommend specific implementation path |
-| Claude Sonnet | `balanced_synthesis` | Reconcile findings and recommend direction |
-| Codex | `balanced_synthesis` | Synthesize objections into final assessment |
-| Gemini | `critical_with_responsibility` | Final sanity check on consensus direction |
-| Grok | `pragmatic_engineering` | Reality-check the converged path's concrete execution steps |
-| Kimi | `critical_with_responsibility` | Identify last-mile risks in the leading option |
-| GLM | `critical_with_responsibility` | Flag overlooked practical blockers |
-| Qwen | `critical_with_responsibility` | Identify last-mile coding and deployment risks in the leading option |
-| Gemma | `balanced_synthesis` | Reconcile findings and recommend direction |
-| Muse | `pragmatic_engineering` | Reality-check the converged path's concrete agent and tooling steps |
-
-## Fallback Rules
-
-- If fewer than 3 seats are available, skip Round 3 and run only 2 rounds.
-- If a seat's output in Round 1 already matches the Round 3 stance for that seat, keep the Round 2 assignment for Round 2 but shift Round 3 to `balanced_synthesis` to ensure the seat contributes to convergence.
-- If the user explicitly pauses the council to provide direction, resume from the next round using the scheduled stance for that round number — do not restart the rotation.
+All roles remain read-only. Do not use an implementation role in a council.

@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
-"""Compute fail-closed, deterministic scope signals for full-review.
+"""Compute deterministic scope signals for full-review.
 
-Owns executable-line counting, uncounted-file detection, path signals, and the
-lite-roster eligibility calculation. Orchestrators consume the JSON result and
-never re-estimate these numbers from diff hunks.
+Reports diff size, changed-file classes, and risk signals. The approved review
+plan selects the scope; this helper supplies evidence and never selects seats.
 
 Adapted from EveryInc/compound-engineering-plugin (MIT). See NOTICE at repo root.
 """
@@ -78,12 +77,12 @@ def fail_closed(reason: str) -> dict[str, object]:
     return {
         "status": "unknown",
         "reason": reason,
-        "exec_lines": None,
-        "uncounted_files": 1,
+        "changed_code_lines": None,
+        "non_code_files": 1,
         "changed_files": [],
         "signals": [],
         "test_files_changed": False,
-        "lite_eligible": False,
+        "small_local_diff": False,
     }
 
 
@@ -123,7 +122,7 @@ def main() -> int:
         try:
             executable_lines += int(parts[0]) + int(parts[1])
         except ValueError:
-            # Binary/unknown counts fail the lite gate through uncounted_files below.
+            # Binary and unknown counts are excluded from the code-line total.
             pass
 
     uncounted = sum(
@@ -134,17 +133,17 @@ def main() -> int:
         for name, pattern in SIGNAL_PATTERNS.items()
         if any(pattern.search(file) for file in files)
     ]
-    lite = 1 <= executable_lines <= 39 and uncounted == 0 and not signals
+    small_local_diff = 1 <= executable_lines <= 39 and uncounted == 0 and not signals
 
     result = {
         "status": "complete",
         "reason": None,
-        "exec_lines": executable_lines,
-        "uncounted_files": uncounted,
+        "changed_code_lines": executable_lines,
+        "non_code_files": uncounted,
         "changed_files": files,
         "signals": signals,
         "test_files_changed": any(TEST_PATTERN.search(file) for file in files),
-        "lite_eligible": lite,
+        "small_local_diff": small_local_diff,
     }
     print(json.dumps(result, sort_keys=True))
     return 0

@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- SLOT: replace the title -->
+<title>REPLACE_ME: architecture overview</title>
+<style>
+  :root { color-scheme: dark; --bg: #07111f; --panel: #0e1b2d; --line: #29425f; --text: #edf5ff; --muted: #a6b7ca; --accent: #70b8ff; }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.55 ui-sans-serif, system-ui, sans-serif; }
+  main { width: min(1080px, calc(100% - 32px)); margin: 0 auto; padding: 36px 0 72px; }
+  header, section { border: 1px solid var(--line); background: var(--panel); border-radius: 14px; padding: 24px; margin-bottom: 18px; }
+  h1, h2 { margin: 0 0 10px; line-height: 1.2; }
+  h1 { font-size: clamp(1.8rem, 4vw, 2.6rem); }
+  h2 { font-size: 1.2rem; }
+  p, li { color: var(--muted); }
+  nav { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
+  nav a { color: var(--text); border: 1px solid var(--line); border-radius: 999px; padding: 4px 10px; text-decoration: none; }
+  .diagram { overflow-x: auto; background: #06101d; border-radius: 10px; padding: 12px; }
+  svg { min-width: 680px; width: 100%; height: auto; }
+  .node { fill: #132a45; stroke: var(--accent); stroke-width: 2; rx: 8; }
+  .node-text { fill: var(--text); font-size: 16px; text-anchor: middle; }
+  .flow { display: grid; gap: 10px; padding-left: 0; list-style: none; }
+  .flow li, details { border-left: 3px solid var(--accent); background: #0a1828; padding: 12px; }
+  details { border-radius: 6px; margin-top: 10px; }
+  summary { cursor: pointer; color: var(--text); font-weight: 700; }
+  code { color: #b9dbff; }
+  @media (max-width: 640px) { main { width: min(100% - 20px, 1080px); padding-top: 12px; } header, section { padding: 18px; } }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <!-- SLOT: subject and single organizing idea -->
+    <h1>REPLACE_ME: architecture overview</h1>
+    <p>State what this scope does, how the pieces connect, and what the reader can use this page for.</p>
+    <nav aria-label="Page sections">
+      <a href="#overview">Overview</a><a href="#structure">Pieces</a><a href="#flow">Flow</a><a href="#cross-cutting">Cross-cutting</a><a href="#next">Where next</a>
+    </nav>
+  </header>
+
+  <section class="card" id="overview">
+    <h2>Overview</h2>
+    <!-- SLOT: clickable component map. Each box calls jump with a real section id. -->
+    <div class="diagram"><svg viewBox="0 0 900 230" role="img" aria-label="Architecture map">
+      <line x1="245" y1="115" x2="355" y2="115" stroke="#70b8ff" stroke-width="3" />
+      <line x1="545" y1="115" x2="655" y2="115" stroke="#70b8ff" stroke-width="3" />
+      <g onclick="jump('structure')"><rect class="node" x="55" y="75" width="190" height="80" /><text class="node-text" x="150" y="120">Entry point</text></g>
+      <g onclick="jump('flow')"><rect class="node" x="355" y="75" width="190" height="80" /><text class="node-text" x="450" y="120">Application flow</text></g>
+      <g onclick="jump('cross-cutting')"><rect class="node" x="655" y="75" width="190" height="80" /><text class="node-text" x="750" y="120">Data and services</text></g>
+    </svg></div>
+  </section>
+
+  <section class="card" id="structure"><h2>The pieces</h2><!-- SLOT: components, responsibilities, seams, and source paths --></section>
+  <section class="card" id="flow"><h2>One flow end to end</h2><!-- SLOT: ordered flow with at least one path:line citation --></section>
+  <section class="card" id="cross-cutting"><h2>Cross-cutting concerns</h2><!-- SLOT: only relevant concerns, such as auth or migrations --></section>
+  <section class="card" id="next"><h2>Where to look next</h2><!-- SLOT: three to five useful files or directories --></section>
+</main>
+<script>
+  function jump(id) { const section = document.getElementById(id); if (section) section.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+</script>
+</body>
+</html>

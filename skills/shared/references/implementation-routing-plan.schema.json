@@ -1,0 +1,313 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://rar-skills/implementation-routing-plan.schema.json",
+  "title": "Approved implementation routing plan",
+  "description": "The machine record for model routes approved before an implementation run starts.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "scope",
+    "approval",
+    "routes"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "inputs"
+      ],
+      "properties": {
+        "inputs": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "path",
+              "content_sha256"
+            ],
+            "properties": {
+              "path": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Readable task or PRD artifact path."
+              },
+              "content_sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$",
+                "description": "SHA-256 of the canonical task content. Normalize line endings to LF and exclude only an exact standalone **Status:** ready-for-agent, in-progress, done, or blocked line before hashing."
+              }
+            }
+          }
+        }
+      }
+    },
+    "approval": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "decided_at",
+        "reference",
+        "scope_digest",
+        "routes_digest"
+      ],
+      "properties": {
+        "status": {
+          "const": "approved"
+        },
+        "decided_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "reference": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Durable pointer to the user approval."
+        },
+        "scope_digest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$",
+          "description": "SHA-256 of the canonical scope.inputs value."
+        },
+        "routes_digest": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$",
+          "description": "SHA-256 of the normalized approved route list."
+        }
+      }
+    },
+    "routes": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/definitions/route"
+      }
+    }
+  },
+  "definitions": {
+    "runner": {
+      "type": "string",
+      "enum": [
+        "codex",
+        "claude",
+        "pi",
+        "grok",
+        "gemini",
+        "cline"
+      ]
+    },
+    "effort": {
+      "type": "string",
+      "enum": [
+        "low",
+        "medium",
+        "high",
+        "xhigh",
+        "max",
+        "ultra"
+      ]
+    },
+    "unavailable": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "action"
+          ],
+          "properties": {
+            "action": {
+              "const": "block"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "action",
+            "seat",
+            "runner",
+            "model",
+            "model_verification",
+            "effort",
+            "effort_control",
+            "mode"
+          ],
+          "properties": {
+            "action": {
+              "const": "use"
+            },
+            "seat": {
+              "type": "string",
+              "minLength": 1
+            },
+            "runner": {
+              "$ref": "#/definitions/runner"
+            },
+            "model": {
+              "type": "string",
+              "minLength": 1
+            },
+            "model_verification": {
+              "enum": [
+                "required",
+                "allow_unverified"
+              ]
+            },
+            "effort": {
+              "oneOf": [
+                {
+                  "$ref": "#/definitions/effort"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "effort_control": {
+              "enum": [
+                "runner",
+                "runtime"
+              ]
+            },
+            "mode": {
+              "enum": [
+                "runner",
+                "native"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "route": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "task_id",
+        "input_path",
+        "track",
+        "role",
+        "seat",
+        "runner",
+        "model",
+        "model_verification",
+        "effort",
+        "effort_control",
+        "mode",
+        "unavailable"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "task_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "input_path": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Path of the scope input that defines this task."
+        },
+        "track": {
+          "type": "string",
+          "minLength": 1
+        },
+        "role": {
+          "enum": [
+            "implementer",
+            "reviewer"
+          ]
+        },
+        "seat": {
+          "type": "string",
+          "minLength": 1
+        },
+        "runner": {
+          "$ref": "#/definitions/runner"
+        },
+        "model": {
+          "type": "string",
+          "minLength": 1
+        },
+        "model_verification": {
+          "enum": [
+            "required",
+            "allow_unverified"
+          ],
+          "description": "Whether this user-approved route needs an observed serving-model receipt or explicitly permits an unverified configured transport."
+        },
+        "effort": {
+          "oneOf": [
+            {
+              "$ref": "#/definitions/effort"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "effort_control": {
+          "enum": [
+            "runner",
+            "runtime"
+          ]
+        },
+        "mode": {
+          "enum": [
+            "runner",
+            "native"
+          ]
+        },
+        "unavailable": {
+          "$ref": "#/definitions/unavailable"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "effort_control": {
+                "const": "runner"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "effort": {
+                "$ref": "#/definitions/effort"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "effort_control": {
+                "const": "runtime"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "effort": {
+                "type": "null"
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

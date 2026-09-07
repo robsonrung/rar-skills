@@ -1,4 +1,4 @@
 interface:
   display_name: "Full Review"
-  short_description: "Swarm-based code review with verified bugs and structural quality findings"
-  default_prompt: "Use $full-review to review this PR, commit, or task diff. Runs parallel bug-finding agents, review personas, external model triangulation, execution-based verification, and ambitious structural maintainability review, then returns evidence-backed findings with a clear verdict."
+  short_description: "Proportionate review for seams, high-risk changes, and deep requests"
+  default_prompt: "Use $full-review to review this PR, commit, task seam, or requirements document. Start from the approved review plan, select only the needed seats and specialists, verify material findings, and return an evidence-backed verdict."

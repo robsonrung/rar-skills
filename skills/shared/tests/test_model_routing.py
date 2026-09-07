@@ -1,192 +1,151 @@
 #!/usr/bin/env python3
-"""Offline guards for task shaped model routing."""
+"""Offline guards for model routing and approved implementation routes."""
 
 from __future__ import annotations
 
 import json
-import subprocess
 import sys
-import tempfile
 import unittest
 from pathlib import Path
 
-import tomllib
-
 REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT / "shared" / "scripts"))
-from skill_paths import skill_dir, runner_script  # noqa: E402
+from skill_paths import skill_dir  # noqa: E402
 
 
-def P(rel: str):
-    """Resolve "<skill>/<path>" by skill name in either layout."""
+def P(rel: str) -> Path:
+    """Resolve a skill-relative path in either supported layout."""
     name, _, rest = rel.partition("/")
-    return skill_dir(name, root=REPO_ROOT) / rest if rest else skill_dir(name, root=REPO_ROOT)
+    root = skill_dir(name, root=REPO_ROOT)
+    return root / rest if rest else root
 
 
-def load_routing(path: str) -> dict:
-    with P(path).open("rb") as handle:
-        return tomllib.load(handle)
-
-
-class PanelRoutingTests(unittest.TestCase):
-    def test_ambiguous_planning_uses_opus_synthesis_and_codex_challenge(self):
-        for path in (
-            "brainstorm/assets/panel-routing.toml",
-            "to-prd/assets/panel-routing.toml",
-        ):
-            with self.subTest(path=path):
-                providers = load_routing(path)["providers"]
-                self.assertEqual(providers["synthesis_anchor"]["kind"], "runner")
-                self.assertEqual(providers["synthesis_anchor"]["runner"], "claude")
-                self.assertEqual(providers["synthesis_anchor"]["model"], "opus")
-                self.assertEqual(providers["adversarial_anchor"]["kind"], "native_codex")
-                self.assertEqual(providers["adversarial_anchor"]["model"], "gpt-5.6-sol")
-
-    def test_explicit_planning_and_delivery_keep_codex_synthesis(self):
-        for path in (
-            "to-tasks/assets/panel-routing.toml",
-            "collaborative-delivery/assets/routing.toml",
-        ):
-            with self.subTest(path=path):
-                providers = load_routing(path)["providers"]
-                self.assertEqual(providers["synthesis_anchor"]["kind"], "native_codex")
-                self.assertEqual(providers["synthesis_anchor"]["model"], "gpt-5.6-sol")
-                self.assertEqual(providers["adversarial_anchor"]["model"], "opus")
-
-
-class SkillRoutingContractTests(unittest.TestCase):
+class ModelRoutingContractTests(unittest.TestCase):
     def read(self, path: str) -> str:
         return P(path).read_text(encoding="utf-8")
 
-    def test_shared_policy_uses_seats_instead_of_version_ids(self):
-        text = self.read("shared/references/task-shaped-model-routing.md")
-        self.assertNotIn("gpt-", text.lower())
-        self.assertNotIn("claude-opus-", text.lower())
-        self.assertIn("cost per accepted result", text)
-        self.assertIn("effective model receipt", text)
+    def test_frontier_roster_has_astra_and_fable(self):
+        roster = self.read("shared/references/model-roster.md")
+        self.assertIn("| astra |", roster)
+        self.assertIn("gpt-6-astra", roster)
+        self.assertIn("| fable |", roster)
+        self.assertIn("claude-fable-5-1", roster)
+        self.assertIn("effective_model", roster)
+        self.assertIn("not a benchmark ranking", roster)
 
-    def test_diverse_plan_routes_judgment_to_opus_and_execution_check_to_codex(self):
+    def test_task_routing_requires_approved_exact_routes(self):
+        routing = self.read("shared/references/task-shaped-model-routing.md")
+        self.assertIn("presents a model summary before any worker starts", routing)
+        self.assertIn("`--disable-fallback`", routing)
+        self.assertIn("unexpected runner or configured model blocks the route", routing)
+        self.assertIn("model_verification: required", routing)
+        self.assertIn("allow_unverified", routing)
+        self.assertNotIn("escalation, never a default", routing)
+        self.assertIn("Astra, `medium`", routing)
+        self.assertIn("Fable, `medium`", routing)
+
+    def test_routing_plan_binds_approval_scope_and_routes(self):
+        schema = json.loads(
+            self.read("shared/references/implementation-routing-plan.schema.json")
+        )
+        self.assertEqual(schema["properties"]["schema_version"]["const"], 1)
+        self.assertIn("scope", schema["required"])
+        self.assertIn("approval", schema["required"])
+        scope = schema["properties"]["scope"]
+        self.assertIn("inputs", scope["required"])
+        input_schema = scope["properties"]["inputs"]["items"]
+        self.assertIn("content_sha256", input_schema["required"])
+        approval = schema["properties"]["approval"]
+        self.assertEqual(approval["properties"]["status"]["const"], "approved")
+        self.assertEqual(
+            set(approval["required"]),
+            {"status", "decided_at", "reference", "scope_digest", "routes_digest"},
+        )
+        route = schema["definitions"]["route"]
+        self.assertTrue(
+            {
+                "id",
+                "task_id",
+                "input_path",
+                "track",
+                "role",
+                "seat",
+                "runner",
+                "model",
+                "model_verification",
+                "effort",
+                "effort_control",
+                "mode",
+                "unavailable",
+            }.issubset(route["required"])
+        )
+        actions = {
+            option["properties"]["action"]["const"]
+            for option in schema["definitions"]["unavailable"]["oneOf"]
+        }
+        self.assertEqual(actions, {"block", "use"})
+        self.assertNotIn("dcode", schema["definitions"]["runner"]["enum"])
+
+    def test_frontier_seats_are_opt_in_transport_probes(self):
+        discovery = self.read("shared/scripts/discover_runners.py")
+        self.assertIn('seat="astra"', discovery)
+        self.assertIn('seat="fable"', discovery)
+        self.assertIn('tier="frontier"', discovery)
+        self.assertIn("only a verified model receipt can confirm", discovery)
+        self.assertIn('"codex": "astra"', discovery)
+
+    def test_codex_runner_uses_astra_and_records_clamps(self):
+        runner = self.read("codex-runner/scripts/run_codex.py")
+        self.assertIn('DEFAULT_MODEL = "gpt-6-astra"', runner)
+        self.assertIn('"astra": "gpt-6-astra"', runner)
+        self.assertIn('"codex": "gpt-6-astra"', runner)
+        self.assertNotIn('"codex": "gpt-5.3-codex"', runner)
+        self.assertIn('"ultra"', runner)
+        self.assertIn('"requested_effort": effort', runner)
+        self.assertIn('"effort_clamped": effort is not None', runner)
+
+    def test_removed_workflow_panel_routes_stay_removed(self):
+        for path in (
+            "brainstorm/assets/panel-routing.toml",
+            "to-prd/assets/panel-routing.toml",
+            "to-tasks/assets/panel-routing.toml",
+        ):
+            with self.subTest(path=path):
+                self.assertFalse(P(path).exists())
+
+    def test_diverse_plan_uses_shared_task_routing(self):
         text = self.read("diverse-plan/SKILL.md")
-        self.assertNotIn("Opus 4.8", text)
-        self.assertNotIn("--effort xhigh", text)
-        self.assertIn("Synthesize and enrich (Opus seat)", text)
-        self.assertIn("Execution completeness check", text)
+        self.assertIn("task-shaped-model-routing.md", text)
+        self.assertIn("Astra", text)
+        self.assertIn("Fable", text)
+        self.assertNotIn("Synthesize and enrich (Opus seat)", text)
 
-    def test_full_review_has_recall_precision_pair(self):
-        skill = self.read("full-review/SKILL.md")
-        prompts = self.read("full-review/references/external_prompt_template.md")
-        self.assertIn("Opus `precision_root_cause`", skill)
-        self.assertIn("default Codex seat + one cheap sweep seat", skill)
-        self.assertIn("### `precision_root_cause`", prompts)
-        self.assertIn("symptom to mechanism to cause chain", prompts)
+    def test_collaborative_delivery_uses_frontier_defaults_and_approval(self):
+        routing = self.read("collaborative-delivery/assets/routing.toml")
+        workflow = self.read("collaborative-delivery/SKILL.md")
+        self.assertIn('model = "gpt-6-astra"', routing)
+        self.assertIn('model = "claude-fable-5-1"', routing)
+        self.assertIn('"--effort", "medium"', routing)
+        self.assertIn("approved routing plan", workflow)
+        self.assertIn("serving-model receipt", workflow)
 
-    def test_consensus_quality_prefers_opus_and_budget_prefers_codex(self):
-        protocol = self.read("models-consensus/references/poll-protocol.md")
-        self.assertIn("In `quality` and `research`, default to the Opus seat", protocol)
-        self.assertIn("In `budget`, use the Codex seat", protocol)
-
-    def test_qwen_is_a_pi_seat_with_qwen38_max(self):
-        roster = self.read("shared/references/model-roster.md")
-        discovery = self.read("shared/scripts/discover_runners.py")
-        runner = self.read("pi-runner/scripts/run_pi.py")
-        self.assertIn("qwen/qwen3.8-max", roster)
-        self.assertIn("`pi-runner --seat qwen`", roster)
-        self.assertIn('execution_path="pi_runner_seat"', discovery)
-        self.assertIn('"qwen": "qwen/qwen3.8-max"', runner)
-
-    def test_muse_is_a_cline_seat_with_muse_spark(self):
-        roster = self.read("shared/references/model-roster.md")
-        discovery = self.read("shared/scripts/discover_runners.py")
-        runner = self.read("cline-runner/scripts/run_cline.py")
-        self.assertIn("meta/muse-spark-1.3", roster)
-        self.assertIn("`cline-runner --seat muse`", roster)
-        self.assertIn('execution_path="cline_runner_seat"', discovery)
-        self.assertIn('"muse": "meta/muse-spark-1.3"', runner)
-        self.assertNotIn("muse-spark-1.1", runner)
-
-
-class DeliveryLauncherRoutingTests(unittest.TestCase):
-    def run_dry_launch(self, *extra: str) -> dict:
-        with tempfile.TemporaryDirectory() as temp_dir:
-            temp = Path(temp_dir)
-            brief = temp / "frontend.md"
-            brief.write_text("frontend acceptance contract", encoding="utf-8")
-            command = [
-                sys.executable,
-                str(P("implement-and-review/scripts/launch.py")),
-                "launch",
-                "--session-id",
-                "routing-test",
-                "--fe-brief",
-                str(brief),
-                "--no-backend",
-                "--allow-dirty",
-                "--worktrees-dir",
-                str(temp / "worktrees"),
-                "--dry-run",
-                *extra,
-            ]
-            completed = subprocess.run(
-                command,
-                cwd=REPO_ROOT,
-                capture_output=True,
-                text=True,
-                timeout=30,
-                check=False,
-            )
-            self.assertEqual(completed.returncode, 0, completed.stderr)
-            return json.loads(completed.stdout)
-
-    def test_standard_frontend_defaults_to_codex_runner(self):
-        manifest = self.run_dry_launch()
-        frontend = manifest["tracks"]["frontend"]
-        self.assertEqual(frontend["seat"], "codex")
-        self.assertEqual(frontend["runner"], "codex")
-        self.assertEqual(frontend["mode"], "runner")
-
-    def test_visual_frontend_auto_selects_opus_subagent(self):
-        manifest = self.run_dry_launch("--fe-seat", "opus")
-        frontend = manifest["tracks"]["frontend"]
-        self.assertEqual(frontend["seat"], "opus")
-        self.assertEqual(frontend["runner"], "opus-subagent")
-        self.assertEqual(frontend["mode"], "subagent")
-
-    def test_visual_frontend_can_use_claude_runner(self):
-        manifest = self.run_dry_launch("--fe-seat", "opus", "--fe-mode", "runner")
-        frontend = manifest["tracks"]["frontend"]
-        self.assertEqual(frontend["seat"], "opus")
-        self.assertEqual(frontend["runner"], "claude")
-        self.assertEqual(frontend["mode"], "runner")
-
-    def test_codex_frontend_rejects_subagent_mode(self):
-        with tempfile.TemporaryDirectory() as temp_dir:
-            brief = Path(temp_dir) / "frontend.md"
-            brief.write_text("frontend acceptance contract", encoding="utf-8")
-            completed = subprocess.run(
-                [
-                    sys.executable,
-                    str(P("implement-and-review/scripts/launch.py")),
-                    "launch",
-                    "--session-id",
-                    "routing-test",
-                    "--fe-brief",
-                    str(brief),
-                    "--no-backend",
-                    "--allow-dirty",
-                    "--dry-run",
-                    "--fe-seat",
-                    "codex",
-                    "--fe-mode",
-                    "subagent",
-                ],
-                cwd=REPO_ROOT,
-                capture_output=True,
-                text=True,
-                timeout=30,
-                check=False,
-            )
-            self.assertNotEqual(completed.returncode, 0)
-            self.assertIn("only valid with --fe-seat opus", completed.stderr)
+    def test_local_preferences_are_preview_only(self):
+        example = (REPO_ROOT.parent / ".rar-skills" / "config.local.example.yaml").read_text(
+            encoding="utf-8"
+        )
+        reference = self.read("shared/references/local-config.md")
+        implementation = self.read("implement-tasks/SKILL.md")
+        council = self.read("models-consensus/SKILL.md")
+        self.assertIn("seats:", example)
+        self.assertIn("models: {}", example)
+        self.assertNotIn("work_engine_preferences", example)
+        self.assertNotIn("runner_base_path", example)
+        self.assertNotIn("quorum:", example)
+        self.assertIn("Do not read it again for dispatch", reference)
+        self.assertIn("config.local.yaml", implementation)
+        self.assertIn("never reread it after approval", implementation)
+        self.assertIn("config.local.yaml", council)
+        self.assertIn("never reread it after approval", council)
 
 
 if __name__ == "__main__":

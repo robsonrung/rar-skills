@@ -1,6 +1,6 @@
 # Idea Basis Contract (generated-options mode)
 
-An optional mode for Phase 2. Invoke it when the user wants **generated options** — "give me ideas for X", "what could we do with this area", a field of candidates to choose from — rather than refinement of an idea they already brought. The failure mode this contract prevents is generic "AI-slop" ideas that sound plausible but carry nothing the user can verify.
+An optional mode for Phase 2. Invoke it when the user wants **generated options** — "give me ideas for X", "what could we do with this area", a field of candidates to choose from — rather than refinement of an idea they already brought. The contract excludes ideas with no basis the user can verify.
 
 ## The contract: no basis, no idea
 
@@ -32,9 +32,9 @@ Never hand the user the raw list. Critique every candidate against its own basis
 
 Survivors then feed the normal Phase 2/3 flow: alternatives on the table, trade-offs surfaced, convergence together.
 
-## Optional: multi-model fleet
+## Optional additional opinions
 
-For a high-stakes ideation where one model's biases would narrow the field, the generation step can fan out across the repo's runner seats (`claude-runner`, `codex-runner`, `gemini-runner`, `pi-runner --seat kimi`, `pi-runner --seat glm`, ...) — same contract per seat, merged and deduped before critique. Basis tags are what make cross-model merging safe: an idea without a checkable basis cannot be deduplicated honestly. Keep the fleet small (2-3 seats) unless the user asks for more.
+Use `models-consensus` only when the user asks for more opinions. That skill presents its model and effort plan for approval before dispatch. Pass this basis contract with the neutral question. Apply the same evidence checks when using the council report; do not create a separate idea-generation fleet.
 
 ---
 

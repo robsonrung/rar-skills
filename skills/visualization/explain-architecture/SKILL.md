@@ -12,9 +12,9 @@ Borrowed from _Practical Model-Driven Enterprise Architecture_: an explanation i
 
 **Outcome spine**
 
-- **Result:** a single `.html` file (inline CSS/JS/SVG) at `docs/<scope>-architecture.html` by default, rendered from `html-explainer`'s template.
+- **Result:** a single `.html` file with inline CSS, JavaScript, and SVG at `docs/<scope>-architecture.html` by default.
 - **Next consumer:** the person orienting themselves — opened straight from disk, no server.
-- **Done:** the file exists, `html-explainer`'s validator exits 0, and the page was rendered or sent to the user.
+- **Done:** the file exists, `scripts/validate_explain_architecture.py` exits 0, and the page was rendered or sent to the user.
 - **Intent:** a map, not the territory. 4–6 sections, one traced flow, every claim grounded in files actually read. Depth beyond that belongs to `html-explainer`.
 
 ## Step 0 — Scope & audience (ask only if unclear)
@@ -35,15 +35,15 @@ Output path: `docs/<scope>-architecture.html` in the project repo. Only ask when
 
 ## Step 1 — Explore (don't guess)
 
-Follow the shared evidence contract, `../shared/references/grounded-evidence.md` (resolved from this skill's directory): ground every claim in files you actually read, cite `path:line`, never reconstruct code. Move outside-in:
+Follow the shared evidence contract, `shared/references/grounded-evidence.md`: ground every claim in files you actually read, cite `path:line`, never reconstruct code. Move outside-in:
 
-1. **Entry points & manifests** — `package.json`/workspaces, `template.yaml`/SAM, `CLAUDE.md` files, READMEs, `docs/`, config. These declare intent cheaply.
+1. **Entry points & manifests** — package manifests, workspace files, deployment templates, active project instructions, READMEs, `docs/`, and configuration. These declare intent cheaply.
 2. **Top-level structure** — map the directory tree to responsibilities. Name each major unit and its one-line job.
 3. **The seams** — how units communicate: HTTP routes, message buses/events, shared data layer, cron/workers. The seams _are_ the architecture.
 4. **One real flow end-to-end** — trace a representative request or event through the layers (e.g. frontend action → API route → service → entity/DB → emitted event → worker). A concrete trace beats abstract description.
 5. **Cross-cutting** — auth, multi-tenancy, error handling, migrations, codegen.
 
-Use `Explore`/`general-purpose` subagents for breadth on large scopes so you keep only the conclusions, not the file dumps. Stop when you hold, for each planned section, its lede, its map facts, and 1–3 verbatim snippets with `path:line`.
+For a large scope, use available parallel research only for independent areas. Keep conclusions, source paths, and short verified snippets, not file dumps. Stop when each planned section has its lede, map facts, and 1–3 verbatim snippets with `path:line`.
 
 ## Step 2 — Organize into layers
 
@@ -57,7 +57,7 @@ Derive the layers from what you actually find rather than forcing these names �
 
 ## Step 3 — Assemble the page
 
-Copy `../html-explainer/assets/template.html` (resolved from this skill's directory) to the output path and replace its slots. Read `../shared/references/html-page-conventions.md` (self-containment, three depths, escaping, verification) and `../html-explainer/references/page-anatomy.md` (slot definitions, SVG mechanics, code snippet contract, component cheat sheet) before editing.
+Copy `assets/template.html` from this skill's directory to the output path and replace its slots. Read `shared/references/html-page-conventions.md` for self-containment, three depths, escaping, and verification. The table below is this skill's page anatomy.
 
 Map the explanation onto the template like this:
 
@@ -86,7 +86,7 @@ Rules from the book's "modeling best practices", applied to the page:
 
 ```
 SKILL_DIR="<absolute path of the directory containing this SKILL.md>";
-python3 "$SKILL_DIR/../html-explainer/scripts/validate_explainer.py" <output-file.html>
+python3 "$SKILL_DIR/scripts/validate_explain_architecture.py" <output-file.html>
 ```
 
 Fix findings until exit 0, then follow the verification steps in the shared conventions (render, one `jump()` click reaches its section, DOM queries below the first screen).

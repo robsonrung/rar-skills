@@ -51,7 +51,11 @@
     },
     "treeClean": {
       "type": "boolean",
-      "description": "git status --porcelain empty after the run, ignoring build artifacts the repo's own commands produce."
+      "description": "The tracked working tree is clean after the run."
+    },
+    "treeChanged": {
+      "type": "boolean",
+      "description": "Verification introduced tracked changes relative to the pre-run baseline."
     }
   },
   "$defs": {

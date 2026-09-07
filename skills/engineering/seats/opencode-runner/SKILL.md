@@ -8,6 +8,14 @@ disable-model-invocation: true
 
 Use this skill as a safe OpenCode handoff guide. This package intentionally does not ship an executable OpenCode wrapper.
 
+## Routing limit
+
+OpenCode has no runner envelope in this library. It cannot be an approved
+implementation or review route because there is no `model_receipt` for the
+launcher to validate. Use it only for a manually approved comparison. Report
+the requested provider and model as configuration, not as proof of the model
+that served the run.
+
 ## Safety Model
 
 OpenCode can read project files and send prompt context to the configured model provider. Treat every run as an external model call.

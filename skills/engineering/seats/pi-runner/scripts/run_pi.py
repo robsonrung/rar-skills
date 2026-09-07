@@ -50,6 +50,7 @@ _SHARED_SCRIPTS = _skills_root() / "shared" / "scripts"
 if str(_SHARED_SCRIPTS) not in sys.path:
     sys.path.insert(0, str(_SHARED_SCRIPTS))
 
+from model_receipt import attach_model_receipt
 from output_contract import validate_output_contract
 
 DEFAULT_MODEL = None
@@ -118,8 +119,11 @@ def normalize_envelope(
     result["runner"] = requested_runner
     result["effective_runner"] = effective_runner
 
-    if result.get("effective_model") is None:
-        result["effective_model"] = result.get("native_model_id") or result.get("model") or requested_model
+    attach_model_receipt(
+        result,
+        requested_model,
+        observed_source="native_event",
+    )
 
     result.setdefault("fallback_reason", None)
 

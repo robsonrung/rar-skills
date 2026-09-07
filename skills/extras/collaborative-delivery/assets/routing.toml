@@ -1,7 +1,8 @@
 # Panel routing for `collaborative-delivery` (panel gates are mandatory here).
 #
-# Model ids come from `shared/references/model-roster.md` — update the roster
-# first, then this file.
+# These are proposed defaults from `shared/references/model-roster.md`.
+# An implementation run still needs an approved routing plan with the exact
+# model, effort, and model-verification policy before a panel role starts.
 
 [skill]
 name = "collaborative-delivery"
@@ -14,8 +15,8 @@ workflow = "Follow the skill SKILL.md instructions, keep role outputs independen
 [providers.synthesis_anchor]
 kind = "native_codex"
 provider = "codex"
-model = "gpt-5.6-sol"
-model_label = "GPT 5.6 Sol"
+model = "gpt-6-astra"
+model_label = "Astra"
 enabled = true
 native_response_required = true
 duty = "Synthesize, reconcile, coordinate native Codex subagents when allowed, and own final decisions inside the host Codex session."
@@ -24,13 +25,13 @@ duty = "Synthesize, reconcile, coordinate native Codex subagents when allowed, a
 kind = "runner"
 runner = "claude"
 provider = "anthropic"
-model = "opus"
-model_label = "Opus"
+model = "claude-fable-5-1"
+model_label = "Fable 5.1"
 enabled = true
 script = ".agents/skills/claude-runner/scripts/run_claude.py"
 timeout_seconds = 1200
 duty = "Challenge assumptions, find risks, inspect security and architecture, and block unsafe convergence."
-runner_args = ["--output-format", "json", "--no-session-persistence", "--restrict-tools"]
+runner_args = ["--output-format", "json", "--no-session-persistence", "--restrict-tools", "--effort", "medium"]
 
 [providers.broad_context]
 kind = "runner"
@@ -104,22 +105,22 @@ runner_role = "codereviewer"
 duty = "Review delivery risk, sequencing, hidden coupling, rollout impact, and whether the current slice remains safe to ship."
 
 [phases.task_intake]
-roles = ["synthesis_anchor", "adversarial_anchor", "implementation", "testing", "review", "backend", "interface", "delivery_review"]
+roles = ["synthesis_anchor", "adversarial_anchor", "implementation", "testing", "delivery_review"]
 
 [phases.red]
-roles = ["synthesis_anchor", "adversarial_anchor", "testing", "backend", "interface", "delivery_review"]
+roles = ["synthesis_anchor", "adversarial_anchor", "testing"]
 
 [phases.green]
-roles = ["synthesis_anchor", "adversarial_anchor", "implementation", "backend", "interface", "testing", "delivery_review"]
+roles = ["synthesis_anchor", "adversarial_anchor", "implementation", "testing"]
 
 [phases.refactor]
-roles = ["synthesis_anchor", "adversarial_anchor", "simplification", "testing", "backend", "interface", "delivery_review"]
+roles = ["synthesis_anchor", "adversarial_anchor", "simplification", "testing"]
 
 [phases.review]
-roles = ["synthesis_anchor", "adversarial_anchor", "review", "testing", "backend", "interface", "delivery_review"]
+roles = ["synthesis_anchor", "adversarial_anchor", "review", "delivery_review"]
 
 [phases.verification]
-roles = ["synthesis_anchor", "adversarial_anchor", "testing", "review", "backend", "interface", "delivery_review"]
+roles = ["synthesis_anchor", "adversarial_anchor", "testing", "review"]
 
 [phases.handoff]
-roles = ["synthesis_anchor", "adversarial_anchor", "implementation", "testing", "review", "backend", "interface", "delivery_review"]
+roles = ["synthesis_anchor", "adversarial_anchor", "delivery_review"]

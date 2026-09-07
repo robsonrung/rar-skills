@@ -73,7 +73,7 @@ The page must work at three depths:
 - **Scan:** cards and the round timeline show agreements, divergence, seats, and confidence.
 - **Descend:** expandable details show source paths, resolution notes, and compact round evidence.
 
-Visual rules. Read `../shared/references/html-page-conventions.md` first (resolved from this skill's directory): self-containment, the three depths, text-plus-color status, and escaping are fixed there. The rules below are specific to a decision surface.
+Visual rules. Read `shared/references/html-page-conventions.md` first: self-containment, the three depths, text-plus-color status, and escaping are fixed there. The rules below are specific to a decision surface.
 
 - Keep the first screen focused. Use a dark, high-contrast layout with one accent for positive agreement, one for caution, and one for open divergence.
 - Use bars or rings only for values present in the source. A visual must not imply precision that the council did not report.

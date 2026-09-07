@@ -1,5 +1,3 @@
-# Codex-host interface/registration config for this skill (display metadata and
-# default prompt shown in the Codex app). Not meant to be read at runtime.
 interface:
   display_name: "Implement And Review"
-  short_description: "Two-track build (FE/BE) with cross-model review, self-simplify, and a full-review gate"
+  short_description: "Build one approved task with exact routes, focused review, and captured evidence"

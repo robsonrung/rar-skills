@@ -42,6 +42,13 @@ def _skill_dir(name: str) -> Path:
         return root / name
     return skill_dir(name, root=root)
 
+
+_SHARED_SCRIPTS = _skills_root() / "shared" / "scripts"
+if str(_SHARED_SCRIPTS) not in sys.path:
+    sys.path.insert(0, str(_SHARED_SCRIPTS))
+
+from model_receipt import attach_model_receipt
+
 # The dcode binary can be overridden for non-standard installs / tests.
 DCODE_CLI = os.environ.get("DCODE_CLI_PATH", "dcode")
 DEFAULT_MODEL = "dcode-configured-model"
@@ -52,6 +59,9 @@ REQUIRED_ENVELOPE_KEYS = (
     "runner",
     "effective_runner",
     "effective_model",
+    "requested_model",
+    "configured_model",
+    "model_receipt",
     "effective_provider",
     "auth_ok",
     "fallback_reason",
@@ -117,8 +127,14 @@ def normalize_envelope(
     result["runner"] = requested_runner
     result["effective_runner"] = effective_runner
 
-    if result.get("effective_model") is None:
-        result["effective_model"] = result.get("model") or requested_model
+    # `--model` is a compatibility label for this runner. It is not forwarded
+    # to the configured runtime, so it cannot become a serving receipt.
+    result.setdefault("model_forwarded", False)
+    attach_model_receipt(
+        result,
+        requested_model,
+        observed_source="not_observed",
+    )
 
     result.setdefault("fallback_reason", None)
 
@@ -455,7 +471,6 @@ def _run_dcode_impl(
 ) -> dict:
     requested_model = model
     model = model or DEFAULT_MODEL
-    effective_model = requested_model or DEFAULT_MODEL
     restrict_tools = resolve_restrict_tools(role, restrict_tools, allow_write)
     dcode_inner_timeout, subprocess_timeout = compute_timeouts(timeout)
 
@@ -469,7 +484,7 @@ def _run_dcode_impl(
             "working_dir": working_dir or os.getcwd(),
             "model": model,
             "requested_model": requested_model,
-            "effective_model": effective_model,
+            "model_forwarded": False,
             "output_format": output_format,
             "dcode_continue": dcode_continue,
             "resume_session": resume_session,
@@ -532,7 +547,7 @@ def _run_dcode_impl(
             "working_dir": cwd,
             "model": model,
             "requested_model": requested_model,
-            "effective_model": effective_model,
+            "model_forwarded": False,
             "output_format": output_format,
             "dcode_continue": dcode_continue,
             "resume_session": resume_session,
@@ -613,7 +628,6 @@ def _run_dcode_impl(
         "working_dir": cwd,
         "model": model,
         "requested_model": requested_model,
-        "effective_model": effective_model,
         "model_forwarded": False,
         "output_format": output_format,
         "output_format_forwarded": False,
@@ -729,9 +743,8 @@ def run_dcode(
             Relative ``prompt_files``/``session_file`` paths resolve against
             this directory.
         model: Accepted for compatibility; dcode uses its configured model.
-            When supplied, the label is reflected in ``effective_model``;
-            otherwise ``effective_model`` is the ``dcode-configured-model``
-            placeholder. Never forwarded to dcode.
+            This wrapper records the value as a request only. It is never
+            forwarded to dcode and cannot prove a serving model.
         output_format: 'text', 'json', or 'stream-json' (default: 'text').
             Advisory only; for 'json' the wrapper does a best-effort fence-strip
             and sets ``output_json_valid``.

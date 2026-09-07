@@ -1,17 +1,25 @@
 ---
 name: shared
-description: Marker file. Shared contracts, references, and runner scripts that other skills load by file path — not a skill to invoke.
+description: Shared references, schemas, and scripts used by the other skills. This directory is a library dependency, not an executable workflow.
 disable-model-invocation: true
 ---
 
-# shared
+# Shared library
 
-Not an invocable skill. This directory holds the assets other skills reference by path (`shared/references/...`, `shared/scripts/...`) once installed at `.agents/skills/shared/`.
+Load only the reference or script needed by the current skill. This marker keeps the library discoverable as one installation unit; it does not guarantee identical loading behavior across hosts.
 
-## Why this file exists
+## Resolve shared resources
 
-AgentSkills hosts scan a skills directory two ways: directories containing a `SKILL.md` load as one skill, and **every other loose `.md` file below the root loads as a legacy always-on skill whose full body is pinned into the system prompt**. Without this marker, each file under `references/` would be pinned that way — roughly 32 KB of contracts in every request, on every run.
+A path such as `shared/references/model-roster.md` is relative to the skill collection, not the user's project directory.
 
-This file makes the host treat `shared/` as a single unit and skip the tree. The name is `shared`, not `shared`: hosts validate the frontmatter name against the AgentSkills rule (lowercase a-z, 0-9, hyphens), and an underscore only earns a startup warning — it does not stop the load, so the skill was being listed anyway. `disable-model-invocation: true` is what actually keeps it out of the prompt, on Claude Code and on AgentSkills hosts alike (Codex reads the same intent from `agents/openai.yaml`). Net effect: the references stay readable on disk, none of them are pinned into context, and startup is quiet.
+1. Use the loaded `shared` skill's directory when available.
+2. For a source checkout, use `skills/shared/` under this repository.
+3. For a flat installation, find `shared/` beside the installed skills. If it is missing, report the missing library dependency instead of guessing a path or silently skipping a contract.
 
-Contents: `references/` (run-state contract, runner-common, model roster, task-shaped routing, engineering rules, local config, PR-watch contracts, grounded evidence, HTML page conventions), `scripts/` (runner discovery, job management, validators), `tests/`.
+Before a shell command, set `SHARED_DIR` to that resolved absolute directory in the same command. Other skills resolve their own scripts from their loaded skill directory. The `scripts/skill_paths.py` helper supports repository scripts that must find skills in both nested and flat layouts.
+
+## Contents
+
+1. `references/`: workflow stages, model routing, runner behavior, evidence, handoffs, and run state.
+2. `scripts/`: runner discovery, jobs, output handling, and validation.
+3. `tests/`, schemas, and hooks: executable checks and shared formats.

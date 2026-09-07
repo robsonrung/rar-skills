@@ -1,51 +1,31 @@
 # Full Review Report
 
+## Review plan
+
+State the scope, risk, seats, effort, planned routes, completed routes, unavailable routes, and coverage limit. State the active confidence threshold and nonblocking cap when either differs from the default.
+
 ## Summary
 
-What changed, why, and what to validate. Keep it short.
+State what changed and the most important result in a few sentences.
 
-## Walkthrough
+## Findings
 
-File-by-file intent, focus on the most important flows.
+List `CRITICAL` and `HIGH` findings first. For every finding, include the path and line range, impact, evidence, smallest useful fix, and verification result. Mark a concern that could not be verified as unverified.
 
-## Risks
+## Verification
 
-What could go wrong in production or in future maintenance. Include worst-case paths and any structural regressions that would make safe follow-up work harder.
+List commands, test results, manual checks, and relevant limits.
 
 ## Verdict
 
-`APPROVE`, `COMMENT`, or `REQUEST_CHANGES` — include reasoning tied to severity.
-
-## Top Issues
-
-List CRITICAL and HIGH first, then MEDIUM quick wins. Include path and line ranges. Mark verified bugs with ✓. For structural maintainability findings, state the simpler framing and smallest safe refactor path.
-
-## Test Plan
-
-Commands to run, plus any manual steps.
-
-## Panel Activity
-
-Two short subsections, present only when triangulation was active:
-
-- **Triangulation panel** — seats engaged, lens per seat, posture (`light | quality | degraded`), and any seats marked `unavailable` with reason.
-- **Adversarial-verify activity** — count of findings entered, count refuted, count survived, count inconclusive. List the refuted titles in one line each.
-- **Synthesis activity** — the synthesizer's short log: which multi-model corroboration bumps fired, which severity upgrades fired, which findings were dropped by the confidence filter vs. by the risk-based cap.
-
-Omit this entire section when `triangulation: off`.
+Use `APPROVE`, `COMMENT`, or `REQUEST_CHANGES`. A remaining critical or high finding requires `REQUEST_CHANGES`. A meaningful medium finding requires `COMMENT`. Otherwise use `APPROVE`.
 
 ## Questions
 
-Targeted questions for unclear intent or missing context.
+Ask only questions that block a confident conclusion.
 
----
+End every code report with:
 
-## Summary Line
-
-Always end the report with:
-
-```
+```text
 Bugs found: N | Verified: X | Refuted: Y | Verdict: APPROVE|COMMENT|REQUEST_CHANGES
 ```
-
-If no bugs were verified, explicitly say the diff looks clean — do not manufacture findings. Optionally mention refuted candidates briefly so the user knows what was checked and dismissed.

@@ -188,10 +188,10 @@ This skill's `run_codex.py` wrapper exposes `--effort <level>` (mapped to the Co
 
 | Level              | Use case                                | Cost    |
 | ------------------ | --------------------------------------- | ------- |
-| `none` / `minimal` | Simple lookups, quick answers           | Lowest  |
-| `low`              | Straightforward single-file edits       | Low     |
-| `medium`           | Multi-file changes, standard reviews    | Default |
-| `high`             | Complex refactors, thorough analysis    | High    |
-| `xhigh`            | Architecture decisions, security audits | Highest |
+| `low`              | A bounded route with local proof that its acceptance contract still passes | Low |
+| `medium`           | Bounded implementation or review with explicit acceptance checks | Default |
+| `high`             | Complex refactor, system boundary, or difficult diagnosis | High |
+| `xhigh`            | Unresolved high-risk work after a tighter prompt did not resolve it | Higher |
+| `ultra`            | Explicitly approved exceptional route with a recorded reason | Highest |
 
-Prefer tighter prompts over higher effort. If `medium` with a good `<completeness_contract>` isn't working, improve the prompt before bumping to `high`.
+Prefer a tighter prompt over higher effort. If `medium` with a good `<completeness_contract>` does not work, improve the prompt before raising effort.

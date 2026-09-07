@@ -3,11 +3,79 @@
   "title": "Full Review Output",
   "type": "object",
   "required": [
+    "review_plan",
     "comments",
     "verdict",
     "summary"
   ],
   "properties": {
+    "review_plan": {
+      "type": "object",
+      "required": [
+        "scope",
+        "risk",
+        "seats",
+        "effort",
+        "planned_routes",
+        "completed_routes",
+        "unavailable_routes",
+        "verification"
+      ],
+      "properties": {
+        "scope": {
+          "type": "string",
+          "enum": [
+            "focused",
+            "seam",
+            "deep"
+          ]
+        },
+        "risk": {
+          "type": "string",
+          "minLength": 1
+        },
+        "seats": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "effort": {
+          "type": "string",
+          "minLength": 1
+        },
+        "planned_routes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "completed_routes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "unavailable_routes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "verification": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      },
+      "additionalProperties": false
+    },
     "comments": {
       "type": "array",
       "items": {
@@ -24,11 +92,13 @@
           "problem",
           "evidence",
           "suggested_fix",
-          "tests_to_run"
+          "tests_to_run",
+          "verification"
         ],
         "properties": {
           "id": {
-            "type": "string"
+            "type": "string",
+            "minLength": 1
           },
           "severity": {
             "type": "string",
@@ -60,7 +130,8 @@
             ]
           },
           "path": {
-            "type": "string"
+            "type": "string",
+            "minLength": 1
           },
           "line_start": {
             "type": "integer",
@@ -71,89 +142,45 @@
             "minimum": 1
           },
           "title": {
-            "type": "string"
+            "type": "string",
+            "minLength": 1
           },
           "problem": {
-            "type": "string"
+            "type": "string",
+            "minLength": 1
           },
           "evidence": {
             "type": "array",
+            "minItems": 1,
             "items": {
-              "type": "string"
+              "type": "string",
+              "minLength": 1
             }
           },
           "suggested_fix": {
-            "type": "string"
-          },
-          "prompt_for_agent": {
-            "type": "string"
+            "type": "string",
+            "minLength": 1
           },
           "tests_to_run": {
-            "type": "string"
-          },
-          "questions": {
-            "type": "string"
-          },
-          "notes": {
-            "type": "string"
-          },
-          "verified": {
-            "type": "boolean",
-            "description": "Whether Phase 4 execution-based verification confirmed this finding. Absent when verify_mode=false."
-          },
-          "verification_evidence": {
             "type": "string",
-            "description": "Output or description of the verification script/probe that confirmed or refuted this finding."
+            "minLength": 1
+          },
+          "verification": {
+            "type": "string",
+            "minLength": 1
           },
           "source": {
             "type": "string",
-            "pattern": "^(quality_gate|persona_(spec|security|reliability|performance|maintainability|tests)|bug_finder_(injection|auth|logic|data|regression|performance)|specialist_(database|api_contract|authorization|performance|integration|data_integrity)|external_[a-z0-9_]+|skeptic_[a-z0-9_]+|orchestrator|synthesizer)$",
-            "description": "Source seat that originated the finding. `external_<seat>` is data-driven from the seats discovered at preflight (e.g. external_opus, external_codex, external_gemini, external_kimi, external_glm, external_gemma, external_qwen, external_minimax, external_sonnet). `skeptic_<seat>` is reserved for adversarial-verify refutation seats. `synthesizer` is reserved for the fresh-model Phase 5 synthesizer."
-          },
-          "corroborated_models": {
-            "type": "integer",
-            "minimum": 1,
-            "description": "Count of distinct models (not just distinct sources) that independently raised this finding. Used by the multi-model corroboration boost in references/filtering_pipeline.md section 3."
-          },
-          "adversarial_verify": {
-            "type": "object",
-            "description": "Result of the adversarial-verify sub-pass (Phase 4) when a hot single-model finding was challenged by skeptics.",
-            "properties": {
-              "skeptics": {
-                "type": "array",
-                "items": { "type": "string" },
-                "description": "Skeptic seat ids used (e.g. kimi, glm, gemma)."
-              },
-              "refuted_count": { "type": "integer", "minimum": 0 },
-              "verdict": {
-                "type": "string",
-                "enum": ["survived", "refuted", "inconclusive"]
-              },
-              "rationale": { "type": "string" }
-            },
-            "additionalProperties": false
+            "minLength": 1,
+            "description": "Approved route that raised the finding."
           },
           "corroborated_by": {
             "type": "array",
             "items": {
-              "type": "string"
-            }
-          },
-          "autofix_class": {
-            "type": "string",
-            "enum": ["gated_auto", "manual", "advisory"],
-            "description": "Follow-up shape signal, not apply permission: gated_auto = concrete suggested_fix a fixer may apply under explicit apply authority; manual = needs design input; advisory = report-only. Seats may emit safe_auto but scripts/findings_mechanics.py remaps it to gated_auto — full-review never grants silent apply on code."
-          },
-          "triage": {
-            "type": "string",
-            "enum": ["apply_queue", "decision_gate"],
-            "description": "Triage group computed by scripts/findings_mechanics.py. apply_queue = an automated fixer with apply authority may act; decision_gate = a human decides. Synthesis may narrow apply_queue to decision_gate, never the reverse."
-          },
-          "confidence_raw": {
-            "type": "number",
-            "minimum": 0,
-            "maximum": 1,
-            "description": "Seat-reported confidence before scripts/findings_mechanics.py snapped it down to the discrete anchors 0, 0.25, 0.5, 0.75, 1.0."
+              "type": "string",
+              "minLength": 1
+            },
+            "description": "Other approved routes that raised the same finding. This does not change severity or confidence."
           }
         },
         "additionalProperties": false
@@ -192,22 +219,31 @@
             "LOW"
           ],
           "properties": {
-            "CRITICAL": { "type": "integer", "minimum": 0 },
-            "HIGH": { "type": "integer", "minimum": 0 },
-            "MEDIUM": { "type": "integer", "minimum": 0 },
-            "LOW": { "type": "integer", "minimum": 0 }
+            "CRITICAL": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "HIGH": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "MEDIUM": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "LOW": {
+              "type": "integer",
+              "minimum": 0
+            }
           },
           "additionalProperties": false
         },
-        "bugs_summary": {
-          "type": "object",
-          "description": "Summary of execution-based verification results from Phase 4. Absent when verify_mode=false.",
-          "properties": {
-            "bugs_found": { "type": "integer", "minimum": 0 },
-            "bugs_verified": { "type": "integer", "minimum": 0 },
-            "bugs_refuted": { "type": "integer", "minimum": 0 }
-          },
-          "additionalProperties": false
+        "coverage_limits": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
         }
       },
       "additionalProperties": false

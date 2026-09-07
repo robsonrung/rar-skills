@@ -1,10 +1,10 @@
 # Encoded principles — HumanLayer, _Writing a good CLAUDE.md_
 
-Source: https://www.humanlayer.dev/blog/writing-a-good-claude-md (principles version: 2025-06). These are **opinionated heuristics**, not validated constants. Surface them as overridable defaults with their provenance; the only non-overridable rule in this skill is the human-review gate.
+Source: https://www.humanlayer.dev/blog/writing-a-good-claude-md (principles version: 2025-06). These are opinionated heuristics, not validated constants. Surface them as overridable defaults with their provenance.
 
 ## Thesis
 
-LLMs are stateless and only know what each session provides. The memory file (CLAUDE.md / AGENTS.md) loads into **every** session, making it the highest-leverage onboarding document — so it should be deliberately **hand-crafted**, not auto-generated. `/init` auto-generation is the named anti-pattern; this skill is its deliberate counterweight.
+The memory file loads into every session, so it should be deliberately hand-crafted from verified project facts. Avoid scanned boilerplate and copied rules that the project cannot support.
 
 ## WHAT / WHY / HOW framework
 

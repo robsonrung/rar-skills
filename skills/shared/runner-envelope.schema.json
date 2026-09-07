@@ -8,6 +8,9 @@
     "runner",
     "effective_runner",
     "effective_model",
+    "requested_model",
+    "configured_model",
+    "model_receipt",
     "effective_provider",
     "auth_ok",
     "fallback_reason",
@@ -28,7 +31,55 @@
         "string",
         "null"
       ],
-      "description": "Model that actually answered; equals model unless overridden by the CLI/provider."
+      "description": "Model observed in a native or provider receipt. Null when the wrapper has only a requested or configured model label."
+    },
+    "requested_model": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Model requested by the caller. This is intent, not evidence that the model served the run."
+    },
+    "configured_model": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Model forwarded to a CLI or configured for a runner when known. This is not a serving receipt."
+    },
+    "model_receipt": {
+      "type": "object",
+      "description": "Serving-model provenance. A route can claim verified model access only when status is verified.",
+      "required": [
+        "status",
+        "source",
+        "observed_model"
+      ],
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": [
+            "verified",
+            "unverified"
+          ]
+        },
+        "source": {
+          "type": "string",
+          "enum": [
+            "native_event",
+            "provider_event",
+            "configured_model",
+            "not_observed"
+          ]
+        },
+        "observed_model": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": false
     },
     "effective_provider": {
       "type": "string",

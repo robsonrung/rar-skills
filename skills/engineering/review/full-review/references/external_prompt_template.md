@@ -1,34 +1,8 @@
-# External Model Review Prompts
+# External review prompts
 
-External runners share one **base template** (same diff, same `rules_compact`, same budget — see SKILL.md Phase 3 "Identical conditions"), but every seat is launched against a **specific lens**. The lens decides three things: the `<role>` text, the **what-to-look-for emphasis**, and the **context window** (diff slice vs. whole touched files + dependents).
+Use this template only for a seat selected by the approved routing plan. Read `references/review-dispatch.md` first. That dispatch contract owns the seat, runner, model, effort, fallback rule, and review scope; this file owns only the lens prompt.
 
-A seat without a lens-matched mission is a wasted seat. If the active triangulation preset only allows one external runner, pick the lens whose category bucket the diff most heavily touches (Quality Gate categories in SKILL.md Phase 2).
-
-## Seat → Lens Default Routing
-
-The orchestrator discovers available runners at preflight (see SKILL.md Phase 3 "Runner Discovery") and assigns each one a default lens from this table. The table is a default, not a hard binding — when `security_focus=true` or a specialist trigger fires, the orchestrator may reassign a seat to the matching lens.
-
-Role diversity follows model strengths: **the default Codex seat for recall and logic, Opus for precision and root cause validation, the code-specialized Codex seat for security, Sonnet for maintainability, Gemini for cross-file consistency, GLM for edge cases, Kimi for broad pragmatic review, and Grok for execution-path and agentic-flow verification.**
-
-Seat → model id mapping is **not pinned in this file** — `shared/references/model-roster.md` owns it. Invocations below are alias-first (`claude-runner --model opus|sonnet`) or rely on the runner's roster-backed default; the one explicit id is `--model gpt-5.6-terra`, which selects a distinct review-specialized seat rather than re-pinning the default Codex seat (`gpt-5.3-codex` is retired under ChatGPT auth).
-
-| Seat | Default lens | Why |
-| --- | --- | --- |
-| `codex` (`codex-runner --effort high`) | `logic_state` | Broad recall for logic, state, concurrency, and focused execution paths |
-| `opus` (native Agent or `claude-runner --model opus --effort medium`) | `precision_root_cause` | Precision pass over the highest-risk candidate paths; also serves as the fresh Phase 5 synthesizer |
-| `sonnet` (native Agent or `claude-runner --model sonnet`) | `structural_maintainability` | Strongest at clean-code / maintainability — applies `references/structural_quality_review.md` and names a safer refactor path |
-| `gemini` (`gemini-runner`) | `cross_file_consistency` | Broad, long context; feed whole touched files + dependents, not just the diff slice |
-| `grok` (`grok-runner --effort high`) | `logic_state` second seat | Terminal-Bench-class agentic strength — execution paths, CLI/tool invocation flows, integration behavior; non-overlapping emphasis with codex's logic/state/concurrency |
-| `glm` (`pi-runner --seat glm --thinking medium`) | `broad_sweep` | Edge cases, boundary conditions, resource/failure paths; assign a different category emphasis than kimi |
-| `kimi` (`pi-runner --seat kimi --thinking medium`) | `broad_sweep` | Fast, pragmatic — input-validation, exposure, resource leaks across the whole diff |
-| `codex-code` (`codex-runner --model gpt-5.6-terra --effort high`) | `security_runtime` | Review-specialized security, regression, and runtime reliability review |
-| `gemma` (`pi-runner --seat gemma --thinking medium`) | `broad_sweep` | Cheap third sweep — pair with kimi/glm to form a skeptic pool for adversarial verify |
-| `qwen` (`pi-runner --seat qwen --thinking medium`) | `logic_state` | Codex backup when codex is unavailable; otherwise lend to broad_sweep |
-| `minimax` (`cline-runner --seat minimax --thinking medium`) | `cross_file_consistency` | Gemini backup with long context; otherwise lend to broad_sweep |
-
-The `gemma`, `qwen`, and `minimax` rows are ordinary probe results like every other row — `discover_runners.py` only covers them when they are named with `--seat` (see SKILL.md Phase 3), and their `available` field is read the same way. "Backup" describes their lens priority, not a different discovery mechanism.
-
-When two seats default to the same lens, give them **non-overlapping category emphasis** within that lens (e.g. kimi → input-validation + auth, glm → edge cases + resource leaks, gemma → regression + perf). The lens prompt's `<focus_emphasis>` block carries this assignment.
+Assign one lens to each selected route. If two routes inspect the same change, give them non-overlapping category emphasis. Do not add a seat because a runner happens to be available.
 
 ## Base Template
 
@@ -60,8 +34,8 @@ Review this change set through the lens above. Produce a structured list of high
 4. Provide concrete fix steps in `suggested_fix`.
 5. Provide specific validation in `tests_to_run`.
 6. Avoid nitpicks unless confidence is at least 0.9 and the fix is trivial.
-7. Stay inside your lens. If you spot something outside it, mention it in `notes` on a relevant finding, but do not raise it as a top-level comment — another seat owns that lens.
-8. Output valid JSON matching `references/review_output_schema.json`.
+7. Stay inside your lens. Do not add a finding outside the selected concern.
+8. Return a route result with comments that match the comment shape in `references/review_output_schema.json`.
 9. If no issues are found within your lens, return an empty `comments` array with verdict `APPROVE`.
 </grounding_rules>
 
@@ -95,7 +69,7 @@ Diff:
 
 {library_usage_notes}
 
-<structured_output_contract> Return a JSON object with three top-level keys: `comments`, `verdict`, and `summary`. Each comment must include: `id`, `severity`, `confidence`, `category`, `path`, `line_start`, `line_end`, `title`, `problem`, `evidence`, `suggested_fix`, and `tests_to_run`. `evidence` must be an array of short strings (one or more concrete code indicators). Set `source` to `external_<seat>` matching the seat that produced this answer. Add `prompt_for_agent` only when a concrete implementation handoff would help. </structured_output_contract>
+<structured_output_contract> Return { "comments": [...] }. Each comment must include severity, confidence, category, path, line_start, line_end, title, problem, evidence, suggested_fix, tests_to_run, and verification. Evidence must contain one or more concrete code indicators. Do not provide id or source; the route wrapper records them. </structured_output_contract>
 
 ````
 
@@ -143,7 +117,7 @@ You are a cross-file consistency and regression-risk reviewer with long context.
 </what_to_look_for>
 
 <focus_emphasis>
-Cross-file regressions only. A bug fully contained in the diff belongs to `logic_state` — flag it in `notes` and move on.
+Cross-file regressions only. Do not report a bug fully contained in the diff through this lens.
 </focus_emphasis>
 
 <context_window_policy>
@@ -155,17 +129,17 @@ Wide. Receive the full content of every touched file plus the top N dependents (
 
 ```text
 <role>
-You are a broad-sweep reviewer. Move fast across the whole diff hunting for the assigned category band: {category_emphasis}. Density over depth — flag every concrete instance, even small ones, as long as it sits inside the band.
+You are a broad-sweep reviewer. Review the whole diff for the assigned category band: {category_emphasis}. Return only the strongest evidence-backed findings.
 </role>
 
 <what_to_look_for>
 1. Concrete instances inside the assigned category band: {category_emphasis}.
-2. Repeated identical issues (flag each instance — synthesis will dedupe).
+2. Repeated issues only when each location needs a separate fix.
 3. Boundary cases the change introduces and forgets (empty, nil, max, negative, unicode).
 </what_to_look_for>
 
 <focus_emphasis>
-Stay inside `{category_emphasis}`. Anything else belongs to another seat — note it on a related finding if relevant, never as a top-level comment.
+Stay inside `{category_emphasis}`. Do not turn an unrelated observation into a finding.
 </focus_emphasis>
 
 <context_window_policy>
@@ -173,14 +147,7 @@ Whole diff, no extended context. Speed matters.
 </context_window_policy>
 ```
 
-The orchestrator fills `{category_emphasis}` per seat. Typical assignments:
-
-| Seat | `{category_emphasis}` |
-| --- | --- |
-| `kimi` | input validation, injection, auth/session handling |
-| `glm` | edge cases, boundary conditions, resource leaks, unbounded allocations |
-| `gemma` | regression risk on changed behavior, perf hot spots |
-| `grok` (within `logic_state`) | execution paths, CLI/tool invocation flows, integration behavior |
+The approved plan assigns `{category_emphasis}`. Typical category bands are input validation and authorization, edge cases and resource bounds, regression and performance, or execution and integration paths.
 
 ### `security_runtime`
 
@@ -260,9 +227,9 @@ Whole touched files, plus sibling files in the same package/module so layer owne
 </context_window_policy>
 ```
 
-## Adversarial-Verify Skeptic Prompt
+## Optional independent challenge prompt
 
-Used by the Phase 4 adversarial-verify sub-pass. Each skeptic gets the **finding under test** plus the **diff slice it points at**, and is prompted to refute.
+Use this only when the approved plan selects an independent challenge. The reviewer receives the finding under test and its diff slice, then tries to refute it.
 
 ````text
 <role>

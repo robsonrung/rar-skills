@@ -1,6 +1,6 @@
 ---
 name: coding-review-simplify
-description: Final review-and-simplify pass on a just-completed implementation before handoff. Use after an agent finishes coding work, or when the user asks to tighten, audit maintainability, remove unnecessary abstraction, verify architecture fit, or check data risk in a concrete diff.
+description: Review a completed code change for behavior-preserving simplification, local correctness, and maintainability. Use after implementing a scoped task or when the user asks to simplify a concrete diff. Do not use as a full feature review or to choose the delivery reviewer plan.
 allowed-tools:
   - Bash
   - Read
@@ -12,122 +12,33 @@ allowed-tools:
 
 # Coding Review Simplify
 
-Use this skill after code has been changed or when reviewing a concrete diff. The goal is to catch correctness risks and simplify the result before handoff.
+Tighten a completed diff while the implementation context is fresh. The result is a smaller coherent shape, or a focused concern with proof. The next consumer is the approved review plan.
 
-## Pipeline position
-
-This pass runs **before** `full-review`, not after it. The author (or the agent that just wrote the code) self-simplifies while the implementation context is still fresh and cheap to change; `full-review`'s multi-model gate then reviews the _final_ code. Reversing the order wastes the gate on code that is about to be rewritten.
-
-Vocabulary is borrowed, not re-derived: name smells and naming problems with `clean-code`'s catalog (primitive obsession, data clump, feature envy, earned comment, and the rest) instead of inventing local labels for them.
+This is a behavior-preserving pass. It does not automatically call `full-review`. The approved routing plan decides whether a later focused, seam, or deep review is needed.
 
 ## Workflow
 
-1. Read the user request, changed files, diff, and verification already run.
-2. Check whether the implementation matches the intended behavior and chosen design shape.
-3. Review the smallest relevant surface first, then expand only if the diff crosses boundaries.
-4. For a standard or deep review, dispatch the Persona Pass below.
-5. Run the Simplification Pass below.
-6. Check names, responsibilities, interfaces, and edge cases for one coherent model.
-7. If stored state or async behavior changed, hand the data risk to `data-systems-coding-lens` — it owns the concrete checks (source of truth, invariants, retries, migrations, compatibility, observability, repair path) and this skill does not restate them.
-8. If the diff feels tangled or crosses a boundary, run the Connascence Pass below on the diff.
-9. Turn important concerns into a focused fix, test, static check, contract check, migration check, or explicit follow up.
-10. Finish with the shortest honest outcome.
+1. Read the task acceptance contract, changed files, diff, and verification already captured. Start with the changed surface and expand only across a real boundary.
+2. Check the change against its intended observable behavior. Report a concern only when it can cause a bug, regression, maintenance trap, data risk, weak verification, or material reader confusion.
+3. Simplify only when the result remains behavior-preserving. Keep validation at trust boundaries, authorization checks, invariant assertions, encoding, and accessibility safeguards unless evidence proves they are dead.
+4. Select a focused review when the diff adds a helper, changes ownership, or affects a hot or asynchronous path. Read the matching persona from `references/personas/` only for that concern. Use `data-systems-coding-lens` when stored state or asynchronous behavior changes.
+5. Run the **Connascence Pass** only when the diff crosses a boundary or feels tangled. Identify what is **connascent**, then state its strength, locality, degree, and smallest safe remedy. Leave local static coupling alone when extraction adds indirection without safety.
+6. Escalate a boundary-wide design concern to the relevant lens. Do not start a broader refactor from this pass.
+7. Turn each accepted concern into a focused fix, test, check, or explicit follow-up. Re-run only the verification affected by a made change.
 
-## Review Modes
+## Simplification cues
 
-Choose one mode:
+Use the `clean-code` vocabulary. Look for a helper with no decision, a type that hides an awkward contract, needless memoization or effects, compatibility code with no callers, and unrelated diff churn. A name can be better than a wrapper. Duplication can stay when the concepts may diverge.
 
-1. Light review for a narrow local change. Focus on behavior, naming, simple control flow, and verification.
-2. Standard review for multiple files, shared helpers, APIs, persistence, or meaningful tests. Add boundary, data, and regression checks.
-3. Deep review for service boundaries, public contracts, migrations, data ownership, deployment behavior, or long lived decisions. Add tradeoff and decision note checks.
+## Output
 
-## Persona Pass
+For review-only work, list findings by severity with location, consequence, smallest useful fix, and verification.
 
-For standard and deep reviews (skip in light mode unless the user asks), spawn three reviewer subagents **in parallel** — one message, three calls. Seed each with its persona file plus the diff or resolved file set:
+For implementation work, return:
 
-1. `references/personas/code-reuse-reviewer.md` — new code that duplicates existing utilities, reimplements stdlib/runtime primitives, or hand-maintains guarantees a platform layer already provides.
-2. `references/personas/code-quality-reviewer.md` — redundant state, parameter sprawl, copy-paste variants, leaky abstractions, stringly-typed code, dead code.
-3. `references/personas/efficiency-reviewer.md` — wasted work, missed concurrency, hot-path bloat, no-op update storms, memory leaks.
+1. Outcome: safe as is, simplified, needs a focused fix, or needs design escalation.
+2. Changes made.
+3. Verification captured.
+4. Remaining risk.
 
-Every persona is behavior-preserving by contract. Merge their findings through the Findings Bar below: dedupe, keep exact `file:line` references, drop anything below the bar, and reject at merge any finding that would change observable behavior.
-
-## Connascence Pass
-
-Use this only when the diff feels tangled or crosses a boundary, and keep it **scoped to the current diff**: the pass looks at coupling the change introduced or tightened, in the files the change touched. Do not audit the surrounding codebase from here.
-
-Measure coupling as **connascence** — two pieces of code are connascent when changing one forces a change in the other — and name it along its three axes:
-
-1. Strength: is the connascence static and visible, or dynamic and runtime dependent?
-2. Locality: is it inside one cohesive unit, or across modules, services, contracts, or teams?
-3. Degree: how many callers, files, records, or systems must change together?
-4. Remedy: weaken the strongest distant connascence first, such as replacing magic values with names, positional arguments with named data, hidden order with explicit state, or duplicated algorithms with one owned implementation. The rule of thumb: the more distant the coupling, the weaker its strength should be.
-5. Restraint: leave local static connascence alone when extraction would add indirection without safety.
-
-**Handoff.** A structural coupling finding whose fix reaches beyond this diff — a layer in the wrong place, a dependency pointing the wrong way, a module that has outgrown its cohesion — is recorded and handed to `architecture-lens`, which owns the connascence taxonomy and the codebase-wide judgment. Name the finding, name where it points, and stop; do not start that refactor from inside a simplification pass.
-
-## Findings Bar
-
-Report a finding only when it can cause a bug, regression, maintenance trap, architecture drift, data risk, weak verification, or meaningful reader confusion.
-
-For each finding, include:
-
-1. Where it is.
-2. Why it matters.
-3. The smallest useful fix.
-4. The verification that would prove it.
-
-## Slop Taxonomy
-
-Name each finding with the slop it is — a named category travels between reviewers better than "this feels off". Comment slop stays owned by `clean-code` (its earned-comment test); this pass owns the rest:
-
-1. **Helper slop** — tiny wrappers that add no meaning, helper files created only to make one function look shorter, indirection with no decision behind it.
-2. **Type slop** — exported one-off types, custom result/error shapes where the codebase has a standard one, annotations where inference is clearer, types that paper over awkward code instead of fixing it.
-3. **Memo/callback slop** — memoization (`useMemo`/`useCallback`/manual caches) added without a measured or structural reason. Framework-gated: only in codebases using such primitives.
-4. **Effect slop** — effects that mirror props/state, reset derived state, or handle events after the fact instead of in the handler. Framework-gated likewise.
-5. **Compatibility cruft** — bolted-on behavior that preserves accidental architecture instead of building the coherent end state. **Search for real callers before preserving compatibility**: a mode, prop, wrapper, alias, or fallback with no current caller is deleted, not improved. Optimize for the code that should exist, not the smallest diff from the old shape.
-6. **Diff churn** — unrelated renames, formatting, comments, or wrappers that make the change larger without improving the design.
-
-## Simplification Pass
-
-**Never simplify away a safety check.** Validation at trust boundaries, authorization checks, invariant assertions, escaping and encoding, and accessibility affordances are not removable boilerplate — they stay even when they look redundant from the local diff, and even when a lower layer appears to cover them. Defense in depth is intentional; if a check is truly dead, prove it with a citation, don't assume it.
-
-Before final delivery, ask — every answer must stay **behavior-preserving**, since this is simplification, not a behavior change:
-
-1. Can any new abstraction be deleted or made local?
-2. Can dead code, leftover indirection, broad helpers, or noisy comments be removed?
-3. Can a name make a helper unnecessary?
-4. Can control flow be flatter without changing behavior?
-5. Can duplicated code stay duplicated because the concepts may diverge?
-6. Can a test express the invariant better than a comment, asserting **observable behavior** rather than implementation detail?
-7. Does the final code still fit the repo style?
-
-## Output Contract
-
-For review only, lead with findings ordered by severity and include file and line references.
-
-For completed implementation work, include:
-
-1. `outcome`: safe as is, simplified, needs one focused fix, or needs design escalation.
-2. `changes`: simplifications or fixes made.
-3. `verification`: tests or checks run.
-4. `remaining_risk`: what still needs attention, if anything.
-
-**Net lines removed is not the success metric.** Never report the pass as "-N lines" — that metric rewards deleting safety checks and inlining named concepts. Summarize per dimension with quantities instead: duplications replaced with existing utilities, abstractions deleted or made local, dead code paths removed, inefficiencies fixed, findings deferred. A simplification that adds lines to remove distant coupling is still a win.
-
-## References
-
-Read on demand, not up front:
-
-- `references/personas/code-reuse-reviewer.md`, `references/personas/code-quality-reviewer.md`, `references/personas/efficiency-reviewer.md` — the three Persona Pass briefs.
-- `references/team-checklists.md` — completion, test-case, and release checklists. Read at the end of a review when the change is about to be handed off or deployed.
-
-## Gotchas
-
-1. Do not perform a full architecture review by default.
-2. Do not generate ADRs routinely.
-3. Do not expand scope after implementation unless there is a correctness or safety issue.
-4. Do not rewrite clear code into clever code.
-
----
-
-_Persona Pass and its reference personas adapted from [compound-engineering-plugin](https://github.com/EveryInc/compound-engineering-plugin) (MIT). See NOTICE._
+Use `references/team-checklists.md` only immediately before handoff or deployment. Do not measure success by lines removed; the measure is a simpler change that preserves observable behavior.

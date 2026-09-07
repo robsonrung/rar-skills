@@ -1,12 +1,12 @@
 ---
 name: knowledge-graph
-description: Build and operate a knowledge graph from documents using four Claude prompts sharing one Pydantic schema — extraction, entity resolution, entity summarization, and graph-grounded querying — in place of four trained NLP systems. Use when the user wants to build a knowledge graph or GraphRAG pipeline, extract entities and relations from documents, resolve or deduplicate entity mentions, answer multi-hop questions across many documents, summarize the themes or patterns running across an entire corpus, or give agents shared graph memory / a persistent world model. Includes the decision framework for when a graph is the wrong tool — not for single-document QA or single-hop retrieval (use direct prompting or RAG), and not for capturing session learnings into docs (that is capture-learning).
+description: "Build and operate a document knowledge graph through four schema-driven stages: extraction, entity resolution, entity summarization, and graph-grounded querying. Use when the user needs multi-hop answers, corpus-wide themes, provenance, or shared persistent graph memory. Do not use for single-document or single-hop retrieval, or for session learning notes."
 disable-model-invocation: true
 ---
 
-# Knowledge Graph: Four Models to Four Prompts
+# Knowledge Graph: Four Prompts, One Schema
 
-Building a knowledge graph classically required four trained systems — a named-entity recognizer, a relation classifier, an entity-resolution engine, and a summarizer — each with its own labeled dataset, its own training pipeline, and its own domain-shift failures. Structured outputs collapse all four into four prompts that share one Pydantic schema: **the schema is the only training data**. Adapting to a new domain means editing the schema and the prompt, not labeling and retraining.
+Structured outputs replace four separate trained systems with four prompts that share one schema: **the schema is the only training data**. Adapting to a new domain means changing the schema and prompt, then evaluating the result.
 
 Say it while working:
 
@@ -32,14 +32,14 @@ Say the routing-out sentence when it applies:
 
 ## The four-prompt pipeline
 
-Two model tiers, chosen per stage: a cheap fast tier where the schema does the work, a judgment tier where synthesis and conflicting evidence do.
+Use the extraction tier for schema-constrained volume and the generation tier for judgment over conflicting evidence. Resolve current models through the host or collection routing; do not pin model ids in this workflow.
 
-| Prompt        | Model tier              | Why this tier                    |
-| ------------- | ----------------------- | -------------------------------- |
-| Extraction    | Cheap/fast (e.g. Haiku) | High volume, schema-constrained  |
-| Resolution    | Judgment (e.g. Sonnet)  | Weighing conflicting evidence    |
-| Summarization | Judgment (e.g. Sonnet)  | Synthesizing across documents    |
-| Querying      | Judgment (e.g. Sonnet)  | Multi-hop reasoning over triples |
+| Prompt | Model tier | Why this tier |
+| --- | --- | --- |
+| Extraction | extraction | High volume and schema constrained |
+| Resolution | generation | Weigh conflicting evidence |
+| Summarization | generation | Synthesize across documents |
+| Querying | generation | Reason over graph paths |
 
 Full schemas, prompt text, and code: [references/pipeline.md](references/pipeline.md).
 

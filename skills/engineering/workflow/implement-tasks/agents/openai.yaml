@@ -1,8 +1,6 @@
-# Codex-host interface/registration config for this skill (display metadata and
-# default prompt shown in the Codex app). Not meant to be read at runtime.
 interface:
   display_name: "Implement Tasks"
-  short_description: "Build the approved task queue with implement-and-review per task, review the seams, and open the PR"
-  default_prompt: "Use $implement-tasks. This thread is the orchestrator: name it ORCHESTRATOR · implement-tasks · <feature> and pin it. Build every slice in the approved task queue by opening one new thread per task, sending it a checkable /goal and then its brief, running implement-and-review there (parallel where independent), and archiving each thread once its envelope is recorded. Integrate in dependency order, run the feature-wide full-review, make residual findings durable, and open the PR."
+  short_description: "Approve models, execute the approved queue, and verify"
+  default_prompt: "Use $implement-tasks on the approved queue. Present exact implementation and review models, runners, effort levels, and task assignments for my approval before dispatch. Then run implement-and-review per task, integrate dependencies, verify acceptance, and review the seams. Keep delivery within my authorization."
 policy:
   allow_implicit_invocation: false

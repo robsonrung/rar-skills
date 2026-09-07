@@ -31,6 +31,16 @@ jobs:
         run: python3 skills/shared/tests/test_runner_parity.py
       - name: Task shaped model routing
         run: python3 skills/shared/tests/test_model_routing.py
+      - name: Serving model receipt provenance
+        run: python3 skills/shared/tests/test_model_receipt.py
+      - name: Approved implementation dispatch
+        run: python3 skills/engineering/engine/implement-and-review/tests/test_launch.py
+      - name: Review finding integrity
+        run: python3 skills/engineering/review/full-review/tests/test_findings_mechanics.py
+      - name: Council approval boundary
+        run: python3 skills/engineering/workflow/models-consensus/tests/test_user_approval_contract.py
+      - name: Council terminal transport
+        run: python3 skills/engineering/workflow/models-consensus/tests/test_cmux_council.py
       - name: Skill frontmatter + runner-dir parity
         run: python3 skills/shared/scripts/validate_skill_frontmatter.py
       - name: Command guard denylist

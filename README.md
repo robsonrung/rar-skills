@@ -1,258 +1,141 @@
 # rar-skills
 
-Claude Code skills that compose into **one development workflow** in four steps — interview → PRD → tasks → implement — with every human decision collected in the first three steps and the fourth running autonomously while still optimizing architecture, tests, simplicity, and security.
+`rar-skills` is an engineering skill library. Its main workflow turns a
+well-understood request into a verified local result through four clear stages:
 
-## The workflow
+`interview-me` → `to-prd` → `to-tasks` → `implement-tasks`
 
-Four skills you type, one after the other. Each ends by naming the next; each is also usable on its own.
+The full contract is in [docs/workflow.md](docs/workflow.md). It is the current
+source for workflow behavior.
 
-| Step | Skill | What it does | Accessory skills that run inside it |
-| --- | --- | --- | --- |
-| 1. Interview | `interview-me` | Grill the idea against the code, the glossary (`CONCEPTS.md`), and past decisions (`docs/adr/`) in frontier rounds until spec-ready, writing glossary entries and ADRs as decisions settle. | `security-gate` (threat-model-lite checklist), `test-lens` (naming the test seams), `to-prototype` (detour for a question only running code can settle) |
-| 2. PRD | `to-prd` | Synthesize the PRD from the interview, security decisions and test seams included. No second interview. | `security-gate`; optional multi-model panel mode |
-| 3. Tasks | `to-tasks` | Cut tracer-bullet vertical slices, each with a machine-checkable acceptance contract and design/security gate flags. **The last human gate.** | `design-gate`'s routing table and `security-gate`'s trigger list, to set the flags |
-| 4. Implement | `implement-tasks` | Build the slice DAG with one fresh, goal-driven worker thread per slice running `implement-and-review` in parallel worktrees, integrate in dependency order, review the seams, make residual findings durable, open the PR. | per slice: `coding-design-plan` → `design-gate` (the lenses) → `tdd` (+ `safe-incremental-coding`, `clean-code`, `test-lens`, `diagnose`) → `coding-review-simplify` → `full-review`; then `open-pr` |
+## Workflow
 
-`implement-tasks` is a **thin conductor**: each slice builds in its own newly created worker (a subagent, or on the Codex / ChatGPT app a new thread) that runs `implement-and-review`, starts with a checkable `/goal`, and is archived once it reports back; the orchestrator thread is named and pinned. What crosses back is a report on disk plus a short envelope — _hand off the path, not the payload_. Progress lives in a run state on disk, so a run survives compactions and restarts. After the step-3 approval nothing asks you anything: contested decisions go to `models-consensus`, and only destructive or irreversible operations hard-stop for a human.
-
-Full narrative, design principles, and conventions: [docs/workflow.md](docs/workflow.md). Per-skill call map for the five workflow skills, with the condition and principle behind every call: [docs/workflow-call-map.html](docs/workflow-call-map.html). Skill catalogue and call map, a snapshot taken before this four-step consolidation: [docs/skills-atlas.html](docs/skills-atlas.html).
-
-Supporting casts: **design lenses** (`architecture-lens`, `macro-architecture`, `domain-driven-design`, `software-design-philosophy`, `design-patterns`, `data-systems-coding-lens`, `distributed-systems-patterns`, `agent-architecture-lens`, `advanced-react`, `ui-ux-pro-max`) are routed by `design-gate` rather than chosen by hand; **`models-consensus`** answers contested questions with a multi-model council and is what the autonomous step escalates to instead of asking the user; **`fable-mindset`** governs turn-level posture; **knowledge** is kept current by `interview-me` (writes glossary entries and ADRs as decisions settle) and `capture-learning` (records solved problems); the **`*-runner`** family provides the model seats.
-
-`models-consensus` runs one of three modes:
-
-| Mode | Protocol | Pick when |
+| Stage | Output | Main responsibility |
 | --- | --- | --- |
-| `poll` (default) | Blind fan-out of the raw prompt to every seat → organizer maps answers into a five-dimension analysis → one gated gap-repair round → two judges rule on survivors → a dedicated synthesizer writes the final answer. | You want a higher-confidence or reconciled answer to a question. |
-| `debate` | Seats argue from assigned stances (supportive, critical, balanced synthesis, devil's advocate, pragmatic engineering, outsider fresh eyes) across up to 3 rounds, moderated into agreement/disagreement points, ending in a convergence verdict. | You want a design or architecture direction pressure-tested across rounds. |
-| `personas` | One model wears five lenses (Contrarian, First Principles, Expansionist, Outsider, Executor), with anonymized peer review and a chairman verdict. | A business/strategy/judgment call, or automatically when fewer than 3 distinct model seats are available. |
+| `interview-me` | `decision-record.md` | Read the repository first, then ask exactly five independent questions when five exist and the interface can show them. Otherwise ask fewer, never more. Record decisions, assumptions, exclusions, security decisions, and observable success conditions. The record becomes `ready-for-prd` only when the interview closes. |
+| `to-prd` | `prd.md` | Turn a `ready-for-prd` decision record into a draft PRD. The user reviews it before it becomes approved. |
+| `to-tasks` | `tasks-draft.md`, then task slices | Create dependency-aware tasks with acceptance evidence and applicable engineering checks. The user approves the task breakdown before slices become `ready-for-agent`. |
+| `implement-tasks` | Verified local result | Show the proposed roles, exact implementation and review models, runners, reasoning effort, and model-verification policy before dispatch. Start work only after the user approves or changes that model plan. |
 
-All three modes are deliberation-only — the council answers, validates, and decides, but never implements or executes code on its own.
+Task approval and model-plan approval are separate. A task queue defines what
+will be built. The model plan defines who will implement and review it.
 
-## Repository layout
+`implement-tasks` checks model availability, chooses the strongest suitable
+model for each task shape, and uses the lowest sufficient reasoning effort. It
+reports unavailable seats and never silently replaces a preferred model or
+effort. It delegates bounded work to native subagents. Isolated worktrees and
+integration happen only when the user authorizes that work. Without delivery
+authorization, the result stays local and verified.
 
-```
-skills/                everything the `skills` CLI installs (it walks this directory, three levels deep)
-  engineering/         the workflow and everything it calls
-    workflow/            the engineer's toolbox — brainstorm · interview-me · to-prd · to-tasks · implement-tasks
-                         models-consensus · to-prototype; which tool you reach for depends on the task
-    engine/              implement-and-review · coding-design-plan · worktree
-    gates/               security-gate · design-gate
-    lenses/              architecture-lens · macro-architecture · domain-driven-design · software-design-philosophy
-                         design-patterns · data-systems-coding-lens · distributed-systems-patterns
-                         agent-architecture-lens · advanced-react · ui-ux-pro-max
-    practice/            tdd · safe-incremental-coding · clean-code · test-lens · diagnose · frontend-design
-    review/              coding-review-simplify · full-review
-    deliver/             open-pr · capture-learning · session-handoff · summarize · resolve-pr-feedback
-    seats/               claude-runner · codex-runner · gemini-runner · grok-runner
-                         pi-runner (--seat kimi|glm|qwen|gemma) · cline-runner (--seat muse|minimax) · dcode-runner · opencode-runner
-  visualization/         skills whose deliverable is a rendered page: explain-architecture (orientation page)
-                         · html-explainer (drill-down) · consensus-summary-html — all load
-                         shared/references/html-page-conventions.md
-  extras/                standalone skills the workflow does not call: diverse-plan, collaborative-delivery,
-                         review-gate, verify-changes, browser-smoke, knowledge-graph, dynamic-harness,
-                         peer-sessions, cmux-cli, fable-mindset, skill-expert, agents-md-craft,
-                         decide-about-disagreements
-  shared/                contracts, references, runner scripts, hooks, and tests every skill loads by path
-```
+A requested or configured model is not proof that it served a run. Each route
+records `model_verification` as `required` or `allow_unverified`. `required`
+needs `model_receipt.status: verified` from a native or provider event. The
+current Astra and Fable wrappers can lack an observed serving-model ID, so an
+`allow_unverified` route needs explicit approval and reports that limit clearly.
 
-The grouping is for reading the repository. Installed, every skill is a flat sibling under `.agents/skills/<name>/` (and `.claude/skills/<name>/`), with `shared/` next to them, so the paths skills use at runtime (`.agents/skills/shared/...`, `.agents/skills/pi-runner/...`) never change. Scripts that run from a source checkout locate `shared/` and sibling skills by name through `skills/shared/scripts/skill_paths.py`.
+The stage rules are in
+[workflow-stage-routing.md](skills/shared/references/workflow-stage-routing.md).
+Model choices are in
+[task-shaped-model-routing.md](skills/shared/references/task-shaped-model-routing.md)
+and [model-roster.md](skills/shared/references/model-roster.md).
 
-## Skill catalogue
+### Engineering practices in the workflow
 
-Every skill in the collection, grouped as in [Repository layout](#repository-layout). Full narrative in [docs/skills-atlas.html](docs/skills-atlas.html).
+| Moment | Skills |
+| --- | --- |
+| Discover risk and behavior | `security-gate`, a broad lens only when it changes the next question, and `to-prototype` when a runnable question blocks a decision |
+| Plan a task slice | `design-gate` once, `security-gate` for the security classification, and `test-lens` only for a real test-design decision |
+| Change the design during implementation | `coding-design-plan` and the inherited gate constraints |
+| Build new behavior | `tdd`, then `clean-code` for a refactor decision and `test-lens` for a test-design decision |
+| Change untested legacy code | `safe-incremental-coding` before broad edits |
+| Investigate an unexpected failure | `diagnose` |
+| Verify a completed change | `coding-review-simplify`, `full-review`, and `browser-smoke` for affected web flows |
 
-### engineering/
+Routine reviews use the normal design and review skills. They do not start a
+council.
 
-**Workflow**
+## Optional council
 
-- **`brainstorm`** — Creative exploration of half-baked ideas, plans, designs, and bugs. Acts as a creative thinking partner: digs into the motivation behind a request, explores the codebase, expands the solution space with alternatives the user hasn't considered, and closes with a strategic BUILD/DEFER/REDUCE SCOPE/REJECT verdict. Use when the user wants to brainstorm, shares a half-baked idea and wants help sharpening it, asks 'should we build this' or 'sharpen this idea', or wants to play devil's advocate on an idea (poke holes, challenge this, what am I missing). An opt-in Panel mode fans the exploration out to multiple models for ambiguous ideas — the multi-model alternative to the `interview-me` phase.
-- **`interview-me`** — Grill a feature idea, plan, or design against the code, the glossary (CONCEPTS.md), and past decisions (docs/adr/) until nothing is silently assumed, writing glossary entries and ADRs as decisions settle. The pipeline's specify-phase interview, run before `to-prd`. Use when the user says interview me, grill me on this, stress-test this plan, make this spec-ready, or write an ADR for this decision. Detours to `to-prototype` for a question only running code can settle. Not `brainstorm` (decides WHETHER to build), `to-prd` (synthesizes without interviewing), or `diagnose` (root-causes a bug).
-- **`to-prototype`** — Build a throwaway prototype (spike) that answers one design question only running code can settle — a shareable single-file HTML demo for a state model or business logic, or several radically different UI variants on one route — then extract the decision and discard the code. Use when the user says prototype this, spike this, try it quick and dirty, sanity-check whether this state machine / data model / logic feels right, or show me a few options for this page; or as the workflow's detour when `interview-me` hits a frontier question only running code can settle, or `coding-design-plan` needs a spike for one slice. Distinct from `coding-design-plan` (owns the prototype-vs-tracer-bullet decision — a tracer bullet is production-quality and kept), `tdd` (rebuilds the production version test-first), and `brainstorm` (explores ideas in prose, not code).
-- **`to-prd`** — Turn the current conversation into a PRD written to .ai-workflow/work/<feature-slug>/prd.md — no interview, just synthesis of what you've already discussed, with the security-gate threat-model-lite folded in so the spec answers everything the autonomous phases would otherwise ask. Use when the user wants a spec/PRD from the current discussion, or when a pipeline specify phase needs the PRD before task breakdown. The PRD it produces is the input to to-tasks.
-- **`to-tasks`** — Break an approved plan, spec, or PRD into autonomously executable tasks — tracer-bullet vertical slices that each carry a machine-checkable acceptance contract and design/security gate flags, so an agent can complete them without asking the user anything. Use when the user wants to break a plan into tasks, convert a spec or PRD into a work queue, create implementation tasks for autonomous agents, or when a pipeline planning phase needs the task breakdown. Writes one markdown file per task under .ai-workflow/work/<feature-slug>/tasks/, never to an issue tracker. Use whenever tasks will be executed by agents; for human-executed tickets without contracts, a plain checklist suffices. An opt-in Panel mode drafts the breakdown with a multi-model panel.
-- **`implement-tasks`** — Build every task in an approved task queue and deliver the result as a PR — step 4 of the workflow (interview-me → to-prd → to-tasks → implement-tasks). Given the to-tasks slices (or a plan to decompose through it), execute the dependency DAG by opening one fresh goal-driven worker per task (a subagent or new Codex app thread) that runs implement-and-review in an isolated worktree and is archived when done, integrate in dependency order, run one feature-wide full-review on the seams, make unapplied review findings durable, and open the PR with acceptance evidence and the decision log. Autonomous after the task approval — contested decisions go to models-consensus, never to the user, except for destructive or irreversible operations. Use when the user says implement the tasks, build the task queue, build and deliver this feature, or wants everything after the approved plan built and shipped. For a single scoped task call implement-and-review directly; models-consensus deliberates only.
-- **`models-consensus`** — Run a multi-model council in one of three modes — poll (default; blind fan-out to every available seat, five-dimension analysis, one gated gap-repair round, two judges, a synthesizer), debate (stance-driven rebuttals with anonymized moderator digests and a convergence verdict), or personas (one model wearing five thinking lenses — Contrarian, First Principles, Expansionist, Outsider, Executor — with anonymized peer review and a chairman). Seats span the runner roster (Claude, Codex, Gemini, Grok, Kimi, GLM, Qwen, Gemma, Muse). Use when the user wants consensus, to poll the models, a roundtable, multi-model validation, or says "council this", "run the council", "pressure-test this", "war room this", "stress-test this", "debate this", or asks "should I X or Y" with real stakes. Deliberation only — it answers, validates, and decides; it never implements and produces no code. Do NOT use for factual lookups or creation tasks; multi-model implementation PLANNING belongs to diverse-plan.
+`models-consensus` is for a user who explicitly asks for more opinions. It is
+user-invoked only. No workflow or model invokes it. Before it runs, it presents the mode, selected model seats,
+exact models and transports, roles, reasoning effort, call budget, and
+unavailable seats. The user approves or changes the roster. It provides
+deliberation only and never implements code.
 
-**Engine**
+## Delivery
 
-- **`coding-design-plan`** — Shape coding plans before implementation. Use when a coding task is ambiguous, broad, touches module or service boundaries, changes public interfaces, alters persistence or data flow, introduces an abstraction, or needs a design decision before edits. Also use when the user asks for an implementation plan, design plan, or approach before coding.
-- **`implement-and-review`** — Implement ONE scoped task end-to-end with cross-model review. Given a task prompt, decide the frontend/backend split and route each track by task shape: the default Codex seat executes explicit backend and standard product-interface work, while the Opus seat handles visual or highly creative interfaces and unresolved root-cause diagnosis; the other seat reviews. Build test-first in parallel isolated git worktrees, apply the repo's lens skills, loop implement→cross-review→fix (max 3), integrate, self-simplify, then gate the final code with full-review. Use to implement/build/fix a single scoped task with TDD and cross-model review. For a whole task queue, use implement-tasks.
-- **`worktree`** — Set up an isolated git worktree — create a fresh branch for new work, or attach a worktree to an existing branch, PR, or commit to work on it in isolation. Both user-invocable and pipeline-invoked: use when the user asks to set up a git worktree, isolate work on a branch/PR/commit, or attach a worktree to an existing PR, and when an automated pipeline needs single-slice isolation (implement-tasks invokes it before building a slice). Detects existing isolation first and prefers the harness-native worktree tool. implement-and-review manages its own multi-worktree flow and carries this skill's safety rules.
+The workflow stops at a local, verified result unless the user explicitly asks
+to commit, push, open or update a pull request, or create or change a tracker
+item. Those actions are never implied by task or model-plan approval.
 
-**Gates**
+## Library map
 
-- **`design-gate`** — Route a planned change to the right architecture and design lens skills by the surfaces it touches, run them as parallel read-only reviewers, and return a single proceed-or-revise verdict. Use before implementing a non-trivial task, when a pipeline phase requires a design gate, or when the user asks which design review applies, says run the design gate, check this plan against the architecture lenses, or wants an automatic pre-implementation design check. Do not use to perform a single named review — invoke that lens skill directly.
-- **`security-gate`** — Shift security left in a development workflow — ask a threat-model-lite checklist while specifying a feature, then deterministically decide which tasks need a deep security review pass before delivery. Use during spec or planning interviews, when a pipeline phase requires the security gate, or when the user asks to threat model a feature, run a security checklist, or decide whether a change needs a security review. Do not use to perform the deep review itself — that is full-review's security dimension or a dedicated security audit.
+There are 59 installable skills. The following map keeps every skill
+discoverable while leaving detailed instructions in each `SKILL.md`.
 
-**Lenses**
+| Domain | Skills |
+| --- | --- |
+| Workflow | `brainstorm`, `interview-me`, `to-prd`, `to-tasks`, `implement-tasks`, `to-prototype`, `models-consensus` |
+| Engine | `coding-design-plan`, `implement-and-review`, `worktree` |
+| Gates | `design-gate`, `security-gate` |
+| Lenses | `advanced-react`, `agent-architecture-lens`, `architecture-lens`, `data-systems-coding-lens`, `design-patterns`, `distributed-systems-patterns`, `domain-driven-design`, `macro-architecture`, `software-design-philosophy`, `ui-ux-pro-max` |
+| Practice | `clean-code`, `diagnose`, `frontend-design`, `safe-incremental-coding`, `tdd`, `test-lens` |
+| Review | `coding-review-simplify`, `full-review` |
+| Delivery | `capture-learning`, `open-pr`, `resolve-pr-feedback`, `session-handoff`, `summarize` |
+| Model seats | `claude-runner`, `cline-runner`, `codex-runner`, `dcode-runner`, `gemini-runner`, `grok-runner`, `opencode-runner`, `pi-runner` |
+| Independent utilities | `agents-md-craft`, `browser-smoke`, `cmux-cli`, `collaborative-delivery`, `decide-about-disagreements`, `diverse-plan`, `dynamic-harness`, `fable-mindset`, `knowledge-graph`, `peer-sessions`, `review-gate`, `skill-expert`, `verify-changes` |
+| Visualizations | `consensus-summary-html`, `explain-architecture`, `html-explainer` |
 
-- **`architecture-lens`** — Review code or a design through code-level architecture lenses — trade-off/decision coaching, coupling/connascence, layer placement & boundary leaks, element cohesion, dependency direction, and over-scoping ("boiling the ocean"). Use when choosing between design approaches ("which option is better", "what's the trade-off", "help me decide"), weighing a refactor, picking a data model or boundary, reviewing code for tight coupling or hidden dependencies, sanity-checking where code belongs, spotting a module doing too much, questioning a dependency direction, or when a change is getting too big. Triggers on "is this too coupled", "review this for coupling", "should I extract/split/merge this", "review the architecture", "where does this belong". Do not use for pure bug-fixing or formatting (use code-review). Distinct from macro-architecture (macro style selection + service decomposition / data ownership / sagas) and domain-driven-design (domain modeling).
-- **`macro-architecture`** — Macro / system-level architecture — choose the overall STYLE of a system or subsystem and reason through the hard decomposition trade-offs of building it. Use when picking or sanity-checking a macro style ("should this be microservices / event-driven / a monolith", "which architecture style fits", "layered vs distributed", "technical vs domain partitioning", "score this design's trade-offs"), AND when the decision is about coupling, modularity, monolith decomposition, service granularity, bounded contexts, data ownership, distributed transactions, sagas, workflow orchestration vs choreography, contracts, ADRs, or architecture fitness functions. Distinct from architecture-lens (code-level trade-offs/connascence/layer placement), domain-driven-design (bounded-context boundaries, ubiquitous language & integration patterns), and design-patterns (GoF code patterns). Avoid for routine bug fixes unless architecture choices are involved.
-- **`domain-driven-design`** — Review code or a design with Domain-Driven Design — from strategic context shape (bounded-context boundaries, ubiquitous-language naming drift, integration patterns like anticorruption layer, open-host service, conformist, saga, outbox) down to tactical aggregate correctness (transaction script / active record / domain model / event-sourced; aggregate boundaries, invariants, value-object immutability, reliable event publishing). Use when adding/moving a service or module, when code crosses a service/context boundary, when naming drifts from how the business talks, when integrating a third party, when a change ripples across contexts, when starting a new feature/subdomain, when a service is accreting business rules, when reviewing an aggregate/entity/value-object, or when domain events feel risky to publish. Distinct from architecture-lens (layering/cohesion, trade-offs/connascence), macro-architecture (macro style selection + service decomposition / data ownership), and code-review (bugs).
-- **`software-design-philosophy`** — Reduce long-term complexity in an app or codebase using Ousterhout's Philosophy of Software Design (2nd ed.) — deep modules, information hiding, strategic investment, comments as design, and deciding what matters — with Brooks' conceptual integrity. Use when designing, improving, or maintaining modules, APIs, or codebases; when code works but is expensive to change; when choosing a boundary, writing comments first, renaming for precision, adding a feature into existing design, or reviewing design quality; or when the user says deep modules, shallow modules, tactical tornado, design it twice, pull complexity down, information leakage, or decide what matters. Distinct from clean-code (local smell refactoring), tdd (the red-green loop), design-patterns (GoF), and architecture-lens (connascence and layer placement). Under design-gate this skill is read-only.
-- **`design-patterns`** — Recognize when a Gang-of-Four design pattern genuinely fits the code at hand, name it in shared vocabulary, and translate it into a concrete design without overengineering. Use when choosing how to structure new code, when a design feels rigid or repetitive (sprawling if/switch, duplicated behavior, tangled notifications), or when someone asks "which pattern fits here" or "how should I structure this so it's easy to change". Triggers on "design pattern", "strategy/observer/decorator/factory/adapter/state/etc. pattern", "make this extensible", "this is getting hard to change". Distinct from software-design-philosophy (module-level complexity and conceptual integrity — a named pattern is justified only when it removes real complexity, never for its own sake) and macro-architecture (style < pattern < design pattern: it owns the macro style and architecture-pattern levels, this skill owns the source-code level). Do NOT use for pure bug-fixing, formatting, or when a plain function already does the job.
-- **`data-systems-coding-lens`** — Review the data-systems risk of a coding task — turn data-systems design ideas into concrete implementation checks, review findings, and verification steps. Use whenever a change touches stored state and async data paths (databases, queues, caches, search indexes, event streams, background jobs), migrations, external APIs, concurrency, retries, consistency, scalability, reliability, observability, or production data risk. Distinct from macro-architecture, which decides data ownership and service decomposition — this lens implements and verifies those data choices at the code level (schema, queries, migrations, consistency), it does not make them.
-- **`distributed-systems-patterns`** — Name the container and multi-node pattern for a distributed app — sidecar, ambassador, adapter, replicated serving, sharding, scatter/gather, FaaS, ownership election, work queues, coordinated batch — and review it against that pattern's failure modes; or, on the event-driven route, decide whether to adopt, keep, or migrate to event-driven microservices and review event-stream contracts, single-writer ownership, and data liberation. Use when designing or reviewing a distributed service, adding a sidecar/proxy, sharding a store, choosing election vs a singleton, building a work-queue or scatter/gather pipeline, reviewing Kafka/Pulsar architecture, choreography vs orchestration, event schemas, CDC/outbox liberation, or asking "which distributed pattern is this" or "should Kafka be the source of truth". Distinct from macro-architecture (monolith vs microservices), domain-driven-design (bounded contexts, no broker contracts), data-systems-coding-lens (code-level retries, migrations), and design-patterns (GoF).
-- **`agent-architecture-lens`** — Review the control-flow architecture of an LLM agent system — decide whether a task needs a plain agent loop or an explicit state graph, then check typed state, checkpoints, bounded retries, termination ceilings, idempotent steps, and human gates. Use when designing or reviewing an agent, a tool-calling loop, a multi-agent pipeline, or a long-running autonomous run; when an agent retries forever, loses work on a crash, needs mid-run human approval, or must be replayable and auditable; or when the question is whether something should be a loop or a graph. Distinct from data-systems-coding-lens, which covers retries and idempotency for stored state (databases, queues, caches) rather than agent steps; from macro-architecture, which decomposes services and assigns data ownership; and from knowledge-graph, which builds a graph an agent reads rather than the graph an agent runs on.
-- **`advanced-react`** — Plan, implement, and review React components with Nadia Makarevich's Advanced React: composition-first (move state down, children/elements as props, render props) before memo/useMemo/useCallback; Context split-providers; refs and stale closures; debounce/throttle; useLayoutEffect flicker; portals and stacking context; fetch waterfalls and race conditions; error boundaries. Use when planning a React component tree, deciding where state or a hook should live, implementing a list/overlay/context/fetch, reviewing re-renders, or asking should I memoize this, why does this re-render, stale closure, fetch race, modal clipped. Detects React version, compiler, and state/UI libraries first. The React lens design-gate routes to. Distinct from react (React 19 Compiler / Rules of React / 19 APIs), architecture-lens (architecture), and design-patterns (GoF).
-- **`ui-ux-pro-max`** — Searchable UI/UX design database (styles, color palettes, font pairings, UX guidelines, chart types, icons, stack best practices) that generates complete design systems. Use when designing or building any web/mobile UI — landing pages, dashboards, components — or when choosing styles, colors, typography, charts, or reviewing/fixing UI quality.
-
-**Practice**
-
-- **`tdd`** — Execute coding work test-first through the red-green-refactor loop — the pipeline's execution-with-TDD skill. Use when implementing a feature, bug fix, or behavior change with tests; when the user says "tdd", "test-first", "red-green-refactor", "write the test first", or "implement this with tests"; and as the execution phase of a pipeline once a plan or task exists. Entry rule: untested legacy code goes to `safe-incremental-coding` first (characterization net), then returns here. Distinct from `test-lens` (judging whether an existing test is worth keeping), `clean-code` (tidying already-tested code), and `diagnose` (root-causing a bug). Do NOT use for backfilling tests onto code already written — test-after is exactly what this skill forbids.
-- **`safe-incremental-coding`** — Get untested legacy code under a behavior-preserving characterization net so it becomes safe to change — then hand execution back to `tdd`. Distilled from Dave Farley's "The Software Developers' Guidebook". Use whenever you must change code that has no tests, is scary to touch, or is tangled/deeply-nested/long ("this is legacy", "add tests before I refactor", "make this testable", "characterization tests", "approval tests", "pin the current behavior first"). The defining move is building an approval / characterization net BEFORE changing anything. Distinct from `tdd` (red-green execution on new or already-tested code — the net built here hands back to it), `clean-code` (tidying code that already has tests), and `test-lens` (judging whether a test is worth keeping). Do NOT use for pure diagnosis (use `diagnose`) or for new code with no legacy in sight (go straight to `tdd`).
-- **`clean-code`** — Improve existing code through safe, behavior-preserving Clean Code refactoring. Use when the user asks to refactor code, clean up messy code, improve readability, simplify structure, reduce duplication, improve naming, review maintainability, or apply Clean Code principles. Do not use for broad architecture redesign unless the user asks for redesign.
-- **`test-lens`** — Judge and write valuable unit/integration tests using Khorikov's framework — score tests on the four pillars (regression protection, resistance to refactoring, fast feedback, maintainability), test observable behavior not implementation details, pick the right testing style, and apply the mock-vs-stub / managed-vs-unmanaged rules. Use when writing tests, reviewing tests, deciding WHAT to test or WHETHER a test is worth keeping, when a test is brittle/flaky on refactor, or when deciding what to mock. Triggers on "is this a good test", "why does this test break when I refactor", "should I mock this", "what should I test here", "review my tests", "is this test worth it". Distinct from tdd (red-green loop mechanics), clean-code (prod readability), and a bug-hunting code-review pass.
-- **`diagnose`** — Procedural debugging from reproduction to regression test — reproduce, minimize, read the actual error, differential hypotheses, instrument, fix the cause, encode the regression. Use when a bug, failing test, or unexpected behavior needs root-causing; when the user says diagnose this, debug this, find the root cause, or why does this fail; or when a pipeline loops a verify failure back to implementation (mode:pipeline for the non-interactive structured return). Distinct from `tdd` (owns the implementation loop — a test failure understood at a glance mid-loop needs no diagnosis), `fable-mindset` (the epistemic posture of its Diagnosis moment — this skill is the procedure), and `full-review` (finds issues in diffs, not in live failures).
-- **`frontend-design`** — Create distinctive, production-grade frontend interfaces with high design quality. Use this skill when the user asks to build web components, pages, artifacts, posters, or applications (examples include websites, landing pages, dashboards, React components, HTML/CSS layouts, or when styling/beautifying any web UI). Generates creative, polished code and UI design that avoids generic AI aesthetics.
-
-**Review**
-
-- **`coding-review-simplify`** — Final review-and-simplify pass on a just-completed implementation before handoff. Use after an agent finishes coding work, or when the user asks to tighten, audit maintainability, remove unnecessary abstraction, verify architecture fit, or check data risk in a concrete diff.
-- **`full-review`** — Full-spectrum code review combining parallel specialist review, multi-model triangulation, execution-based bug verification, and ambitious structural maintainability review. Use when the user asks to review a PR, commit, branch, or diff; to find bugs (bughunt); for a security review (find vulnerabilities); for a maintainability or code-quality audit; for a deep/thorough review (ultrareview, thermonuclear review); or to review a planning or requirements document (plan review, spec review, PRD review) via the document-review dimension.
-
-**Deliver**
-
-- **`open-pr`** — Commits, pushes, and opens or updates a GitHub pull request with a high-signal, decision-cost-sized description. Use when the user asks to open a PR, commit push and open a pull request, turn current work into a PR, or write, rewrite, describe, or update a PR description or body. Distinct from implement-tasks (builds the approved task queue and delegates PR composition here), implement-and-review (implements and reviews code but never pushes or opens PRs), and repo git-safety tooling (guardrails around git operations, not PR composition).
-- **`capture-learning`** — Documents one recently solved problem as a durable solution doc in docs/solutions/ with searchable YAML frontmatter, and captures new domain vocabulary into the repo-root CONCEPTS.md. Use when the user says capture this learning, document what we learned, document what we solved, compound the knowledge, or write a solution doc — or when a pipeline invokes it with mode:headless after a verified fix (implement-tasks's deliver phase does exactly this). Not for ephemeral chat-only lesson extraction that leaves no durable store behind, and not for session-compression flows or session continuity and handoff summaries (that is summarize / session-handoff).
-- **`session-handoff`** — Creates immutable, per-repo session handoffs in a managed store and resumes work from them. Use when the user wants to create a session handoff, hand off this session to another agent, resume from a handoff, or write continuity notes for another session — or when a pipeline's wrap-up phase needs the session's continuity notes persisted. Each handoff is its own file keyed by repository and topic, so parallel sessions never clobber each other — this supersedes any older single-slot handoff approach that kept one global 'latest' file. This skill owns durable storage: it delegates the handoff body to summarize's contract and adds the store, the frontmatter contract, and the bounded resume flow. Distinct from summarize (produces the body, returns it in the reply, no store) and from any session-compression flow (compresses and clears THIS session; its save step can delegate storage here).
-- **`summarize`** — Create a concise handoff summary from visible session context. Use when the user asks to summarize the session or current work, compact the session, prepare a handoff, or write continuity notes for resuming later. Not for summarizing documents, articles, or code unrelated to the active session.
-- **`resolve-pr-feedback`** — Resolves PR review feedback end to end — evaluates every review comment against the actual code, fixes the valid findings, commits and pushes, replies to each thread with quoted context, and resolves the threads via GitHub's API. Use when resolving PR review feedback, addressing review comments, replying to and resolving review threads, or fixing code-review feedback on a GitHub PR. Distinct from full-review and the /review builtin, which review a diff to FIND issues and never resolve threads, and from a git merge-conflict resolution workflow, which handles conflicting commits, not review threads.
-
-**Seats**
-
-- **`claude-runner`** — Execute prompts using Claude CLI in headless print mode from the current workspace. Use when users explicitly request Claude execution, when a cross-runner workflow selects Claude as the preferred model, or when repo automation needs a Claude CLI seat alongside the other runner seats.
-- **`codex-runner`** — Execute prompts using Codex CLI in non-interactive exec mode. Use when users explicitly request Codex execution, when a workflow needs a Codex CLI run inside this repository, or when a cross-runner workflow selects Codex as the preferred model and native Codex subagents are unavailable.
-- **`gemini-runner`** — Execute prompts using Antigravity CLI (`agy`) headless print mode for a Gemini/Google seat. Use when users request Gemini execution, Antigravity CLI execution, or when a consensus workflow needs a Gemini seat and local `agy` is installed.
-- **`grok-runner`** — Execute prompts using Grok CLI in headless print mode as the xAI seat (Grok 4.6). Use when users explicitly request Grok execution, when a multi-model workflow needs an xAI seat for provider diversity, or when a cross-runner workflow selects Grok as the preferred model.
-- **`pi-runner`** — Execute prompts using the Pi coding agent CLI in headless print mode, with the provider and model pinned per invocation (default provider openrouter). Use when users explicitly request Pi execution, when a workflow needs a seat on an arbitrary OpenRouter model without shared provider state, or when a workflow names the Kimi, GLM, Qwen, or Gemma seat — each is `--seat <name>` on this runner.
-- **`cline-runner`** — Execute prompts using Cline CLI in headless print mode with NDJSON streaming output by default. Use when users explicitly request Cline execution, when a workflow needs a Cline-backed seat with an arbitrary provider/model pair (Anthropic, OpenAI, Z.AI, OpenRouter, etc.), when a cross-runner workflow selects Cline as the preferred model, or when a workflow names the Muse or Minimax seat — each is `--seat <name>` on this runner.
-- **`dcode-runner`** — Execute prompts using DeepAgents CLI (`dcode`) non-interactive mode with the user's already-configured model and credentials. Use when users explicitly request dcode or DeepAgents execution, when a workflow needs a DeepAgents/LangChain seat, or when a cross-runner workflow selects dcode as the preferred provider.
-- **`opencode-runner`** — Guide OpenCode CLI runs through the host agent approval flow. Use when users explicitly request OpenCode, want to compare OpenCode output with another model, or need an OpenCode perspective without a bundled runner script.
-
-### visualization/
-
-- **`explain-architecture`** — Explain the architecture of a codebase (or a subsystem/service/module within it) as a self-contained HTML orientation page — a clickable component map, the layers and seams, one flow traced end-to-end with file:line evidence, cross-cutting concerns, and "where to look next" — tuned to a newcomer, implementer, or reviewer audience. Use when the user asks "how does this codebase/service work", "explain the architecture", "give me the lay of the land", "onboard me to this repo", "what talks to what", or wants an architecture overview page. A single narrow lookup ("where does Y live") gets a direct answer, not a page. For an exhaustive drill-down walkthrough of one subsystem with many verbatim code panels use html-explainer; for REVIEWING architecture quality use architecture-lens — this skill EXPLAINS, it does not judge.
-- **`html-explainer`** — Create a self-contained, drill-down HTML explainer for a codebase subsystem, service, or architecture — a clickable big-picture SVG map, numbered sections, and expandable panels holding verbatim code snippets with file:line sources. Use when the user asks for an HTML page that explains how a system/feature/service works, an interactive architecture explainer, "document how X works as HTML", or a drill-down technical walkthrough grounded in real code. For a lighter orientation page (map, layers, one flow, where to look next) use explain-architecture; not for a single standalone diagram (use architecture-diagram) and not for slide decks.
-- **`consensus-summary-html`** — Turn a completed models-consensus result into a self-contained, readable HTML decision brief with a clear verdict, agreement map, divergence cards, evidence trace, separate confidence views, and one next step. Use when the user asks to render, visualize, present, or explain a consensus report as HTML or asks for a beautiful consensus summary page. Do not use this skill to run a council, change its decision, or explain a codebase architecture (that is html-explainer).
-
-### extras/
-
-- **`diverse-plan`** — Plan a code change or feature by exploring several genuinely different approaches IN PARALLEL ACROSS MULTIPLE MODELS, pressure-testing each from multiple angles, then merging the best of all into ONE enriched plan. Self-contained — it runs its own branch → critique → synthesize → check loop and never calls the multi-model council skill (models-consensus, in any of its modes). Diversity comes from independent branches, each generated by a DIFFERENT model through the runner skills, plus multiple critique lenses run on the best model for each lens. Triggers: 'diverse plan this', 'branch out this plan', 'explore approaches for', 'what are the different ways to build/fix X', 'compare approaches', 'plan this feature with options', 'enrich the plan'. Use when a code change is non-trivial and worth seeing from multiple angles before committing to one design. Distinct from coding-design-plan (one approach, one model). Produces a plan, not code.
-- **`collaborative-delivery`** — Multi-model panel-gated delivery workflow with mandatory anchor review at every phase — the panel-audited alternative to `implement-and-review`'s default build. Use when an approved task plan exists and the user wants multi-model collaborative delivery: auditable red-green-refactor with recorded model participation left in the repository. Choose it over `implement-and-review` when the audit trail of who reviewed what is itself a requirement; choose `implement-and-review` when you want the fastest correct build.
-- **`review-gate`** — Gate-style PR review returning a machine-consumable approve/request-changes verdict backed by a declared coverage contract. The orchestrator never reads the whole diff: it partitions changed files into will-review / spot-check / won't-review with honesty accounting, fans out 8 reviewer personas as parallel multi-model seats (correctness, security & tenancy, contract breakage, performance, test quality, spec, business logic, plus an adversarial verifier that refutes candidate findings before they are filed), verifies with the repo's own checks via verify-changes and a deployed PR preview when one exists, and emits one schema-validated result JSON an automated follow-up run can consume. Use when the user says run the review gate, gate this PR, is this mergeable, or a pipeline needs a machine review verdict. Distinct from full-review: that is the deep human-facing review (bughunt, security audit, ultrareview); review-gate is the merge gate with declared coverage and a verdict.
-- **`verify-changes`** — Run a target repository's own deterministic verification checks — install, build, typecheck, lint, test — by discovering its command surface (package.json scripts and packageManager, Makefile, justfile, Cargo, Go, Gradle/Maven, pyproject) instead of assuming a toolchain, scoped to the workspaces a diff touches when the repo supports it. Emits a machine-readable checks[] result plus a human pass/fail table; only captured command results count as evidence — narrative doesn't. Use when the user asks to verify this branch, run the repo's checks, or prove the build and tests pass, and as review-gate's verification phase in mode:pipeline. It never fixes anything: failures route to diagnose, it never modifies tests to make verification pass, and it never touches lockfiles or CI config. Not for launching the app interactively (run) or browser testing (browser-smoke).
-- **`browser-smoke`** — Diff-scoped browser smoke test: map the files changed by a branch or PR to the routes that render them, then drive a real browser through each affected page to verify it loads and works. Use when the user asks to smoke test this branch/PR in the browser, test the affected pages, or run a diff-scoped browser test; also invocable by an orchestrator in pipeline mode for web-facing changes. Scope is the diff, not the product: this is not whole-product release QA (persona journeys, full regression passes across untouched areas) — it only smoke-tests the pages the diff touches.
-- **`knowledge-graph`** — Build and operate a knowledge graph from documents using four Claude prompts sharing one Pydantic schema — extraction, entity resolution, entity summarization, and graph-grounded querying — in place of four trained NLP systems. Use when the user wants to build a knowledge graph or GraphRAG pipeline, extract entities and relations from documents, resolve or deduplicate entity mentions, answer multi-hop questions across many documents, summarize the themes or patterns running across an entire corpus, or give agents shared graph memory / a persistent world model. Includes the decision framework for when a graph is the wrong tool — not for single-document QA or single-hop retrieval (use direct prompting or RAG), and not for capturing session learnings into docs (that is capture-learning).
-- **`dynamic-harness`** — Dynamic multi agent harness orchestration plus thin manager mission control for complex, high value tasks. Use when the user invokes $dynamic-harness or asks for a workflow, dynamic workflow, dynamic harness, ultracode style harness, many subagents, competing agents, tournament, fan out and synthesis, generate and filter, adversarial verification, classify and act routing, loop until done investigation, large migration, multi agent deep research, deep verification, qualitative sorting, triage at scale, or root cause analysis at scale with competing hypotheses. Also use for mission control: preserve context, avoid compaction, run subagents, create focused threads, split workstreams, manage handoffs, or supervise parallel agent execution.
-- **`peer-sessions`** — Coordinate a bounded fleet of peer sessions through native delegation or a durable file mailbox. Use when the user asks several sessions to collaborate, wants a peer fleet, cross-session handoffs, parallel interactive terminals, or resumable peer replies. Do not use for a one-session task or for a deliberation-only model council.
-- **`cmux-cli`** — Control cmux workspaces, panels, terminal input, notifications, and sidebar state through its CLI. Use when the user asks to inspect or manage cmux, create or target a workspace or panel, send text or keys, or report task status in cmux.
-- **`fable-mindset`** — Think like Claude Fable across the five moments of a working turn — intake (act or assess, the mandate), diagnosis (evidence over recognition), decision (recommendation, not survey), implementation (native diffs), and reporting (the final message). Apply only the moment(s) that match the situation. Use when the user says 'think like Fable' or 'apply the Fable mindset'; at the start of any engineering task; when investigating a bug, test failure, or unexpected behavior; when choosing between approaches or an agent produces option lists instead of decisions; when a diff should read as the codebase's own authors' work (or 'smells like AI'); or when reporting results at the end of a turn. Governs posture, not procedure — not for brainstorm (sharpening ideas), diagnose (debugging procedure), coding-design-plan (writing the plan), architecture-lens / design-gate (evaluating design content), clean-code (refactoring), tdd (test-first loop), or summarize / session-handoff (handoff documents).
-- **`skill-expert`** — Create, improve, evaluate, package, and debug portable Agent Skills with strong trigger metadata, progressive disclosure, bundled resources, scripts, and validation. Use when the user wants to create, write, author, merge, audit, package, troubleshoot, or optimize a skill, SKILL.md, skill description/frontmatter, skill discovery behavior, or reusable skill workflow.
-- **`agents-md-craft`** — Hand-craft, audit, and optimize AGENTS.md / CLAUDE.md agent-memory files using the HumanLayer "good CLAUDE.md" principles — WHAT/WHY/HOW framing, instruction/length budgets, progressive disclosure into agent_docs/, file:line pointers, and offloading style rules to linters/hooks. Use when the user wants to create, write, audit, review, optimize, de-bloat, shrink, or fix drift in a CLAUDE.md or AGENTS.md (or "agent memory / onboarding / context doc") for a project. Both modes (create-from-scratch and optimize-existing) and both filenames are supported. This is an advisor/auditor that proposes a draft/diff and never writes without approval — the deliberate counterweight to /init; do NOT trigger it on /init, and it does not author SKILL.md skills (that is skill-expert).
-- **`decide-about-disagreements`** — Resolve unresolved topics from a models-consensus result with the user. Use when a result contains contradictions, material disagreement, open divergence, blind spots, contested unique insights, or disagreement points that need a human choice. Read the result, show every recorded model opinion, analyze the tradeoffs, list all distinct options, add a combined option when it is the best approach, recommend one option, and ask one interactive question per topic. Do not rerun the council, hide dissent, or implement the decision.
-
-## Quickstart
+## Install
 
 ```bash
-# Add the collection (pick skills interactively)
 npx skills@latest add robsonrung/rar-skills
+```
 
-# Install every skill
+Install every skill:
+
+```bash
 npx skills@latest add robsonrung/rar-skills --skill '*'
 ```
 
-Skills install under `.agents/skills/` in the target repo. The runner scripts and shared assets (`shared/`) are expected at `.agents/skills/shared/...` once installed.
-
-To install straight from a local checkout (symlinks by default, so edits here flow through):
+Install from a local checkout:
 
 ```bash
 scripts/install-skills.sh /path/to/your-project
 ```
 
-## Other harnesses
+Skills install under `.agents/skills/`. Shared references and runner scripts
+install next to them under `.agents/skills/shared/`.
 
-`.agents/skills/` is the AgentSkills location, so the collection is not Claude Code-only. [docs/openhands.md](docs/openhands.md) walks through running the whole pipeline on **OpenHands**, including a CLI-only mode that needs no API keys — OpenHands drives your existing Claude Code or Codex CLI over ACP, so the run bills against the CLI subscription:
+## Model seats
 
-```bash
-scripts/install-skills.sh /path/to/your-project
-scripts/run-pipeline-acp.py /path/to/your-project \
-  -t "Read .claude/skills/interview-me/SKILL.md and follow it for: <feature idea>"
-```
-
-The `*-runner` seats are CLI-backed already, so a host with the runner CLIs installed keeps the full multi-model council with no API key anywhere.
-
-`pipeline-board/` serves a live kanban of in-flight runs, one column per pipeline station, read from the durable run state:
+Most planning, design, practice, and review skills run in a compatible host.
+Runner-backed work requires only the local CLIs for the seats selected for that
+run. Check availability before selecting a model:
 
 ```bash
-python3 pipeline-board/serve.py /path/to/your-project
+python3 skills/shared/scripts/discover_runners.py probe
 ```
 
-## Prerequisites
+The roster is the only source of model identifiers. Do not copy model IDs into
+workflow instructions. A successful probe confirms a transport, not the model
+that later serves the request.
 
-Most skills here are **pure-prompt** (the design lenses, reviews, and planning skills — e.g. `design-gate`, `architecture-lens`, `clean-code`, `tdd`, `coding-design-plan`). They need nothing beyond Claude Code itself, and the pipeline is self-contained: every skill the four steps invoke lives in this collection.
+## Documentation
 
-The prerequisites below apply to the **multi-model and runner skills** — `models-consensus`, `diverse-plan`, `implement-and-review`, `implement-tasks`, `full-review`, `collaborative-delivery`, the panel modes of `brainstorm` / `to-prd` / `to-tasks`, and the `*-runner` skills they drive. You only need the pieces for the seats you actually want; these skills run on a **quorum** (typically ≥3 seats) and degrade gracefully when a CLI is missing — they report the absent seat rather than faking it (_seat fidelity_). Seat → model ids live in one place: [`shared/references/model-roster.md`](skills/shared/references/model-roster.md).
+[docs/workflow.md](docs/workflow.md) and [workflow.html](workflow.html) describe
+the current workflow.
 
-### 1. Runtime
+[docs/skill-review.md](docs/skill-review.md) records the current skill-review
+coverage.
 
-| Requirement | Why |
-| --- | --- |
-| **Python 3** (`python3` in `PATH`) | All runner wrappers, the shared background-jobs CLI (`shared/scripts/runner_jobs.py`), `ui-ux-pro-max`, and the leitwörter check are Python 3 scripts. |
-| **Claude Code** | Host for every skill; provides the native `Agent` subagent used for Opus/Sonnet seats without a CLI fallback. |
+[docs/pipeline.html](docs/pipeline.html),
+[docs/skills-atlas.html](docs/skills-atlas.html), and
+[docs/restructuring-2026-07-30.md](docs/restructuring-2026-07-30.md) are
+historical records. They do not define current routing or approval behavior.
 
-### 2. Installed CLIs we rely on
-
-Each model seat is backed by a local CLI. Install only the ones whose seats you want. None are required individually — missing CLIs just drop that seat.
-
-| CLI binary | Provides seat(s) | Used by | Auth / config |
-| --- | --- | --- | --- |
-| `claude` | Claude (runner fallback for the native `Agent` seats) | `claude-runner` | Logged-in CLI (OAuth/keychain), **or** `ANTHROPIC_API_KEY` / `ANTHROPIC_AUTH_TOKEN` for bare/headless mode |
-| `codex` | Codex (`gpt-5.6-sol`) | `codex-runner` | `codex` CLI authenticated |
-| `agy` (Antigravity CLI) | Gemini / Google | `gemini-runner` | `agy` authenticated; model selected via `/model` or `~/.gemini/antigravity-cli/settings.json` |
-| `grok` | Grok (`grok-4.6` — Grok 4.6) | `grok-runner` | `grok` CLI logged in (`grok login`, grok.com account) |
-| `pi` | Kimi (`moonshotai/kimi-k3`), GLM (`z-ai/glm-5.3-flash`), Qwen (`qwen/qwen3.8-max`), and Gemma (`google/gemma-4-31b-it`), all served via OpenRouter | `pi-runner` (`--seat kimi\|glm\|qwen\|gemma`) | `pi` CLI (`npm install -g @mariozechner/pi-coding-agent`) + `OPENROUTER_API_KEY` |
-| `cline` | Muse (`meta/muse-spark-1.3`) and Minimax | `cline-runner` (`--seat muse\|minimax`) | Cline provider authenticated via `cline auth`; Muse access is limited to users in the United States |
-| `opencode` (optional) | OpenCode | `opencode-runner` | Its own auth; no bundled wrapper — runs through the host approval flow |
-
-> Kimi, GLM, Qwen, and Gemma are seats of `pi-runner` (`--seat <name>` pins the provider and model per invocation — no shared provider state). Muse and Minimax are seats of `cline-runner`. Seat → model ids: `shared/references/model-roster.md`.
-
-### 3. Cloud / provider configuration
-
-Every CLI seat is an external model call — it sends prompt text, prompt files, and any files the model reads to that provider's cloud. You need an account and credentials with each provider whose seat you enable:
-
-- **Anthropic** — for `claude` (and the native Opus/Sonnet seats running inside Claude Code).
-- **OpenAI / Codex** — for `codex`.
-- **Google** — for `agy` (Gemini).
-- **xAI** — for `grok` (Grok 4.6 seat).
-- **Pi-backed seats (OpenRouter)** — Kimi (`moonshotai/kimi-k3`), GLM (`z-ai/glm-5.3-flash`), Qwen (`qwen/qwen3.8-max`), and Gemma (`google/gemma-4-31b-it`), pinned per invocation through the `pi` CLI. One credential: `OPENROUTER_API_KEY`. Note these seats share the OpenRouter dependency, so an outage or key problem drops them together.
-- **Cline-backed seats** — Muse (`meta/muse-spark-1.3`) and Minimax (`minimax/minimax-m2.7`). Authenticate a Cline provider via `cline auth` that can resolve each model ID. OpenRouter limits Muse access to users in the United States.
-
-### 4. Environment variables
-
-| Variable | When you need it |
-| --- | --- |
-| `ANTHROPIC_API_KEY` _or_ `ANTHROPIC_AUTH_TOKEN` | Only for `claude-runner` in bare/headless mode (bare mode disables OAuth/keychain). Not needed when the `claude` CLI is interactively logged in. |
-| `RUNNER_BASE_PATH` | Override the runner-script base path when skills are **not** installed at the default `.agents/skills/` location (e.g. running from a source checkout). |
-
-### 5. External skills
-
-None are required. The pipeline is self-contained — the five steps that used to depend on external installs are now in-repo: `tdd`, `interview-me` (the requirements interview), `to-prototype`, `diagnose`, and `session-handoff`.
-
-Two optional integrations are used when present and skipped when not: a code-review plugin (the `/review` builtin or an equivalent) and driving the real app after a build — handled here by `browser-smoke` for web-facing changes, or the host's run-the-app check otherwise.
-
-If a referenced skill is absent, the calling skill notes it and continues with the lenses it can apply — the pipeline degrades, it does not break.
-
-### 6. Command guard (optional, recommended)
-
-Runner skills launch CLI seats headless with auto-approve flags. `shared/hooks/` ships an opt-in guard that blocks catastrophic commands (rm on `/`/`~`, raw-disk writes, fork bombs, `curl | sh`, remote-history rewrites, `gh repo delete`, token exfiltration) before any seat runs them, while leaving recoverable commands alone. Install is manual — no skill ever wires it for you:
-
-```bash
-mkdir -p ~/.agents/hooks && cp skills/shared/hooks/deny-dangerous.sh skills/shared/hooks/dangerous-patterns.txt ~/.agents/hooks/
-```
-
-Then register `~/.agents/hooks/deny-dangerous.sh` as a `PreToolUse` (matcher `Bash`) hook in each CLI that supports hooks — wiring details and per-CLI gotchas are in [`shared/references/runner-common.md`](skills/shared/references/runner-common.md) under "Guardrails". After editing the patterns file, run `~/.agents/hooks/test-guard.sh` (copy it too) — it must end `failed: 0`.
+[docs/openhands.md](docs/openhands.md) explains how to run the current workflow
+with OpenHands.
 
 ## License
 
