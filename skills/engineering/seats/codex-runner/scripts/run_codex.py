@@ -65,11 +65,13 @@ MODEL_ALIASES = {
     "codex": "gpt-6-astra",
     "sol": "gpt-5.6-sol",
     "terra": "gpt-5.6-terra",
+    "luna": "gpt-5.6-luna",
     "spark": "gpt-5.3-codex-spark",
     "codex-code": "gpt-5.6-terra",
     "gpt-6-astra": "gpt-6-astra",
     "gpt-5.6-sol": "gpt-5.6-sol",
     "gpt-5.6-terra": "gpt-5.6-terra",
+    "gpt-5.6-luna": "gpt-5.6-luna",
 }
 
 EFFORT_LEVELS = ("none", "minimal", "low", "medium", "high", "xhigh", "max", "ultra")

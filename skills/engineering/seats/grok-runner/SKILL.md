@@ -1,11 +1,15 @@
 ---
 name: grok-runner
-description: Execute prompts using Grok CLI in headless print mode as the xAI seat (Grok 4.6). Use when users explicitly request Grok execution, when a multi-model workflow needs an xAI seat for provider diversity, or when a cross-runner workflow selects Grok as the preferred model.
+description: Execute an external Grok CLI prompt in headless print mode. Use only for an explicit Grok CLI request, a selected Grok route unavailable as native host delegation, or an approved external fallback.
 ---
 
 # Grok Runner
 
 Execute the caller's scoped prompt through the local CLI. Shared roles, envelope keys, and result handling live in `shared/references/runner-common.md`. Preserve **seat fidelity**: name the provider that actually answered, and report unavailable or unverified seats honestly.
+
+## Native routing
+
+Read `shared/references/host-model-execution.md` before choosing an external route. If the current host can dispatch the exact selected Grok model with the required effort, isolation, and receipt policy in a native subagent or task thread, use that route. `agents/openai.yaml` is host UI metadata; it does not dispatch a native model.
 
 ## Invocation
 
@@ -36,7 +40,3 @@ An approved workflow supplies the exact model, effort, role, tool mode, and rece
 ## Result
 
 Read `agent_message` and the wrapper envelope. Check success, serving-model receipt, effective runner/provider, and any fallback or malformed-output status. A completed process alone does not prove the requested task or model was used. Report touched files when the caller authorized edits.
-
-## Integration
-
-`agents/openai.yaml` exposes this skill as a native Codex-app subagent seat; do not remove it.

@@ -8,7 +8,8 @@ Keep maintained model mappings in one roster or configuration. Workflow prose na
 
 In this collection, `shared/references/model-roster.md` and `shared/references/task-shaped-model-routing.md` own those mappings and the approval contract. Resolve `shared/` through the collection's shared-library convention.
 
-- Choose the strongest known suitable model for the role, then the lowest supported effort with sufficient evidence. Do not assume that the current model is strongest for every task.
+- Use the maintained task and effort defaults for each role. Preserve the user's quality or cost priority; a generic low-effort default cannot replace a supplied task route. Do not assume the current model is strongest for every task.
+- Resolve native delegation before external runners through `shared/references/host-model-execution.md`. Prefer exposed native tools for the exact selected model. Reuse a task and role's persistent context for later turns, while keeping independent roles separate.
 - Explicit model, reviewer, effort, receipt, and budget approvals take precedence over a generic cost tier.
 - Inheritance by omission is valid only when the workflow permits it and no approved exact route is being replaced.
 - If the selected route is unavailable, use only an already-approved fallback or return the affected route for a decision. Do not silently switch to the host model.

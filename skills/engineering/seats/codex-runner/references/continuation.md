@@ -6,8 +6,9 @@ Load the section needed for the selected operation. Prose paths resolve from the
 
 Two mechanisms, with different purposes:
 
-- `--resume <session-id>` / `--resume-last` — native Codex resume (`codex exec resume`). Preferred for codex -> codex continuation: it restores the full Codex-side thread state without re-sending prior text. The session id comes from the `session_id` envelope field of the earlier run. When resuming without a prompt, a default "continue from the current thread state" instruction is sent.
-- `--session-file <file>` — prepends prior workflow context as text. Use only for cross-runner handoffs (e.g. continuing a Claude or Gemini thread in Codex), where no native session exists.
+- For an iterative role, capture its returned `session_id` and use `--resume <session-id>` for every later Codex turn. This restores the full Codex-side thread state. Keep `--ephemeral` off. When resuming without a prompt, the wrapper sends its default continuation instruction.
+- `--resume-last` selects the most recently recorded Codex session. Use it only for one non-concurrent role when its identity is already certain. It cannot safely keep several roles separate.
+- `--session-file <file>` prepends prior workflow context as text. It is a cross-runner handoff, not native resumption.
 
 `--resume` cannot fall back to another runner; if Codex CLI is missing the run fails with `return_code` -2.
 

@@ -24,7 +24,7 @@ Before composing non-trivial prompts (reviews, implementations, research seats),
 | `--timeout`, `-t` | Timeout in seconds | 3600 |
 | `--working-dir`, `-w` | Working directory | Current dir |
 | `--json`, `-j` | Wrap runner output in JSON | False |
-| `--model`, `-m` | Model. Default `gpt-6-astra`. Aliases: `astra`/`codex` -> `gpt-6-astra`; `sol` -> `gpt-5.6-sol`; `terra`/`codex-code` -> `gpt-5.6-terra`; `spark` -> `gpt-5.3-codex-spark`. | `gpt-6-astra` |
+| `--model`, `-m` | Model. Default `gpt-6-astra`. Aliases: `astra`/`codex` -> `gpt-6-astra`; `sol` -> `gpt-5.6-sol`; `terra`/`codex-code` -> `gpt-5.6-terra`; `luna` -> `gpt-5.6-luna`; `spark` -> `gpt-5.3-codex-spark`. | `gpt-6-astra` |
 | `--effort`, `-e` | Reasoning effort: `none`, `minimal`, `low`, `medium`, `high`, `xhigh`, `max`, or `ultra`. Direct calls clamp an unsupported known value and report `requested_effort`, `effort`, and `effort_clamped`. Approved routing plans validate instead of clamping. | CLI default |
 | `--sandbox`, `-s` | Codex sandbox mode override | CLI default |
 | `--restrict-tools` | Force `--sandbox read-only` | True for analysis roles |
@@ -35,7 +35,7 @@ Before composing non-trivial prompts (reviews, implementations, research seats),
 | `--prompt-file` | Read the prompt from a file (repeatable; files are concatenated in order) | None |
 | `--role` | Apply a role overlay | None |
 | `--resume SESSION_ID` | Natively resume a Codex session by id | None |
-| `--resume-last` | Natively resume the most recent Codex session | False |
+| `--resume-last` | Resume the most recent Codex session; only safe for one non-concurrent role | False |
 | `--session-file` | Append prior workflow context for cross-runner continuation | None |
 | `--metadata-json` | Attach structured execution metadata to the prompt | None |
 | `--ephemeral` | Run without persisting session files to disk | False |

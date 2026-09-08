@@ -87,6 +87,84 @@ class LauncherTests(unittest.TestCase):
         path.write_text(json.dumps(plan), encoding="utf-8")
         return path, implementer, reviewer
 
+    def native_plan(self) -> Path:
+        path, _, _ = self.plan()
+        plan = json.loads(path.read_text(encoding="utf-8"))
+        implementer = next(route for route in plan["routes"] if route["role"] == "implementer")
+        implementer.update({
+            "mode": "native",
+            "effort_control": "native",
+            "native": {
+                "host": "codex-app",
+                "transport": "subagent",
+                "capability_source": "test host capability",
+                "supported_efforts": ["high", "max"],
+            },
+        })
+        plan["approval"]["routes_digest"] = launcher.canonical_digest(launcher.normalized_routes(plan["routes"]))
+        path.write_text(json.dumps(plan), encoding="utf-8")
+        return path
+
+    def launch_arguments(self, plan_path: Path, session_id: str) -> Namespace:
+        return Namespace(
+            session_id=session_id,
+            task_id="task1",
+            routing_plan=str(plan_path),
+            working_dir=str(self.root),
+            track_briefs=[["api", str(self.brief)]],
+            isolation="working-tree",
+            timeout=1,
+            base=None,
+            worktrees_dir=None,
+            allow_dirty=True,
+            force=False,
+            dry_run=False,
+        )
+
+    def manifest_for(self, session_id: str) -> Path:
+        return self.root / ".ai-workflow" / "impl-review" / session_id / "task1" / "launch-manifest.json"
+
+    def native_receipt(self, dispatch: dict[str, object], *, context_id: str, completed_turn: int, host: str = "codex-app") -> dict[str, object]:
+        return {
+            "success": True,
+            "effective_runner": "codex",
+            "configured_model": "gpt-6-astra",
+            "effective_model": "gpt-6-astra",
+            "configured_effort": "high",
+            "effective_effort": "high",
+            "model_receipt": {
+                "status": "verified",
+                "source": "native_event",
+                "observed_model": "gpt-6-astra",
+            },
+            "native_execution": {
+                "host": host,
+                "transport": "subagent",
+                "context_id": context_id,
+                "role": "implementer",
+                "task_id": "task1",
+                "configured_model": "gpt-6-astra",
+                "configured_effort": "high",
+                "tool_policy": "write",
+                "call_id": dispatch["call_id"],
+                "input_revision": dispatch["input_revision"],
+                "completed_turn": completed_turn,
+            },
+        }
+
+    def record_native_arguments(self, manifest_path: Path, receipt_path: Path) -> Namespace:
+        return Namespace(
+            manifest=str(manifest_path),
+            session_id=None,
+            task_id=None,
+            working_dir=None,
+            track="api",
+            phase="implementation",
+            cycle=None,
+            receipt=str(receipt_path),
+            context_recovery_reason=None,
+        )
+
     def test_status_only_transition_preserves_scope_but_acceptance_change_blocks(self) -> None:
         path, _, _ = self.plan()
         launcher.load_routing_plan(str(path), "task1", {"api"}, True, self.root)
@@ -211,9 +289,256 @@ class LauncherTests(unittest.TestCase):
         self.assertIsNone(manifest["repo_root"])
         self.assertEqual(manifest["isolation"], "working-tree")
         self.assertEqual(implementation["mode"], "native")
-        self.assertEqual(implementation["status"], "orchestrator-managed")
+        self.assertEqual(implementation["status"], "awaiting_native_dispatch")
         self.assertIn("pending", implementation)
+        self.assertEqual(implementation["native_dispatch"]["context_action"], "start")
         self.assertNotIn("job_id", implementation)
+
+    def test_pi_first_turn_uses_a_stable_session_path_without_writing_it(self) -> None:
+        route = self.route(
+            "pi-review",
+            "reviewer",
+            "openai/gpt-5.6-terra",
+            runner="pi",
+            seat="pi",
+        )
+        first = launcher.route_arguments(route, self.brief, self.root, "codereviewer", 1, {}, True)
+        second = launcher.route_arguments(route, self.brief, self.root, "codereviewer", 1, {}, True)
+        session_index = first.index("--session") + 1
+        session_id = first[session_index]
+        self.assertEqual(second[second.index("--session") + 1], session_id)
+        self.assertEqual(Path(session_id).parent, self.brief.parent)
+        self.assertFalse(Path(session_id).exists())
+
+        other_route = {**route, "id": "pi-review-other"}
+        other = launcher.route_arguments(other_route, self.brief, self.root, "codereviewer", 1, {}, True)
+        self.assertNotEqual(other[other.index("--session") + 1], session_id)
+
+        resumed = launcher.route_arguments(
+            route,
+            self.brief,
+            self.root,
+            "codereviewer",
+            1,
+            {},
+            True,
+            resume_context_id="known-pi-session",
+        )
+        self.assertEqual(resumed[resumed.index("--session") + 1], "known-pi-session")
+
+    def test_native_receipt_binds_a_context_and_resume_reuses_it(self) -> None:
+        plan_path = self.native_plan()
+        arguments = self.launch_arguments(plan_path, "native-resume")
+        with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+            self.assertEqual(launcher.cmd_launch(arguments), 0)
+        manifest_path = self.manifest_for("native-resume")
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        dispatch = manifest["tracks"]["api"]["implementation"]["native_dispatch"]
+        receipt_path = self.root / "native-receipt-1.json"
+        receipt_path.write_text(json.dumps(self.native_receipt(dispatch, context_id="impl-context", completed_turn=1)), encoding="utf-8")
+        with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+            self.assertEqual(launcher.cmd_record_native(self.record_native_arguments(manifest_path, receipt_path)), 0)
+
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        context = manifest["native_contexts"]["impl-api"]
+        self.assertEqual(context["context_id"], "impl-context")
+        self.assertEqual(context["last_completed_turn"], 1)
+        self.assertTrue(Path(context["receipt_ref"]).is_file())
+
+        follow_up = self.root / "follow-up.md"
+        follow_up.write_text("Apply the accepted review finding.\n", encoding="utf-8")
+        resume = Namespace(
+            manifest=str(manifest_path),
+            session_id=None,
+            task_id=None,
+            working_dir=None,
+            track="api",
+            follow_up=str(follow_up),
+            timeout=1,
+            context_recovery_reason=None,
+        )
+        with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+            self.assertEqual(launcher.cmd_resume_native(resume), 0)
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        implementation = manifest["tracks"]["api"]["implementation"]
+        resumed = implementation["native_dispatch"]
+        self.assertEqual(resumed["context_action"], "resume")
+        self.assertEqual(resumed["context_id"], "impl-context")
+        self.assertEqual(manifest["native_contexts"]["impl-api"]["pending_call_id"], resumed["call_id"])
+
+        receipt_path.write_text(json.dumps(self.native_receipt(resumed, context_id="impl-context", completed_turn=2)), encoding="utf-8")
+        with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+            self.assertEqual(launcher.cmd_record_native(self.record_native_arguments(manifest_path, receipt_path)), 0)
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        self.assertEqual(manifest["native_contexts"]["impl-api"]["last_completed_turn"], 2)
+
+    def test_native_receipts_preserve_recovery_evidence_and_failures_do_not_bind_context(self) -> None:
+        route = self.route(
+            "impl-api",
+            "implementer",
+            "gpt-6-astra",
+            mode="native",
+            effort_control="native",
+            native={
+                "host": "codex-app",
+                "transport": "subagent",
+                "capability_source": "test host capability",
+                "supported_efforts": ["high", "max"],
+            },
+        )
+        manifest = {
+            "artifact_dir": str(self.root / "artifacts"),
+            "task_id": "task1",
+            "native_contexts": {},
+        }
+        first = self.native_receipt(
+            {"call_id": "recovery-call-one", "input_revision": "revision-one"},
+            context_id="lost-context-one",
+            completed_turn=1,
+        )
+        second = self.native_receipt(
+            {"call_id": "recovery-call-two", "input_revision": "revision-two"},
+            context_id="recovered-context-two",
+            completed_turn=1,
+        )
+        first_path = launcher.native_receipt_path(manifest, route, "implementation", None, first)
+        second_path = launcher.native_receipt_path(manifest, route, "implementation", None, second)
+        self.assertNotEqual(first_path, second_path)
+        launcher.write_native_receipt(first_path, first)
+        launcher.write_native_receipt(second_path, second)
+        self.assertEqual(json.loads(first_path.read_text(encoding="utf-8"))["native_execution"]["context_id"], "lost-context-one")
+        self.assertEqual(json.loads(second_path.read_text(encoding="utf-8"))["native_execution"]["context_id"], "recovered-context-two")
+        with self.assertRaisesRegex(ValueError, "already exists"):
+            launcher.write_native_receipt(first_path, {**first, "error": "changed receipt"})
+
+        failed = {
+            **first,
+            "success": False,
+            "native_execution": {
+                **first["native_execution"],
+                "context_id": "unverified-failure-context",
+            },
+        }
+        persisted = launcher.persist_native_receipt(manifest, route, "implementation", None, failed, None)
+        self.assertIsNone(persisted["context"])
+        self.assertEqual(manifest["native_contexts"], {})
+
+    def test_native_receipt_with_wrong_host_is_rejected_without_artifact(self) -> None:
+        plan_path = self.native_plan()
+        arguments = self.launch_arguments(plan_path, "native-host-mismatch")
+        with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+            self.assertEqual(launcher.cmd_launch(arguments), 0)
+        manifest_path = self.manifest_for("native-host-mismatch")
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        dispatch = manifest["tracks"]["api"]["implementation"]["native_dispatch"]
+        receipt_path = self.root / "native-host-mismatch.json"
+        receipt_path.write_text(
+            json.dumps(self.native_receipt(dispatch, context_id="impl-context", completed_turn=1, host="other-host")),
+            encoding="utf-8",
+        )
+        with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+            with self.assertRaises(SystemExit):
+                launcher.cmd_record_native(self.record_native_arguments(manifest_path, receipt_path))
+        native_artifacts = manifest_path.parent / "native-receipts"
+        self.assertFalse(native_artifacts.exists())
+
+    def test_native_context_cannot_be_reused_by_a_different_role(self) -> None:
+        implementer = self.route(
+            "impl-api",
+            "implementer",
+            "gpt-6-astra",
+            mode="native",
+            effort_control="native",
+            native={
+                "host": "codex-app",
+                "transport": "subagent",
+                "capability_source": "test host capability",
+                "supported_efforts": ["high"],
+            },
+        )
+        reviewer = self.route(
+            "review-api",
+            "reviewer",
+            "gpt-5.6-terra",
+            mode="native",
+            effort="medium",
+            effort_control="native",
+            native={
+                "host": "codex-app",
+                "transport": "subagent",
+                "capability_source": "test host capability",
+                "supported_efforts": ["medium"],
+            },
+        )
+        manifest = {
+            "artifact_dir": str(self.root / "artifacts"),
+            "task_id": "task1",
+            "native_contexts": {},
+        }
+        implementation_receipt = self.native_receipt(
+            {"call_id": "impl-call", "input_revision": "revision-1"},
+            context_id="shared-context",
+            completed_turn=1,
+        )
+        launcher.persist_native_receipt(manifest, implementer, "implementation", None, implementation_receipt, None)
+        review_receipt = {
+            **implementation_receipt,
+            "configured_model": "gpt-5.6-terra",
+            "effective_model": "gpt-5.6-terra",
+            "configured_effort": "medium",
+            "effective_effort": "medium",
+            "model_receipt": {
+                "status": "verified",
+                "source": "native_event",
+                "observed_model": "gpt-5.6-terra",
+            },
+            "native_execution": {
+                **implementation_receipt["native_execution"],
+                "role": "reviewer",
+                "configured_model": "gpt-5.6-terra",
+                "configured_effort": "medium",
+                "tool_policy": "read-only",
+                "call_id": "review-call",
+                "input_revision": "revision-2",
+            },
+        }
+        with self.assertRaisesRegex(ValueError, "already owned"):
+            launcher.persist_native_receipt(manifest, reviewer, "review", 1, review_receipt, None)
+
+    def test_native_resume_has_a_follow_up_ceiling(self) -> None:
+        plan_path = self.native_plan()
+        arguments = self.launch_arguments(plan_path, "native-ceiling")
+        with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+            self.assertEqual(launcher.cmd_launch(arguments), 0)
+        manifest_path = self.manifest_for("native-ceiling")
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        dispatch = manifest["tracks"]["api"]["implementation"]["native_dispatch"]
+        receipt_path = self.root / "native-ceiling-receipt.json"
+        receipt_path.write_text(json.dumps(self.native_receipt(dispatch, context_id="impl-context", completed_turn=1)), encoding="utf-8")
+        with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+            self.assertEqual(launcher.cmd_record_native(self.record_native_arguments(manifest_path, receipt_path)), 0)
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        manifest["tracks"]["api"]["implementation"]["resume_attempts"] = (
+            launcher.MAX_REVIEW_CYCLES + launcher.MAX_EVIDENCE_RECOVERIES
+        )
+        manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+        follow_up = self.root / "ceiling-follow-up.md"
+        follow_up.write_text("Attempt another fix.\n", encoding="utf-8")
+        resume = Namespace(
+            manifest=str(manifest_path),
+            session_id=None,
+            task_id=None,
+            working_dir=None,
+            track="api",
+            follow_up=str(follow_up),
+            timeout=1,
+            context_recovery_reason=None,
+        )
+        with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+            with self.assertRaises(SystemExit):
+                launcher.cmd_resume_native(resume)
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        self.assertEqual(manifest["status"], "ceiling_hit")
 
     def test_bound_brief_keeps_the_approved_contract(self) -> None:
         path, _, _ = self.plan()
@@ -263,6 +588,269 @@ class LauncherTests(unittest.TestCase):
         self.assertTrue(terminal)
         self.assertFalse(snapshot["success"])
         self.assertEqual(snapshot["error"], "completed runner job has no successful result")
+
+    def test_runner_context_keeps_two_review_turns_stable_across_polls(self) -> None:
+        reviewer = self.route("review-api", "reviewer", "claude-opus-5", runner="claude", seat="opus", effort="xhigh")
+        manifest = {
+            "task_id": "task1",
+            "tracks": {},
+            "reviews": [
+                {
+                    "track": "api",
+                    "cycle": 1,
+                    "launch": {
+                        "selected_route": reviewer,
+                        "effective_route": reviewer,
+                        "job_id": "claude-11111111",
+                        "result_file": "review-1.json",
+                        "input_revision": "revision-1",
+                        "tool_policy": "read-only",
+                    },
+                },
+                {
+                    "track": "api",
+                    "cycle": 2,
+                    "launch": {
+                        "selected_route": reviewer,
+                        "effective_route": reviewer,
+                        "job_id": "claude-22222222",
+                        "result_file": "review-2.json",
+                        "resume_context_id": "review-session",
+                        "input_revision": "revision-2",
+                        "tool_policy": "read-only",
+                    },
+                },
+            ],
+            "runner_contexts": {},
+        }
+        snapshot = {
+            "tracks": {},
+            "reviews": {
+                "api:1": {"success": True, "runner_session_id": "review-session"},
+                "api:2": {"success": True, "runner_session_id": "review-session"},
+            },
+        }
+        self.assertTrue(launcher.persist_terminal_runner_contexts(manifest, snapshot))
+        context = manifest["runner_contexts"]["review-api"]
+        self.assertEqual(context["last_completed_turn"], 2)
+        self.assertEqual(context["processed_receipt_refs"], ["review-1.json", "review-2.json"])
+        stable = json.dumps(context, sort_keys=True)
+        self.assertFalse(launcher.persist_terminal_runner_contexts(manifest, snapshot))
+        self.assertEqual(json.dumps(manifest["runner_contexts"]["review-api"], sort_keys=True), stable)
+
+    def test_resumed_runner_route_does_not_start_an_approved_fallback(self) -> None:
+        route = self.route(
+            "review-api",
+            "reviewer",
+            "gpt-6-astra",
+            unavailable={
+                "action": "use",
+                "seat": "opus",
+                "runner": "claude",
+                "model": "claude-opus-5",
+                "model_verification": "required",
+                "effort": "xhigh",
+                "effort_control": "runner",
+                "mode": "runner",
+            },
+        )
+        with mock.patch.object(launcher, "fire_runner", side_effect=launcher.RunnerLaunchError("resume unavailable")) as fire:
+            with self.assertRaisesRegex(launcher.RunnerLaunchError, "resume unavailable"):
+                launcher.dispatch_route(
+                    route,
+                    self.brief,
+                    self.root,
+                    "codereviewer",
+                    1,
+                    {},
+                    True,
+                    False,
+                    resume_context={"context_id": "existing-review-session"},
+                )
+        fire.assert_called_once()
+
+    def test_completed_fallback_route_stays_with_its_persistent_session(self) -> None:
+        approved_route = self.route(
+            "review-api",
+            "reviewer",
+            "gpt-6-astra",
+            unavailable={
+                "action": "use",
+                "seat": "opus",
+                "runner": "claude",
+                "model": "claude-opus-5",
+                "model_verification": "required",
+                "effort": "xhigh",
+                "effort_control": "runner",
+                "mode": "runner",
+            },
+        )
+        fallback = launcher.fallback_route(approved_route)
+        assert fallback is not None
+        manifest = {
+            "task_id": "task1",
+            "runner_contexts": {
+                "review-api": {
+                    "runner": "claude",
+                    "context_id": "fallback-review-session",
+                    "role": "reviewer",
+                    "task_id": "task1",
+                    "configured_model": "claude-opus-5",
+                    "configured_effort": "xhigh",
+                    "status": "completed",
+                }
+            },
+        }
+        route = launcher.persistent_effective_route(manifest, approved_route)
+        self.assertEqual(launcher.canonical_digest(route), launcher.canonical_digest(fallback))
+        context = launcher.resumable_context(manifest, route)
+        self.assertIsNotNone(context)
+        with mock.patch.object(
+            launcher,
+            "fire_runner",
+            return_value={"job_id": "claude-12345678", "job_dir": None, "result_file": "review.json"},
+        ) as fire:
+            launch = launcher.dispatch_route(
+                route,
+                self.brief,
+                self.root,
+                "codereviewer",
+                1,
+                {},
+                True,
+                False,
+                resume_context=context,
+            )
+        self.assertEqual(launch["effective_route"], fallback)
+        arguments = fire.call_args.args[1]
+        self.assertEqual(arguments[arguments.index("--resume") + 1], "fallback-review-session")
+
+    def test_resumed_runner_context_is_reserved_and_restored_after_launch_failure(self) -> None:
+        plan_path, _, reviewer = self.plan()
+        routing = launcher.load_routing_plan(str(plan_path), "task1", {"api"}, True, self.root)
+        artifact_dir = self.root / "artifacts"
+        artifact_dir.mkdir()
+        context = {
+            "runner": "claude",
+            "context_id": "review-session",
+            "role": "reviewer",
+            "task_id": "task1",
+            "configured_model": "claude-fable-5-1",
+            "configured_effort": "high",
+            "status": "completed",
+        }
+        manifest = {
+            "session_id": "review-reservation",
+            "task_id": "task1",
+            "working_root": str(self.root),
+            "artifact_dir": str(artifact_dir),
+            "isolation": "working-tree",
+            "routing_plan": {"path": str(plan_path), "approval": routing["approval"]},
+            "attempts": {"review_cycles": {}, "evidence_recoveries": {}},
+            "tracks": {
+                "api": {
+                    "reviewer_route": reviewer,
+                    "working_dir": str(self.root),
+                    "branch": None,
+                }
+            },
+            "reviews": [],
+            "runner_contexts": {"review-api": context},
+        }
+        observed: dict[str, object] = {}
+
+        def reject_after_reservation(*_args: object, **kwargs: object) -> dict[str, object]:
+            resumed = kwargs["resume_context"]
+            assert isinstance(resumed, dict)
+            observed["status"] = resumed["status"]
+            raise launcher.RunnerLaunchError("simulated resume launch failure")
+
+        arguments = Namespace(
+            manifest=str(self.root / "launch-manifest.json"),
+            session_id=None,
+            task_id=None,
+            working_dir=None,
+            track="api",
+            review_brief=str(self.brief),
+            cycle=None,
+            timeout=1,
+            dry_run=False,
+        )
+        with mock.patch.object(launcher, "load_manifest", return_value=(manifest, self.root / "launch-manifest.json")), \
+             mock.patch.object(launcher, "implementation_ready"), \
+             mock.patch.object(launcher, "dispatch_route", side_effect=reject_after_reservation), \
+             mock.patch.object(launcher, "save_manifest"), \
+             contextlib.redirect_stdout(io.StringIO()), \
+             contextlib.redirect_stderr(io.StringIO()):
+            with self.assertRaises(SystemExit):
+                launcher.cmd_review(arguments)
+        self.assertEqual(observed["status"], "pending")
+        self.assertEqual(context["status"], "completed")
+        self.assertNotIn("pending_call_id", context)
+        self.assertIs(launcher.resumable_context(manifest, reviewer), context)
+
+    def test_active_same_track_review_blocks_another_cycle_before_poll(self) -> None:
+        plan_path, _, reviewer = self.plan()
+        routing = launcher.load_routing_plan(str(plan_path), "task1", {"api"}, True, self.root)
+        cases = (
+            ("runner-starting", "starting", "starting", "not-started"),
+            ("runner-running", "running", "running", "running"),
+            ("native-pending", "running", "awaiting_native_dispatch", "orchestrator-managed"),
+        )
+        arguments = Namespace(
+            manifest=str(self.root / "launch-manifest.json"),
+            session_id=None,
+            task_id=None,
+            working_dir=None,
+            track="api",
+            review_brief=str(self.brief),
+            cycle=None,
+            timeout=1,
+            dry_run=False,
+        )
+        for label, record_status, launch_status, observed_status in cases:
+            with self.subTest(label=label):
+                manifest = {
+                    "session_id": "review-active",
+                    "task_id": "task1",
+                    "working_root": str(self.root),
+                    "artifact_dir": str(self.root / "artifacts"),
+                    "isolation": "working-tree",
+                    "routing_plan": {"path": str(plan_path), "approval": routing["approval"]},
+                    "attempts": {"review_cycles": {}, "evidence_recoveries": {}},
+                    "tracks": {
+                        "api": {
+                            "reviewer_route": reviewer,
+                            "working_dir": str(self.root),
+                            "branch": None,
+                        }
+                    },
+                    "reviews": [
+                        {
+                            "track": "api",
+                            "cycle": 1,
+                            "status": record_status,
+                            "launch": {
+                                "status": launch_status,
+                                "selected_route": reviewer,
+                                "effective_route": reviewer,
+                            },
+                        }
+                    ],
+                    "runner_contexts": {},
+                    "native_contexts": {},
+                }
+                snapshot = {"tracks": {}, "reviews": {"api:1": {"status": observed_status}}}
+                with mock.patch.object(launcher, "load_manifest", return_value=(manifest, self.root / "launch-manifest.json")), \
+                     mock.patch.object(launcher, "implementation_ready"), \
+                     mock.patch.object(launcher, "poll_once", return_value=snapshot), \
+                     mock.patch.object(launcher, "dispatch_route") as dispatch, \
+                     contextlib.redirect_stdout(io.StringIO()), \
+                     contextlib.redirect_stderr(io.StringIO()):
+                    with self.assertRaises(SystemExit):
+                        launcher.cmd_review(arguments)
+                dispatch.assert_not_called()
+                self.assertEqual(manifest["attempts"]["review_cycles"], {})
 
     def test_failed_dispatch_is_persisted_in_the_manifest(self) -> None:
         plan_path, _, _ = self.plan()

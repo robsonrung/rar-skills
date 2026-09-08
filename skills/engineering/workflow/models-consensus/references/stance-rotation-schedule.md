@@ -1,12 +1,12 @@
 # Debate Protocol and Stance Rotation
 
-Use only after the user approves a `debate` preview. The preview fixes the selected seats, their efforts, the moderator, and a ceiling of one to three rounds. Do not add a round or a seat after approval.
+Use only after the user approves a `debate` preview. The preview fixes three opening seats with distinct requested model labels, their efforts, the moderator, and a ceiling of one to three rounds. Do not add a round or a seat after approval.
 
 ## Protocol
 
-1. Send the neutral question and assigned stance to each opening seat. Do not show peer outputs.
-2. The approved moderator produces an anonymized digest: agreements, disagreements, options, evidence gaps, and follow-up questions.
-3. For each later approved round, send the digest and a new stance. Each seat must rebut, concede, refine, or integrate.
+1. Start one isolated context for each opening seat and send the neutral question and assigned stance. Do not show peer outputs.
+2. The approved moderator uses its own context to produce an anonymized digest: agreements, disagreements, options, evidence gaps, and follow-up questions.
+3. For each later approved round, resume each seat's own context with the digest and a new stance. Each seat must rebut, concede, refine, or integrate.
 4. Classify the result as `full_agreement`, `converging`, `material_disagreement`, or `blocked_on_context`.
 5. Return the recommended direction with the dissent and evidence gap. A ceiling hit remains a reported disagreement; it never grants another round.
 
@@ -21,6 +21,9 @@ Use `schemas/round1-response.schema.json` for the opening and `schemas/later-rou
 | `grok` | `pragmatic_engineering` | `devils_advocate` | `balanced_synthesis` |
 | `qwen` | `pragmatic_engineering` | `balanced_synthesis` | `critical_with_responsibility` |
 | `opus` | `critical_with_responsibility` | `balanced_synthesis` | `pragmatic_engineering` |
+| `sol` | `pragmatic_engineering` | `critical_with_responsibility` | `balanced_synthesis` |
+| `terra` | `pragmatic_engineering` | `supportive_with_integrity` | `balanced_synthesis` |
+| `luna` | `supportive_with_integrity` | `pragmatic_engineering` | `balanced_synthesis` |
 | `gemini` | `balanced_synthesis` | `pragmatic_engineering` | `critical_with_responsibility` |
 | `sonnet` | `supportive_with_integrity` | `critical_with_responsibility` | `balanced_synthesis` |
 | `kimi` | `pragmatic_engineering` | `balanced_synthesis` | `critical_with_responsibility` |

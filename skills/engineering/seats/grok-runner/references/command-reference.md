@@ -28,7 +28,7 @@ Use `--working-dir` when the prompt depends on package-local files or generated 
 | `--max-turns N` | Maximum agent turns for the headless run | CLI default |
 | `--role` | Apply a role overlay | None |
 | `--resume SESSION_ID` | Natively resume a Grok session by id | None |
-| `--continue` | Natively resume the most recent Grok session for this directory | False |
+| `--continue` | Resume the most recent Grok session for this directory; only safe for one non-concurrent role | False |
 | `--background` | Run as a tracked background job and return a job id immediately | False |
 | `--session-file` | Append prior debate or workflow context for cross-runner continuation | None |
 | `--metadata-json` | Attach structured execution metadata to the prompt | None |

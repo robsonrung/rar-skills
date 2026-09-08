@@ -21,10 +21,10 @@ The default plan is five advisors, five peer reviewers, and one chairman. A user
 ## Protocol
 
 1. Build one neutral question from the user input and approved read-only context. If the orchestrator has a view, freeze it before reading any advisor output.
-2. Run five fresh advisor contexts in parallel. Each receives one lens, the neutral question, and the approved output budget.
-3. When peer review is approved, randomize advisor labels and run five fresh reviewer contexts in parallel. Each reviewer identifies the strongest response, its blind spot, and what all advisors missed.
-4. Run one fresh chairman context. It sees de-anonymized advisor outputs, anonymized reviews, and the frozen host position only when the approved plan allows it.
-5. Write the verdict and record requested, configured, effective, and observed model fields with receipt status and source.
+2. Run five isolated advisor contexts in parallel. Each receives one lens, the neutral question, and the approved output budget. A schema retry resumes only that advisor's context.
+3. When peer review is approved, randomize advisor labels and run five isolated reviewer contexts in parallel. Each reviewer identifies the strongest response, its blind spot, and what all advisors missed. Reviewers do not share a context with advisors or other reviewers.
+4. Run one isolated chairman context. It sees de-anonymized advisor outputs, anonymized reviews, and the frozen host position only when the approved plan allows it.
+5. Write the verdict and record requested, configured, effective, and observed model fields with receipt status and source, plus each role context's host, execution path, and resume status.
 
 Advisor prompt:
 

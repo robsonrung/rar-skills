@@ -1,5 +1,10 @@
 # Skill library review
 
+This report records the earlier library review and its validation counts. Model
+routing was revised on 2026-09-08; use the current [task routing](../skills/shared/references/task-shaped-model-routing.md)
+and [host execution contract](../skills/shared/references/host-model-execution.md).
+The counts below do not describe that later change.
+
 The review covered all 59 executable skills and the shared library. 43 skills or their supporting files changed; 16 were retained after review. All entry points remain because each has a distinct purpose. Skill entry files are 27.9% shorter (7,221 to 5,206 lines). Duplicate orchestration and repeated work were removed.
 
 ## Main changes

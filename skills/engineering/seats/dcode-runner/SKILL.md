@@ -1,12 +1,16 @@
 ---
 name: dcode-runner
-description: Execute prompts using DeepAgents CLI (`dcode`) non-interactive mode with the user's already-configured model and credentials. Use only when the user explicitly requests dcode or DeepAgents execution. It is not an approved implementation or review route.
+description: Execute an external DeepAgents CLI (`dcode`) prompt with the user's configured model and credentials. Use only for an explicit dcode or DeepAgents CLI request. It is not an approved implementation or review route.
 disable-model-invocation: true
 ---
 
 # Dcode Runner
 
 Execute the caller's scoped prompt through the local CLI. Shared roles, envelope keys, and result handling live in `shared/references/runner-common.md`. Preserve **seat fidelity**: name the provider that actually answered, and report unavailable or unverified seats honestly.
+
+## Native routing
+
+Read `shared/references/host-model-execution.md` before choosing an external route. If the current host can dispatch the exact selected model with the required effort, isolation, and receipt policy in a native subagent or task thread, use that route. `agents/openai.yaml` is host UI metadata; it does not dispatch a native model.
 
 ## Invocation
 
@@ -37,7 +41,3 @@ An approved workflow supplies the exact model, effort, role, tool mode, and rece
 ## Result
 
 Read `agent_message` and the wrapper envelope. Check success, serving-model receipt, effective runner/provider, and any fallback or malformed-output status. A completed process alone does not prove the requested task or model was used. Report touched files when the caller authorized edits.
-
-## Integration
-
-`agents/openai.yaml` exposes this skill as a native Codex-app subagent seat; do not remove it.

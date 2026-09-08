@@ -33,6 +33,8 @@ jobs:
         run: python3 skills/shared/tests/test_model_routing.py
       - name: Serving model receipt provenance
         run: python3 skills/shared/tests/test_model_receipt.py
+      - name: Native panel dispatch
+        run: python3 skills/shared/tests/test_native_panel_dispatch.py
       - name: Approved implementation dispatch
         run: python3 skills/engineering/engine/implement-and-review/tests/test_launch.py
       - name: Review finding integrity

@@ -25,13 +25,21 @@ The review plan is a **scope contract**. Do not claim coverage outside it. It st
 
 Do not launch a blanket panel. Seat names, model choice, runner, and effort come only from the approved plan and the model roster. When a direct review request has no plan, infer the narrowest scope from the diff and state it before reviewing. Do not dispatch an external route until its plan is approved. A direct request for a deep review authorizes the deep scope, not an unplanned route dispatch.
 
+Before selecting or dispatching a route, read
+[`task-shaped-model-routing.md`](../../../shared/references/task-shaped-model-routing.md),
+[`model-roster.md`](../../../shared/references/model-roster.md), and
+[`host-model-execution.md`](../../../shared/references/host-model-execution.md).
+They select the task fit, exact model, effort support, native delegation, and
+role-session rules. The review plan names the resulting route; this skill does
+not replace it with a convenient runner or the coordinator model.
+
 ## Workflow
 
 1. Establish the target: pull request, commit range, local diff, task file set, or document. An empty diff is an outcome, not a failure.
 2. Read the active project conventions already in context and the local contracts that affect the changed paths. Collect the diff, changed files, relevant surrounding code, and existing review comments. Existing comments are candidates, not facts.
 3. Run `scripts/review_scope.py` from this skill's directory when reviewing code. Use its risk signals to confirm or narrow the plan; do not widen a focused review merely because a helper is available.
-4. Read `references/review-dispatch.md` before allocating review seats. Load only the reference that matches a planned concern: `references/bug_finders.md`, `references/panel_roles.md`, `references/conditional_specialists.md`, or `references/structural_quality_review.md`. For a requirements document, use only the relevant persona from `references/doc-personas/`.
-5. Give every selected seat the same scoped context, conventions, and output contract. Preserve **seat fidelity**: an unavailable seat is recorded as unavailable, never replaced silently. Run independent seats concurrently when the host supports it.
+4. Read `references/review-dispatch.md` before allocating review seats. Apply the host execution reference before choosing a native route or external runner. Load only the reference that matches a planned concern: `references/bug_finders.md`, `references/panel_roles.md`, `references/conditional_specialists.md`, or `references/structural_quality_review.md`. For a requirements document, use only the relevant persona from `references/doc-personas/`.
+5. Give every selected seat the same scoped context, conventions, and output contract. Preserve **seat fidelity**: an unavailable seat is recorded as unavailable, never replaced silently. Use the exact native model in an isolated persistent subagent or supported task context when the host provides it. Use a runner only for a foreign or unsupported route. Keep each reviewer context for later rechecks, and keep it separate from the implementer and other independent reviewers. Run independent seats concurrently when the host supports it.
 6. Verify runtime, security, correctness, compatibility, reliability, and performance findings when execution is possible. Evidence-check structural findings against the changed code. Mark an unverified claim as unverified or lower confidence; do not turn it into a blocker by assertion.
 7. For code, read `references/filtering_pipeline.md` and `references/review_output_schema.json`. For a document, use `references/doc-findings-schema.json`. Deduplicate, retain only evidence-backed findings with a location, then apply the active threshold and cap. **Precision over volume**: do not report cosmetic preference, broad refactor wishes, or pre-existing issues outside scope.
 8. Return the verdict. The default is report-only. When the user or caller has explicitly authorized fixes, record `apply_fixes: true` and apply them within that scope; no second approval or exact user syntax is needed. Review the changed paths before delivery.

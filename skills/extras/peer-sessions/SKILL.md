@@ -31,6 +31,8 @@ State the rule while acting: “The **ledger, not the transcript** records this 
 
 **Name the surface before you start.** Use in-process delegates by default. Probe `cmux ping` only when visible peers are requested or native delegation is unavailable. Use visible tabs when the user asks to watch work, names a session, tab, panel, or workspace, or when native delegation is unavailable and cmux is available. Record the selected surface; do not ask the user to repeat that choice.
 
+For model selection and continuation, use `shared/references/task-shaped-model-routing.md` and `shared/references/host-model-execution.md`. Prefer native delegation for models the host exposes. Keep the same peer context for later turns of its task and role; store its actual context ID and reconcile pending calls before resending. Different roles keep separate contexts. A visible terminal or runner job ID alone does not identify a persistent model session.
+
 Start every peer with only its brief path and the allowed scope. The peer reads its own brief, works within the user's authority, and writes its reply through `scripts/peer_mailbox.py` from this skill's directory.
 
 The default `--delivery-mode mailbox` owns the peer reply contract. A composing skill that owns a different structured response artifact may initialize with `--delivery-mode coordinator`; then the peer waits for the coordinator prompt and must not write a mailbox reply. `peer_mailbox.py status` rejects coordinator delivery, so use the composing protocol's artifact reader instead. The fleet record still owns identity and teardown. Say: “The **ledger, not the transcript** records the peer fleet; the composing protocol owns its response artifact.”

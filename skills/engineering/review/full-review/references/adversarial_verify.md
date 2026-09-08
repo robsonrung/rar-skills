@@ -11,7 +11,10 @@ Run one skeptic pass when all conditions hold:
 3. One seat raised it and execution neither verified nor refuted it.
 4. The approved plan names an independent skeptic route.
 
-Do not add a reviewer from a convenience pool. The selected skeptic must be a distinct approved route and must not be the seat that originated the finding.
+Do not add a reviewer from a convenience pool. The selected skeptic must be a
+distinct approved route and must not be the seat that originated the finding.
+Give it an isolated role context. Keep that context for a later recheck of the
+same finding, but do not reuse it as the originator or another review role.
 
 ## Input and result
 

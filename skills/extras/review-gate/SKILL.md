@@ -12,7 +12,7 @@ disable-model-invocation: true
 
 # Review Gate
 
-Review a pull-request head end to end and return a verdict. You are the review **orchestrator**: you declare the review scope, delegate the close reading to persona subagents, verify with real command runs and the deployed preview when one exists, and return one structured result. Selected reviewers own the initial diff reading. The merge is mechanical; targeted candidate verification is separate and does not repeat the full review.
+Review a pull-request head end to end and return a verdict. You are the review **orchestrator**: you declare the review scope, delegate the close reading to isolated reviewer roles, verify with real command runs and the deployed preview when one exists, and return one structured result. Selected reviewers own the initial diff reading. The merge is mechanical; targeted candidate verification is separate and does not repeat the full review.
 
 Precision over volume: a wrong or unfalsifiable finding costs more than a missed nit. A `request-changes` verdict may feed an automated follow-up implementation run that consumes your findings verbatim — write each one so a competent agent can act without asking: what's wrong, where, why it matters, what done looks like.
 
@@ -32,7 +32,7 @@ If the diff is empty, unreadable, or inconsistent with the stated head, report t
 | --- | --- | --- |
 | `concurrency` | 4 | Max persona seats in flight at once |
 | `extra_personas` | up to 3 | Additional orchestrator-drafted personas when the diff warrants (e.g. migrations-heavy, infra-heavy) |
-| `seats` | `auto` | `auto` probes the runner roster; `native` forces native subagents for every persona |
+| `seats` | `auto` | `auto` resolves the exact native host route first, then an external runner only for a foreign or unsupported route; `native` requires native host delegation for every selected persona |
 | `verify` | true | Run Phase 2 (deterministic checks + preview walk) |
 | `preview` | `auto` | Look for a deployed preview URL on the PR; `off` to skip |
 | `output_dir` | temp run dir | Where findings and the result JSON land — never the project tree |
@@ -53,7 +53,22 @@ Select the smallest reviewer set that covers the scope contract. Start with one 
 
 ### Seat discovery
 
-Use the caller's approved reviewer plan when present. Otherwise select the risk-based scope, resolve models and effort through the shared roster and task-shaped routing, and present the exact selected routes for approval before dispatch. Probe only the selected routes without starting model jobs. Record the approved seat table; persona briefs cannot override it.
+Use the caller's approved reviewer plan when present. Otherwise select the
+risk-based scope, read
+[`task-shaped-model-routing.md`](../../shared/references/task-shaped-model-routing.md),
+[`model-roster.md`](../../shared/references/model-roster.md), and
+[`host-model-execution.md`](../../shared/references/host-model-execution.md),
+then present the exact selected routes for approval before dispatch. Probe only
+the selected capabilities without starting model jobs. Record the approved seat
+table; persona briefs cannot override it.
+
+For a broad code pass, start with Astra at `high`, or `max` for a difficult
+scope. When Astra wrote the code, use Sol at `high` for an independent broad
+pass. Add Opus at supported `xhigh` for subtle or high-impact claims after
+validating the exact model, transport, and effort. Fable at `max` is for
+research, design, or architecture analysis, not a generic code review. Terra
+is not a default review route. The conditional Cyber security route follows the
+roster's availability rules; do not treat ordinary Gemini Flash as that route.
 
 | Persona | Required review shape |
 | --- | --- |
@@ -64,13 +79,14 @@ Use the caller's approved reviewer plan when present. Otherwise select the risk-
 | Test-quality reviewer | Maintainability and test review route |
 | Spec assessor | Requirements and feasibility review route |
 | Business-logic assessor | Repository-scale judgment route |
-| Adversarial verifier | Independent review route in fresh context |
+| Adversarial verifier | Independent review route in a dedicated isolated context |
 
 Seat rules:
 
 - An unavailable planned route is an **observable failure**. Use only a configured alternate route and record its effective execution path in `scope.agents[]`. Without one, mark the persona failed and its assigned coverage as `skipped`; never silently substitute a provider.
 - There is no fixed three-route quorum. Record the selected reviewer count and actual provider/model diversity in `scope.methodology`. A planned single-route review is valid; do not claim independent corroboration. Loss of a selected route must be reported as incomplete coverage unless its exact alternate was approved.
-- Runner invocations pass `--disable-fallback` (seat fidelity, per `shared/references/runner-common.md`); read `agent_message` from the runner envelope, never raw stdout.
+- Resolve an exact native route through a persistent isolated subagent or supported task context before choosing a runner. A runner is only for a foreign route or a native route that cannot meet the approved plan. Keep each persona's own context through later rechecks, and never share it with the writer or another independent persona.
+- Runner invocations pass `--disable-fallback` (seat fidelity, per `shared/references/runner-common.md`); read `agent_message` from the runner envelope, never raw stdout. Capture and resume that persona's own session when another round is needed.
 - Run independent selected reviewers within the approved concurrency cap. A separately selected adversarial verifier runs after its input findings exist; do not launch an empty verification round.
 
 ### Fan-out mechanics
@@ -91,7 +107,7 @@ Your merge is mechanical, not a second review: parse the JSON files, union cover
 
 ## Phase 1.5 — verify candidate findings
 
-Evidence-check candidate findings before filing. Use a separate adversarial verifier when the approved plan calls for it, such as a disputed or high-impact finding or an explicit deep review. Otherwise the coordinator checks the candidate's code and evidence without repeating the full diff review. Drop or lower confidence in unsupported claims. A selected verifier receives only the selected reviewers' findings directory in a fresh context and adds no first-pass findings. With no candidates, record the refutation call as unnecessary.
+Evidence-check candidate findings before filing. Use a separate adversarial verifier when the approved plan calls for it, such as a disputed or high-impact finding or an explicit deep review. Otherwise the coordinator checks the candidate's code and evidence without repeating the full diff review. Drop or lower confidence in unsupported claims. A selected verifier receives only the selected reviewers' findings directory in a dedicated isolated context and adds no first-pass findings. Keep that context for later rechecks of the same candidates. With no candidates, record the refutation call as unnecessary.
 
 ## Phase 2 — verify
 

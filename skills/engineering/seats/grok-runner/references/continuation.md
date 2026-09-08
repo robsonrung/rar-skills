@@ -4,8 +4,9 @@ Load the section needed for the selected operation. Prose paths resolve from the
 
 ## Session Continuation
 
-- `--resume <session-id>` / `--continue` — native Grok resume. Preferred for grok -> grok continuation; the session id comes from the `session_id` envelope field of the earlier run (requires `--output-format json` or `stream-json` on that run), or from `grok sessions`.
-- `--session-file <file>` — prepends prior workflow context as text. Use only for cross-runner handoffs where no native session exists.
+- For an iterative role, capture its `session_id` from an earlier `json` or `stream-json` envelope, then use `--resume <session-id>` for every later Grok turn. Grok persists sessions under its own CLI controls.
+- `--continue` selects the most recent Grok session for the directory. Use it only for one non-concurrent role when its identity is already certain. It cannot safely keep several roles separate.
+- `--session-file <file>` prepends prior workflow context as text. It is a cross-runner handoff, not native resumption.
 
 
 ## Background Jobs

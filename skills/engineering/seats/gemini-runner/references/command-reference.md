@@ -28,7 +28,7 @@ source checkout, invoke
 | `--allow-write` | Opt an analysis role out of the default read-only overlay | False |
 | `--background` | Run as a tracked background job and return a job id immediately | False |
 | `--session-file` | Append prior workflow context for cross-runner continuation | None |
-| `--agy-continue` | Resume the most recent Antigravity CLI conversation with native `agy --continue` | False |
+| `--agy-continue` | Resume the latest shared Antigravity CLI conversation; unsafe for concurrent roles | False |
 | `--metadata-json` | Attach structured execution metadata to the prompt | None |
 | `--disable-fallback` | Fail instead of routing to another runner | False |
 | `--output-file` | Write the full JSON envelope atomically to this path; with `--json`, stdout becomes a compact pointer `{success, return_code, output_file, runner, effective_runner, effective_provider, fallback_from, status}` | None |

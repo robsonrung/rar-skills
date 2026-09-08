@@ -1,6 +1,10 @@
 # Persona prompt template
 
-Compose one prompt per persona from this template. The same composed text goes to a native `Agent` subagent or a runner seat — only the transport differs. Hand off paths, not payloads: the brief cites files; it does not paste their contents.
+Compose one prompt per persona from this template. The same composed text goes
+to a native host role or a runner seat. Read
+[`host-model-execution.md`](../../../shared/references/host-model-execution.md)
+before choosing the transport. Hand off paths, not payloads: the brief cites
+files; it does not paste their contents.
 
 ## Template
 
@@ -45,6 +49,6 @@ a valid result.
 
 ## Transport notes
 
-- **Native seat:** `Agent` with `subagent_type=general-purpose` and the `model:` alias from the seat table; the subagent writes the file itself.
-- **Runner seat:** invoke the runner per `shared/references/runner-common.md` with `--disable-fallback`; the composed prompt asks for the same JSON as the `agent_message`, and the orchestrator writes it to `<FINDINGS_DIR>/<persona>.json`. Write composed prompts to files under `$TMPDIR`, never into the project tree.
-- **Adversarial verifier:** same template, but its "assigned files" section is replaced by the `$FINDINGS_DIR` path holding the selected reviewers' candidate files, and its brief forbids first-pass findings.
+- **Native seat:** when the exact selected model is available through the active host, use an isolated persistent subagent or supported task context. The role writes the file itself or returns its structured response for the orchestrator to save.
+- **Runner seat:** use this only for a foreign model or an approved native-route limitation. Invoke the runner per `shared/references/runner-common.md` with `--disable-fallback`; capture its role session and resume it for later rechecks. The composed prompt asks for the same JSON as the `agent_message`, and the orchestrator writes it to `<FINDINGS_DIR>/<persona>.json`. Write composed prompts to files under `$TMPDIR`, never into the project tree.
+- **Adversarial verifier:** same template, but its "assigned files" section is replaced by the `$FINDINGS_DIR` path holding the selected reviewers' candidate files, and its brief forbids first-pass findings. Give it a dedicated isolated context and keep that context only for later rechecks of the same candidates.

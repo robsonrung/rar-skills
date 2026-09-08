@@ -1,6 +1,6 @@
 # Run State Contract
 
-Canonical, agent-facing rules for the durable run state shared by every long-running orchestration skill (`implement-tasks`, `implement-and-review`, `dynamic-harness`, `models-consensus`). Each skill's SKILL.md points here and keeps inline only its own field names and ceilings.
+Canonical, agent-facing rules for the durable run state shared by every long-running orchestration skill (`implement-tasks`, `implement-and-review`, `dynamic-harness`, `models-consensus`, and `interview-me --auto`). Each skill's SKILL.md points here and keeps inline only its own field names and ceilings.
 
 A long run's progress lives in **the ledger, not the transcript**. Anything the run must know after a crash, a compaction, or a restart is written to this file; anything held only in the message history is lost with it.
 
@@ -98,6 +98,19 @@ Legacy records with `done_at` and no status mean confirmed completion. Stable ke
 Append one entry per completed step: the step name, its result, and the path to its artifact. This is what answers "what ran, in what order, and where is the output" after the run is over. Append; never rewrite history.
 
 A step that was **delegated** records its `brief` and `report` paths alongside `result` (shapes in `handoff-contract.md`), so a resumed run recovers the step's reasoning and not only its name. The report is evidence to inspect, not a completion flag. Mark the step complete only when its recorded result, acceptance evidence, and input/output revisions agree. A partial report or obsolete revision cannot release dependent work.
+
+### Persistent role contexts
+
+Use [host-model-execution.md](host-model-execution.md) for context ownership and
+adapter-specific resume. Store each role's actual context ID or session path,
+route ID, input revision, last completed turn, pending call, and receipt with the
+existing run state. Keep the approved route immutable. A repeated turn uses the
+same task and role context; an independent role starts separately.
+
+On resume, inspect each pending call before retrying. A missing session can be
+reconstructed from that role's artifacts only under the existing route and
+authority. Record the loss of native context and keep attempts intact. Do not
+close a context that still has review, repair, interview, or debate turns pending.
 
 ### Cadence
 

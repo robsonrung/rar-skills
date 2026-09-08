@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import json
+import importlib.util
 import sys
 import unittest
 from pathlib import Path
@@ -11,6 +12,12 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT / "shared" / "scripts"))
 from skill_paths import skill_dir  # noqa: E402
+
+LAUNCH_PATH = REPO_ROOT / "engineering" / "engine" / "implement-and-review" / "scripts" / "launch.py"
+LAUNCH_SPEC = importlib.util.spec_from_file_location("model_routing_launch", LAUNCH_PATH)
+assert LAUNCH_SPEC and LAUNCH_SPEC.loader
+launcher = importlib.util.module_from_spec(LAUNCH_SPEC)
+LAUNCH_SPEC.loader.exec_module(launcher)
 
 
 def P(rel: str) -> Path:
@@ -33,16 +40,12 @@ class ModelRoutingContractTests(unittest.TestCase):
         self.assertIn("effective_model", roster)
         self.assertIn("not a benchmark ranking", roster)
 
-    def test_task_routing_requires_approved_exact_routes(self):
+    def test_task_routing_names_current_quality_defaults_and_native_contract(self):
         routing = self.read("shared/references/task-shaped-model-routing.md")
-        self.assertIn("presents a model summary before any worker starts", routing)
-        self.assertIn("`--disable-fallback`", routing)
-        self.assertIn("unexpected runner or configured model blocks the route", routing)
-        self.assertIn("model_verification: required", routing)
-        self.assertIn("allow_unverified", routing)
-        self.assertNotIn("escalation, never a default", routing)
-        self.assertIn("Astra, `medium`", routing)
-        self.assertIn("Fable, `medium`", routing)
+        self.assertIn("host-model-execution.md", routing)
+        self.assertIn("Terra `medium`", routing)
+        self.assertIn("Astra `high`", routing)
+        self.assertIn("Opus `xhigh`", routing)
 
     def test_routing_plan_binds_approval_scope_and_routes(self):
         schema = json.loads(
@@ -85,6 +88,77 @@ class ModelRoutingContractTests(unittest.TestCase):
         }
         self.assertEqual(actions, {"block", "use"})
         self.assertNotIn("dcode", schema["definitions"]["runner"]["enum"])
+        self.assertIn("native", route["properties"])
+        self.assertIn("native", route["properties"]["effort_control"]["enum"])
+        native = schema["definitions"]["native"]
+        self.assertEqual(
+            set(native["required"]),
+            {"host", "transport", "capability_source", "supported_efforts"},
+        )
+
+    def test_native_route_checks_capability_and_exact_receipt(self):
+        route = {
+            "id": "impl-api",
+            "task_id": "task1",
+            "input_path": "task.md",
+            "track": "api",
+            "role": "implementer",
+            "seat": "astra",
+            "runner": "codex",
+            "model": "gpt-6-astra",
+            "model_verification": "required",
+            "effort": "high",
+            "effort_control": "native",
+            "mode": "native",
+            "native": {
+                "host": "codex-app",
+                "transport": "subagent",
+                "capability_source": "checked host catalog",
+                "supported_efforts": ["high", "max"],
+            },
+            "unavailable": {"action": "block"},
+        }
+        launcher.validate_route(route)
+        receipt = {
+            "success": True,
+            "effective_runner": "codex",
+            "configured_model": "gpt-6-astra",
+            "effective_model": "gpt-6-astra",
+            "configured_effort": "high",
+            "effective_effort": "high",
+            "model_receipt": {
+                "status": "verified",
+                "source": "native_event",
+                "observed_model": "gpt-6-astra",
+            },
+            "native_execution": {
+                "host": "codex-app",
+                "transport": "subagent",
+                "context_id": "impl-context",
+                "role": "implementer",
+                "task_id": "task1",
+                "configured_model": "gpt-6-astra",
+                "configured_effort": "high",
+                "tool_policy": "write",
+                "call_id": "impl-call",
+                "input_revision": "brief-digest",
+                "completed_turn": 1,
+            },
+        }
+        self.assertIsNone(launcher.receipt_error(route, receipt))
+        self.assertIsNone(
+            launcher.native_execution_error(
+                route,
+                receipt,
+                "task1",
+                {"call_id": "impl-call", "input_revision": "brief-digest", "tool_policy": "write"},
+            )
+        )
+        receipt["native_execution"]["host"] = "other-host"
+        self.assertIn(
+            "host or transport",
+            launcher.native_execution_error(route, receipt, "task1", None),
+        )
 
     def test_frontier_seats_are_opt_in_transport_probes(self):
         discovery = self.read("shared/scripts/discover_runners.py")
@@ -120,14 +194,15 @@ class ModelRoutingContractTests(unittest.TestCase):
         self.assertIn("Fable", text)
         self.assertNotIn("Synthesize and enrich (Opus seat)", text)
 
-    def test_collaborative_delivery_uses_frontier_defaults_and_approval(self):
+    def test_collaborative_delivery_uses_persistent_exact_routes(self):
         routing = self.read("collaborative-delivery/assets/routing.toml")
         workflow = self.read("collaborative-delivery/SKILL.md")
         self.assertIn('model = "gpt-6-astra"', routing)
-        self.assertIn('model = "claude-fable-5-1"', routing)
-        self.assertIn('"--effort", "medium"', routing)
-        self.assertIn("approved routing plan", workflow)
-        self.assertIn("serving-model receipt", workflow)
+        self.assertIn('model = "claude-opus-5"', routing)
+        self.assertIn('effort_control = "native"', routing)
+        self.assertIn('session_policy = "per-role-persistent"', routing)
+        self.assertIn("exact model", workflow)
+        self.assertIn("persistent native", workflow)
 
     def test_local_preferences_are_preview_only(self):
         example = (REPO_ROOT.parent / ".rar-skills" / "config.local.example.yaml").read_text(

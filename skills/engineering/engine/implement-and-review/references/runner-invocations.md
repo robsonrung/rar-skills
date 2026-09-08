@@ -2,7 +2,9 @@
 
 Use this after the user approves the model summary. The routing plan is the
 authority for the task, model, runner, effort, verification policy, and any
-fallback. The launcher has no route default.
+fallback. The launcher has no route default. Select models by
+`shared/references/task-shaped-model-routing.md` and execution by
+`shared/references/host-model-execution.md` before forming the plan.
 
 ## Prepare the plan
 
@@ -24,6 +26,13 @@ python3 "$SKILL_DIR/scripts/launch.py" plan-digests \
 Copy the returned `scope.inputs` and digests into the draft. After actual user
 approval, save `routing-plan.json` with its approval object. This command does
 not approve, write, create a worktree, or dispatch a worker.
+
+For a new native route, use `mode: native`, `effort_control: native`, and a
+`native` object with `host`, `transport` (`subagent` or `thread`),
+`capability_source`, and `supported_efforts`. Select an effort from the checked
+host capability list. `runner` remains the model-family adapter key for schema
+compatibility; a native route does not invoke its CLI. Legacy native rows with
+runner effort control can still be read, but they do not prove native capability.
 
 ## Launch implementation
 
@@ -110,7 +119,50 @@ python3 "$SKILL_DIR/scripts/launch.py" record-native \
   --receipt <receipt.json>
 ```
 
-Use `--phase review --cycle <number>` for a native review receipt.
+Use `--phase review --cycle <number>` for a native review receipt. Keep the
+normal envelope model and receipt fields. Add `native_execution` with the actual
+`host`, `transport`, `context_id`, `role`, `task_id`, `configured_model`,
+`configured_effort`, `tool_policy`, and positive `completed_turn`. Copy
+`call_id` and `input_revision` from the dispatched handoff so the receipt is bound
+to that call. Use observed serving-model values only when the host supplies them.
+
+The launcher stores the receipt under the task's artifacts and records its path
+and digest. `native_contexts[route_id]` keeps the role's context, configuration,
+input revision, completed turn, and pending call. Another role cannot use that
+context. Session identity does not verify serving-model identity.
+
+## Continue the same role
+
+After a completed native implementation needs an in-scope correction, prepare
+the next turn in its recorded context:
+
+```bash
+python3 "$SKILL_DIR/scripts/launch.py" resume-native \
+  --manifest <launch-manifest.json> \
+  --track <track-name> \
+  --follow-up <correction-notes.md>
+```
+
+Send the returned handoff through the host's follow-up tool, then use
+`record-native --phase implementation` for the new result. Use `review` for each
+reviewer recheck; it retains the reviewer session and counts the next review
+cycle. Native follow-ups also have a hard bound; they do not extend the three
+review cycles or the one evidence recovery.
+
+If a native context is confirmed lost, use `--context-recovery-reason` on the
+documented continuation or receipt command. Reconstruct only the same role from
+its artifacts under the unchanged route. Record the previous and replacement
+IDs. A recovery reason does not authorize a new model, scope, or tool policy.
+An uncertain pending call must be reconciled before reconstruction.
+
+`poll` captures successful runner `session_id` values in
+`runner_contexts[route_id]`; reviewer rechecks use that exact session when the
+adapter supports it. For an implementation fix through an external runner, pass
+the recorded ID through that runner's continuation command with the exact
+approved options and `--disable-fallback`, then capture its result in the task
+ledger. Read the runner's continuation reference. Pi needs a unique session path
+from the first call. A runner with no exact resume support needs a disclosed
+same-role reconstruction; never use a global latest-session selector.
 
 ## Poll and cleanup
 

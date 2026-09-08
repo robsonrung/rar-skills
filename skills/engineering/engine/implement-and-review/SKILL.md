@@ -1,13 +1,13 @@
 ---
 name: implement-and-review
-description: Implement and review one approved coding task through approved model and effort routes. Use for a scoped task with an acceptance contract; use implement-tasks to coordinate a queue.
+description: Implement and review one approved coding task through exact model routes and persistent role contexts. Use for a scoped task with an acceptance contract; use implement-tasks to coordinate a queue.
 ---
 
 # Implement And Review
 
 Build one task to its **acceptance contract** with the exact approved implementation and review routes. The next consumer is `implement-tasks` or the user. A worker result is evidence for integration. It must not mark a task queue complete. The parent marks a task complete only after integration checks pass with no unresolved acceptance or blocking defect.
 
-The routing plan is a binding record, not a suggestion. It selects the implementation and review seat, runner, model, effort, mode, and any approved fallback. Read `shared/references/implementation-routing-plan.schema.json` and `shared/references/task-shaped-model-routing.md` before dispatching work.
+The routing plan is a binding record, not a suggestion. It selects the implementation and independent review model, effort, native or runner execution, and any approved fallback. Read `shared/references/implementation-routing-plan.schema.json`, `shared/references/task-shaped-model-routing.md`, and `shared/references/host-model-execution.md` before dispatching work. Use the task defaults in the shared table; do not infer model quality from the current host or an old implementation/review pair.
 
 ## Authority
 
@@ -17,7 +17,7 @@ The user request to implement authorizes edits inside the accepted task, its sta
 
 1. Read the task, acceptance contract, and active project conventions. Inspect the relevant code and tests.
 2. Confirm the task input files still match the routing plan hashes. The launcher enforces this before it writes files, creates worktrees, or starts a worker.
-3. If the task came from `implement-tasks`, use its approved plan. For a standalone task, prepare the same model summary, show it to the user, and wait for approval or changes before starting a worker.
+3. If the task came from `implement-tasks`, use its approved plan. For a standalone task, prepare the same model summary, show it to the user, and wait for approval or changes before starting a worker. Reuse existing approval for the exact scope and routes. Include the host capability check, independent reviewer, session strategy, effort, receipt limits, and allowed fallbacks.
 4. Start with one track. Add a second track only when their scopes and contracts are independent. Worktree isolation is reversible and needs no separate approval. Commit-based integration remains separately authorized.
 
 Never call `models-consensus` from this skill. A user who wants more opinions invokes that workflow separately.
@@ -37,6 +37,12 @@ The implementation brief must state the task scope, acceptance contract, relevan
 
 Use the launcher from this skill's directory. It requires an approved plan, validates canonical task content hashes and route digests, and records the approved reviewer in the manifest. A dry run can preview a complete draft plan but never writes, creates a worktree, or starts a worker.
 
+Prefer native delegation when the host exposes the exact model, effort, isolation,
+and tools. Use an external runner for a foreign model, an unsupported native
+capability, or an explicit transport request. Start a separate context per task,
+track, and role; keep it for that role's later turns. A reviewer uses a different
+model and a separate context from the implementer.
+
 ```bash
 SKILL_DIR="<absolute path of this skill directory>";
 python3 "$SKILL_DIR/scripts/launch.py" launch \
@@ -47,6 +53,11 @@ python3 "$SKILL_DIR/scripts/launch.py" launch \
 ```
 
 The default is one sequential working-tree track. For independent tracks, add `--isolation worktree` and one `--track` pair for each track. `task-id` is the stable per-task namespace formerly carried by a slice identifier. Commit-based integration remains a separate authorized action.
+
+A native launch returns an exact `native_dispatch` handoff. The host starts or
+resumes that role, then records its actual receipt with `record-native`. A handoff
+is not execution. Read [references/runner-invocations.md](references/runner-invocations.md)
+for native capabilities, receipt fields, `resume-native`, and runner continuation.
 
 When implementation finishes, prepare a focused review brief with the acceptance contract, changed paths, evidence, and the task's named risk. Launch the exact reviewer recorded in the plan:
 
@@ -59,14 +70,14 @@ python3 "$SKILL_DIR/scripts/launch.py" review \
   --review-brief <review-brief.md>
 ```
 
-The review command reloads the approved plan, verifies the saved route still matches it, and uses a read-only reviewer. It does not accept a route from the mutable manifest alone.
+The review command reloads the approved plan, verifies the saved route still matches it, and uses a read-only reviewer. It does not accept a route from the mutable manifest alone. Rechecks reuse the recorded reviewer context. Keep native contexts in `native_contexts[route_id]` and runner sessions in `runner_contexts[route_id]`; do not use a global latest-session selector.
 
 ## Review and Finish
 
-1. Apply valid findings through the same approved implementer route. Persist each review/fix cycle before dispatch. The maximum is three cycles. If evidence is missing, reserve one evidence recovery before dispatching it. A second missing-evidence result or an exhausted cycle ceiling stops the task.
+1. Apply valid findings through the same approved implementer route and its recorded context. Persist each review/fix cycle before dispatch. The maximum is three cycles. If evidence is missing, reserve one evidence recovery before dispatching it. A second missing-evidence result or an exhausted cycle ceiling stops the task. Retain the implementer and reviewer until their fixes, rechecks, and evidence work are complete.
 2. Use `full-review` only when the user selected it in the reviewer plan. Recommend it when the change crosses a seam, carries high risk, or needs feature-level reconciliation. Its scope and routes must remain proportional to the task.
 3. Capture the required task acceptance results. Reuse earlier passing results only when the relevant code, dependencies, environment, and acceptance contract still match and the caller permits reuse. Run missing or affected checks after changes. **Only captured command results count as evidence.**
-4. Write a short report under `.ai-workflow/impl-review/<session-id>/<task-id>/report.md` when that directory is available. Include the acceptance result, implementation and reviewer receipts, changed paths, and unresolved risks.
+4. Write a short report under `.ai-workflow/impl-review/<session-id>/<task-id>/report.md` when that directory is available. Include acceptance, implementation and reviewer receipts, role context references, any context loss or reconstruction, changed paths, and unresolved risks. Reconcile a pending call before retrying; context loss never resets counters or changes the approved model.
 
 ## Output Contract
 

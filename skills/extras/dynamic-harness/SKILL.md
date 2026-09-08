@@ -42,7 +42,7 @@ Workers receive only the context they need. Assign disjoint write scopes for cod
 
 ## Run the Work
 
-1. Detect the host delegation capability. If it is unavailable, run the same slices serially and report that no workers were spawned.
+1. Resolve models with `shared/references/task-shaped-model-routing.md` and native delegation with `shared/references/host-model-execution.md`. Prefer native tools for supported host models and external runners for other selected routes. If no route can meet an exact model assignment, report the affected route; serial local work cannot stand in for a different approved model.
 2. Start only independent workers. Use a verifier for high-impact outputs and give it the evidence and rubric, not the worker's conclusion.
 3. Inspect every worker result and changed path before integration. Mark each material claim `verified`, `refuted`, or `unresolved`.
 4. Keep external side effects and destructive operations in the main workstream unless the user has authorized them.
@@ -64,7 +64,7 @@ Create a mission directory before the first worker. Set `SKILL_DIR` to the absol
 SKILL_DIR="<absolute path of this dynamic-harness directory>"; python3 "$SKILL_DIR/scripts/start_mission.py" --title "short task title"
 ```
 
-Keep the brief, worker reports, and `run-state.json` under that mission directory. Progress lives in **the ledger, not the transcript**. On resume, read the run state, keep its completed steps and side effects **already decided**, close any orphaned workers, and dispatch only remaining work.
+Keep the brief, worker reports, and `run-state.json` under that mission directory. Progress lives in **the ledger, not the transcript**. On resume, read the run state and keep completed steps and side effects **already decided**. Reconcile pending calls and reuse the recorded context for further turns of the same role. Close only confirmed unused workers owned by this run; dispatch only remaining work.
 
 If the host cannot create a separate thread, write a handoff file and its seed prompt. Do not claim that a thread exists. Hand off the path, not the payload.
 

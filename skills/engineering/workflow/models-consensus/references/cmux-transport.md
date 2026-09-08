@@ -1,13 +1,13 @@
 # cmux Interactive Transport
 
-Use this reference only after the approval preview selects `transport: cmux`. `peer-sessions` owns the terminal fleet. `models-consensus` adopts that fleet, sends each turn to its recorded surface, and collects the declared JSON artifacts. The **terminal relay** is load-bearing: no terminal transcript is an answer channel.
+Use this reference only after the approval preview selects `transport: cmux`. Select a native host route first when it can meet the approved model and isolation contract; cmux is an approved interactive route, not an automatic fallback. `peer-sessions` owns the terminal fleet. `models-consensus` adopts that fleet, sends each turn to its recorded surface, and collects the declared JSON artifacts. The **terminal relay** is load-bearing: no terminal transcript is an answer channel.
 
 ## Preconditions
 
 1. Set `CMUX_BIN` to `cmux` when it is on `PATH`. On macOS app installs, use `/Applications/cmux.app/Contents/Resources/bin/cmux` when needed. Run `"$CMUX_BIN" ping` and `"$CMUX_BIN" identify --json` from a process permitted to use the cmux socket. If either fails, mark this route unavailable; do not change `CMUX_SOCKET_MODE` or switch transport without a revised user-approved preview.
 2. Create `.ai-workflow/consensus/<session-id>.json` with the complete preview described in [operations.md](operations.md). Calculate its scope fingerprint, show the preview, and wait for user approval. Copy the approved fingerprint into `approval.scope_fingerprint`.
 3. Create one output artifact path per seat before opening a terminal.
-4. Invoke `peer-sessions` with the selected seat IDs, their absolute working directory, `--delivery-mode coordinator`, and run directory `.ai-workflow/peer-sessions/<session-id>`. Use its cmux launch path and persist its terminal state as `<absolute peer fleet run directory>/terminals.json`.
+4. Invoke `peer-sessions` with the selected seat IDs, their absolute working directory, `--delivery-mode coordinator`, and run directory `.ai-workflow/peer-sessions/<session-id>`. Use its cmux launch path and persist its terminal state as `<absolute peer fleet run directory>/terminals.json`. Each recorded surface is the persistent context for its own seat through all approved later turns.
 
 The coordinator-delivery brief tells every peer to wait for the council's first terminal prompt. It does not write a peer mailbox reply, because the council's JSON artifact is the only response channel.
 
@@ -26,7 +26,7 @@ SKILL_DIR="<absolute path of the models-consensus directory>"; python3 "$SKILL_D
 3. The peer roster exactly matches the selected council seats, and every selected peer appears once with a workspace ID and surface ID.
 4. The approved state has an exact scope fingerprint for the question, seats, models, providers, roles, efforts, tool profile, transport, and budget.
 
-The council script adopts a peer fleet only. It does not create a second fleet.
+The council script adopts a peer fleet only. It does not create a second fleet. Record each workspace and surface in the role context state. On resume, reuse only that recorded surface; a missing surface is an observable failed route, not a reason to launch another one.
 
 ## Seat launches
 
@@ -44,7 +44,8 @@ You may read the declared sources and write only this output artifact.
 Do not send a message to another terminal. Wait for the moderator's next turn.
 ```
 
-Send that file's content to an adopted surface:
+Send that file's content to an adopted surface. Reuse the same surface for that
+seat's schema retry, gap repair, or later debate round:
 
 ```bash
 SKILL_DIR="<absolute path of the models-consensus directory>"; python3 "$SKILL_DIR/scripts/cmux_council.py" send --approval-state <absolute approved council state path> --adopted-state <absolute adopted cmux state path> --seat <approved-seat-id> --message-file <prompt-file>

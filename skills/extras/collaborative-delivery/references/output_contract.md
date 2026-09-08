@@ -11,9 +11,10 @@ This skill is the unit of portability. It must be usable when copied by itself i
 1. Keep the skill focused on one job.
 2. Keep this skill's routing, contracts, and references inside the skill folder; the panel scripts are the one shared dependency, in `shared/scripts/`.
 3. Treat any top level repository agent profile as optional optimization, never as a required dependency.
-4. Use roles in instructions and routing. Keep model names in editable config values only.
-5. Run independent role rounds before reconciliation.
-6. Preserve dissent in the decision log.
+4. Bind model, effort, and execution path through the approved route. A native host route is preferred when it can meet the exact model; a foreign or unsupported route uses a runner with fallback disabled.
+5. Keep one isolated context per task and role through later phases. The route record holds its native context or runner session ID.
+6. Run independent role rounds before reconciliation.
+7. Preserve dissent in the decision log.
 
 Presence audit
 
@@ -39,7 +40,11 @@ Panel status rules
 
 Native response helper
 
-Use `shared/scripts/record_native_response.py` after a native Codex role has produced its response. The helper writes the response to `native_responses/<phase>_<role>.md`, refuses to overwrite existing non-empty responses unless `--replace` is passed, and updates the matching `panel_summary.json` result when that phase run exists.
+Use `shared/scripts/record_native_response.py` after a native host role has
+produced its response. The helper writes the response to
+`native_responses/<phase>_<role>.md`, refuses to overwrite existing non-empty
+responses unless `--replace` is passed, and updates the matching
+`panel_summary.json` result when that phase run exists.
 
 External transcript handling
 

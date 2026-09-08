@@ -9,7 +9,9 @@ one. The routing rules live in
 [`workflow-stage-routing.md`](../skills/shared/references/workflow-stage-routing.md).
 Current model and effort choices live in
 [`task-shaped-model-routing.md`](../skills/shared/references/task-shaped-model-routing.md)
-and [`model-roster.md`](../skills/shared/references/model-roster.md).
+and [`model-roster.md`](../skills/shared/references/model-roster.md). Native
+delegation and session rules live in
+[`host-model-execution.md`](../skills/shared/references/host-model-execution.md).
 
 ## 1. `interview-me`
 
@@ -22,6 +24,14 @@ asked.
 
 It records settled decisions, assumptions, exclusions, security decisions, and
 observable success conditions in `.ai-workflow/work/<slug>/decision-record.md`.
+
+With `--auto`, the interview keeps two isolated role contexts through its
+rounds. For an ambiguous user or product problem, Fable at `max` is the
+interviewer and Astra at `max` is the respondent. For a developer technical
+problem, Astra is the interviewer and Fable is the respondent. The respondent
+can investigate evidence and propose alternatives. It cannot invent a material
+user preference, approval, or decision. The interviewer still asks no more than
+five user questions in one turn.
 
 Use `security-gate` here when the change has a security surface. Use one broad
 engineering lens only when it changes the next question or prevents a false
@@ -58,28 +68,31 @@ reasoning effort that will be used to implement it.
 ## 4. `implement-tasks`
 
 Use this only with an approved task queue. Before it starts a worker, it checks
-the available model seats and presents an implementation plan. The plan names,
-for every task or task group, the role, exact model and runner, reasoning
-effort, model-verification policy, and any unavailable seat. The user can
-approve the plan or change it.
+native host capability, then external runner availability, and presents an
+implementation plan. The plan names, for every task or task group, the role,
+exact model, execution path, reasoning effort, model-verification policy, and
+any unavailable seat. The user can approve the plan or change it.
 A missing preferred seat stops the run or requires an explicit approved
 replacement. It never silently downgrades a model or effort.
 
 A requested or configured model name is not proof that it served a run. Each
 approved route records `model_verification` as `required` or
 `allow_unverified`. `required` needs `model_receipt.status: verified` from a
-native or provider event. The current Astra and Fable wrappers can lack an
-observed serving-model ID, so an `allow_unverified` route needs explicit
-approval and the final report labels that limit clearly.
+native or provider event. An `allow_unverified` route needs explicit approval
+and the final report labels that limit clearly.
 
 The routing plan binds each approved task input by `content_sha256`. It ignores
 only an exact standalone task status line, so a status change does not revoke
 approval. Any other input change requires a new model-plan approval.
 
-After model-plan approval, `implement-tasks` delegates bounded work to native
-subagents. It uses isolated worktrees only when the user authorizes integration
-work. Otherwise it works sequentially and produces a local, verified diff. It
-does not create user-owned tasks or require sidebar naming, pinning, or goals.
+After model-plan approval, an exact native model uses a persistent isolated
+subagent. In the ChatGPT app, a supported and authorized task thread can hold
+that role instead. A runner serves a foreign model or a native route that cannot
+meet the approved plan. An implementer and reviewer never share a context, and
+each keeps its own context for later fixes or rechecks. It uses isolated
+worktrees only when the user authorizes integration work. Otherwise it works
+sequentially and produces a local, verified diff. It does not create user-owned
+tasks or require sidebar naming, pinning, or goals.
 
 The implementation path is selected by the task shape:
 

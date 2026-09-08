@@ -1,11 +1,15 @@
 ---
 name: claude-runner
-description: Execute prompts using Claude CLI in headless print mode from the current workspace. Use when users explicitly request Claude execution, when a cross-runner workflow selects Claude as the preferred model, or when repo automation needs a Claude CLI seat alongside the other runner seats.
+description: Execute an external Claude CLI prompt in headless print mode. Use only for an explicit Claude CLI request, a selected Claude route unavailable as native host delegation, or an approved external fallback.
 ---
 
 # Claude Runner
 
 Execute the caller's scoped prompt through the local CLI. Shared roles, envelope keys, and result handling live in `shared/references/runner-common.md`. Preserve **seat fidelity**: name the provider that actually answered, and report unavailable or unverified seats honestly.
+
+## Native routing
+
+Read `shared/references/host-model-execution.md` before choosing an external route. If the current host can dispatch the exact selected Claude model with the required effort, isolation, and receipt policy in a native subagent or task thread, use that route. `agents/openai.yaml` is host UI metadata; it does not dispatch a native model.
 
 ## Invocation
 
@@ -35,7 +39,3 @@ An approved workflow supplies the exact model, effort, role, tool mode, and rece
 ## Result
 
 Read `agent_message` and the wrapper envelope. Check success, serving-model receipt, effective runner/provider, and any fallback or malformed-output status. A completed process alone does not prove the requested task or model was used. Report touched files when the caller authorized edits.
-
-## Integration
-
-`agents/openai.yaml` exposes this skill as a native Codex-app subagent seat; do not remove it.

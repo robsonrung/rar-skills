@@ -20,11 +20,11 @@ Before any panel dispatch, the caller shows all roles, resolved model IDs, effor
 
 The caller owns its routing file; the default model mapping is editable there. Model ids come from `shared/references/model-roster.md` — when a provider ships a new model, update the roster and the routing files that name it.
 
-Do not hardcode model choices in the workflow. Use the role names the calling skill declares (always including `synthesis_anchor` and `adversarial_anchor`). Resolve the mapping with the shared task-shaped routing reference, then bind the actual role/model/effort assignments to the user-approved plan.
+Do not hardcode model choices in the workflow. Use the role names the calling skill declares (always including `synthesis_anchor` and `adversarial_anchor`). Resolve the mapping with the shared task-shaped routing reference, then bind the actual role/model/effort assignments to the user-approved plan. Read [host-model-execution.md](references/host-model-execution.md) before selecting a native or runner transport.
 
 Read `shared/references/task-shaped-model-routing.md` before changing a model assignment. It defines the shared task categories, prompt shape, effort policy, and evaluation contract.
 
-Every configured phase must run through `shared/scripts/panel_round.py` unless the user explicitly disables model collaboration. A phase is complete only when every required role has status `ok` or `native_response_recorded` in `panel_summary.json`. A generated native prompt is not participation; the native Codex response must be recorded under the skill's artifact directory at `native_responses/<phase>_<role>.md` or passed with `--native-response`. If a specialist role is not relevant to the current work item, it still participates and states why it has no material concern.
+Every configured phase must run through `shared/scripts/panel_round.py` unless the user explicitly disables model collaboration. A phase is complete only when every required role has status `ok` or `native_response_recorded` in `panel_summary.json`. A generated native prompt is not participation; the host-native response must be recorded under the skill's artifact directory at `native_responses/<phase>_<role>.md` or passed with `--native-response`. If a specialist role is not relevant to the current work item, it still participates and states why it has no material concern.
 
 ### Core rule
 
@@ -32,7 +32,11 @@ Every phase must include the synthesis anchor and the adversarial anchor, and ev
 
 ## Local panel runner
 
-The three panel scripts are shared, not per-skill: they live in `shared/scripts/` and are pointed at a skill's routing file with `--routing`. External roles run through the repo-local runner skills with fallback disabled, so a missing model cannot be silently replaced by another provider. Native Codex roles stay native, but must be executed by the host agent or an allowed native Codex subagent and then recorded as a response artifact.
+The three panel scripts are shared, not per-skill: they live in `shared/scripts/` and are pointed at a skill's routing file with `--routing`. External roles run through the repo-local runner skills with fallback disabled, so a missing model cannot be silently replaced by another provider. Native roles use the active host's allowed delegation mechanism and are recorded as response artifacts after real execution.
+
+Set `kind = "native"` for host-native roles. The legacy `kind = "native_codex"` value remains accepted for existing routing files. A pending native result includes `native_handoff` metadata for host, provider, transport, requested model, requested effort, and effort control. The host performs the call, chooses a persistent subagent or task context when available, and records the response. Prompt generation and configured metadata do not prove the serving model.
+
+A routing file does not prove that the active host exposes a native seat. Before dispatch, bind the approved route to the active host. When that exact model is native, use `kind = "native"`; when it is foreign or the host lacks the required control, use the approved runner route. A failed native route does not authorize an automatic runner switch.
 
 Run one panel phase (replace `<phase>`, `<routing-file>`, `<artifact-dir>`, and goal/context with the calling skill's values):
 
@@ -58,7 +62,10 @@ python3 "$SHARED_DIR/scripts/panel_round.py" \
 - `--dry-run` — checks the command shape only. Use it ONLY after changing routing; dry runs do not count as model participation and produce `dry_run` status.
 - `--roles` — comma-separated role override for this phase. The mandatory anchor roles (`mandatory_presence` in the routing file) are always added back at the front, so a role override cannot drop the required anchors.
 - `--native-response ROLE=PATH` — repeatable; supply a native role's response inline instead of recording it separately.
+- `--role-session ROLE=SESSION` — repeatable; bind one recorded same-task role session or native context to that role only. Duplicate session values across roles are rejected.
 - `--fail-on-incomplete` — makes the per-phase gate deterministic: the script exits with code `2` when any required role is missing, pending, or failed, instead of relying on parsing `panel_summary.json`.
+
+For iterative runner roles, the host records the returned `session_id` and passes it back only through `--role-session`. Claude, Codex, and Grok receive `--resume`. For Pi, the host allocates a durable session path and passes it through `--role-session` on the first and later calls; Pi receives `--session`. The panel never selects a latest session and rejects unsupported runner resumes, shared provider session arguments, and duplicate role bindings. A native `--role-session` value is written to `native_handoff.context_id` for the host to resume its own role context. That context identifier is not a serving-model receipt.
 
 ### Runner-script resolution and `RUNNER_BASE_PATH`
 
@@ -95,6 +102,7 @@ A phase is complete only when every required role is `ok` or `native_response_re
 - `prompt_only` / `awaiting_native_execution` — the native prompt exists but the native model has not participated yet.
 - `dry_run` — the command shape was checked only; not participation.
 - `fallback_used` — independence was lost; do not count it as the configured model.
+- `session_resume_unsupported`, `shared_session_argument`, `session_policy_conflict` — block completion because the requested role context could not be resumed safely.
 - `error`, `exception`, `runner_unavailable`, `missing_provider`, `disabled` — block phase completion. If the user explicitly accepts the gap, report it as an accepted exception rather than claiming a complete model panel.
 
 A generated native prompt or handoff file is never enough by itself.

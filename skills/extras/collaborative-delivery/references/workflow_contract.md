@@ -7,19 +7,20 @@ Principles
 1. Keep the skill focused on one job.
 2. Keep this skill's routing, contracts, and references inside the skill folder. The panel scripts (`shared/scripts/panel_round.py`, `record_native_response.py`, `validate_artifacts.py`) and the engineering rules (`shared/references/engineering-rules.md`) are shared, single-copy dependencies — do not re-bundle them per skill.
 3. Treat any top level repository agent profile as optional optimization, never as a required dependency.
-4. Use roles in instructions and routing. Keep model names in editable config values only; the ids themselves come from `shared/references/model-roster.md`.
+4. Use roles in instructions and routing. Read `shared/references/task-shaped-model-routing.md`, `shared/references/model-roster.md`, and `shared/references/host-model-execution.md` before binding a role to its exact model, effort, and execution path.
 5. Run independent role rounds before reconciliation.
 6. Preserve dissent in the decision log.
 7. Record the anchor participation that the SKILL.md core rule requires for every phase.
 8. Do not count prompt generation, handoff creation, or fallback output as the configured model participating.
-9. Use external runner wrappers with fallback disabled when a role is mapped to a local CLI model. Set `RUNNER_BASE_PATH` when the runner skills are not installed under `.agents/skills/`.
-10. Record native Codex output as a response artifact before marking a phase complete.
-11. Prefer `shared/scripts/record_native_response.py` for native Codex responses so the artifact and `panel_summary.json` stay synchronized.
+9. Use an exact native model in an isolated persistent host role when the active host supports it. Use an external runner only for a foreign route or an approved native-route limitation. Runner routes use fallback disabled. Set `RUNNER_BASE_PATH` when the runner skills are not installed under `.agents/skills/`.
+10. Record each native host response as an artifact before marking a phase complete.
+11. Prefer `shared/scripts/record_native_response.py` for native host responses so the artifact and `panel_summary.json` stay synchronized.
+12. Keep one context per task and role through later panel phases. Capture a runner session ID before a later phase, or record the native task context. Different roles and blind perspectives never share a context.
 
 Delivery-specific obligations
 
 1. The panel is not optional in this skill. Every one of the seven phases is a gate. The synthesis and adversarial anchors are required in all of them; `delivery_review` is required at intake, review, and handoff. Add `backend` or `interface` through a phase role override when that surface is material to the slice.
-2. Code edits belong to the host session. External roles review, challenge, and shape decisions unless the routing explicitly changes that.
+2. Code edits belong to the host session. Foreign runner roles review, challenge, and shape decisions unless the routing explicitly changes that.
 3. Red, green, refactor is the execution shape. Do not record a green phase whose failing test was never observed failing for the expected reason.
 4. Verification evidence is an artifact, not a claim: record commands, outputs, skipped checks, and the reason for each skip.
 

@@ -1,8 +1,10 @@
 # Panel routing for `collaborative-delivery` (panel gates are mandatory here).
 #
-# These are proposed defaults from `shared/references/model-roster.md`.
-# An implementation run still needs an approved routing plan with the exact
-# model, effort, and model-verification policy before a panel role starts.
+# This is a ChatGPT or Codex host default from
+# `shared/references/model-roster.md`. An approved plan binds every role to the
+# active host, exact model, effort, and model-verification policy before it
+# starts. In a Claude host, bind Fable or Opus to native delegation before the
+# phase. A failed native route never switches to a runner automatically.
 
 [skill]
 name = "collaborative-delivery"
@@ -10,64 +12,91 @@ artifact_dir = ".ai-workflow/panel/delivery"
 mandatory_presence = ["synthesis_anchor", "adversarial_anchor"]
 required_phases = ["task_intake", "red", "green", "refactor", "review", "verification", "handoff"]
 required_outputs = ["execution_log.md", "test_evidence.md", "review_notes.md", "changed_files.md", "decision_log.md", "panel_summary.json"]
-workflow = "Follow the skill SKILL.md instructions, keep role outputs independent before reconciliation, preserve disagreements in the decision log, and do not mark the phase complete until every listed role has a real response and mandatory anchor roles are recorded."
+workflow = "Follow the skill SKILL.md instructions, resolve each exact route through host-model-execution before dispatch, keep one context per task and role, preserve disagreements in the decision log, and do not mark the phase complete until every listed role has a real response and mandatory anchor roles are recorded."
 
 [providers.synthesis_anchor]
-kind = "native_codex"
-provider = "codex"
+kind = "native"
+host = "chatgpt-or-codex"
+provider = "openai"
+transport = "native"
 model = "gpt-6-astra"
 model_label = "Astra"
+effort = "high"
+effort_control = "native"
+session_policy = "per-role-persistent"
 enabled = true
 native_response_required = true
-duty = "Synthesize, reconcile, coordinate native Codex subagents when allowed, and own final decisions inside the host Codex session."
+duty = "Synthesize, reconcile, coordinate the host-native role when allowed, and own final decisions for a normal repository change."
 
 [providers.adversarial_anchor]
 kind = "runner"
 runner = "claude"
 provider = "anthropic"
-model = "claude-fable-5-1"
-model_label = "Fable 5.1"
+transport = "claude-runner"
+model = "claude-opus-5"
+model_label = "Opus 5"
+effort = "xhigh"
+effort_control = "runner"
+session_policy = "per-role-persistent"
 enabled = true
 script = ".agents/skills/claude-runner/scripts/run_claude.py"
 timeout_seconds = 1200
-duty = "Challenge assumptions, find risks, inspect security and architecture, and block unsafe convergence."
-runner_args = ["--output-format", "json", "--no-session-persistence", "--restrict-tools", "--effort", "medium"]
+duty = "Run the independent precision pass for subtle semantics, high-impact claims, and evidence quality. Check exact Opus effort support before approval."
+runner_args = ["--output-format", "json", "--restrict-tools", "--effort", "xhigh"]
 
-[providers.broad_context]
+[providers.design_analysis]
 kind = "runner"
-runner = "gemini"
-provider = "google"
-model = "gemini-3.8-flash"
-model_label = "Gemini 3.8 Flash"
+runner = "claude"
+provider = "anthropic"
+transport = "claude-runner"
+model = "claude-fable-5-1"
+model_label = "Fable 5.1"
+effort = "max"
+effort_control = "runner"
+session_policy = "per-role-persistent"
 enabled = true
-script = ".agents/skills/gemini-runner/scripts/run_gemini.py"
+script = ".agents/skills/claude-runner/scripts/run_claude.py"
 timeout_seconds = 1200
-duty = "Explore broad context, user journeys, interface options, large code context, and alternative scenarios."
-runner_args = ["--output-format", "json"]
+duty = "Analyze architecture, design, delivery trade-offs, and unresolved reasoning chains. This is not the default broad code review."
+runner_args = ["--output-format", "json", "--restrict-tools", "--effort", "max"]
 
-[providers.feasibility]
-kind = "runner"
-runner = "pi"
-provider = "moonshot"
-model = "moonshotai/kimi-k3"
-model_label = "Kimi K3"
+[providers.test_driver]
+kind = "native"
+host = "chatgpt-or-codex"
+provider = "openai"
+transport = "native"
+model = "gpt-6-astra"
+model_label = "Astra"
+effort = "max"
+effort_control = "native"
+session_policy = "per-role-persistent"
 enabled = true
-script = ".agents/skills/pi-runner/scripts/run_pi.py"
-timeout_seconds = 1200
-duty = "Pressure test execution feasibility, sequencing, long horizon integration, and implementation risks."
-# The Kimi seat runs through pi-runner, which pins provider and model per
-# invocation (no shared provider state), so no data-dir isolation is needed.
-runner_args = ["--seat", "kimi", "--output-format", "stream-json"]
+native_response_required = true
+duty = "Drive TDD, failure-mode tests, and red-green-refactor evidence."
+
+[providers.broad_review]
+kind = "native"
+host = "chatgpt-or-codex"
+provider = "openai"
+transport = "native"
+model = "gpt-5.6-sol"
+model_label = "Sol"
+effort = "high"
+effort_control = "native"
+session_policy = "per-role-persistent"
+enabled = true
+native_response_required = true
+duty = "Run the independent broad code pass when Astra is the implementation route."
 
 [roles.synthesis_anchor]
 provider = "synthesis_anchor"
 runner_role = "synthesizer"
-duty = "Native synthesis, final reconciliation, implementation aware decision making, and audit trail ownership."
+duty = "Synthesis, final reconciliation, implementation-aware decisions, and audit trail ownership."
 
 [roles.adversarial_anchor]
 provider = "adversarial_anchor"
 runner_role = "adversarial"
-duty = "Adversarial critique, architecture risk, security risk, data safety, edge cases, and blocking objections."
+duty = "Independent precision critique for subtle semantics, edge cases, evidence gaps, and blocking objections."
 
 [roles.implementation]
 provider = "synthesis_anchor"
@@ -75,9 +104,9 @@ runner_role = "implementer"
 duty = "Apply the smallest correct change that satisfies the current task and preserves architecture boundaries."
 
 [roles.interface]
-provider = "broad_context"
+provider = "design_analysis"
 runner_role = "codereviewer"
-duty = "For user interface work, define and review component contracts, states, accessibility, responsiveness, and user experience behavior."
+duty = "For user interface work, analyze component contracts, states, accessibility, responsiveness, and user experience behavior."
 
 [roles.backend]
 provider = "synthesis_anchor"
@@ -85,14 +114,14 @@ runner_role = "implementer"
 duty = "For service work, implement use cases, domain behavior, ports, adapters, permissions, persistence, and observability with tests first."
 
 [roles.testing]
-provider = "synthesis_anchor"
+provider = "test_driver"
 runner_role = "planner"
 duty = "Drive red, green, refactor. Add regression tests before fixes and validate behavior with the narrowest reliable command first."
 
 [roles.review]
-provider = "adversarial_anchor"
+provider = "broad_review"
 runner_role = "codereviewer"
-duty = "Review correctness, security, maintainability, error paths, data safety, and architectural fit before completion."
+duty = "Run the independent broad review for correctness, error paths, data safety, and architectural fit before completion."
 
 [roles.simplification]
 provider = "adversarial_anchor"
@@ -100,9 +129,9 @@ runner_role = "challenger"
 duty = "Remove accidental complexity after tests pass. Prefer clear names, smaller seams, and fewer abstractions."
 
 [roles.delivery_review]
-provider = "feasibility"
+provider = "design_analysis"
 runner_role = "codereviewer"
-duty = "Review delivery risk, sequencing, hidden coupling, rollout impact, and whether the current slice remains safe to ship."
+duty = "Analyze delivery risk, sequencing, hidden coupling, rollout impact, and whether the current slice remains safe to ship."
 
 [phases.task_intake]
 roles = ["synthesis_anchor", "adversarial_anchor", "implementation", "testing", "delivery_review"]

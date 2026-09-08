@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Record a native Codex role response for a panel-capable skill phase.
+"""Record a native host role response for a panel-capable skill phase.
 
 This is the single shared copy used by every panel-capable skill. Callers whose
 routing file is not `<skill>/assets/routing.toml` pass it with `--routing`.
@@ -20,6 +20,7 @@ except ImportError:  # pragma: no cover
 
 
 OK_STATUSES = {"ok", "native_response_recorded"}
+NATIVE_KINDS = frozenset({"native", "native_codex"})
 
 
 def now_iso() -> str:
@@ -64,7 +65,8 @@ def role_is_native(cfg: dict[str, Any], role: str) -> bool:
     role_cfg = cfg.get("roles", {}).get(role, {})
     provider_key = role_cfg.get("provider") or role
     provider = cfg.get("providers", {}).get(provider_key, {})
-    return provider.get("kind") == "native_codex"
+    kind = provider.get("kind")
+    return isinstance(kind, str) and kind in NATIVE_KINDS
 
 
 def phase_run_is_complete(run: dict[str, Any]) -> bool:
@@ -150,7 +152,7 @@ def update_summary(summary_path: Path, phase: str, role: str, response_path: Pat
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Record a native Codex role response.")
+    parser = argparse.ArgumentParser(description="Record a native host role response.")
     parser.add_argument("--phase", required=True)
     parser.add_argument("--role", required=True)
     parser.add_argument("--artifact-dir")
@@ -183,7 +185,7 @@ def main() -> int:
     if args.role not in required_roles and not args.allow_unconfigured:
         raise SystemExit(f"Role {args.role!r} is not configured for phase {args.phase!r}.")
     if not role_is_native(cfg, args.role) and not args.allow_unconfigured:
-        raise SystemExit(f"Role {args.role!r} is not routed to a native_codex provider.")
+        raise SystemExit(f"Role {args.role!r} is not routed to a native provider.")
 
     response_path = artifact_dir / "native_responses" / f"{args.phase}_{args.role}.md"
     try:

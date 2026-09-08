@@ -1,11 +1,15 @@
 ---
 name: cline-runner
-description: Run a prompt through Cline CLI with structured output. Use when Cline is requested or an approved workflow selects a Cline provider/model route, including the Muse and Minimax seats.
+description: Execute an external Cline CLI prompt with structured output. Use only for an explicit Cline CLI request, a selected Cline provider route unavailable as native host delegation, or an approved external fallback, including Muse and Minimax seats.
 ---
 
 # Cline Runner
 
 Execute the caller's scoped prompt through the local CLI. Shared roles, envelope keys, and result handling live in `shared/references/runner-common.md`. Preserve **seat fidelity**: name the provider that actually answered, and report unavailable or unverified seats honestly.
+
+## Native routing
+
+Read `shared/references/host-model-execution.md` before choosing an external route. If the current host can dispatch the exact selected provider model with the required effort, isolation, and receipt policy in a native subagent or task thread, use that route. `agents/openai.yaml` is host UI metadata; it does not dispatch a native model.
 
 ## Invocation
 

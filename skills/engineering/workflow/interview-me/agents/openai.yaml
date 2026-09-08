@@ -1,6 +1,6 @@
 interface:
   display_name: "Interview Me"
-  short_description: "Ask exactly five independent questions when five exist, otherwise fewer"
-  default_prompt: "Use $interview-me to settle this request into a decision record. Ask exactly five independent questions when five exist, otherwise fewer, never more, and do not request extra model opinions."
+  short_description: "Ask exactly five independent questions when five exist; --auto uses two fixed roles"
+  default_prompt: "Use $interview-me to settle this request into a decision record. Add --auto for the bounded two-role mode; otherwise ask exactly five independent questions when five exist, otherwise fewer, never more. Do not use models-consensus unless explicitly requested."
 policy:
   allow_implicit_invocation: false

@@ -1,6 +1,22 @@
 # Runner Common Reference
 
-Canonical, agent-facing rules shared by every runner skill: `claude-runner`, `codex-runner`, `gemini-runner`, `grok-runner`, `cline-runner`, `pi-runner`, `dcode-runner`, including the named seats `pi-runner` serves (`--seat kimi|glm|qwen|gemma`) and the ones `cline-runner` serves (`--seat muse|minimax`). The Astra and Fable seats select their model through the Codex and Claude runners. Each runner's SKILL.md points here for these shared blocks and keeps inline only its genuine deltas. Seat → model ids live in [model-roster.md](model-roster.md); seat availability comes from `shared/scripts/discover_runners.py`.
+Canonical rules shared by the runner skills and their named seats. Use
+[host-model-execution.md](host-model-execution.md) first: native model delegation
+takes precedence over an external runner unless the user selected a transport.
+This reference applies once a runner path is selected. Model identifiers live in
+[model-roster.md](model-roster.md); `shared/scripts/discover_runners.py` checks
+external transport presence and does not prove native capabilities or access.
+
+## Iterative roles
+
+Keep one explicit session per task and role when later turns are expected. Read
+the runner's continuation reference before its first call so persistence is
+enabled and the returned session ID is captured. Use that exact ID for follow-up
+calls, never a shared last-session selector in a concurrent run. Pi needs an
+explicit unique session path from the first call. Preserve approved model,
+effort, tool policy, and counters on resume. A transcript handoff is a disclosed
+reconstruction, not native resumption. See the host execution contract for
+adapter limits, pending-call recovery, and role isolation.
 
 ## Seat fidelity
 
@@ -105,7 +121,10 @@ Every role except `implementer` is an analysis seat and defaults to read-only mo
 - Preserve evidence boundaries: if the model marked something as an inference or open question, keep that distinction.
 - State `model_receipt.status` when a result identifies its model. Never call an
   unverified configured label a served-model receipt.
-- Never auto-apply review findings; present them and ask which to fix.
+- For a review-only request, return findings without editing. In an authorized
+  implementation and review cycle, send supported in-scope findings to the
+  recorded implementer session and verify the fixes. Reuse that authority;
+  return only new material decisions to the user.
 - If a run fails, report the failure with the most actionable stderr lines — do not silently substitute another model's answer (seat fidelity). Any fallback run is always labeled via `fallback_from`/`fallback_reason`.
 
 ## Guardrails (opt-in command guard)

@@ -16,13 +16,15 @@ Usage:
 Default: probes every known seat, with `--native-agent unknown`, JSON output.
 
 Notes:
-  * The native `Agent` tool (used to spawn Opus/Sonnet inside Claude Code) is
-    only visible to the agent invoking this script, not to the script itself.
+  * The native `Agent` tool used to spawn Fable, Opus, or Sonnet inside Claude
+    Code is visible only to the agent invoking this script, not to the script
+    itself.
     Pass `--native-agent yes` when you are running inside a Claude Code host
-    that exposes it; the probe will then mark `opus`/`sonnet` as available via
-    `agent_native` regardless of whether the `claude` CLI is on PATH. With
-    `unknown` (default) or `no`, the probe falls back to checking the `claude`
-    CLI for the claude-runner execution path.
+    that exposes it; the probe will then report the native subagent transport
+    for `fable`, `opus`, and `sonnet` regardless of whether the `claude` CLI
+    is on PATH. This is a host-transport signal, not proof that an exact model
+    or effort can be selected. With `unknown` (default) or `no`, the probe
+    checks the `claude` CLI for the external claude-runner path.
   * Quorum signals (`light_quorum_met`, `quality_quorum_met`) are advisory —
     callers can choose to proceed under degraded posture.
 """
@@ -70,6 +72,27 @@ SEAT_SPECS: tuple[SeatSpec, ...] = (
         tier="frontier",
     ),
     SeatSpec(
+        seat="sol",
+        execution_path="codex_runner",
+        probe_cli="codex",
+        notes="Opt-in Codex-family seat. Probe confirms the CLI only; only a verified model receipt can confirm gpt-5.6-sol access.",
+        tier="backup",
+    ),
+    SeatSpec(
+        seat="terra",
+        execution_path="codex_runner",
+        probe_cli="codex",
+        notes="Opt-in Codex-family seat. Probe confirms the CLI only; only a verified model receipt can confirm gpt-5.6-terra access.",
+        tier="backup",
+    ),
+    SeatSpec(
+        seat="luna",
+        execution_path="codex_runner",
+        probe_cli="codex",
+        notes="Opt-in Codex-family seat. Probe confirms the CLI only; only a verified model receipt can confirm gpt-5.6-luna access.",
+        tier="backup",
+    ),
+    SeatSpec(
         seat="fable",
         execution_path="claude_runner",
         probe_cli="claude",
@@ -80,19 +103,19 @@ SEAT_SPECS: tuple[SeatSpec, ...] = (
         seat="opus",
         execution_path="claude_runner",
         probe_cli="claude",
-        notes="Prefer the native Agent tool when --native-agent yes is set; otherwise falls back to claude-runner CLI.",
+        notes="Prefer the native Agent tool when --native-agent yes is set; otherwise probe the external claude-runner CLI.",
     ),
     SeatSpec(
         seat="sonnet",
         execution_path="claude_runner",
         probe_cli="claude",
-        notes="Prefer the native Agent tool when --native-agent yes is set; otherwise falls back to claude-runner CLI.",
+        notes="Prefer the native Agent tool when --native-agent yes is set; otherwise probe the external claude-runner CLI.",
     ),
     SeatSpec(
         seat="codex",
         execution_path="codex_runner",
         probe_cli="codex",
-        notes="Legacy seat label. New routing plans select astra, sol, or terra explicitly.",
+        notes="Legacy seat label. New routing plans select astra, sol, terra, or luna explicitly.",
         tier="legacy",
     ),
     SeatSpec(
@@ -157,15 +180,19 @@ SEAT_SPECS: tuple[SeatSpec, ...] = (
     ),
 )
 
-# The host-native seat path is verified only for Opus and Sonnet. Fable uses
-# the Claude runner probe until a host exposes an explicit native Fable seat.
-CLAUDE_SEATS = frozenset({"opus", "sonnet"})
+# `--native-agent yes` is a caller-declared Claude Code subagent transport
+# signal. It does not verify access to an exact model or effort; approved
+# native routes must prove that separately through the active host.
+CLAUDE_SEATS = frozenset({"fable", "opus", "sonnet"})
 
 # Seat labels can point at the same configured model. This table keeps quorum
 # accounting honest without claiming model access before a receipt exists.
 SEAT_IDENTITIES = {
     "astra": "astra",
     "codex": "astra",
+    "sol": "sol",
+    "terra": "terra",
+    "luna": "luna",
     "fable": "fable",
     "opus": "opus",
     "sonnet": "sonnet",
@@ -240,7 +267,10 @@ def probe_seat(spec: SeatSpec, native_agent: str, version_timeout: float) -> Sea
             available=True,
             cli_path=None,
             depends_on=spec.depends_on,
-            notes="Native Agent tool reported by host (--native-agent yes).",
+            notes=(
+                "Native Claude subagent transport reported by host "
+                "(--native-agent yes); exact model and effort remain unchecked."
+            ),
             tier=spec.tier,
         )
 

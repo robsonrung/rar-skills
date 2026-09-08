@@ -1,8 +1,13 @@
 # External review prompts
 
-Use this template only for a seat selected by the approved routing plan. Read `references/review-dispatch.md` first. That dispatch contract owns the seat, runner, model, effort, fallback rule, and review scope; this file owns only the lens prompt.
+Use this template only for a seat selected by the approved routing plan. Read
+`references/review-dispatch.md` and
+[`host-model-execution.md`](../../../../shared/references/host-model-execution.md)
+first. The dispatch contract owns the seat, model, effort, execution path,
+fallback rule, and review scope; this file owns only the lens prompt. The same
+prompt can go to a native role or an external runner.
 
-Assign one lens to each selected route. If two routes inspect the same change, give them non-overlapping category emphasis. Do not add a seat because a runner happens to be available.
+Assign one lens to each selected route. If two routes inspect the same change, give them non-overlapping category emphasis. Do not add a seat because a runner happens to be available. Use the exact native model in an isolated role context when the host supports it. Use a runner only for a foreign or unsupported route, and keep that runner session for later rechecks of the same role.
 
 ## Base Template
 
@@ -230,6 +235,10 @@ Whole touched files, plus sibling files in the same package/module so layer owne
 ## Optional independent challenge prompt
 
 Use this only when the approved plan selects an independent challenge. The reviewer receives the finding under test and its diff slice, then tries to refute it.
+
+The challenger uses an isolated role context that did not write the original
+finding. Keep that context for a later recheck of the same finding, but never
+reuse it for a different review role or task.
 
 ````text
 <role>

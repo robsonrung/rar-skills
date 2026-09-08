@@ -1,12 +1,16 @@
 ---
 name: opencode-runner
-description: Guide OpenCode CLI runs through the host agent approval flow. Use when users explicitly request OpenCode, want to compare OpenCode output with another model, or need an OpenCode perspective without a bundled runner script.
+description: Guide an external OpenCode CLI run through the host approval flow. Use only when users explicitly request OpenCode or approve an OpenCode comparison without a bundled runner script.
 disable-model-invocation: true
 ---
 
 # OpenCode Runner
 
 Use this skill as a safe OpenCode handoff guide. This package intentionally does not ship an executable OpenCode wrapper.
+
+## Native routing
+
+Read `shared/references/host-model-execution.md` before choosing an external route. If the current host can dispatch the exact selected model with the required effort, isolation, and receipt policy in a native subagent or task thread, use that route. `agents/openai.yaml` is host UI metadata; it does not dispatch a native model.
 
 ## Routing limit
 

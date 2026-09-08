@@ -150,7 +150,7 @@
 <section>
   <div class="wrap">
     <div class="sec-head"><h2>The pipeline</h2><span class="tag">four skills, four artifacts</span></div>
-    <p class="sec-sub">Each stage has one responsibility and hands a clear artifact to the next. The <a href="skills/shared/references/workflow-stage-routing.md">shared routing reference</a> selects the engineering practices at the right moment.</p>
+    <p class="sec-sub">Each stage has one responsibility and hands a clear artifact to the next. The <a href="skills/shared/references/workflow-stage-routing.md">shared routing reference</a> selects engineering practices, and the <a href="skills/shared/references/host-model-execution.md">host execution reference</a> selects native delegation or a runner.</p>
 
     <div class="zones">
       <div class="zone h"><span class="lbl">◐ Discovery and planning</span><span class="d">You settle product decisions and approve the PRD and task queue.</span></div>
@@ -159,13 +159,13 @@
     </div>
 
     <div class="pipe">
-      <div class="phase human"><div class="ph">stage 1</div><h3>Interview</h3><div class="role">Read first. Ask exactly five independent questions when five exist, otherwise fewer, never more. Use security review or one broad lens only when it changes the next question. An empty frontier makes the record ready for the PRD.</div><div class="chips"><span class="chip">interview-me</span><span class="chip">security-gate</span><span class="chip">selected broad lens</span></div></div>
+      <div class="phase human"><div class="ph">stage 1</div><h3>Interview</h3><div class="role">Read first. Ask at most five independent questions in one turn. In <code>--auto</code>, Fable interviews and Astra responds by default; reverse the roles for a developer technical problem. Both roles persist through rounds and cannot settle a material user decision. Use security review or one broad lens only when it changes the next question.</div><div class="chips"><span class="chip">interview-me</span><span class="chip">security-gate</span><span class="chip">selected broad lens</span></div></div>
 
       <div class="phase human"><div class="ph">stage 2</div><h3>PRD</h3><div class="role">Synthesize the decision record. The PRD moves from draft to approved after review.</div><div class="chips"><span class="chip">to-prd</span></div></div>
 
       <div class="phase gate"><div class="gatebadge">TASK APPROVAL</div><div class="ph">stage 3</div><h3>Tasks</h3><div class="role">Create a task draft with acceptance evidence and engineering checks. Publish slices after approval.</div><div class="chips"><span class="chip">to-tasks</span><span class="chip">workflow-stage-routing</span></div></div>
 
-      <div class="phase auto"><div class="gatebadge">MODEL PLAN APPROVAL</div><div class="ph">stage 4</div><h3>Implement</h3><div class="role">Show the strongest suitable models, runners, lowest sufficient effort, and model-verification policy before dispatch. Then build, verify, and report a local result.</div><div class="chips"><span class="chip">implement-tasks</span><span class="chip">implement-and-review</span><span class="chip">full-review</span></div></div>
+      <div class="phase auto"><div class="gatebadge">MODEL PLAN APPROVAL</div><div class="ph">stage 4</div><h3>Implement</h3><div class="role">Show the task-shaped model plan and receipt policy before dispatch. Use an exact native model in a persistent subagent or supported task thread; use a runner only for a foreign or unsupported route. Then build, verify, and report a local result.</div><div class="chips"><span class="chip">implement-tasks</span><span class="chip">implement-and-review</span><span class="chip">full-review</span></div></div>
     </div>
 
     <div class="flowline"><span>decision record</span><span class="seg"></span><span>approved PRD</span><span class="seg"></span><span>approved tasks</span><span class="seg"></span><span>approved model plan</span><span class="seg"></span><span>verified local result</span></div>
@@ -198,10 +198,10 @@
       <div class="cstep">
         <div class="skill">implement-tasks</div>
         <h4>Approve the model plan, then build</h4>
-        <p>The task approval does not select the models. The implementation plan names the requested implementation and review models, runners, effort, model-verification policy, and any unavailable seat.</p>
+        <p>The task approval does not select the models. The implementation plan names the requested implementation and review models, execution paths, effort, model-verification policy, and any unavailable seat.</p>
         <div class="field"><code>model_verification</code> requires a verified receipt or permits an approved unverified route</div>
         <div class="field">a configured model name is not proof that it served the run</div>
-        <div class="field">native subagents complete bounded work after approval</div>
+        <div class="field">native subagents or supported task threads keep each role through its later turns</div>
         <div class="field">a local verified result is the default delivery point</div>
       </div>
     </div>
@@ -245,7 +245,7 @@
       <div class="engine">
         <div class="nm">implement-tasks</div>
         <div class="scope">scope · approved task queue</div>
-        <p>First shows the model and effort plan. After approval, it delegates bounded tasks to native subagents and verifies the local result. Integration requires separate authorization.</p>
+        <p>First shows the task-shaped route and effort plan. After approval, it uses an exact native model in a persistent role context, or an approved runner for a foreign route, then verifies the local result. Integration requires separate authorization.</p>
         <div class="calls">calls <code>implement-and-review</code> for each approved task</div>
       </div>
       <div class="engine">

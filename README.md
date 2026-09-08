@@ -12,32 +12,35 @@ source for workflow behavior.
 
 | Stage | Output | Main responsibility |
 | --- | --- | --- |
-| `interview-me` | `decision-record.md` | Use relevant repository facts, then ask exactly five independent questions when five exist and the interface can show them. Otherwise ask fewer, never more. Security questions share this limit. Record settled decisions and scope; the record becomes `ready-for-prd` when the interview closes. |
+| `interview-me` | `decision-record.md` | Use relevant repository facts, then ask at most five independent questions in one turn. With `--auto`, keep two isolated role contexts: Fable at `max` interviews and Astra at `max` responds for an ambiguous user or product problem; reverse them for a developer technical problem. The respondent can provide evidence and alternatives, but cannot settle a material user decision. Record settled decisions and scope; the record becomes `ready-for-prd` when the interview closes. |
 | `to-prd` | `prd.md` | Turn a `ready-for-prd` decision record into a draft PRD. The user reviews it before it becomes approved. |
 | `to-tasks` | `tasks-draft.md`, then task slices | Create dependency-aware tasks with acceptance evidence and applicable engineering checks. The user approves the task breakdown before slices become `ready-for-agent`. |
-| `implement-tasks` | Verified local result | Show the proposed roles, exact implementation and review models, runners, reasoning effort, and model-verification policy before dispatch. Start work only after the user approves or changes that model plan. |
+| `implement-tasks` | Verified local result | Show the proposed roles, exact implementation and review models, execution paths, reasoning effort, and model-verification policy before dispatch. Start work only after the user approves or changes that model plan. |
 
 Task approval and model-plan approval are separate. A task queue defines what
 will be built. The model plan defines who will implement and review it.
 
-`implement-tasks` checks model availability, chooses the strongest suitable
-model for each task shape, and uses the lowest sufficient reasoning effort. It
-reports unavailable seats and never silently replaces a preferred model or
-effort. It delegates bounded work to native subagents. Isolated worktrees and
-integration happen only when the user authorizes that work. Without delivery
-authorization, the result stays local and verified.
+`implement-tasks` checks native host capability before external runner
+availability, chooses the route for each task shape, and uses the approved
+effort. It reports unavailable seats and never silently replaces a preferred
+model or effort. An exact native model uses an isolated persistent subagent or,
+when supported and authorized, a task thread. A runner serves a foreign model
+or an exact route the host cannot provide. Isolated worktrees and integration
+happen only when the user authorizes that work. Without delivery authorization,
+the result stays local and verified.
 
 A requested or configured model is not proof that it served a run. Each route
 records `model_verification` as `required` or `allow_unverified`. `required`
-needs `model_receipt.status: verified` from a native or provider event. The
-current Astra and Fable wrappers can lack an observed serving-model ID, so an
+needs `model_receipt.status: verified` from a native or provider event. An
 `allow_unverified` route needs explicit approval and reports that limit clearly.
 
 The stage rules are in
 [workflow-stage-routing.md](skills/shared/references/workflow-stage-routing.md).
 Model choices are in
 [task-shaped-model-routing.md](skills/shared/references/task-shaped-model-routing.md)
-and [model-roster.md](skills/shared/references/model-roster.md).
+and [model-roster.md](skills/shared/references/model-roster.md). The host and
+session rules are in
+[host-model-execution.md](skills/shared/references/host-model-execution.md).
 
 ### Engineering practices in the workflow
 
@@ -111,8 +114,10 @@ install next to them under `.agents/skills/shared/`.
 ## Model seats
 
 Most planning, design, practice, and review skills run in a compatible host.
-Runner-backed work requires only the local CLIs for the seats selected for that
-run. Check availability before selecting a model:
+For an exact model available in that host, use its native delegation first.
+Keep each role's session through later rounds while keeping independent roles
+separate. A runner is for a foreign model or a native route that cannot meet the
+approved plan. Check external runner availability before selecting one:
 
 ```bash
 python3 skills/shared/scripts/discover_runners.py probe

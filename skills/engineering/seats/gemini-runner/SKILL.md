@@ -1,11 +1,15 @@
 ---
 name: gemini-runner
-description: Execute prompts using Antigravity CLI (`agy`) headless print mode for a Gemini/Google seat. Use when users request Gemini execution, Antigravity CLI execution, or when a consensus workflow needs a Gemini seat and local `agy` is installed.
+description: Execute an external Antigravity CLI (`agy`) prompt for a Gemini route. Use only for an explicit Gemini or Antigravity CLI request, a selected external route, or an approved fallback when native delegation cannot meet the route.
 ---
 
 # Gemini Runner
 
 Execute the caller's scoped prompt through the local CLI. Shared roles, envelope keys, and result handling live in `shared/references/runner-common.md`. Preserve **seat fidelity**: name the provider that actually answered, and report unavailable or unverified seats honestly.
+
+## Native routing
+
+Read `shared/references/host-model-execution.md` before choosing an external route. If the current host can dispatch the exact selected Gemini model with the required effort, isolation, and receipt policy in a native subagent or task thread, use that route. `agents/openai.yaml` is host UI metadata; it does not dispatch a native model.
 
 ## Invocation
 

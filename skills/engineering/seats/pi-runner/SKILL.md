@@ -1,11 +1,15 @@
 ---
 name: pi-runner
-description: Run a prompt through Pi CLI with provider and model pinned per call. Use when Pi is requested or an approved workflow selects a Pi route, including the Kimi, GLM, Qwen, and Gemma seats.
+description: Execute an external Pi CLI prompt with a provider and model pinned per call. Use only for an explicit Pi CLI request, a selected Pi provider route unavailable as native host delegation, or an approved external fallback, including Kimi, GLM, Qwen, and Gemma seats.
 ---
 
 # Pi Runner
 
 Execute prompts through the Pi coding agent CLI (`pi`) in non-interactive print mode. Pi pins the provider and model per invocation — `--provider openrouter --model vendor/model` with credentials resolved from the provider's env var or Pi's own auth store — so there is no shared mutable provider state between runs, no lane isolation to manage, and no fallback chain to disable. It also serves the collection's named OpenRouter seats through `--seat`.
+
+## Native routing
+
+Read `shared/references/host-model-execution.md` before choosing an external route. If the current host can dispatch the exact selected provider model with the required effort, isolation, and receipt policy in a native subagent or task thread, use that route. A host skill descriptor does not dispatch a native model.
 
 ## Named seats
 
@@ -64,3 +68,7 @@ python3 .agents/skills/pi-runner/scripts/run_pi.py "Answer from the brief only" 
 - **Delta stream is compacted.** Pi's `--mode json` emits per-token `message_update` lines; the wrapper drops them from the stored `stdout` and keeps the terminal events, which carry the complete message and the serving receipt (provider, model, usage, stopReason). Read `agent_message`, not `stdout`.
 - **No native timeout flag.** The wrapper's `--timeout` is enforced at the subprocess level and reports `return_code -1` on expiry.
 - **Session resume** uses native `--session <id|path>`; `--no-session-persistence`/`--ephemeral` map to native `--no-session`. Pi's `--mode json` stream does not announce a session id, so the envelope's `session_id` only reflects what the caller passed in.
+
+## Load by need
+
+- [references/continuation.md](references/continuation.md): when a role needs another Pi turn or a workflow needs a text handoff.

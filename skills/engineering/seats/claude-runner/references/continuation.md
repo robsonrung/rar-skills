@@ -4,8 +4,9 @@ Load the section needed for the selected operation. Prose paths resolve from the
 
 ## Session Continuation
 
-- `--resume <session-id>` / `--continue` — native Claude resume. Preferred for claude -> claude continuation; the session id comes from the `session_id` envelope field of the earlier run (requires `--output-format json` or `stream-json` on that run).
-- `--session-file <file>` — prepends prior workflow context as text. Use only for cross-runner handoffs where no native session exists.
+- For an iterative role, capture its `session_id` from the earlier envelope with `--output-format json` or `stream-json`, then use `--resume <session-id>` for every later Claude turn. Keep `--no-session-persistence` off.
+- `--continue` selects the most recent Claude conversation in the project. Use it only for one non-concurrent role when its identity is already certain. It cannot safely keep several roles separate.
+- `--session-file <file>` prepends prior workflow context as text. It is a cross-runner handoff, not native resumption.
 
 
 ## Background Jobs

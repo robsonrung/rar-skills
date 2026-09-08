@@ -4,7 +4,7 @@
 The runner is deliberately honest about model participation:
 
 * external seats use repo-local runner wrappers with fallback disabled when configured
-* native Codex seats produce prompts and require a recorded native response artifact
+* native host seats produce prompts and require a recorded native response artifact
 * panel_summary.json accumulates phase runs instead of overwriting earlier evidence
 
 The script does not pretend that a handoff prompt equals model execution.
@@ -35,6 +35,17 @@ except ImportError:  # pragma: no cover
 
 
 OK_STATUSES = {"ok", "native_response_recorded"}
+NATIVE_KINDS = frozenset({"native", "native_codex"})
+RUNNER_SESSION_FLAGS = {
+    "claude": "--resume",
+    "codex": "--resume",
+    "grok": "--resume",
+    "pi": "--session",
+}
+SHARED_SESSION_ARGUMENTS = frozenset(
+    {"--resume", "--resume-last", "--continue", "--session", "--session-file"}
+)
+PERSISTENCE_CONFLICT_ARGUMENTS = frozenset({"--no-session-persistence", "--ephemeral", "--no-session"})
 
 
 def now_iso() -> str:
@@ -162,6 +173,60 @@ def parse_native_response_args(items: list[str]) -> dict[str, Path]:
     return responses
 
 
+def parse_role_session_args(items: list[str]) -> dict[str, str]:
+    sessions: dict[str, str] = {}
+    owners: dict[str, str] = {}
+    for item in items:
+        if "=" not in item:
+            raise ValueError("--role-session must use ROLE=SESSION")
+        role, session_id = (part.strip() for part in item.split("=", 1))
+        if not role or not session_id:
+            raise ValueError("--role-session must name both ROLE and SESSION")
+        if role in sessions:
+            raise ValueError(f"--role-session was provided more than once for role {role!r}")
+        if session_id in owners:
+            raise ValueError(
+                "--role-session cannot share one session across independent roles "
+                f"({owners[session_id]!r} and {role!r})"
+            )
+        sessions[role] = session_id
+        owners[session_id] = role
+    return sessions
+
+
+def runner_session_flag(runner: Any) -> str | None:
+    if not isinstance(runner, str):
+        return None
+    return RUNNER_SESSION_FLAGS.get(runner.removesuffix("-runner"))
+
+
+def shared_session_argument(provider_cfg: dict[str, Any]) -> str | None:
+    for raw_arg in provider_cfg.get("runner_args", []):
+        option = str(raw_arg).split("=", 1)[0]
+        if option in SHARED_SESSION_ARGUMENTS:
+            return option
+    return None
+
+
+def persistence_conflict_argument(provider_cfg: dict[str, Any]) -> str | None:
+    if provider_cfg.get("session_policy") != "per-role-persistent":
+        return None
+    for raw_arg in provider_cfg.get("runner_args", []):
+        option = str(raw_arg).split("=", 1)[0]
+        if option in PERSISTENCE_CONFLICT_ARGUMENTS:
+            return option
+    return None
+
+
+def is_native_kind(kind: Any) -> bool:
+    """Return whether a provider is dispatched by the active host.
+
+    ``native_codex`` remains an accepted legacy routing value. New routing files
+    use the host-neutral ``native`` value.
+    """
+    return isinstance(kind, str) and kind in NATIVE_KINDS
+
+
 def build_prompt(
     skill: dict[str, Any],
     role_name: str,
@@ -177,7 +242,7 @@ def build_prompt(
     mandatory = ", ".join(skill.get("mandatory_presence", []))
     return textwrap.dedent(
         f"""
-        You are a real participant in a role-based model panel for a Codex skill.
+        You are a real participant in a role-based model panel for a portable skill.
 
         Skill: {skill_name}
         Phase: {phase}
@@ -223,15 +288,36 @@ def record_native_role(
     prompt_path: Path,
     native_responses_dir: Path,
     native_response_overrides: dict[str, Path],
+    context_id: str | None,
 ) -> dict[str, Any]:
+    declared_kind = provider_cfg.get("kind")
+    provider = provider_cfg.get("provider")
+    if provider is None and declared_kind == "native_codex":
+        provider = "codex"
+    host = provider_cfg.get("host") or provider_cfg.get("native_host") or provider
+    handoff = {
+        "host": host,
+        "provider": provider,
+        "transport": provider_cfg.get("transport") or "native",
+        "requested_model": provider_cfg.get("model"),
+        "requested_effort": provider_cfg.get("effort"),
+        "effort_control": provider_cfg.get("effort_control"),
+    }
+    if context_id is not None:
+        handoff["context_id"] = context_id
     expected_path = native_response_overrides.get(role) or native_responses_dir / f"{phase}_{role}.md"
     result: dict[str, Any] = {
         "role": role,
-        "kind": "native_codex",
-        "provider": provider_cfg.get("provider", "codex"),
+        "kind": declared_kind or "native",
+        "provider": provider,
+        "host": host,
+        "transport": handoff["transport"],
         "model": provider_cfg.get("model"),
         "model_label": provider_cfg.get("model_label"),
         "requested_model": provider_cfg.get("model"),
+        "requested_effort": provider_cfg.get("effort"),
+        "effort_control": provider_cfg.get("effort_control"),
+        "session_id": None,
         "configured_model": None,
         "effective_model": None,
         "model_receipt": {
@@ -241,6 +327,7 @@ def record_native_role(
         },
         "prompt_path": str(prompt_path),
         "expected_response_path": str(expected_path),
+        "native_handoff": handoff,
         "required": True,
     }
     if expected_path.exists() and expected_path.read_text(encoding="utf-8").strip():
@@ -257,9 +344,10 @@ def record_native_role(
                 "status": "awaiting_native_execution",
                 "participation": "prompt_only",
                 "instruction": (
-                    "Run this native Codex role through the host agent or an allowed "
-                    "native Codex subagent, write the response to expected_response_path, "
-                    "then rerun this phase or pass --native-response role=path."
+                    "Run this role through the configured host-native delegation "
+                    "using native_handoff, write the response to expected_response_path, "
+                    "then rerun this phase or pass --native-response role=path. "
+                    "A configured model label is not a serving-model receipt."
                 ),
             }
         )
@@ -291,6 +379,7 @@ def run_runner_role(
     working_dir: Path,
     skill_root: Path,
     dry_run: bool,
+    role_session: str | None,
 ) -> dict[str, Any]:
     script_raw = provider_cfg.get("script")
     runner_name = provider_cfg.get("runner")
@@ -301,6 +390,8 @@ def run_runner_role(
             "provider": provider_cfg.get("provider"),
             "model": provider_cfg.get("model"),
             "status": "missing_runner_script",
+            "requested_session_id": role_session,
+            "session_id": None,
             "required": True,
         }
 
@@ -350,6 +441,9 @@ def run_runner_role(
         cmd.extend(["--role", str(runner_role)])
     for arg in provider_cfg.get("runner_args", []):
         cmd.append(template(str(arg), variables))
+    session_flag = runner_session_flag(runner_name)
+    if role_session is not None and session_flag is not None:
+        cmd.extend([session_flag, role_session])
 
     command_preview = " ".join(shlex.quote(part) for part in cmd)
     result: dict[str, Any] = {
@@ -366,6 +460,9 @@ def run_runner_role(
             "source": "not_observed",
             "observed_model": None,
         },
+        "session_policy": provider_cfg.get("session_policy"),
+        "requested_session_id": role_session,
+        "session_id": None,
         "runner_script": str(script),
         "prompt_path": str(prompt_path),
         "output_file": str(output_file),
@@ -374,6 +471,35 @@ def run_runner_role(
         "command_preview": command_preview,
         "required": True,
     }
+    shared_argument = shared_session_argument(provider_cfg)
+    if shared_argument is not None:
+        result.update(
+            {
+                "status": "shared_session_argument",
+                "blocked_reason": f"provider runner_args cannot set {shared_argument}",
+            }
+        )
+        return result
+    persistence_conflict = persistence_conflict_argument(provider_cfg)
+    if persistence_conflict is not None:
+        result.update(
+            {
+                "status": "session_policy_conflict",
+                "blocked_reason": (
+                    "per-role-persistent session_policy conflicts with "
+                    f"provider runner_args {persistence_conflict}"
+                ),
+            }
+        )
+        return result
+    if role_session is not None and session_flag is None:
+        result.update(
+            {
+                "status": "session_resume_unsupported",
+                "blocked_reason": f"runner {runner_name!r} has no supported explicit role-session flag",
+            }
+        )
+        return result
     if dry_run:
         result["status"] = "dry_run"
         return result
@@ -418,6 +544,11 @@ def run_runner_role(
                 "effective_provider": payload.get("effective_provider"),
                 "fallback_reason": fallback_reason,
                 "blocked_reason": payload.get("blocked_reason"),
+                "session_id": (
+                    payload.get("session_id")
+                    if isinstance(payload.get("session_id"), str) and payload.get("session_id").strip()
+                    else role_session
+                ),
                 "elapsed_seconds": round(time.time() - started, 3),
             }
         )
@@ -445,6 +576,7 @@ def run_direct_cli_role(
     stdout_path: Path,
     stderr_path: Path,
     dry_run: bool,
+    role_session: str | None,
 ) -> dict[str, Any]:
     variables = {
         "prompt": prompt,
@@ -470,12 +602,22 @@ def run_direct_cli_role(
             "source": "not_observed",
             "observed_model": None,
         },
+        "requested_session_id": role_session,
+        "session_id": None,
         "prompt_path": str(prompt_path),
         "stdout_path": str(stdout_path),
         "stderr_path": str(stderr_path),
         "command_preview": " ".join(shlex.quote(part) for part in cmd),
         "required": True,
     }
+    if role_session is not None:
+        result.update(
+            {
+                "status": "session_resume_unsupported",
+                "blocked_reason": "direct CLI roles do not support --role-session",
+            }
+        )
+        return result
     if dry_run:
         result["status"] = "dry_run"
         return result
@@ -595,6 +737,13 @@ def main() -> int:
         help="Path to an already executed native response for a native role.",
     )
     parser.add_argument(
+        "--role-session",
+        action="append",
+        default=[],
+        metavar="ROLE=SESSION",
+        help="Recorded same-task session or native context for one role. Repeat per role.",
+    )
+    parser.add_argument(
         "--fail-on-incomplete",
         action="store_true",
         help="Return non-zero when any required role is missing, pending, or failed.",
@@ -624,8 +773,17 @@ def main() -> int:
     if not required_roles:
         required_roles = list(dict.fromkeys(roles + mandatory))
 
+    try:
+        native_response_overrides = parse_native_response_args(args.native_response)
+        role_sessions = parse_role_session_args(args.role_session)
+    except ValueError as exc:
+        raise SystemExit(str(exc))
+    unknown_session_roles = sorted(set(role_sessions) - set(roles))
+    if unknown_session_roles:
+        raise SystemExit(
+            "--role-session names a role outside this phase: " + ", ".join(unknown_session_roles)
+        )
     context = read_context(args.context_file)
-    native_response_overrides = parse_native_response_args(args.native_response)
     base_out = Path(args.out or skill.get("artifact_dir") or ".ai-workflow/panel")
     prompts_dir = base_out / "prompts"
     transcripts_dir = base_out / "transcripts"
@@ -638,6 +796,7 @@ def main() -> int:
     role_defs = cfg.get("roles", {})
     results: list[dict[str, Any]] = []
     for role in roles:
+        role_session = role_sessions.get(role)
         role_cfg = role_defs.get(role, {})
         provider_key = role_cfg.get("provider") or role
         provider_cfg = providers.get(provider_key)
@@ -647,6 +806,7 @@ def main() -> int:
                     "role": role,
                     "status": "missing_provider",
                     "provider": provider_key,
+                    "session_id": None,
                     "required": True,
                 }
             )
@@ -657,6 +817,7 @@ def main() -> int:
                     "role": role,
                     "status": "disabled",
                     "provider": provider_key,
+                    "session_id": None,
                     "required": True,
                 }
             )
@@ -669,7 +830,7 @@ def main() -> int:
         stderr_path = transcripts_dir / f"{role_stamp}_stderr.txt"
         output_file = transcripts_dir / f"{role_stamp}_output.json"
         kind = provider_cfg.get("kind")
-        if kind == "native_codex":
+        if is_native_kind(kind):
             results.append(
                 record_native_role(
                     provider_cfg=provider_cfg,
@@ -678,6 +839,7 @@ def main() -> int:
                     prompt_path=prompt_path,
                     native_responses_dir=native_responses_dir,
                     native_response_overrides=native_response_overrides,
+                    context_id=role_session,
                 )
             )
         elif kind == "runner":
@@ -694,6 +856,7 @@ def main() -> int:
                     working_dir=working_dir,
                     skill_root=skill_root,
                     dry_run=args.dry_run,
+                    role_session=role_session,
                 )
             )
         elif kind == "cli":
@@ -707,6 +870,7 @@ def main() -> int:
                     stdout_path=stdout_path,
                     stderr_path=stderr_path,
                     dry_run=args.dry_run,
+                    role_session=role_session,
                 )
             )
         else:
@@ -716,9 +880,13 @@ def main() -> int:
                     "status": "unknown_kind",
                     "kind": kind,
                     "provider": provider_key,
+                    "session_id": None,
                     "required": True,
                 }
             )
+
+    for result in results:
+        result.setdefault("session_id", None)
 
     run = {
         "phase": args.phase,

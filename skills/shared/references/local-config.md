@@ -14,8 +14,8 @@ Per-checkout, user-local preferences for model previews. Committed example:
 
 | Key | Consumed by | Meaning |
 | --- | --- | --- |
-| `seats.preferred` / `seats.excluded` | implement-tasks, models-consensus | Seat ids to propose or exclude before approval. Seat ids come from `discover_runners.py`. |
-| `models.<seat>` | implement-tasks, models-consensus | Exact model id to propose for a selected seat. It must be valid for that runner and appear in the approval preview. |
+| `seats.preferred` / `seats.excluded` | implement-tasks, models-consensus | Seat ids to propose or exclude before approval. Resolve them from `model-roster.md`; use native capability checks or external CLI discovery for the selected execution path. |
+| `models.<seat>` | implement-tasks, models-consensus | Exact model id to propose for a selected seat. It must be valid for the chosen native transport or runner and appear in the approval preview. |
 
 ## Migration
 

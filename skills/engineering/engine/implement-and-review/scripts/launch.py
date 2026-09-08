@@ -24,6 +24,7 @@ from typing import Any, NoReturn
 SKILL_ROOT = Path(__file__).resolve().parents[1]
 JOB_ID_RE = re.compile(r"\b([a-z]+-[0-9a-f]{8})\b")
 RUNNERS = {"codex", "claude", "pi", "grok", "gemini", "cline"}
+NATIVE_TRANSPORTS = {"subagent", "thread"}
 EFFORT_FLAGS = {
     "codex": "--effort",
     "claude": "--effort",
@@ -47,7 +48,15 @@ CODEX_MODEL_EFFORTS = {
     "gpt-5.4-mini": {"low", "medium", "high", "xhigh"},
     "gpt-5.3-codex-spark": {"low", "medium", "high", "xhigh"},
 }
+RUNNER_RESUME_FLAGS = {
+    "codex": "--resume",
+    "claude": "--resume",
+    "grok": "--resume",
+    "pi": "--session",
+    "cline": "--session",
+}
 TERMINAL_JOB_STATUSES = {"completed", "failed", "died", "cancelled"}
+ACTIVE_REVIEW_STATUSES = {"starting", "running", "awaiting_native_dispatch", "orchestrator-managed"}
 MAX_REVIEW_CYCLES = 3
 MAX_EVIDENCE_RECOVERIES = 1
 STATUS_LINE = re.compile(r"\*\*Status:\*\* (?:ready-for-agent|in-progress|done|blocked)\Z")
@@ -164,6 +173,10 @@ def file_digest(path: Path) -> str:
     return digest.hexdigest()
 
 
+def text_digest(text: str) -> str:
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+
 def canonical_task_text(text: str) -> str:
     """Normalize task text while ignoring its exact standalone workflow status."""
     normalized = text.replace("\r\n", "\n").replace("\r", "\n")
@@ -201,6 +214,29 @@ def route_variants(route: dict[str, Any]) -> list[dict[str, Any]]:
     return variants
 
 
+def validate_native_spec(route: dict[str, Any]) -> dict[str, Any] | None:
+    """Validate checked host capability data without inventing a host adapter."""
+    native = route.get("native")
+    if native is None:
+        return None
+    if not isinstance(native, dict):
+        raise ValueError("route.native must be an object")
+    for field in ("host", "transport", "capability_source"):
+        require_string(native.get(field), f"native.{field}")
+    if native["transport"] not in NATIVE_TRANSPORTS:
+        raise ValueError("route.native.transport must be subagent or thread")
+    efforts = native.get("supported_efforts")
+    if not isinstance(efforts, list) or not efforts:
+        raise ValueError("route.native.supported_efforts must be a nonempty list")
+    if (
+        any(not isinstance(effort, str) for effort in efforts)
+        or len(set(efforts)) != len(efforts)
+        or any(effort not in RUNNER_CONTROLLED_EFFORTS for effort in efforts)
+    ):
+        raise ValueError("route.native.supported_efforts contains an unsupported effort")
+    return native
+
+
 def validate_route(route: Any) -> dict[str, Any]:
     if not isinstance(route, dict):
         raise ValueError("each route must be an object")
@@ -228,6 +264,7 @@ def validate_route(route: Any) -> dict[str, Any]:
         raise ValueError("route.model_verification must be required or allow_unverified")
     effort_control = route["effort_control"]
     effort = route.get("effort")
+    native = validate_native_spec(route)
     if effort_control == "runner":
         if route["runner"] not in EFFORT_FLAGS:
             raise ValueError(f"route.runner {route['runner']!r} cannot enforce a selected effort")
@@ -244,12 +281,19 @@ def validate_route(route: Any) -> dict[str, Any]:
                 f"route.effort {effort!r} is not supported by {route['runner']}/{route['model']}"
             )
     elif effort_control == "runtime":
-        if route["runner"] not in {"gemini", "dcode"}:
-            raise ValueError("runtime controlled effort is only valid for gemini or dcode")
+        if route["mode"] != "runner" or route["runner"] != "gemini":
+            raise ValueError("runtime controlled effort is only valid for a gemini runner route")
         if effort is not None:
             raise ValueError("route.effort must be null when effort_control is runtime")
+    elif effort_control == "native":
+        if route["mode"] != "native":
+            raise ValueError("native controlled effort is only valid for a native route")
+        if native is None:
+            raise ValueError("native controlled effort requires route.native capability data")
+        if effort not in native["supported_efforts"]:
+            raise ValueError("route.effort is not supported by the approved native host capability")
     else:
-        raise ValueError("route.effort_control must be runner or runtime")
+        raise ValueError("route.effort_control must be runner, runtime, or native")
     unavailable = route.get("unavailable")
     if not isinstance(unavailable, dict) or unavailable.get("action") not in {"block", "use"}:
         raise ValueError("route.unavailable must be {action: block} or an explicit approved fallback")
@@ -259,6 +303,8 @@ def validate_route(route: Any) -> dict[str, Any]:
         for field in ("seat", "runner", "model", "model_verification", "effort", "mode", "effort_control"):
             if field not in unavailable:
                 raise ValueError(f"route.unavailable.{field} is required for an approved fallback")
+        if fallback["mode"] == "native" and fallback["effort_control"] == "native" and "native" not in unavailable:
+            raise ValueError("route.unavailable.native is required for a native controlled fallback")
         validate_route(fallback)
     return route
 
@@ -356,6 +402,12 @@ def fallback_route(route: dict[str, Any]) -> dict[str, Any] | None:
     return fallback
 
 
+def persistent_pi_session_id(route: dict[str, Any], brief: Path) -> str:
+    """Give a first Pi turn a stable native session identifier without creating it."""
+    route_key = hashlib.sha256(route["id"].encode("utf-8")).hexdigest()[:16]
+    return str(brief.parent / f"pi-session-{route_key}.jsonl")
+
+
 def route_arguments(
     route: dict[str, Any],
     brief: Path,
@@ -364,6 +416,7 @@ def route_arguments(
     timeout: int,
     metadata: dict[str, Any],
     read_only: bool,
+    resume_context_id: str | None = None,
 ) -> list[str]:
     arguments = [
         "--prompt-file", str(brief),
@@ -378,6 +431,15 @@ def route_arguments(
         arguments.extend(["--seat", route["seat"]])
     if route["effort_control"] == "runner":
         arguments.extend([EFFORT_FLAGS[route["runner"]], route["effort"]])
+    if resume_context_id:
+        resume_flag = RUNNER_RESUME_FLAGS.get(route["runner"])
+        if resume_flag is None:
+            raise RunnerLaunchError(
+                f"{route['runner']} has no exact persistent-session resume adapter for route {route['id']}"
+            )
+        arguments.extend([resume_flag, resume_context_id])
+    elif route["runner"] == "pi":
+        arguments.extend(["--session", persistent_pi_session_id(route, brief)])
     arguments.append("--restrict-tools" if read_only else "--allow-write")
     return arguments
 
@@ -417,41 +479,81 @@ def dispatch_route(
     metadata: dict[str, Any],
     read_only: bool,
     dry_run: bool,
+    resume_context: dict[str, Any] | None = None,
+    use_approved_fallback: bool = True,
 ) -> dict[str, Any]:
     if route["mode"] == "native":
+        native = validate_native_spec(route) or {}
+        context_id = resume_context.get("context_id") if isinstance(resume_context, dict) else None
+        context_action = "resume" if isinstance(context_id, str) and context_id else "start"
+        if metadata.get("context_recovery"):
+            context_action = "reconstruct"
         return {
             "mode": "native",
-            "status": "orchestrator-managed",
+            "status": "awaiting_native_dispatch",
             "selected_route": route,
-            "pending": "Dispatch this exact approved native route and record its receipt.",
+            "effective_route": route,
+            "native_dispatch": {
+                "route_id": route["id"],
+                "host": native.get("host"),
+                "transport": native.get("transport"),
+                "capability_source": native.get("capability_source"),
+                "context_action": context_action,
+                "context_id": context_id,
+                "context_recovery_reason": metadata.get("context_recovery_reason"),
+                "call_id": metadata.get("call_id"),
+                "task_id": metadata.get("task_id"),
+                "role": route["role"],
+                "configured_model": route["model"],
+                "configured_effort": route.get("effort"),
+                "effort_control": route["effort_control"],
+                "tool_policy": "read-only" if read_only else "write",
+                "input_revision": metadata.get("input_revision"),
+            },
+            "pending": "Dispatch this exact native route, preserve its role context, and record its receipt.",
         }
     try:
         result = fire_runner(
             route["runner"],
-            route_arguments(route, brief, working_dir, role, timeout, metadata, read_only),
+            route_arguments(route, brief, working_dir, role, timeout, metadata, read_only, resume_context_id=(
+                resume_context.get("context_id") if isinstance(resume_context, dict) else None
+            )),
             working_dir,
             dry_run,
         )
-        return {"mode": "runner", "selected_route": route, "effective_route": route, **result}
+        return {
+            "mode": "runner",
+            "selected_route": route,
+            "effective_route": route,
+            "resume_context_id": resume_context.get("context_id") if isinstance(resume_context, dict) else None,
+            "input_revision": metadata.get("input_revision"),
+            "tool_policy": "read-only" if read_only else "write",
+            **result,
+        }
     except RunnerLaunchError as primary_error:
         fallback = fallback_route(route)
-        if fallback is None:
+        if fallback is None or not use_approved_fallback or resume_context is not None:
             raise
         try:
-            result = fire_runner(
-                fallback["runner"],
-                route_arguments(fallback, brief, working_dir, role, timeout, metadata, read_only),
+            result = dispatch_route(
+                fallback,
+                brief,
                 working_dir,
+                role,
+                timeout,
+                metadata,
+                read_only,
                 dry_run,
+                resume_context=None,
+                use_approved_fallback=False,
             )
         except RunnerLaunchError as fallback_error:
             raise RunnerLaunchError(f"primary route failed: {primary_error}; approved fallback failed: {fallback_error}") from fallback_error
         return {
-            "mode": "runner",
+            **result,
             "selected_route": route,
             "effective_route": fallback,
             "fallback_reason": str(primary_error),
-            **result,
         }
 
 
@@ -536,6 +638,11 @@ def write_bound_brief(rendered: str, destination: Path, dry_run: bool) -> Path:
     return destination
 
 
+def native_call_id(route: dict[str, Any], phase: str, cycle: int, attempt: int) -> str:
+    """Bind a host receipt to one recorded route invocation, not a global session."""
+    return f"{route['id']}:{phase}:{cycle}:{attempt}"
+
+
 def task_tracks(args: argparse.Namespace, root: Path) -> dict[str, Path]:
     tracks: dict[str, Path] = {}
     for track, brief in args.track_briefs:
@@ -609,6 +716,8 @@ def initial_manifest(
         ] if routing["approval"].get("status") == "approved" else []),
         "side_effects": [],
         "steps": [],
+        "native_contexts": {},
+        "runner_contexts": {},
         "tracks": {},
         "reviews": [],
     }
@@ -645,7 +754,12 @@ def cmd_launch(args: argparse.Namespace) -> int:
             route = routing["routes"][track]["implementer"]
             contract = routing["scope_inputs"][route["input_path"]]
             rendered, binding = render_bound_brief(contract, source, WRITE_BOUNDARY, "Derived implementation notes")
-            prepared[track] = {"rendered": rendered, "binding": binding, "source": source}
+            prepared[track] = {
+                "rendered": rendered,
+                "binding": binding,
+                "source": source,
+                "input_revision": text_digest(rendered),
+            }
     except (OSError, UnicodeError) as error:
         fail(f"could not prepare a bound implementation brief: {error}")
     if args.isolation == "working-tree" and len(tracks) > 1:
@@ -687,6 +801,8 @@ def cmd_launch(args: argparse.Namespace) -> int:
             "track": track,
             "phase": "implement",
             "routing_plan": routing["path"],
+            "input_revision": prepared[track]["input_revision"],
+            "call_id": native_call_id(routes["implementer"], "implementation", 0, 1),
         }
         manifest["tracks"][track] = {
             "active": True,
@@ -782,6 +898,321 @@ def save_manifest(manifest: dict[str, Any], path: Path) -> None:
     path.write_text(json.dumps(manifest, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 
 
+def context_identity_error(context: Any, route: dict[str, Any], task_id: str, kind: str) -> str | None:
+    if not isinstance(context, dict):
+        return f"{kind} context is not an object"
+    expected = {
+        "role": route["role"],
+        "task_id": task_id,
+        "configured_model": route["model"],
+        "configured_effort": route.get("effort"),
+    }
+    if kind == "native":
+        native = validate_native_spec(route)
+        if native is not None:
+            expected.update({"host": native["host"], "transport": native["transport"]})
+    else:
+        expected["runner"] = route["runner"]
+    for field, value in expected.items():
+        if context.get(field) != value:
+            return f"{kind} context {field} does not match the approved route"
+    context_id = context.get("context_id")
+    if not isinstance(context_id, str) or not context_id:
+        return f"{kind} context has no persistent context id"
+    return None
+
+
+def stored_context(manifest: dict[str, Any], key: str, route: dict[str, Any], kind: str) -> dict[str, Any] | None:
+    contexts = manifest.setdefault(key, {})
+    if not isinstance(contexts, dict):
+        raise ValueError(f"manifest {key} must be an object")
+    context = contexts.get(route["id"])
+    if context is None:
+        return None
+    mismatch = context_identity_error(context, route, manifest["task_id"], kind)
+    if mismatch:
+        raise ValueError(mismatch)
+    return context
+
+
+def persistent_effective_route(manifest: dict[str, Any], approved_route: dict[str, Any]) -> dict[str, Any]:
+    """Keep an approved fallback route when it owns the role's stored context."""
+    matches: list[dict[str, Any]] = []
+    matched_contexts: set[str] = set()
+    conflicts: dict[str, str] = {}
+    for candidate in route_variants(approved_route):
+        key = "native_contexts" if candidate["mode"] == "native" else "runner_contexts"
+        contexts = manifest.get(key, {})
+        if not isinstance(contexts, dict):
+            raise ValueError(f"manifest {key} must be an object")
+        context = contexts.get(candidate["id"])
+        if context is None:
+            continue
+        context_key = f"{key}:{candidate['id']}"
+        mismatch = context_identity_error(context, candidate, manifest["task_id"], "native" if candidate["mode"] == "native" else "runner")
+        if mismatch is None:
+            matches.append(candidate)
+            matched_contexts.add(context_key)
+        else:
+            conflicts[context_key] = mismatch
+    if len(matches) > 1 and len(matched_contexts) > 1:
+        raise ValueError(f"route {approved_route['id']} has conflicting persistent contexts")
+    if matches:
+        unmatched_conflicts = [
+            mismatch for context_key, mismatch in conflicts.items() if context_key not in matched_contexts
+        ]
+        if unmatched_conflicts:
+            raise ValueError(f"route {approved_route['id']} has a conflicting persistent context")
+        return matches[0]
+    if conflicts:
+        raise ValueError(next(iter(conflicts.values())))
+    return approved_route
+
+
+def resumable_context(manifest: dict[str, Any], route: dict[str, Any]) -> dict[str, Any] | None:
+    if route["mode"] == "native":
+        context = stored_context(manifest, "native_contexts", route, "native")
+    else:
+        if route["runner"] not in RUNNER_RESUME_FLAGS:
+            return None
+        context = stored_context(manifest, "runner_contexts", route, "runner")
+    if context is None:
+        return None
+    if context.get("status") != "completed":
+        raise ValueError(f"route {route['id']} has a {context.get('status')!r} context and cannot resume it")
+    return context
+
+
+def reject_context_owned_by_another_route(
+    contexts: dict[str, Any],
+    route: dict[str, Any],
+    context_id: str,
+    kind: str,
+    host_or_runner: str,
+) -> None:
+    for other_route_id, other_context in contexts.items():
+        if other_route_id == route["id"] or not isinstance(other_context, dict):
+            continue
+        owner = other_context.get("host") if kind == "native" else other_context.get("runner")
+        if owner == host_or_runner and other_context.get("context_id") == context_id:
+            raise ValueError(
+                f"{kind} context id is already owned by route {other_route_id}; roles cannot share a persistent context"
+            )
+
+
+def native_execution_error(
+    route: dict[str, Any],
+    receipt: dict[str, Any],
+    task_id: str,
+    expected_dispatch: dict[str, Any] | None,
+) -> str | None:
+    execution = receipt.get("native_execution")
+    if not isinstance(execution, dict):
+        return "native receipt is missing native_execution"
+    for field in ("host", "transport", "context_id", "role", "task_id", "configured_model", "configured_effort", "tool_policy", "completed_turn"):
+        if field not in execution:
+            return f"native receipt is missing native_execution.{field}"
+    if not isinstance(execution["host"], str) or not execution["host"]:
+        return "native receipt has an invalid native_execution.host"
+    if execution["transport"] not in NATIVE_TRANSPORTS:
+        return "native receipt has an invalid native_execution.transport"
+    if not isinstance(execution["context_id"], str) or not execution["context_id"]:
+        return "native receipt has no persistent native context id"
+    if not isinstance(execution["completed_turn"], int) or execution["completed_turn"] < 1:
+        return "native receipt has an invalid native_execution.completed_turn"
+    if execution["role"] != route["role"] or execution["task_id"] != task_id:
+        return "native receipt role or task does not match the approved route"
+    if execution["configured_model"] != route["model"]:
+        return "native receipt configured model does not match the approved route"
+    if execution["configured_effort"] != route.get("effort"):
+        return "native receipt configured effort does not match the approved route"
+    native = validate_native_spec(route)
+    if native is not None and (execution["host"] != native["host"] or execution["transport"] != native["transport"]):
+        return "native receipt host or transport does not match the approved route"
+    if expected_dispatch is not None:
+        for field in ("call_id", "input_revision", "tool_policy"):
+            expected = expected_dispatch.get(field)
+            if expected is not None and execution.get(field) != expected:
+                return f"native receipt {field} does not match the dispatched route call"
+    return None
+
+
+def native_receipt_path(manifest: dict[str, Any], route: dict[str, Any], phase: str, cycle: int | None, receipt: dict[str, Any]) -> Path:
+    artifact_dir = Path(manifest["artifact_dir"]).resolve()
+    key = hashlib.sha256(route["id"].encode("utf-8")).hexdigest()[:16]
+    execution = receipt.get("native_execution")
+    turn = execution.get("completed_turn", "unknown") if isinstance(execution, dict) else "unknown"
+    context_id = execution.get("context_id", "unknown") if isinstance(execution, dict) else "unknown"
+    call_id = execution.get("call_id", "unknown") if isinstance(execution, dict) else "unknown"
+    context_key = hashlib.sha256(str(context_id).encode("utf-8")).hexdigest()[:12]
+    call_key = hashlib.sha256(str(call_id).encode("utf-8")).hexdigest()[:12]
+    candidate = artifact_dir / "native-receipts" / (
+        f"{phase}-{cycle or 0}-{key}-context-{context_key}-call-{call_key}-turn-{turn}.json"
+    )
+    resolved = candidate.resolve()
+    if artifact_dir not in resolved.parents:
+        raise ValueError("native receipt path escapes the launcher artifact directory")
+    return resolved
+
+
+def write_native_receipt(destination: Path, receipt: dict[str, Any]) -> dict[str, str]:
+    if destination.exists():
+        if not destination.is_file():
+            raise ValueError("native receipt artifact path is not a file")
+        try:
+            existing = json.loads(destination.read_text(encoding="utf-8"))
+        except (OSError, UnicodeError, json.JSONDecodeError) as error:
+            raise ValueError(f"native receipt artifact cannot be verified: {error}") from error
+        if canonical_digest(existing) != canonical_digest(receipt):
+            raise ValueError("native receipt artifact already exists with different content")
+        return {"path": str(destination), "sha256": file_digest(destination)}
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    destination.write_text(json.dumps(receipt, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    return {"path": str(destination), "sha256": file_digest(destination)}
+
+
+def persist_native_receipt(
+    manifest: dict[str, Any],
+    route: dict[str, Any],
+    phase: str,
+    cycle: int | None,
+    receipt: dict[str, Any],
+    context_recovery_reason: str | None,
+) -> dict[str, Any] | None:
+    """Persist one host receipt and bind it to the route's own context only."""
+    destination = native_receipt_path(manifest, route, phase, cycle, receipt)
+    if receipt.get("success") is not True:
+        return {"receipt": write_native_receipt(destination, receipt), "context": None}
+    execution = receipt.get("native_execution")
+    if not isinstance(execution, dict):
+        return {"receipt": write_native_receipt(destination, receipt), "context": None}
+    contexts = manifest.setdefault("native_contexts", {})
+    if not isinstance(contexts, dict):
+        raise ValueError("manifest native_contexts must be an object")
+    current = contexts.get(route["id"])
+    context_id = execution["context_id"]
+    if current is not None:
+        mismatch = context_identity_error(current, route, manifest["task_id"], "native")
+        if mismatch:
+            raise ValueError(mismatch)
+        if current["context_id"] != context_id:
+            if not context_recovery_reason:
+                raise ValueError("native receipt changed the persistent context; use an explicit context recovery record")
+            manifest.setdefault("native_context_breaks", []).append({
+                "route_id": route["id"],
+                "previous_context_id": current["context_id"],
+                "replacement_context_id": context_id,
+                "reason": context_recovery_reason,
+                "recorded_at": utc_now(),
+            })
+            current = None
+        else:
+            pending_call_id = current.get("pending_call_id")
+            if pending_call_id is not None and execution.get("call_id") != pending_call_id:
+                raise ValueError("native receipt call id does not match the pending persistent context call")
+            if execution["completed_turn"] <= current.get("last_completed_turn", 0):
+                raise ValueError("native receipt completed_turn does not advance its persistent context")
+    reject_context_owned_by_another_route(contexts, route, context_id, "native", execution["host"])
+    native = validate_native_spec(route)
+    reference = write_native_receipt(destination, receipt)
+    context = {
+        "host": execution["host"],
+        "transport": execution["transport"],
+        "context_id": context_id,
+        "role": route["role"],
+        "task_id": manifest["task_id"],
+        "configured_model": route["model"],
+        "configured_effort": route.get("effort"),
+        "tool_policy": execution["tool_policy"],
+        "receipt_ref": reference["path"],
+        "receipt_sha256": reference["sha256"],
+        "last_input_revision": execution.get("input_revision"),
+        "last_completed_turn": execution["completed_turn"],
+        "pending_call_id": None,
+        "status": "completed" if receipt.get("success") is True else "failed",
+    }
+    if native is None:
+        context["legacy_transport_unverified"] = True
+    if current is not None:
+        context["started_at"] = current.get("started_at", utc_now())
+    else:
+        context["started_at"] = utc_now()
+    contexts[route["id"]] = context
+    return {"receipt": reference, "context": context}
+
+
+def persist_runner_context(manifest: dict[str, Any], entry: dict[str, Any], snapshot: dict[str, Any]) -> bool:
+    """Store a route-specific runner session without using a global latest session."""
+    if snapshot.get("success") is not True:
+        return False
+    route = entry.get("effective_route") or entry.get("selected_route")
+    session_id = snapshot.get("runner_session_id")
+    if not isinstance(route, dict) or not isinstance(session_id, str) or not session_id:
+        return False
+    try:
+        validate_route(route)
+    except ValueError:
+        return False
+    contexts = manifest.setdefault("runner_contexts", {})
+    if not isinstance(contexts, dict):
+        raise ValueError("manifest runner_contexts must be an object")
+    current = contexts.get(route["id"])
+    receipt_ref = entry.get("result_file") or entry.get("job_id")
+    if current is not None:
+        mismatch = context_identity_error(current, route, manifest["task_id"], "runner")
+        if mismatch:
+            raise ValueError(mismatch)
+        processed = current.get("processed_receipt_refs", [])
+        if not isinstance(processed, list):
+            raise ValueError("runner context processed_receipt_refs must be a list")
+        if receipt_ref in processed:
+            return False
+        if current.get("status") == "broken":
+            return False
+        if entry.get("resume_context_id") != current["context_id"]:
+            current["status"] = "broken"
+            current["break_reason"] = "runner continuation did not use the recorded role session"
+            current["processed_receipt_refs"] = [*processed, receipt_ref]
+            return True
+        if session_id != current["context_id"]:
+            current["status"] = "broken"
+            current["break_reason"] = "runner returned a different session after exact resume"
+            current["processed_receipt_refs"] = [*processed, receipt_ref]
+            return True
+    reject_context_owned_by_another_route(contexts, route, session_id, "runner", route["runner"])
+    contexts[route["id"]] = {
+        "runner": route["runner"],
+        "context_id": session_id,
+        "role": route["role"],
+        "task_id": manifest["task_id"],
+        "configured_model": route["model"],
+        "configured_effort": route.get("effort"),
+        "tool_policy": entry.get("tool_policy"),
+        "receipt_ref": receipt_ref,
+        "processed_receipt_refs": ([*current.get("processed_receipt_refs", []), receipt_ref] if isinstance(current, dict) else [receipt_ref]),
+        "last_input_revision": entry.get("input_revision"),
+        "last_completed_turn": (current.get("last_completed_turn", 0) + 1) if isinstance(current, dict) else 1,
+        "status": "completed",
+    }
+    return True
+
+
+def persist_terminal_runner_contexts(manifest: dict[str, Any], snapshot: dict[str, Any]) -> bool:
+    changed = False
+    for track_name, track_snapshot in snapshot.get("tracks", {}).items():
+        track = manifest.get("tracks", {}).get(track_name)
+        if isinstance(track, dict) and isinstance(track_snapshot, dict):
+            changed = persist_runner_context(manifest, track.get("implementation", {}), track_snapshot) or changed
+    for review in manifest.get("reviews", []):
+        if not isinstance(review, dict):
+            continue
+        key = f"{review.get('track', 'unknown')}:{review.get('cycle', '0')}"
+        review_snapshot = snapshot.get("reviews", {}).get(key)
+        if isinstance(review_snapshot, dict):
+            changed = persist_runner_context(manifest, review.get("launch", {}), review_snapshot) or changed
+    return changed
+
+
 def jobs_query(subcommand: str, job_id: str, working_dir: str) -> dict[str, Any]:
     result = subprocess.run(
         [sys.executable, str(JOBS_CLI), subcommand, job_id, "--working-dir", working_dir, "--json"],
@@ -829,6 +1260,11 @@ def receipt_error(route: dict[str, Any], result: dict[str, Any]) -> str | None:
         observed = result.get("effective_effort", result.get("requested_effort", result.get("effort", result.get("thinking"))))
         if observed != route["effort"]:
             return f"effective effort {observed!r} does not match approved effort {route['effort']!r}"
+    elif route["effort_control"] == "native":
+        if result.get("configured_effort") != route["effort"]:
+            return f"configured native effort {result.get('configured_effort')!r} does not match approved effort {route['effort']!r}"
+        if result.get("effective_effort") != route["effort"]:
+            return f"effective native effort {result.get('effective_effort')!r} does not match approved effort {route['effort']!r}"
     return None
 
 
@@ -837,7 +1273,7 @@ def job_snapshot(entry: dict[str, Any], working_dir: str) -> tuple[dict[str, Any
         receipt = entry.get("completion_receipt")
         if not isinstance(receipt, dict):
             return {"mode": "native", "status": "orchestrator-managed", "route": entry.get("selected_route")}, False
-        route = entry.get("selected_route")
+        route = entry.get("effective_route") or entry.get("selected_route")
         snapshot: dict[str, Any] = {"mode": "native", "status": "completed", "success": receipt.get("success") is True}
         if snapshot["success"] and isinstance(route, dict):
             mismatch = receipt_error(route, receipt)
@@ -866,6 +1302,7 @@ def job_snapshot(entry: dict[str, Any], working_dir: str) -> tuple[dict[str, Any
         snapshot["success"] = status == "completed" and result.get("success") is True
         snapshot["runner_session_id"] = result.get("session_id")
         snapshot["model_receipt"] = result.get("model_receipt")
+        snapshot["result_file"] = entry.get("result_file")
         if status != "completed":
             snapshot["error"] = result.get("error") or f"runner job ended with status {status}"
         route = entry.get("effective_route")
@@ -897,10 +1334,16 @@ def poll_once(manifest: dict[str, Any]) -> dict[str, Any]:
 
 
 def cmd_poll(args: argparse.Namespace) -> int:
-    manifest, _ = load_manifest(args)
     deadline = time.time() + args.wait_timeout
     while True:
+        manifest, path = load_manifest(args)
         snapshot = poll_once(manifest)
+        try:
+            context_changed = persist_terminal_runner_contexts(manifest, snapshot)
+        except ValueError as error:
+            fail(str(error))
+        if context_changed:
+            save_manifest(manifest, path)
         if not args.wait or snapshot["all_terminal"] or time.time() >= deadline:
             print(json.dumps(snapshot, indent=2, ensure_ascii=False))
             failures = [entry for group in (snapshot["tracks"], snapshot["reviews"]) for entry in group.values() if entry.get("success") is False]
@@ -963,6 +1406,29 @@ def next_review_cycle(manifest: dict[str, Any], track_name: str, requested_cycle
     return cycle
 
 
+def active_review_record(manifest: dict[str, Any], track_name: str, snapshot: dict[str, Any]) -> dict[str, Any] | None:
+    """Return an unfinished same-track review so its role context stays exclusive."""
+    reviews = manifest.get("reviews", [])
+    if not isinstance(reviews, list):
+        raise ValueError("manifest reviews must be a list")
+    snapshots = snapshot.get("reviews", {})
+    if not isinstance(snapshots, dict):
+        raise ValueError("review snapshot must contain an object")
+    for review in reviews:
+        if not isinstance(review, dict) or review.get("track") != track_name:
+            continue
+        launch = review.get("launch")
+        launch_status = launch.get("status") if isinstance(launch, dict) else None
+        if review.get("status") not in ACTIVE_REVIEW_STATUSES and launch_status not in ACTIVE_REVIEW_STATUSES:
+            continue
+        key = f"{track_name}:{review.get('cycle', '0')}"
+        observed = snapshots.get(key)
+        if isinstance(observed, dict) and observed.get("status") in TERMINAL_JOB_STATUSES:
+            continue
+        return review
+    return None
+
+
 def cmd_review(args: argparse.Namespace) -> int:
     manifest, path = load_manifest(args)
     track = manifest.get("tracks", {}).get(args.track)
@@ -977,13 +1443,13 @@ def cmd_review(args: argparse.Namespace) -> int:
         routing = load_routing_plan(routing_plan, task_id, {args.track}, require_approved=True, root=root)
     except ValueError as error:
         fail(f"routing plan is no longer valid: {error}")
-    route = routing["routes"][args.track]["reviewer"]
+    approved_route = routing["routes"][args.track]["reviewer"]
     try:
         saved_route = track.get("reviewer_route")
         validate_route(saved_route)
     except ValueError as error:
         fail(f"invalid reviewer route in manifest: {error}")
-    if canonical_digest(saved_route) != canonical_digest(route):
+    if canonical_digest(saved_route) != canonical_digest(approved_route):
         fail("manifest reviewer route no longer matches the approved routing plan")
     if manifest.get("routing_plan", {}).get("approval") != routing["approval"]:
         fail("manifest approval record no longer matches the approved routing plan")
@@ -992,6 +1458,18 @@ def cmd_review(args: argparse.Namespace) -> int:
     except ValueError as error:
         fail(str(error))
     implementation_ready(track, working_dir)
+    try:
+        prior_snapshot = poll_once(manifest)
+        if persist_terminal_runner_contexts(manifest, prior_snapshot) and not args.dry_run:
+            save_manifest(manifest, path)
+        route = persistent_effective_route(manifest, approved_route)
+        resume_context = resumable_context(manifest, route)
+    except ValueError as error:
+        fail(str(error))
+    active_review = active_review_record(manifest, args.track, prior_snapshot)
+    if active_review is not None:
+        cycle = active_review.get("cycle", "unknown")
+        fail(f"review cycle {cycle} for {args.track} is still active")
     brief_candidate = Path(args.review_brief).expanduser()
     brief = (brief_candidate if brief_candidate.is_absolute() else root / brief_candidate).resolve()
     if not brief.is_file():
@@ -1004,6 +1482,7 @@ def cmd_review(args: argparse.Namespace) -> int:
         fail(f"could not prepare a bound review brief: {error}")
     cycle = next_review_cycle(manifest, args.track, args.cycle, args.dry_run, path)
     bound_brief = Path(manifest["artifact_dir"]) / f"{args.track}-review-{cycle}-brief.md"
+    input_revision = text_digest(rendered)
     metadata = {
         "session": manifest.get("session_id"),
         "task_id": manifest.get("task_id"),
@@ -1011,6 +1490,8 @@ def cmd_review(args: argparse.Namespace) -> int:
         "cycle": cycle,
         "phase": "review",
         "routing_plan": manifest.get("routing_plan", {}).get("path"),
+        "input_revision": input_revision,
+        "call_id": native_call_id(route, "review", cycle, 1),
     }
     record = {
         "track": args.track,
@@ -1019,20 +1500,41 @@ def cmd_review(args: argparse.Namespace) -> int:
         "working_dir": str(working_dir),
         "brief": str(bound_brief),
         "brief_binding": binding,
-        "reviewer_route": route,
-        "launch": {"status": "pending", "selected_route": route},
+        "input_revision": input_revision,
+        "reviewer_route": approved_route,
+        "launch": {"status": "pending", "selected_route": approved_route},
     }
+    context_before_launch: dict[str, Any] | None = None
+    if resume_context is not None and not args.dry_run:
+        context_before_launch = dict(resume_context)
+        resume_context["status"] = "pending"
+        resume_context["pending_call_id"] = metadata["call_id"]
+        resume_context["last_input_revision"] = input_revision
+        save_manifest(manifest, path)
     if not args.dry_run:
         manifest.setdefault("reviews", []).append(record)
         save_manifest(manifest, path)
     try:
         written = write_bound_brief(rendered, bound_brief, args.dry_run)
         record["brief"] = str(written)
-        record["launch"] = {"status": "starting", "selected_route": route}
+        record["launch"] = {"status": "starting", "selected_route": approved_route}
         if not args.dry_run:
             save_manifest(manifest, path)
-        launch = dispatch_route(route, written, working_dir, "codereviewer", args.timeout, metadata, True, args.dry_run)
+        launch = dispatch_route(
+            route,
+            written,
+            working_dir,
+            "codereviewer",
+            args.timeout,
+            metadata,
+            True,
+            args.dry_run,
+            resume_context=resume_context,
+        )
     except (RunnerLaunchError, OSError, UnicodeError) as error:
+        if context_before_launch is not None and resume_context is not None:
+            resume_context.clear()
+            resume_context.update(context_before_launch)
         record["status"] = "failed"
         record["launch"] = {"status": "failed", "selected_route": route, "error": str(error)}
         manifest["status"] = "failed"
@@ -1040,8 +1542,18 @@ def cmd_review(args: argparse.Namespace) -> int:
         if not args.dry_run:
             save_manifest(manifest, path)
         fail(str(error))
+    if canonical_digest(route) != canonical_digest(approved_route):
+        launch["selected_route"] = approved_route
+        launch["effective_route"] = route
+        launch["persistent_effective_route"] = True
     record["status"] = "running"
     record["launch"] = {"status": "running", **launch}
+    if launch["mode"] == "native" and resume_context is not None:
+        resume_context["status"] = "pending"
+        resume_context["pending_call_id"] = launch["native_dispatch"].get("call_id")
+        resume_context["last_input_revision"] = input_revision
+    elif launch["mode"] == "runner" and resume_context is not None:
+        resume_context["pending_job_id"] = launch.get("job_id")
     if not args.dry_run:
         save_manifest(manifest, path)
     print(json.dumps(record, indent=2, ensure_ascii=False))
@@ -1079,13 +1591,16 @@ def cmd_record_native(args: argparse.Namespace) -> int:
         approved_route = routing["routes"][args.track]["reviewer"]
     if not isinstance(entry, dict) or entry.get("mode") != "native":
         fail("selected route is not a pending native route")
+    if entry.get("status") not in {"awaiting_native_dispatch", "orchestrator-managed", "running"}:
+        fail("native route is not awaiting a receipt")
     selected_route = entry.get("selected_route")
+    effective_route = entry.get("effective_route") or selected_route
     try:
-        validate_route(selected_route)
+        validate_route(effective_route)
     except ValueError as error:
         fail(f"native route record is invalid: {error}")
-    if canonical_digest(selected_route) != canonical_digest(approved_route):
-        fail("native route record no longer matches the approved routing plan")
+    if not any(canonical_digest(effective_route) == canonical_digest(candidate) for candidate in route_variants(approved_route)):
+        fail("native route record no longer matches the approved routing plan or an approved fallback")
     receipt_candidate = Path(args.receipt).expanduser()
     receipt_path = (receipt_candidate if receipt_candidate.is_absolute() else root / receipt_candidate).resolve()
     try:
@@ -1094,15 +1609,173 @@ def cmd_record_native(args: argparse.Namespace) -> int:
         fail(f"native receipt is not readable JSON: {error}")
     if not isinstance(receipt, dict):
         fail("native receipt must be a JSON object")
+    dispatch = entry.get("native_dispatch") if isinstance(entry.get("native_dispatch"), dict) else None
+    recovery_reason = args.context_recovery_reason or (dispatch.get("context_recovery_reason") if dispatch else None)
     if receipt.get("success") is True:
-        mismatch = receipt_error(selected_route, receipt)
+        mismatch = receipt_error(effective_route, receipt)
         if mismatch:
             fail(f"native receipt does not match the approved route: {mismatch}")
+        mismatch = native_execution_error(effective_route, receipt, manifest["task_id"], dispatch)
+        if mismatch:
+            fail(f"native receipt does not match the dispatched native call: {mismatch}")
+    try:
+        persisted = persist_native_receipt(
+            manifest,
+            effective_route,
+            args.phase,
+            args.cycle,
+            receipt,
+            recovery_reason,
+        )
+    except (OSError, UnicodeError, ValueError) as error:
+        fail(f"could not persist the native receipt: {error}")
     entry["completion_receipt"] = receipt
+    entry["receipt_artifact"] = persisted["receipt"] if persisted else None
+    entry.setdefault("receipt_history", []).append(entry["receipt_artifact"])
+    if dispatch is not None:
+        dispatch["status"] = "completed" if receipt.get("success") is True else "failed"
     entry["status"] = "completed" if receipt.get("success") is True else "failed"
     save_manifest(manifest, path)
-    print(json.dumps({"track": args.track, "phase": args.phase, "status": entry["status"], "model_receipt": receipt.get("model_receipt")}, indent=2, ensure_ascii=False))
+    print(json.dumps({
+        "track": args.track,
+        "phase": args.phase,
+        "status": entry["status"],
+        "model_receipt": receipt.get("model_receipt"),
+        "receipt_artifact": entry["receipt_artifact"],
+    }, indent=2, ensure_ascii=False))
     return 0 if receipt.get("success") is True else 1
+
+
+def cmd_resume_native(args: argparse.Namespace) -> int:
+    """Prepare the next implementer turn in its recorded native context."""
+    manifest, path = load_manifest(args)
+    track = manifest.get("tracks", {}).get(args.track)
+    if not isinstance(track, dict):
+        fail(f"track not found in manifest: {args.track}")
+    root = Path(manifest["working_root"]).resolve()
+    routing_plan = manifest.get("routing_plan", {}).get("path")
+    task_id = manifest.get("task_id")
+    if not isinstance(routing_plan, str) or not isinstance(task_id, str):
+        fail("manifest has no approved routing plan reference")
+    try:
+        routing = load_routing_plan(routing_plan, task_id, {args.track}, require_approved=True, root=root)
+    except ValueError as error:
+        fail(f"routing plan is no longer valid: {error}")
+    entry = track.get("implementation")
+    approved_route = routing["routes"][args.track]["implementer"]
+    if not isinstance(entry, dict) or entry.get("mode") != "native":
+        fail("implementation route is not a completed native route")
+    effective_route = entry.get("effective_route") or entry.get("selected_route")
+    try:
+        validate_route(effective_route)
+    except ValueError as error:
+        fail(f"native route record is invalid: {error}")
+    if effective_route["mode"] != "native" or not any(
+        canonical_digest(effective_route) == canonical_digest(candidate) for candidate in route_variants(approved_route)
+    ):
+        fail("native route record no longer matches the approved implementation route or fallback")
+    if entry.get("status") != "completed" or not isinstance(entry.get("completion_receipt"), dict):
+        fail("implementation has no completed native receipt to resume")
+    try:
+        working_dir = track_working_dir(manifest, args.track, track)
+        context = stored_context(manifest, "native_contexts", effective_route, "native")
+    except ValueError as error:
+        fail(str(error))
+    recovery_reason = args.context_recovery_reason
+    if context is None and not recovery_reason:
+        fail("implementation has no persistent native context; provide a recorded context recovery reason")
+    if context is not None and context.get("status") != "completed" and not recovery_reason:
+        fail("implementation native context is not complete; provide a recovery reason only after confirming it is lost")
+    source_candidate = Path(args.follow_up).expanduser()
+    source = (source_candidate if source_candidate.is_absolute() else root / source_candidate).resolve()
+    if not source.is_file():
+        fail("implementation follow-up is missing or not a file")
+    try:
+        rendered, binding = render_bound_brief(
+            routing["scope_inputs"][effective_route["input_path"]],
+            source,
+            WRITE_BOUNDARY,
+            "Derived implementation follow-up",
+        )
+    except (OSError, UnicodeError) as error:
+        fail(f"could not prepare a bound implementation follow-up: {error}")
+    previous_attempts = entry.get("resume_attempts", 0)
+    if not isinstance(previous_attempts, int) or previous_attempts < 0:
+        fail("implementation record has an invalid native resume count")
+    if previous_attempts >= MAX_REVIEW_CYCLES + MAX_EVIDENCE_RECOVERIES:
+        manifest["status"] = "ceiling_hit"
+        manifest["phase"] = f"{args.track}_implementation_followup"
+        save_manifest(manifest, path)
+        fail(
+            "native implementation follow-up ceiling reached for "
+            f"{args.track}: {MAX_REVIEW_CYCLES + MAX_EVIDENCE_RECOVERIES}"
+        )
+    attempt = previous_attempts + 1
+    bound_brief = Path(manifest["artifact_dir"]) / f"{args.track}-implementation-resume-{attempt}-brief.md"
+    input_revision = text_digest(rendered)
+    metadata = {
+        "session": manifest["session_id"],
+        "task_id": task_id,
+        "track": args.track,
+        "phase": "implementation_followup",
+        "routing_plan": routing_plan,
+        "input_revision": input_revision,
+        "call_id": native_call_id(effective_route, "implementation", 0, attempt + 1),
+        "context_recovery": bool(recovery_reason),
+        "context_recovery_reason": recovery_reason,
+    }
+    try:
+        written = write_bound_brief(rendered, bound_brief, False)
+        launch = dispatch_route(
+            effective_route,
+            written,
+            working_dir,
+            "implementer",
+            args.timeout,
+            metadata,
+            False,
+            False,
+            resume_context=None if recovery_reason else context,
+        )
+    except (RunnerLaunchError, OSError, UnicodeError) as error:
+        fail(str(error))
+    previous_dispatch = entry.get("native_dispatch")
+    if isinstance(previous_dispatch, dict):
+        entry.setdefault("native_dispatch_history", []).append(previous_dispatch)
+    entry.setdefault("completion_receipt_history", []).append({
+        "receipt_artifact": entry.get("receipt_artifact"),
+        "status": "completed",
+    })
+    entry["brief"] = str(written)
+    entry["brief_binding"] = binding
+    entry["input_revision"] = input_revision
+    entry["resume_attempts"] = attempt
+    entry["native_dispatch"] = launch["native_dispatch"]
+    entry["completion_receipt"] = None
+    entry["status"] = launch["status"]
+    entry["pending"] = launch["pending"]
+    if context is not None:
+        if recovery_reason:
+            context["status"] = "lost"
+            context["pending_call_id"] = None
+        else:
+            context["status"] = "pending"
+            context["pending_call_id"] = launch["native_dispatch"].get("call_id")
+            context["last_input_revision"] = input_revision
+    if recovery_reason:
+        manifest.setdefault("steps", []).append({
+            "step": f"{args.track}_native_context_recovery",
+            "result": "requested",
+            "route_id": effective_route["id"],
+            "reason": recovery_reason,
+        })
+    save_manifest(manifest, path)
+    print(json.dumps({
+        "track": args.track,
+        "status": entry["status"],
+        "native_dispatch": entry["native_dispatch"],
+    }, indent=2, ensure_ascii=False))
+    return 0
 
 
 def cmd_evidence_recovery(args: argparse.Namespace) -> int:
@@ -1311,7 +1984,24 @@ def build_parser() -> argparse.ArgumentParser:
     record_native.add_argument("--phase", choices=("implementation", "review"), required=True)
     record_native.add_argument("--cycle", type=int, help="required when --phase review")
     record_native.add_argument("--receipt", required=True, help="JSON receipt from the native route")
+    record_native.add_argument(
+        "--context-recovery-reason",
+        help="record why a lost native context is being reconstructed under the same approved route",
+    )
     record_native.set_defaults(handler=cmd_record_native)
+    resume_native = commands.add_parser(
+        "resume-native",
+        help="prepare the next exact implementation turn in its persistent native context",
+    )
+    add_manifest_arguments(resume_native)
+    resume_native.add_argument("--track", required=True)
+    resume_native.add_argument("--follow-up", required=True, help="derived notes for the next implementation turn")
+    resume_native.add_argument("--timeout", type=int, default=1800)
+    resume_native.add_argument(
+        "--context-recovery-reason",
+        help="record why the same approved role must reconstruct a lost native context",
+    )
+    resume_native.set_defaults(handler=cmd_resume_native)
     evidence = commands.add_parser("evidence-recovery", help="reserve the one allowed evidence recovery before dispatch")
     add_manifest_arguments(evidence)
     evidence.add_argument("--track", required=True)
@@ -1332,7 +2022,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main() -> int:
     arguments = build_parser().parse_args()
-    if arguments.command in {"poll", "review", "record-native", "evidence-recovery", "cleanup"} and not arguments.manifest:
+    if arguments.command in {"poll", "review", "record-native", "resume-native", "evidence-recovery", "cleanup"} and not arguments.manifest:
         if not arguments.session_id or not arguments.task_id:
             fail("provide --manifest or both --session-id and --task-id")
     return arguments.handler(arguments)

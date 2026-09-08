@@ -14,6 +14,9 @@ Locks in the family-wide contract so the per-script copies cannot drift:
 3. Relative --prompt-file paths resolve against --working-dir (not the
    process cwd): an existing file under the working dir reaches the -2
    missing-CLI path, a missing one is a -3 input error.
+4. Codex-family aliases resolve before launch, including Luna, and runner
+   discovery recognizes every rostered Codex-family seat without calling a
+   provider.
 
 All tests run offline: PATH is stripped so no real CLI is ever found, and
 --disable-fallback keeps the claude/codex/gemini chains from routing.
@@ -41,6 +44,7 @@ def P(rel: str):
 
 _PI = runner_script("pi", root=REPO_ROOT)
 _CLINE = runner_script("cline", root=REPO_ROOT)
+DISCOVER_RUNNERS = REPO_ROOT / "shared" / "scripts" / "discover_runners.py"
 
 # runner label -> (script, extra args that select the seat)
 RUNNER_SCRIPTS = {
@@ -102,6 +106,21 @@ def run_script(
             text=True,
             timeout=60,
             cwd=cwd,
+            env=env,
+            check=False,
+        )
+
+
+def run_discovery(*args: str) -> subprocess.CompletedProcess:
+    """Run discovery without finding or invoking a real local CLI."""
+    env = os.environ.copy()
+    with tempfile.TemporaryDirectory() as empty:
+        env["PATH"] = empty
+        return subprocess.run(
+            [sys.executable, str(DISCOVER_RUNNERS), "probe", *args],
+            capture_output=True,
+            text=True,
+            timeout=60,
             env=env,
             check=False,
         )
@@ -205,6 +224,65 @@ class WorkingDirPathResolutionParityTests(unittest.TestCase):
                 )
                 env = json.loads(proc.stdout)
                 self.assertEqual(env["return_code"], -3, f"{name}: {env.get('stderr')}")
+
+
+class CodexFamilyAliasAndDiscoveryTests(unittest.TestCase):
+    def test_codex_family_aliases_resolve_before_cli_availability(self):
+        expected_models = {
+            "astra": "gpt-6-astra",
+            "sol": "gpt-5.6-sol",
+            "terra": "gpt-5.6-terra",
+            "luna": "gpt-5.6-luna",
+        }
+        codex = RUNNER_SCRIPTS["codex"]
+        for alias, model in expected_models.items():
+            with self.subTest(alias=alias):
+                proc = run_script(
+                    codex,
+                    "hi",
+                    "--model",
+                    alias,
+                    "--json",
+                    "--disable-fallback",
+                    "--timeout",
+                    "5",
+                )
+                env = json.loads(proc.stdout)
+                self.assertEqual(env["return_code"], -2, env.get("stderr"))
+                self.assertEqual(env["configured_model"], model)
+                self.assertIsNone(env["effective_model"])
+
+    def test_discovery_lists_all_codex_family_seats(self):
+        proc = run_discovery(
+            "--seat",
+            "astra",
+            "--seat",
+            "sol",
+            "--seat",
+            "terra",
+            "--seat",
+            "luna",
+        )
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        payload = json.loads(proc.stdout)
+        seats = {seat["seat"]: seat for seat in payload["seats"]}
+        self.assertEqual(set(seats), {"astra", "sol", "terra", "luna"})
+        for name in seats:
+            with self.subTest(seat=name):
+                self.assertEqual(seats[name]["execution_path"], "codex_runner")
+                self.assertFalse(seats[name]["available"])
+                self.assertIn("not found on PATH", seats[name]["blocked_reason"])
+
+    def test_native_claude_transport_includes_fable_without_model_claim(self):
+        proc = run_discovery("--native-agent", "yes", "--seat", "fable")
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        payload = json.loads(proc.stdout)
+        self.assertEqual(len(payload["seats"]), 1)
+        seat = payload["seats"][0]
+        self.assertEqual(seat["seat"], "fable")
+        self.assertTrue(seat["available"])
+        self.assertEqual(seat["execution_path"], "agent_native")
+        self.assertIn("exact model and effort remain unchecked", seat["notes"])
 
 
 if __name__ == "__main__":

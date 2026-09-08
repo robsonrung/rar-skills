@@ -1,6 +1,10 @@
 # Adversarial verifier
 
-Seat: the exact model, effort, and transport assigned in the approved reviewer plan. Use only an explicitly approved alternate. Use a fresh context that produced none of the candidate findings.
+Seat: the exact model, effort, and transport assigned in the approved reviewer
+plan. Use only an explicitly approved alternate. Use a dedicated isolated
+context that produced none of the candidate findings. Keep that context for a
+later recheck of the same candidates; do not reuse it as an author or another
+reviewer role.
 
 <task>Refute the candidate findings from the selected reviewers. What you cannot refute and cannot falsify gets dropped or de-confidenced; only what survives you gets filed.</task>
 

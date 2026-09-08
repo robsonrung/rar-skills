@@ -49,6 +49,13 @@ Keep the brief to one screen when possible. Include:
 
 A brief that quotes a prior report's body instead of citing its path has broken the contract, whatever else it gets right.
 
+For iterative work, pass the recorded task and role context ID as well as the
+next input paths. Follow [host-model-execution.md](host-model-execution.md): start
+each independent role in its own context, then reuse that role for later turns.
+An implementer, reviewer, or interview respondent must not inherit another role's
+private history. Keep artifacts even when native session reuse succeeds; they
+support recovery if the session is lost.
+
 ### 2. Report — worker → disk
 
 The worker writes it before returning. Seven fixed sections, in this order, present even when empty:

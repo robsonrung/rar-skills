@@ -1,78 +1,89 @@
 # Model roster
 
-This is the canonical seat to model mapping. Workflow prose names a seat and
-reads task selection rules from `task-shaped-model-routing.md`. A routing plan
-records the exact model and effort before work starts.
+This is the canonical seat to model mapping. Select roles from
+[task-shaped-model-routing.md](task-shaped-model-routing.md), then resolve the
+execution path from [host-model-execution.md](host-model-execution.md). A runner
+is an external transport option, not the default for a model native to the host.
 
-## Availability evidence
+## Policy and evidence
 
-- `shared/scripts/discover_runners.py` proves that a transport CLI is present.
-  It does not prove account access to a model.
-- An envelope separates `requested_model`, `configured_model`, and an observed
-  `effective_model`. Only `model_receipt.status: verified` proves which model
-  served a run. A configured label is not a serving receipt.
-- A user may explicitly approve `model_verification: allow_unverified` when a
-  transport cannot expose a serving-model receipt. Reports must label that
-  route unverified. A route with `model_verification: required` blocks without
-  a matching verified receipt.
-- The task-fit notes below are routing guidance from current provider material.
-  They are not a benchmark ranking and do not replace local acceptance evidence.
+The task choices use the user's quality-first policy supplied on 2026-09-08.
+They are routing defaults, not a benchmark ranking verified by this repository.
+Do not copy benchmark scores into run evidence. Local acceptance results can
+justify a proposed change; they cannot change an already approved route.
 
-## Current primary sources
+`shared/scripts/discover_runners.py` checks external CLI presence. Native host
+capabilities need a separate check. Neither check proves model account access.
+An envelope separates `requested_model`, `configured_model`, and an observed
+`effective_model`. Only `model_receipt.status: verified` with a native or provider
+event identifies the serving model. A configured label is not a serving receipt.
 
-Checked 2026-09-06:
-
-- [Astra model guidance](https://developers.openai.com/api/docs/models/gpt-6-astra/)
-- [Astra release note](https://openai.com/index/gpt-6-astra/)
-- [Fable 5.1 overview](https://www.anthropic.com/claude/fable)
-- [Fable 5.1 model documentation](https://platform.claude.com/docs/en/models/fable-5-1/overview)
-- [Gemini 3.8 Flash model documentation](https://ai.google.dev/gemini-api/docs/models/gemini-3.8-flash)
-- [Grok 4.6 announcement](https://x.ai/news/grok-4-6)
-- [Qwen3.8 Max model guide](https://www.alibabacloud.com/help/en/model-studio/qwen3-8-max)
-
-These sources support the capability claims. The routes and effort defaults are
-this library's recommendations. Local acceptance evidence can change a route.
+A route with `model_verification: required` blocks without a matching receipt.
+`allow_unverified` needs the authority defined by the calling workflow and must
+be visible in its preview and report. Never turn a requested label, a wrapper
+echo, or a model's self-description into a verified receipt.
 
 ## Seats
 
-| Seat | Transport | Approved model | Task fit |
+| Seat | External transport | Model | Task fit |
 | --- | --- | --- | --- |
-| astra | `codex-runner` | `gpt-6-astra` | Primary route for systems, security, difficult diagnosis, multistep tool work, integration, and final reconciliation. |
-| fable | `claude-runner` | `claude-fable-5-1` | Primary route for repository-scale implementation, high-fidelity interface work, performance work, long-running coding, and code review. |
-| opus | `claude-runner` | `claude-opus-5` | Focused precision judgment when the approved task needs a second Claude perspective. |
-| sonnet | `claude-runner` | `claude-sonnet-5` | Bounded maintainability and test-quality review when the plan selects it. |
-| sol | `codex-runner` | `gpt-5.6-sol` | Available only when the user selects it or local evidence shows equal acceptance at a better elapsed cost. |
-| terra | `codex-runner` | `gpt-5.6-terra` | Available only when the user selects it or local evidence shows equal acceptance at a better elapsed cost. |
-| grok | `grok-runner` | `grok-4.6` | Independent execution-path and tool-flow perspective. |
-| gemini | `gemini-runner` | `gemini-3.8-flash` | Independent wide cross-file perspective. Its runner cannot set effort. |
-| kimi | `pi-runner --seat kimi` | `moonshotai/kimi-k3` | Long-context pragmatic feasibility perspective. |
-| glm | `pi-runner --seat glm` | `z-ai/glm-5.3-flash` | Boundary and failure-case perspective. |
-| qwen | `pi-runner --seat qwen` | `qwen/qwen3.8-max` | Optional independent perspective for complex engineering and long-horizon coding. |
-| muse | `cline-runner --seat muse` | `meta/muse-spark-1.3` | Optional agent, tool-use, and computer-use perspective. |
-| gemma | `pi-runner --seat gemma` | `google/gemma-4-31b-it` | Optional broad document-grounded perspective. |
+| astra | `codex-runner` | `gpt-6-astra` | General repository work, difficult implementation, TDD, diagnosis, parallel exploration, migration, and broad defect review. |
+| fable | `claude-runner` | `claude-fable-5-1` | Deep research and synthesis, ambiguous user problems, one deep reasoning chain, architecture, and trade-off analysis. |
+| opus | `claude-runner` | `claude-opus-5` | Independent precision review, subtle semantics, hard-code second opinion, documentation, and explanation. |
+| sol | `codex-runner` | `gpt-5.6-sol` | Broad independent review and host-only fallback for normal or hard technical work. |
+| terra | `codex-runner` | `gpt-5.6-terra` | Routine, well-specified functions at medium effort. |
+| luna | `codex-runner` | `gpt-5.6-luna` | Trivial, isolated, pure functions with explicit acceptance at low effort. |
+| sonnet | `claude-runner` | `claude-sonnet-5` | Routine function alternative at supported low or medium effort. |
+| grok | `grok-runner` | `grok-4.6` | Optional independent execution-path and tool-flow perspective. |
+| gemini | `gemini-runner` | `gemini-3.8-flash` | Optional wide cross-file perspective. This is not the restricted Cyber model. |
+| kimi | `pi-runner --seat kimi` | `moonshotai/kimi-k3` | Optional long-context feasibility perspective. |
+| glm | `pi-runner --seat glm` | `z-ai/glm-5.3-flash` | Optional boundary and failure-case perspective. |
+| qwen | `pi-runner --seat qwen` | `qwen/qwen3.8-max` | Optional additional engineering perspective. |
+| muse | `cline-runner --seat muse` | `meta/muse-spark-1.3` | Optional agent and tool-use perspective. |
+| gemma | `pi-runner --seat gemma` | `google/gemma-4-31b-it` | Optional document-grounded perspective. |
 | minimax | `cline-runner --seat minimax` | `minimax/minimax-m2.7` | Optional additional perspective. |
 
-`codex` and `codex-code` remain accepted runner aliases for old callers. New
-routing plans use `astra`, `sol`, or `terra` so the selected model is clear.
+`codex` and `codex-code` remain legacy runner aliases. New plans name the
+selected seat. A host may also expose Haiku or other models; discover its exact
+identifier and controls before proposing a route. Family membership alone does
+not make a model a default or prove access.
+
+## Conditional security route
+
+Gemini 3.8 Flash Cyber at `high` is the preferred specialized defensive-security
+candidate from the supplied policy. This repository has no verified callable
+identifier or account entitlement for it. Do not invent an ID, register ordinary
+Gemini Flash as Cyber, or claim the Gemini runner selects it: that wrapper uses
+the model configured in its host and cannot set effort.
+
+Before proposing Cyber as available, obtain its exact identifier, access, model
+selection, effort control, and tool limits from the active host or adapter. If
+these cannot be established, propose Astra `max` or `ultra`, or Sol `ultra` under
+the host-only constraint. Approval rules still apply to a changed route. Pair
+defensive review with applicable static analysis, dependency and secret scans,
+fuzzing or property tests, and manual reproduction of each claimed defect.
 
 ## Effort support
 
-An approved plan names an effort when the selected transport can set it. A
-runtime-controlled route records a null effort. Use `medium` for a bounded
-route, `high` for complex work, and `xhigh` only for unresolved high-risk work.
-`low` requires local evidence that the same acceptance contract still passes.
-`ultra` needs an explicit reason in the plan.
+Task defaults are in the routing table. Quality comes first; do not reduce effort
+just because the current host or a runner has a cheaper default. Effort labels
+are provider-specific. `max`, `xhigh`, and `ultra` are not interchangeable, and
+an effort label alone does not create or prove parallel workers.
 
-`gpt-6-astra`, `gpt-5.6-sol`, and `gpt-5.6-terra` accept `low` through
-`ultra`. The current Fable CLI accepts `low` through `max`. The Grok runner
-enforces at most `high`. Codex, Claude, Grok, Pi, and Cline use
-`effort_control: "runner"`. Gemini uses `effort_control: "runtime"` with a
-null effort because its wrapper cannot set it. Runtime-controlled routes are
-not default implementation routes.
+Validate the exact model and transport before dispatch. Native APIs, installed
+CLIs, and wrappers can expose different controls. A wrapper forwarding a flag
+does not prove that the selected model supports it. Record runtime-controlled
+effort as null; it cannot satisfy a promised exact effort.
 
-Pi forwards its selected effort setting. That is runner behavior, not evidence
-that every model behind Pi supports the same provider reasoning mode. Keep a
-Pi route only when its run report records the configured setting.
-
-Dcode is a standalone manual runner. Its wrapper does not forward `--model`,
-so it cannot appear in an approved implementation or review route.
+1. The current native catalog lists Astra, Sol, and Terra through `ultra`, and
+   Luna through `max`. Recheck the active host when making a run plan.
+2. The Claude wrapper forwards `low`, `medium`, `high`, `xhigh`, and `max`.
+   Verify the installed CLI and exact model accept the selected setting. If a
+   host cannot set Opus `xhigh`, expose that limit and propose a supported
+   alternative such as `max` before approval; do not silently translate it.
+3. Grok's wrapper accepts at most `high`; approved routes must not rely on its
+   direct-call effort clamp. Pi and Cline forward their selected controls, which
+   still need validation against the actual provider model.
+4. Gemini's current wrapper uses `effort_control: runtime` with null effort.
+   Dcode cannot enforce an exact model and is not an approved implementation or
+   review route.

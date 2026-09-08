@@ -29,7 +29,7 @@ Use `--working-dir` when the prompt depends on package-local files or generated 
 | `--effort`, `-e` | Claude effort level: `low`, `medium`, `high`, `xhigh`, `max` | CLI default |
 | `--role` | Apply a role overlay | None |
 | `--resume SESSION_ID` | Natively resume a Claude session by id | None |
-| `--continue` | Natively resume the most recent Claude conversation in this project | False |
+| `--continue` | Resume the most recent Claude conversation; only safe for one non-concurrent role | False |
 | `--background` | Run as a tracked background job and return a job id immediately | False |
 | `--session-file` | Append prior debate or workflow context for cross-runner continuation | None |
 | `--metadata-json` | Attach structured execution metadata to the prompt | None |

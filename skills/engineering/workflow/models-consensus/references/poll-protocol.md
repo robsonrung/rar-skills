@@ -5,19 +5,20 @@ Use this protocol only after the user approves a `poll` preview. It gathers inde
 ## Preconditions
 
 - The approval record names the question, every seat, requested model, receipt requirement, role, effort, transport, tool profile, and call budget.
-- At least three approved opening seats have distinct serving-provider plans.
-- Every runner call uses `--disable-fallback`; every context is fresh.
+- Three approved opening seats use distinct requested model labels.
+- Every runner call uses `--disable-fallback`. Opening contexts are new and
+  isolated; later turns resume only the same role context.
 - The shared tool profile and output budget are identical for every opening seat.
 
 A failed or missing approved seat is an **observable failure**. Keep its record, do not replace it, and do not continue below the approved quorum.
 
 ## Phases
 
-1. **Blind openings.** Launch the approved opening seats in parallel. Each receives the same neutral question, selected read-only context, output schema, and no peer output or moderator view.
-2. **Organizer.** Send all valid openings to the approved organizer. It returns agreement, contradictions, partial coverage, unique insights, blind spots, and `material_gaps`.
-3. **Gap repair.** Run once only when `material_gaps` is true. Send each approved opening seat a neutral digest of each open point. This is repair, not a new vote.
-4. **Judges.** Send the remaining open points and the organizer record to both approved judges. They rule independently.
-5. **Synthesis.** Send the complete record to the approved synthesizer. It writes the recommendation and traces each material claim to the record.
+1. **Blind openings.** Launch the approved opening seats in parallel. Each gets a new isolated context, the same neutral question, selected read-only context, output schema, and no peer output or moderator view.
+2. **Organizer.** Send all valid openings to the approved organizer in its own context. It returns agreement, contradictions, partial coverage, unique insights, blind spots, and `material_gaps`.
+3. **Gap repair.** Run once only when `material_gaps` is true. Resume each approved opening context with a neutral digest of each open point. This is repair, not a new vote; raw peer answers remain hidden.
+4. **Judges.** Start each judge in an isolated context. Send the remaining open points and the organizer record to both approved judges. They rule independently and do not receive each other's result.
+5. **Synthesis.** Send the complete record to the approved synthesizer in its own context. It writes the recommendation and traces each material claim to the record.
 
 If the judges disagree, preserve both rulings and require the synthesis to explain the confidence limit. Do not invent an extra arbitration call.
 
@@ -69,4 +70,4 @@ The final report contains:
 5. Attribution map.
 6. Answer confidence and diversity confidence, separately.
 
-Use **seat fidelity** in the report: requested, configured, effective, and observed model fields, plus receipt status and source, are visible. Count independent corroboration only when verified provider or native receipts differ as planned. A failed, duplicate, or unverified seat lowers diversity confidence.
+Use **seat fidelity** in the report: requested, configured, effective, and observed model fields, plus receipt status and source, are visible. Distinct verified observed models establish model diversity. Verified provider diversity can strengthen that evidence, but it is not required. A failed, duplicate, or unverified seat lowers diversity confidence.

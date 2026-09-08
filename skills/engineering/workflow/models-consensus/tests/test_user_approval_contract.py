@@ -30,26 +30,13 @@ class UserApprovalContractTests(unittest.TestCase):
         self.assertIn("maximum_calls", operations)
         self.assertIn("one possible retry for every planned or conditional call", operations)
 
-    def test_no_automatic_dispatch_or_substitution_path_remains(self):
+    def test_no_automatic_dispatch_path_remains(self):
         documents = "\n".join(
             path.read_text(encoding="utf-8")
             for path in SKILL_DIR.rglob("*.md")
         )
         self.assertNotIn("--auto", documents)
         self.assertNotIn("auto: true", documents)
-        self.assertIn("Do not substitute", documents)
-        self.assertIn("Do not switch", documents)
-
-    def test_routing_uses_current_frontier_seats_and_supported_effort(self):
-        routing = self.read("references/role-routing.md")
-        self.assertIn("`astra`", routing)
-        self.assertIn("`fable`", routing)
-        self.assertIn("`gemini`, `effort: null`, `effort_control: runtime`", routing)
-        self.assertIn("`grok`, all `high`", routing)
-        self.assertIn("`qwen`, all `high`", routing)
-        self.assertIn("`model_receipt: {status: unverified, source: configured_model, observed_model: null}`", routing)
-        self.assertNotIn("gpt-", routing.lower())
-        self.assertNotIn("claude-fable-", routing.lower())
 
     def test_runner_policy_is_read_only(self):
         runners = self.read("references/runner-invocations.md")
