@@ -1,6 +1,6 @@
 ---
 name: to-tasks
-description: Turn an approved PRD into a reviewable queue of executable vertical slices, get task approval, and publish one task file per slice. Use when the user wants an approved PRD broken into implementation tasks. Each slice carries acceptance, gate, security, dependency, rollback, review, and parallelism details. Do not implement code, choose implementation models, or gather extra model opinions.
+description: Break an approved PRD into reviewable vertical slices and publish the approved task queue. Use when planning implementation tasks; implement-tasks handles model approval and execution.
 ---
 
 # To Tasks

@@ -1,6 +1,6 @@
 ---
 name: peer-sessions
-description: Coordinate a bounded fleet of peer sessions through native delegation or a durable file mailbox. Use when the user asks several sessions to collaborate, wants a peer fleet, cross-session handoffs, parallel interactive terminals, or resumable peer replies. Do not use for a one-session task or for a deliberation-only model council.
+description: Coordinate peer sessions through native delegation or a durable mailbox. Use for a requested peer fleet, cross-session handoffs, or resumable replies; use models-consensus for a requested opinion council.
 ---
 
 # Peer Sessions
@@ -29,7 +29,7 @@ State the rule while acting: “The **ledger, not the transcript** records this 
 
 ## 2. Start peers
 
-**Name the surface before you start.** Run `cmux ping` first. Use in-process delegates by default. Use visible tabs when the user asks to watch work, names a session, tab, panel, or workspace, or when native delegation is unavailable and cmux is available. Record the selected surface; do not ask the user to repeat that choice.
+**Name the surface before you start.** Use in-process delegates by default. Probe `cmux ping` only when visible peers are requested or native delegation is unavailable. Use visible tabs when the user asks to watch work, names a session, tab, panel, or workspace, or when native delegation is unavailable and cmux is available. Record the selected surface; do not ask the user to repeat that choice.
 
 Start every peer with only its brief path and the allowed scope. The peer reads its own brief, works within the user's authority, and writes its reply through `scripts/peer_mailbox.py` from this skill's directory.
 

@@ -1,6 +1,6 @@
 ---
 name: brainstorm
-description: Explore an uncertain idea and decide whether it is worth building. Use when the user asks to brainstorm, compare alternatives, challenge an idea, or decide whether to build it. End with BUILD, DEFER, REDUCE SCOPE, or REJECT and a reason. Use interview-me next to settle requirements. Extra model opinions require an explicit user request through models-consensus.
+description: Explore an uncertain idea and recommend whether to build, defer, reduce scope, or reject it. Use for brainstorming or a build decision; use interview-me next to settle requirements.
 disable-model-invocation: true
 ---
 

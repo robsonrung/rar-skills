@@ -1,6 +1,6 @@
 ---
 name: worktree
-description: "Set up an isolated git worktree for new work or an existing branch, pull request, or commit. Use when the user asks to isolate work on a branch or when an approved implementation plan explicitly needs independent worktrees. Detect existing isolation first and prefer the harness-native worktree capability."
+description: Set up an isolated git worktree for new work or an existing ref. Use when the user requests isolation or an implementation plan requires separate workspaces; reuse suitable existing isolation.
 ---
 
 # Worktree Isolation

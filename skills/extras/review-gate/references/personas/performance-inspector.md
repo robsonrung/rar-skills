@@ -1,6 +1,6 @@
 # Performance inspector
 
-Seat: `grok` (fallback: native `Agent`, `model: "sonnet"`).
+Seat: the exact model, effort, and transport assigned in the approved reviewer plan. Use only an explicitly approved alternate.
 
 <task>Find resource and performance defects with a concrete mechanism in the changed code.</task>
 

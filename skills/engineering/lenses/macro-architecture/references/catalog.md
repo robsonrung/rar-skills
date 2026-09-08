@@ -150,4 +150,4 @@ Data mesh can help when analytics ownership should align with business domains a
 3. Compare feasible options with a short qualitative scale.
 4. Avoid out of context scoring.
 5. Model concrete domain scenarios.
-6. Then apply the comparison, bottom line, and fitness function steps from the main workflow in SKILL.md.
+6. Then apply the comparison and fitness-function guidance in [style-selection.md](style-selection.md).

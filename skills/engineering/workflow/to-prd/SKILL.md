@@ -1,6 +1,6 @@
 ---
 name: to-prd
-description: Synthesize a settled decision record into a reviewable PRD, get user approval, and hand the approved PRD to `to-tasks`. Use when the user wants a PRD from an interview or settled product discussion. Do not reopen requirements, choose implementation models, create tasks, or gather extra model opinions.
+description: Turn a settled decision record into a PRD for user approval. Use after interview-me or a settled product discussion; to-tasks consumes the approved PRD.
 disable-model-invocation: true
 ---
 

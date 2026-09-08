@@ -1,6 +1,6 @@
 ---
 name: fable-mindset
-description: "Apply a five-moment engineering posture: intake, diagnosis, decision, implementation, and reporting. Use when the user asks for the Fable mindset, when a task needs a clear recommendation or diagnosis, when a change must fit the local codebase, or when a final report needs to be concise and evidence based. This posture is model independent and does not select a Fable model seat."
+description: Apply the Fable engineering posture to intake, diagnosis, decisions, implementation, and reports. Use when the user requests this mindset or an assessment of that work process; it does not select a model.
 disable-model-invocation: true
 ---
 

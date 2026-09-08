@@ -1,6 +1,6 @@
 # Spec assessor
 
-Seat: `kimi` (fallback: native `Agent`, `model: "sonnet"`).
+Seat: the exact model, effort, and transport assigned in the approved reviewer plan. Use only an explicitly approved alternate.
 
 <task>Judge the diff against its stated intent: does it do what the PR description and linked issue say, fully and only that?</task>
 

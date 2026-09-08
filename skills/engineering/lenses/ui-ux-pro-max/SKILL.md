@@ -1,19 +1,19 @@
 ---
 name: ui-ux-pro-max
-description: Create a reusable UI design system and review cross-screen UX using a searchable database of styles, palettes, typography, charts, icons, and stack practices. Use when choosing a visual system, styles, colors, typography, charts, interaction rules, or reviewing product UI quality. For a requested bespoke visual implementation after the direction is chosen, use frontend-design; for React behavior use advanced-react.
+description: Choose a reusable UI design system or review cross-screen UX using a design database. Use for visual systems, interaction rules, or UI quality; use frontend-design for bespoke visual implementation.
 ---
 
 # ui-ux-pro-max
 
 Comprehensive design guide for web and mobile applications. Contains 67 styles, 96 color palettes, 57 font pairings, 99 UX guidelines, and 25 chart types across 13 technology stacks. Searchable database with priority-based recommendations.
 
-The load-bearing artifact is the **design system** — the output of `--design-system` (persisted as `MASTER.md`). Generate it first, then obey it: every page, component, and review decision cites the design system as the source of truth rather than improvising fresh choices.
+The load-bearing artifact is the **design system**. Reuse the project's existing tokens, components, and design rules for maintenance or review. Generate a system with `--design-system` only when one is missing or the user requests a new direction. The selected system guides each page and component.
 
 For purely creative/bespoke aesthetic direction without the design-system database, see frontend-design.
 
 ## Prerequisites
 
-Check if Python is available:
+When a database search or design-system generation is needed, check if Python is available. Reviewing an existing system without a database lookup does not require Python:
 
 ```bash
 python3 --version || python --version
@@ -25,7 +25,7 @@ If Python is not available, stop and tell the user the prerequisite is missing. 
 
 ## How to Use This Skill
 
-When user requests UI/UX work (design, build, create, implement, review, fix, improve), follow this workflow.
+Select the work from the request: create a missing system, implement within the chosen system, or review the affected interface. Reuse existing decisions and skip searches or generation that would not change the result.
 
 **Running commands:** all examples below use `<skill-dir>` as a placeholder for this skill's directory (the folder containing this SKILL.md). Substitute its actual path, e.g. `python3 <skill-dir>/scripts/search.py ...`. The script resolves its data files relative to itself, so it works from any working directory.
 
@@ -36,11 +36,11 @@ Extract key information from user request:
 - **Product type**: SaaS, e-commerce, portfolio, dashboard, landing page, etc.
 - **Style keywords**: minimal, playful, professional, elegant, dark mode, etc.
 - **Industry**: healthcare, fintech, gaming, education, etc.
-- **Stack**: React, Vue, Next.js, or default to `html-tailwind`
+- **Stack**: use the existing project stack or the user's selection; use `html-tailwind` only for a new unconfigured artifact.
 
-### Step 2: Generate Design System (REQUIRED)
+### Step 2: Select or generate the design system
 
-**Always start with `--design-system`** to get comprehensive recommendations with reasoning:
+Use an existing system for a review or scoped fix. When the system is missing or a new direction is requested, use `--design-system` to obtain recommendations:
 
 ```bash
 python3 <skill-dir>/scripts/search.py "<product_type> <industry> <keywords>" --design-system [-p "Project Name"]
@@ -100,7 +100,7 @@ This also creates:
 
 ### Step 3: Supplement with Detailed Searches
 
-After getting the design system, use domain searches when you need additional details:
+With the design system selected, use domain searches only for unresolved details:
 
 ```bash
 python3 <skill-dir>/scripts/search.py "<keyword>" --domain <domain> [-n <max_results>]
@@ -118,7 +118,7 @@ python3 <skill-dir>/scripts/search.py "<keyword>" --domain <domain> [-n <max_res
 
 ### Step 4: Stack Guidelines (Default: html-tailwind)
 
-Get implementation-specific best practices. If user doesn't specify a stack, **default to `html-tailwind`**.
+Search stack-specific guidance when an implementation decision needs it. Use the existing project stack. Default to `html-tailwind` only for a new artifact with no selected stack.
 
 ```bash
 python3 <skill-dir>/scripts/search.py "layout responsive form" --stack html-tailwind
@@ -128,7 +128,7 @@ For the full list of `--domain` and `--stack` values, see `references/search-ref
 
 **React re-render and memoization review is not this skill's job.** `data/react-performance.csv` is a data lookup — rules you can search and cite. Auditing an actual component tree for unnecessary re-renders, memoization that buys nothing, Context provider churn, stale closures, or fetch race conditions belongs to the `advanced-react` skill, which is the reviewer. Use this skill for the design system; route the performance pass there.
 
-**Then:** Synthesize the design system + detailed searches and implement the design, citing the design system for every choice.
+For an implementation request, apply the selected system and relevant search results to the scoped change. For a review request, return findings against that system without editing.
 
 ---
 
@@ -172,14 +172,12 @@ These are frequently overlooked issues that make UI look unprofessional:
 
 ---
 
-## Pre-Delivery Checklist
+## Verify the changed interface
 
-The `--design-system` output appends the canonical checklist (emoji icons, consistent icon set, cursor-pointer, transitions 150-300ms, 4.5:1 contrast, visible focus states, responsive breakpoints, no content behind fixed navbars, no mobile horizontal scroll, `prefers-reduced-motion`). Treat that generated checklist as the source of truth and run it before delivery.
+Use one check set for the affected pages and interactions. Start from the selected design system and, when available, its generated checklist. Merge relevant rules from the tables above; do not run duplicate checklists.
 
-Also verify every **Do** column above, plus these items the generated checklist does not cover:
+Check supported light and dark modes when the change affects shared colors or mode behavior. For a local change, inspect the affected surface in the supported modes rather than retesting unrelated pages.
 
-- [ ] Use theme colors directly (bg-primary) not `var()` wrapper
-- [ ] Test both light and dark modes
-- [ ] All images have alt text
-- [ ] Form inputs have labels
-- [ ] Color is not the only indicator
+Preserve these checks where applicable: consistent icons, interaction feedback, readable contrast, visible focus, labels and image alternatives, text or shape in addition to color, responsive layout, no content hidden behind fixed elements, no mobile horizontal scroll, and reduced-motion support. Use theme tokens directly as required by the project's styling conventions.
+
+Reuse evidence for unchanged surfaces. After a correction, recheck the affected behavior; broaden only if the correction or a failure exposes a wider risk. Report the tested scope and any unsupported or untested mode.

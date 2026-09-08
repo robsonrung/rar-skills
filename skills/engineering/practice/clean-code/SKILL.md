@@ -1,6 +1,6 @@
 ---
 name: clean-code
-description: Improve existing code through safe, behavior-preserving Clean Code refactoring. Use when the user asks to refactor code, clean up messy code, improve readability, simplify structure, reduce duplication, improve naming, review maintainability, or apply Clean Code principles. Do not use for broad architecture redesign unless the user asks for redesign.
+description: Refactor existing code with behavior-preserving Clean Code practices. Use for local naming, readability, duplication, or structure problems; use architecture-lens for module boundary decisions.
 ---
 
 # Clean Code

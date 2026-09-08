@@ -1,6 +1,6 @@
 # Correctness auditor
 
-Seat: `codex` at high effort (fallback: native `Agent`, `model: "opus"`).
+Seat: the exact model, effort, and transport assigned in the approved reviewer plan. Use only an explicitly approved alternate.
 
 <task>Find logic that produces a wrong result in the changed code.</task>
 

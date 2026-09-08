@@ -1,64 +1,27 @@
 # Description Optimization
 
-Use this reference when a skill under-triggers, over-triggers, competes with nearby skills, or needs a measurable frontmatter `description` improvement.
+Use when discovery fails, nearby skills compete, or a description needs refinement.
 
-## Build Trigger Evals
+## Write for selection
 
-Create about 20 queries:
+Use one or two short sentences: what the skill does and the concrete request that should select it. Front-load its distinctive purpose. Keep only exclusions that separate real neighbouring skills.
 
-- 8-10 should-trigger queries.
-- 8-10 should-not-trigger queries.
-- Mix terse, detailed, formal, casual, typo-prone, and context-heavy prompts.
-- Include file paths, URLs, column names, project names, backstory, and adjacent tasks where realistic.
-- Include cases where the user does not name the skill or file type but clearly needs it.
-- Make should-not-trigger queries near misses that share keywords but need another skill, not obviously irrelevant prompts.
+The repository's 1,024-character limit is a ceiling, not a recommended size. Avoid keyword catalogues, workflow steps, book summaries, and output templates. Do not append every missed query to the description.
 
-Poor trigger evals are too abstract:
+## Inspect the boundary
 
-```text
-Format this data.
-Extract text from a PDF.
-Create a chart.
-```
+Compare representative intended requests with adjacent requests that belong elsewhere. Include terse requests, explicit invocation, and a realistic near miss. Use the existing task history when available; do not manufacture a large query set for a simple wording change.
 
-Better trigger evals are concrete and a little messy:
+Check description truncation and invocation metadata in the actual host when discovery behavior is the issue. An explicit-only skill must remain explicit-only even if its description matches a request.
 
-```text
-my manager sent ~/Downloads/Q4 sales final FINAL v2.xlsx and wants margin % added from revenue col C and cost col D. can you fix the sheet and send it back?
-```
+## Measure only when needed
 
-Avoid simple one-step tasks when measuring automatic triggering. Some agents skip skills for tasks they can solve directly, even when the description matches.
+For a requested trigger benchmark or an unresolved activation failure, use the bounded procedure in `references/evaluation.md`. Set the case and call limits before execution. Repeat a case only when variance matters to the decision; there is no default three-run requirement.
 
-## Measure
+Use the intended host and model, with observable skill selection. Include held-out near misses when tuning against a set. Distinguish a skill that was not selected from one that was selected and executed badly.
 
-Run each query against the same client/model that will use the skill. If possible, run each query 3 times and compute trigger rate.
-
-Passing criteria:
-
-- Should-trigger query: skill triggers above the chosen threshold.
-- Should-not-trigger query: skill stays below the threshold.
-
-If no trigger-observability tooling exists, still build the query set and review the description manually, but do not claim measured accuracy.
-
-## Improve
-
-When rewriting the description:
-
-- Generalize from failures instead of listing every missed query.
-- Stay comfortably below 1024 characters; 100-200 words is usually enough.
-- Front-load the distinctive user intent and key trigger words.
-- Mention adjacent exclusions only when they reduce real conflicts.
-- Change wording structure when repeated attempts fail; do not just append more phrases.
-- Prefer "Use when..." language that names outcomes and user intent.
-- Avoid implementation details unless they are important triggers.
-
-Keep a held-out portion of the eval set. Choose the description that performs best on held-out prompts, not only the prompts used to improve it.
+Without activation-observation tooling, inspect the boundary and report a qualitative rationale. Do not claim measured trigger accuracy.
 
 ## Report
 
-When applying a new description, show:
-
-- Previous description.
-- New description.
-- Trigger-eval score or qualitative rationale.
-- Remaining known false negatives or false positives.
+For a description change, give the reason and any remaining ambiguity. Include old/new wording when useful for review. Add scores only when they come from actual measured runs.

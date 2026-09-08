@@ -1,6 +1,6 @@
 ---
 name: design-gate
-description: Route one planned slice to the relevant architecture and design lenses, run only those lenses as read-only reviewers, and return one proceed-or-revise verdict with implementation guidance. Use in task planning or as the last focused design check before implementing a non-trivial slice, or when the user asks which design review applies, says run the design gate, or wants a pre-implementation design check. Do not use to perform a single named review — invoke that lens skill directly.
+description: Select relevant design lenses for a planned slice and return a proceed-or-revise verdict. Use during task planning or when a design boundary changes; invoke a named lens directly for a single-lens review.
 ---
 
 # Design Gate
@@ -35,7 +35,7 @@ For the workflow stage boundaries and the practical skills that follow this gate
 | New or reworked user-facing flow, information hierarchy, or design system | `ui-ux-pro-max` |
 | Two or more competing approaches with real trade-offs | `architecture-lens` |
 
-**Fallback row (only when no specific row above fits):** no specific lens fits but the change is architecturally significant → run `architecture-lens` as a **Lens 1 trade-off pass** (name the 2–4 characteristics in tension, the real options, and the cost of each), and if the decision is durable, record it with the canonical ADR template at `architecture-lens/references/adr-template.md`. Do not pair this with the rows above — it is the catch-all when a change is significant yet unroutable, not a peer lens.
+**Fallback row (only when no specific row above fits):** no specific lens fits but the change is architecturally significant → run `architecture-lens` as a **Lens 1 trade-off pass** (name the 2–4 characteristics in tension, the real options, and the cost of each), and apply **all three or no ADR** before recording it with the canonical ADR template at `architecture-lens/references/adr-template.md`. Do not pair this with the rows above — it is the catch-all when a change is significant yet unroutable, not a peer lens.
 
 No row matches and the change is not architecturally significant → the change is local; return `proceed` with the note "no design gate required" and do not invent a review.
 

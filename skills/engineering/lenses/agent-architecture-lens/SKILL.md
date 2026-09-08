@@ -1,6 +1,6 @@
 ---
 name: agent-architecture-lens
-description: Review the control-flow architecture of an LLM agent system — decide whether a task needs a plain agent loop or an explicit state graph, then check typed state, checkpoints, bounded retries, termination ceilings, idempotent steps, and human gates. Use when designing or reviewing an agent, a tool-calling loop, a multi-agent pipeline, or a long-running autonomous run; when an agent retries forever, loses work on a crash, needs mid-run human approval, or must be replayable and auditable; or when the question is whether something should be a loop or a graph. Distinct from data-systems-coding-lens, which covers retries and idempotency for stored state (databases, queues, caches) rather than agent steps; from macro-architecture, which decomposes services and assigns data ownership; and from knowledge-graph, which builds a graph an agent reads rather than the graph an agent runs on.
+description: "Review agent control flow, durable state, retries, and recovery. Use when choosing a loop or state graph, or when a tool-calling workflow must survive failures and resume safely."
 ---
 
 # Agent Architecture Lens

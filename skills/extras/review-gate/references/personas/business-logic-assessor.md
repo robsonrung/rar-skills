@@ -1,6 +1,6 @@
 # Business-logic assessor
 
-Seat: native `Agent`, `model: "opus"` (fallback: `opus` via `claude-runner`).
+Seat: the exact model, effort, and transport assigned in the approved reviewer plan. Use only an explicitly approved alternate.
 
 <task>Find domain-rule violations that typecheck: code that compiles, passes lint, and is still wrong about the business.</task>
 

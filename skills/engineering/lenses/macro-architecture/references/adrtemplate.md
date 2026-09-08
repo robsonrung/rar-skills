@@ -6,7 +6,7 @@
 
 Use this template when a coding session creates a durable architecture decision.
 
-Path convention: see SKILL.md and the `scripts/newadr.py` defaults.
+Path convention: see [decomposition.md](decomposition.md) and the `scripts/newadr.py` defaults.
 
 ## Template
 

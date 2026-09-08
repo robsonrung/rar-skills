@@ -1,6 +1,6 @@
 ---
 name: decide-about-disagreements
-description: Resolve unresolved topics from a models-consensus result with the user. Use when a result contains contradictions, material disagreement, open divergence, blind spots, contested unique insights, or disagreement points that need a human choice. Read the result, show every recorded model opinion, analyze the tradeoffs, list all distinct options, add a combined option when it is the best approach, recommend one option, and ask one interactive question per topic. Do not rerun the council, hide dissent, or implement the decision.
+description: "Help the user resolve material disagreements in an existing models-consensus result. Present recorded opinions, distinct options, and a recommendation for each open decision without rerunning the council or implementing it."
 disable-model-invocation: true
 ---
 

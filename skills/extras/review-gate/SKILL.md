@@ -1,6 +1,6 @@
 ---
 name: review-gate
-description: "Return a machine-readable approve or request-changes verdict for a PR or branch. Declare the review scope, delegate focused persona reviews, verify with the repository's own checks, and emit schema-validated evidence. Use when the user asks to gate a PR, check whether a branch is mergeable, or needs an automated follow-up verdict. For a deep human-facing review, use full-review."
+description: Return a machine-readable review verdict for a PR or branch. Use when a workflow needs a merge gate with structured evidence; use full-review for a human-facing review.
 allowed-tools:
   - Bash
   - Read
@@ -12,7 +12,7 @@ disable-model-invocation: true
 
 # Review Gate
 
-Review a pull-request head end to end and return a verdict. You are the review **orchestrator**: you declare the review scope, delegate the close reading to persona subagents, verify with real command runs and the deployed preview when one exists, and return one structured result. The detailed reading of the diff is your subagents' job, not yours, and the merge is mechanical — never a second review.
+Review a pull-request head end to end and return a verdict. You are the review **orchestrator**: you declare the review scope, delegate the close reading to persona subagents, verify with real command runs and the deployed preview when one exists, and return one structured result. Selected reviewers own the initial diff reading. The merge is mechanical; targeted candidate verification is separate and does not repeat the full review.
 
 Precision over volume: a wrong or unfalsifiable finding costs more than a missed nit. A `request-changes` verdict may feed an automated follow-up implementation run that consumes your findings verbatim — write each one so a competent agent can act without asking: what's wrong, where, why it matters, what done looks like.
 
@@ -49,11 +49,11 @@ This partition is the **scope contract**, reported in `scope{}` before any perso
 
 ## Phase 1 — persona fan-out
 
-You do not read the whole diff yourself. Spawn the 8 personas from `references/personas/` as parallel reviewers, each with a bounded file list from the scope contract.
+Select the smallest reviewer set that covers the scope contract. Start with one primary reviewer for a bounded change: correctness for code, or spec assessment for a document. Add security, contract, performance, test, or business-logic reviewers only for exposed risks. The eight persona briefs in `references/personas/` are a catalogue, not a required panel. Use the full panel only when the user selects that depth. Every will-review file still needs an assigned reviewer and a coverage result.
 
 ### Seat discovery
 
-At preflight, run the collection's shared seat probe and record the seat table. Resolve current models through the shared roster and use the shared task-shaped routing. This workflow names review shapes; the route selects the effective seat.
+Use the caller's approved reviewer plan when present. Otherwise select the risk-based scope, resolve models and effort through the shared roster and task-shaped routing, and present the exact selected routes for approval before dispatch. Probe only the selected routes without starting model jobs. Record the approved seat table; persona briefs cannot override it.
 
 | Persona | Required review shape |
 | --- | --- |
@@ -69,9 +69,9 @@ At preflight, run the collection's shared seat probe and record the seat table. 
 Seat rules:
 
 - An unavailable planned route is an **observable failure**. Use only a configured alternate route and record its effective execution path in `scope.agents[]`. Without one, mark the persona failed and its assigned coverage as `skipped`; never silently substitute a provider.
-- With fewer than three distinct routes, continue only as a reduced-diversity review when the user selected `seats:native` or approved the exact alternate routes. Record `methodology: "reduced-diversity"` and do not claim independent corroboration.
+- There is no fixed three-route quorum. Record the selected reviewer count and actual provider/model diversity in `scope.methodology`. A planned single-route review is valid; do not claim independent corroboration. Loss of a selected route must be reported as incomplete coverage unless its exact alternate was approved.
 - Runner invocations pass `--disable-fallback` (seat fidelity, per `shared/references/runner-common.md`); read `agent_message` from the runner envelope, never raw stdout.
-- Launch personas in batches respecting `concurrency` (personas 1–4, then 5–7 plus any extras); the adversarial verifier runs alone after all others return.
+- Run independent selected reviewers within the approved concurrency cap. A separately selected adversarial verifier runs after its input findings exist; do not launch an empty verification round.
 
 ### Fan-out mechanics
 
@@ -87,18 +87,18 @@ Compose each persona's prompt from `references/persona-prompt-template.md`: its 
 
 Each persona writes `$FINDINGS_DIR/<persona>.json` (`{coverage: [...], findings: [...]}`); runner seats emit that JSON as their `agent_message` and you save it to the same path. Invalid JSON or a nonzero exit marks the persona failed: its declared files become `skipped` coverage rows with a note naming the failure — the honesty accounting makes a lost persona visible instead of silent.
 
-Your merge is mechanical, not a second review: parse the JSON files, union coverage rows, dedupe exact `(path, line, title)` overlaps, and read disputed code yourself only for high-severity findings you doubt. Do not re-read the diff wholesale after delegation.
+Your merge is mechanical, not a second review: parse the JSON files, union coverage rows, dedupe exact `(path, line, title)` overlaps, then verify candidate evidence in the next phase. Do not re-read the diff wholesale after delegation.
 
-## Phase 1.5 — adversarial verifier
+## Phase 1.5 — verify candidate findings
 
-Persona 8 receives the `$FINDINGS_DIR` path (not the findings pasted inline) and a fresh context. It attempts to refute each candidate from personas 1–7 against the actual code before filing, drops or de-confidences anything unfalsifiable, consults recorded past review feedback where the host keeps any, and adds no first-pass findings of its own. Only survivors enter the result.
+Evidence-check candidate findings before filing. Use a separate adversarial verifier when the approved plan calls for it, such as a disputed or high-impact finding or an explicit deep review. Otherwise the coordinator checks the candidate's code and evidence without repeating the full diff review. Drop or lower confidence in unsupported claims. A selected verifier receives only the selected reviewers' findings directory in a fresh context and adds no first-pass findings. With no candidates, record the refutation call as unnecessary.
 
 ## Phase 2 — verify
 
 Skip only when `verify: false`.
 
 1. **Deterministic checks.** Invoke the `verify-changes` skill with `mode:pipeline`, scoped to the diff's affected workspaces, and embed its returned `checks[]` verbatim in the result. If that skill is not installed on the host, read `verify-changes/references/command-discovery.md` by path and follow it directly — the command-discovery knowledge lives there, not here.
-2. **Preview walk** (`preview: auto`). Search the PR for a deployed preview URL (`gh pr checks`, `gh pr view --json statusCheckRollup,comments`). If one is up, use `browser-smoke`'s driver-selection workflow in a scoped worker and walk the specific feature this PR changes. What you see is first-class evidence. If the preview is down or absent, say so in `previewVerification` and move on; never fabricate UI observations.
+2. **Preview walk** (`preview: auto`). For a browser-facing change, search the PR for a deployed preview URL (`gh pr checks`, `gh pr view --json statusCheckRollup,comments`). If one is up, use `browser-smoke`'s driver-selection workflow in a scoped worker and walk the specific feature this PR changes. What you see is first-class evidence. If the preview is down, absent, or irrelevant to the changed surface, record the reason in `previewVerification` and continue; never fabricate UI observations.
 
 Every check you ran goes in `checks[]` with its command and result — and never claim a check ran that didn't.
 
@@ -120,8 +120,8 @@ Full rules in `references/reporting-calibration.md`. In brief: report defects in
 
 ## Gotchas
 
-1. The orchestrator reads file lists and stats, not hunks — close reading at orchestrator prices repeats the subagents' work.
-2. The merge is mechanical; re-judging findings there is a second review the contract forbids.
-3. Extra personas are capped at 3 and must have a reason the standard 8 don't cover.
+1. During scope selection, read file lists and stats. Read relevant hunks for candidate verification, without repeating the reviewers' full diff pass.
+2. Keep the merge mechanical. Candidate verification checks evidence; it is not a second full review.
+3. Extra personas are capped at 3 and need a concrete risk the selected catalogue personas do not cover. Include them in the approved plan.
 4. A missing route is recorded as failed coverage unless an exact alternate route is selected.
 5. Everything this skill writes goes under `output_dir`/`$TMPDIR` — nothing in the project tree.

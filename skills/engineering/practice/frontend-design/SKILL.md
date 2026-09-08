@@ -1,6 +1,6 @@
 ---
 name: frontend-design
-description: Create a distinctive, production-grade frontend interface from a chosen bespoke visual direction. Use when the user asks for a high-craft custom page, component, site, dashboard, poster, or UI implementation with a clear aesthetic point of view. For reusable design systems, palette or typography research, cross-screen UX review, or chart selection, use ui-ux-pro-max; for React behavior use advanced-react.
+description: Build a custom frontend interface from a chosen visual direction. Use for a bespoke page, component, or site; use ui-ux-pro-max for reusable design systems and advanced-react for React behavior.
 license: Complete terms in LICENSE.txt
 ---
 

@@ -1,6 +1,6 @@
 ---
 name: capture-learning
-description: Capture one verified, non-obvious solution as a durable document in docs/solutions. Use when the user asks to document a solved problem, record what was learned, or preserve a reusable fix. Use mode:headless only after a verified fix in a delivery workflow. Do not use for a session summary or a work handoff.
+description: Capture a verified, reusable solution in docs/solutions. Use when asked to document a solved problem or when a delivery workflow selects learning capture; use session-handoff for work continuity.
 ---
 
 # Capture Learning

@@ -1,6 +1,6 @@
 # Security & tenancy reviewer
 
-Seat: `codex-code`, else `codex` (fallback: native `Agent`, `model: "sonnet"`).
+Seat: the exact model, effort, and transport assigned in the approved reviewer plan. Use only an explicitly approved alternate.
 
 <task>Find changes that let the wrong actor read, write, or learn something.</task>
 

@@ -1,15 +1,14 @@
 # Skill Evaluation
 
-Use this reference when a skill needs proof that it works, especially for file transforms, data extraction, code generation, fixed workflow steps, or other objectively verifiable outputs. For subjective work, use the same loop but rely more on human review than numeric assertions.
+Use a behavioral comparison when the user requests proof or when a material execution risk cannot be checked statically. Routine prose edits do not require model runs.
 
-## Eval Set
+## Define the comparison
 
-Start small:
+Choose the question first: trigger accuracy, task completion, a safety boundary, output quality, or cost at equal acceptance. Use a few realistic cases that exercise the changed behavior and its nearest failure case. Expand only when results leave a material uncertainty.
 
-- Create 2-3 realistic prompts that resemble what a user would actually type; expand only after the first results show useful signal.
-- Include expected outputs and input files when relevant.
-- Do not write detailed assertions until the task shape is clear.
-- Ask the user to review the prompts when interactive; in headless mode, continue with explicit assumptions.
+Set the case count, models, call limit, output limit, and stop condition before running. Follow the workflow's model and spending approval rules. A request to edit a skill does not authorize an unbounded evaluation fleet. Ask about a case only when it needs domain facts or a decision the available evidence cannot supply.
+
+For an existing skill, use its prior revision as the baseline. For a new skill, compare with no skill when useful. Keep task inputs and environment comparable.
 
 Suggested `evals/evals.json` shape:
 
@@ -20,7 +19,7 @@ Suggested `evals/evals.json` shape:
     {
       "id": 1,
       "prompt": "User task prompt",
-      "expected_output": "Human-readable success description",
+      "expected_output": "Observable success",
       "files": [],
       "expectations": []
     }
@@ -28,83 +27,35 @@ Suggested `evals/evals.json` shape:
 }
 ```
 
-## Workspace
+## Run within the budget
 
-Write results outside the skill directory so the skill stays clean:
+Use fresh contexts when the host caches skills. Run serially unless parallel evaluation is authorized and supported. Stop at the agreed ceiling, on a decisive result, or when further calls would not resolve the uncertainty.
 
-```text
-<skill-name>-workspace/
-  skill-snapshot/                # optional old copy for update baselines
-  iteration-1/
-    eval-<descriptive-name>/
-      eval_metadata.json
-      with_skill/
-        outputs/
-      without_skill/             # for brand-new skills
-        outputs/
-      old_skill/                 # for improving an existing skill
-        outputs/
-```
+Keep outputs and evidence outside the skill directory. Record the baseline revision, candidate revision, prompt, model and receipt limits, host, result, and available duration or usage data. Inspect the output artifact and relevant trace.
 
-Use descriptive eval directory names instead of only numeric names.
+Do not repeat successful checks without a changed candidate or an unresolved concern. Compare another revision only when a specific result justifies it and the remaining budget permits it.
 
-For existing skills, snapshot the original before editing and use that snapshot as the baseline. For new skills, compare against no skill when possible.
+## Grade
 
-## Run Loop
+Evaluate observable task completion and preserved constraints. A heading or repeated phrase is not proof of success. Treat missing evidence as unverified; do not turn it into a pass.
 
-1. Run the candidate and baseline on the same prompts.
-2. If parallel workers are available, launch candidate and baseline runs together so they finish under comparable conditions. If not, run sequentially and record that limitation.
-3. Save outputs, transcripts, and any available timing or token data immediately.
-4. While runs execute, draft objective expectations. Do not force numeric assertions onto subjective outputs.
-5. Inspect actual output files, not just the transcript summary.
-6. Review execution traces, not just final answers, to spot wasted work, vague instructions, over-triggering, or missing defaults.
-7. Grade each expectation with `text`, `passed`, and `evidence`.
-8. Aggregate pass rate, time, token/tool cost, errors, and notes.
-9. Show outputs and benchmark data to the user before revising when human judgment matters.
-10. Iterate until the user is satisfied, feedback is empty, or changes stop improving results, and until the skill improves reliability enough to justify its added context and execution cost.
-
-## Grading
-
-Use this structure for each run's `grading.json`:
+A consumer may use this `grading.json` shape:
 
 ```json
 {
   "expectations": [
     {
-      "text": "The output contains the required section",
+      "text": "The output preserves the required contract",
       "passed": true,
-      "evidence": "Found heading 'Risk Summary' in report.md"
+      "evidence": "The observed output and location supporting the result"
     }
   ],
-  "summary": {
-    "passed": 1,
-    "failed": 0,
-    "total": 1,
-    "pass_rate": 1.0
-  }
+  "summary": {"passed": 1, "failed": 0, "total": 1, "pass_rate": 1.0}
 }
 ```
 
-Grade conservatively:
+Choose expectations before examining which candidate wins. For subjective quality, show the material differences and request human judgment only when it is needed to decide. Empty feedback or no answer is not approval.
 
-- Pass only when the evidence shows real task completion, not surface compliance.
-- Fail when the evidence is missing, contradictory, unverifiable, or coincidental.
-- Quote or describe the evidence tightly.
-- Critique weak expectations that would pass for bad outputs.
-- Extract important output claims and verify them when feasible.
+## Report
 
-## Benchmark Analysis
-
-Look past aggregate pass rates:
-
-- Expectations that pass in both candidate and baseline may not measure skill value.
-- Expectations that fail everywhere may be broken, too hard, or checking the wrong thing.
-- High variance suggests flaky prompts, ambiguous instructions, or nondeterministic execution.
-- Large time, token, or tool-call increases must buy meaningful quality improvements.
-- Repeated helper-code invention across runs is a signal to bundle a script.
-
-## Human Review
-
-Prefer a reviewer UI or static HTML when available. If no browser/display is available, present each prompt, output path, grade summary, and key diff inline.
-
-Empty feedback usually means the user accepted that case. Focus revisions on specific complaints and clear benchmark failures.
+Show acceptance results, relevant costs, failures, and limits. State whether results were measured or inspected. A tie shows no demonstrated improvement. A smaller prompt is a size reduction until task results establish an execution benefit.

@@ -86,15 +86,17 @@ The implementation path is selected by the task shape:
 | Moment | Skills used when applicable |
 | --- | --- |
 | Design each task slice | `design-gate` once, `security-gate` for the security classification, and `test-lens` only for a real test-design decision |
-| Before an implementation step that changes the design surface | `coding-design-plan` and the inherited gate constraints |
+| An unresolved implementation shape | `coding-design-plan`; reuse inherited gate constraints and reroute only for a changed design surface |
 | New or changed behavior | `tdd`; use `test-lens` only when a test-design decision is needed |
 | Untested legacy code | `safe-incremental-coding` before broad edits |
 | A failure that is not immediately understood | `diagnose` |
 | While improving a verified change | `clean-code` and `coding-review-simplify` |
-| Final task and feature checks | `full-review`, plus `browser-smoke` for affected web flows |
+| Final task and feature review | Approved scoped review; `full-review` for integration seams or named risks, plus `browser-smoke` for affected web flows |
 
-Routine design and code review use those skills. They do not call
-`models-consensus`.
+Reuse captured checks when the relevant code, dependencies, environment, and
+acceptance contract still match. Rerun affected checks and those explicitly
+required fresh. A complete single-task review does not need a duplicate panel.
+Routine design and code review do not call `models-consensus`.
 
 ## Optional council
 

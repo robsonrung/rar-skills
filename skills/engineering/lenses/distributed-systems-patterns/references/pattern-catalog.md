@@ -15,7 +15,7 @@ Read when two families both look plausible, or before composing patterns.
 The Burns catalog is a _shared language_ for container-shaped distributed systems, not a style selector and not a data-layer doctrine.
 
 - Style (monolith vs microservices vs event-driven) → `macro-architecture`
-- Streams as the source of truth → the `event-driven` route of this skill (`SKILL.md` § Event-driven route)
+- Streams as the source of truth → the [event-driven review](event-driven-review.md)
 - How a write retries, migrates, or stays **idempotent** in code → `data-systems-coding-lens`
 - GoF object structure → `design-patterns`
 

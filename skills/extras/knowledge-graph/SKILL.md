@@ -1,6 +1,6 @@
 ---
 name: knowledge-graph
-description: "Build and operate a document knowledge graph through four schema-driven stages: extraction, entity resolution, entity summarization, and graph-grounded querying. Use when the user needs multi-hop answers, corpus-wide themes, provenance, or shared persistent graph memory. Do not use for single-document or single-hop retrieval, or for session learning notes."
+description: Build and query a document knowledge graph with traceable evidence. Use for multi-hop answers, corpus-wide themes, or shared graph memory; use direct retrieval for single-document or single-hop questions.
 disable-model-invocation: true
 ---
 

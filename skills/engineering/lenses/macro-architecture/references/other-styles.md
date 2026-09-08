@@ -1,6 +1,6 @@
 # Other Styles — pipeline, service-based, orchestration-driven SOA
 
-Three styles that sit outside the five-column selection matrix in SKILL.md but are often the right answer. Read this when the matrix picks nothing convincingly, when the unit is a data transformation chain, or when someone proposes microservices for a system that only needs coarse-grained services.
+Three styles that sit outside the five-column selection matrix in [style-selection.md](style-selection.md) but are often the right answer. Read this when the matrix picks nothing convincingly, when the unit is a data transformation chain, or when someone proposes microservices for a system that only needs coarse-grained services.
 
 ## Pipeline
 

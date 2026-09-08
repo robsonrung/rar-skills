@@ -1,6 +1,6 @@
 # Architecture Lens — detailed review rubric & provenance
 
-Expanded checklists for **Lenses 3–6** of `architecture-lens` (layer placement, cohesion, dependency direction, scope discipline). Lens numbering here matches SKILL.md exactly: 1 decision/trade-off, 2 connascence, 3 layer placement, 4 cohesion, 5 dependency direction, 6 scope. Lenses 1–2 live in SKILL.md and are not expanded here.
+Expanded checklists for **Lenses 3–6** of `architecture-lens` (layer placement, cohesion, dependency direction, scope discipline). Numbering is stable: 1 decision/trade-off, 2 connascence, 3 layer placement, 4 cohesion, 5 dependency direction, 6 scope. See [decision-review.md](decision-review.md) and [coupling-review.md](coupling-review.md) for Lenses 1–2.
 
 Source: _Practical Model-Driven Enterprise Architecture_ (Packt, ISBN 9781801076166 / B17363), Bahaaldine et al. The book teaches TOGAF + ArchiMate 3.1 modeling in Sparx EA. Most of it is tool-specific; this rubric distills only the transferable _modeling discipline_. Each lens below cites the chapter it came from so you can defend a finding.
 
@@ -79,8 +79,8 @@ Applies whenever the diff touches a public seam: an exported function, hook retu
 
 ## What this rubric is NOT
 
-- Not a bug/security finder → use `code-review` / `full-review`.
-- Not the coupling/connascence + trade-off coach → that is **Lenses 1–2** (decision / trade-off and connascence), which live in this skill's SKILL.md, not in this rubric.
+- Not a bug/security finder → use `full-review`.
+- Not the coupling/connascence + trade-off coach → that is **Lenses 1–2** (decision / trade-off and connascence), in [decision-review.md](decision-review.md) and [coupling-review.md](coupling-review.md).
 - Not a clean-code refactor pass → use `clean-code`.
 - It expands the **"is this in the right place, focused, pointed the right way, and scoped"** lenses (3–6), and nothing more.
 

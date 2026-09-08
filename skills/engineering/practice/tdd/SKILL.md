@@ -1,6 +1,6 @@
 ---
 name: tdd
-description: 'Execute coding work test-first through the red-green-refactor loop — the pipeline''s execution-with-TDD skill. Use when implementing a feature, bug fix, or behavior change with tests; when the user says "tdd", "test-first", "red-green-refactor", "write the test first", or "implement this with tests"; and as the execution phase of a pipeline once a plan or task exists. Entry rule: untested legacy code goes to `safe-incremental-coding` first (characterization net), then returns here. Distinct from `test-lens` (judging whether an existing test is worth keeping), `clean-code` (tidying already-tested code), and `diagnose` (root-causing a bug). Do NOT use for backfilling tests onto code already written — test-after is exactly what this skill forbids.'
+description: "Implement behavior through the red-green-refactor loop. Use when test-first execution is requested or selected by the coding workflow; use safe-incremental-coding first for untested legacy code."
 ---
 
 # TDD — Test-First Execution
@@ -23,8 +23,8 @@ Run one loop per increment of behavior. Keep each pass small enough that you cou
 1. **Frame the smallest reversible move.** One caller-visible increment of behavior — the cheapest reversible learning step, smaller than feels natural. If you can't state the outcome in a sentence, the step is too big; split it. Say it while choosing: "the **smallest reversible move** here is…".
 2. **Write the test first, predict the failure, see it fail.** Express _what_ the code should do from its caller's perspective. Say the expected failure out loud before running — a different failure already taught you something.
 3. **Get to green the simplest way.** The least code that passes; naive is fine. This is a tactical step, not a design step — don't polish yet.
-4. **Refactor under green.** _Now_ improve the design, tests passing, re-run after each tiny change. This is where design happens — diagnose smells by name with the `clean-code` vocabulary. Assert the invariants the code relies on where they must hold: an assertion is **executable documentation** that cannot drift, and its failure is a bug — crash at the assumption, never catch and continue.
-5. **Integrate often.** Commit small changes every 10–15 minutes, not per-feature. Run the fast tests locally first so you're the first to see your own mistakes.
+4. **Refactor under green.** Improve a concrete design problem, then run the affected tests before the next behavior change. Use `clean-code` to name a smell when one exists. Assert internal invariants where they must hold: an assertion is **executable documentation**, and its failure is a bug rather than a condition to catch and ignore.
+5. **Integrate coherent increments.** Keep each increment small and passing. Commit only when the user or caller has authorized it; use completed behavior and passing checks to choose the boundary, not a timer.
 
 ## Control the variables
 
@@ -45,12 +45,12 @@ Write-time rules. `test-lens` is the judge when an existing test's value is in q
 - A test that's hard to write is a design smell — fix the design, not the test.
 - Refactoring litmus: _if the implementation were swapped for a completely different one, would this test still be valid?_ It should be.
 
-## Pre-commit scan
+## Design and risk cues
 
-Two quick passes before each integrate:
+Use these cues while choosing tests and refactoring; they do not require another review pass before each integration.
 
-1. **Farley's five levers** — did this step make any of them noticeably worse? **Modularity, cohesion, separation of concerns, abstraction, low coupling.** If yes, refactor now while it's cheap; a passing test does not excuse code that got harder to change.
-2. **"What happens if…?"** — the negative space: unexpected or invalid input, a dependency throws / times out / returns garbage, concurrency, a security or money-loss path. Thinking them through is the deliverable, even when handling one is consciously deferred.
+1. **Farley's five levers**: **modularity, cohesion, separation of concerns, abstraction, low coupling**. Address a regression in these properties within the changed scope.
+2. **"What happens if…?"**: select the failure cases exposed by this behavior, such as invalid input, dependency failure, concurrency, security, or money loss. Reuse cases and decisions already present in the acceptance contract.
 
 ## Per-step output contract
 
@@ -63,10 +63,10 @@ After each loop iteration (or coherent batch), report:
 
 ## Routing
 
-- Stored state, queues, retries, migrations, external APIs → run `data-systems-coding-lens` before the step.
+- Stored state, queues, retries, migrations, external APIs → reuse the approved data-systems-coding-lens findings. Run the lens only for an uncovered data risk or a changed design surface, not before every loop iteration.
 - Smell vocabulary and naming during the refactor step → `clean-code`.
 - Judging whether an existing test is worth keeping → `test-lens`.
-- A bug surfaces mid-loop → `diagnose`; don't patch from a hunch.
+- An unexplained failure surfaces mid-loop → `diagnose`. An understood red or regression stays in the current loop; use the existing evidence instead of starting a second investigation.
 
 ## Gotchas
 

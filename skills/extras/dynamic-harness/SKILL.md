@@ -1,6 +1,6 @@
 ---
 name: dynamic-harness
-description: Plan and run bounded multi-agent work for a complex task when the user explicitly asks for delegation, parallel work, a worker fleet, a tournament, or a managed mission. Select the smallest useful pattern, give each worker an isolated scope and evidence contract, and synthesize only verified results.
+description: Plan and run a bounded worker fleet for a complex task. Use when the user explicitly requests delegation, parallel work, a tournament, or a managed mission.
 disable-model-invocation: true
 ---
 

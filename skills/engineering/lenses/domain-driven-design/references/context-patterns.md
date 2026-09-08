@@ -45,7 +45,7 @@ A context map is the high-level view of all contexts and their integration relat
 
 Across contexts on a message bus (EventBridge here):
 
-- **Outbox** — atomically commit state + outgoing events, relay publishes reliably. Prevents lost or premature events. (See Part B Lens B5 for the algorithm.)
+- **Outbox** — atomically commit state + outgoing events, relay publishes reliably. Prevents lost or premature events. (See [tactical-review.md](tactical-review.md), Lens B5 for the algorithm.)
 - **Saga** — listens to events from one context, issues commands to another, compensates on failure. For reactive cross-context flows.
 - **Process Manager** — owns the explicit state of a multi-step, possibly branching process. It is itself an aggregate with a lifecycle.
 - **Event-driven coupling traps (Ch. 15):** beware a _distributed big ball of mud_ — temporal coupling (B must run right after A), functional coupling (B duplicates A's rules), implementation coupling (B depends on A's internal event shape). Prefer events that carry meaning over events that leak internals; consume an OHS/published event, not a raw internal one.
@@ -55,7 +55,7 @@ Across contexts on a message bus (EventBridge here):
 - The language is **of the business**, captured from domain experts, used consistently in conversation, models, **and code** (class/method/table/field names, tests, docs).
 - It is **per bounded context** — consistent _within_, allowed to differ _across_. The same word meaning two things in two contexts is the point of having two contexts.
 - It's a **continuous effort** — the language evolves as understanding deepens; keep code names in sync rather than letting a glossary rot.
-- Smells (jargon for business terms, one concept under many names, CRUD names hiding a real business process, primitive types where a named concept belongs): the actionable checklist lives in `SKILL.md` Lens 2.
+- Smells (jargon for business terms, one concept under many names, CRUD names hiding a real business process, primitive types where a named concept belongs): the actionable checklist lives in [strategic-review.md](strategic-review.md), Lens A2.
 
 ## Subdomain drift (Ch. 11)
 
@@ -65,4 +65,4 @@ Subdomain types change over time; the **inability of the current design to suppo
 - Core → supporting/generic: simplify; stop paying for sophistication you no longer need.
 - Generic → core (rare): a bought solution became your differentiator; build it.
 
-Strategic drift should pull tactical patterns with it (see Part B Lens B6).
+Strategic drift should pull tactical patterns with it (see [tactical-review.md](tactical-review.md), Lens B6).

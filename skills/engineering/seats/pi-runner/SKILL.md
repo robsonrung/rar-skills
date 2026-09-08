@@ -1,6 +1,6 @@
 ---
 name: pi-runner
-description: Execute prompts using the Pi coding agent CLI in headless print mode, with the provider and model pinned per invocation (default provider openrouter). Use when users explicitly request Pi execution, when a workflow needs a seat on an arbitrary OpenRouter model without shared provider state, or when a workflow names the Kimi, GLM, Qwen, or Gemma seat — each is `--seat <name>` on this runner.
+description: Run a prompt through Pi CLI with provider and model pinned per call. Use when Pi is requested or an approved workflow selects a Pi route, including the Kimi, GLM, Qwen, and Gemma seats.
 ---
 
 # Pi Runner

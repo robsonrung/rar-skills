@@ -1,6 +1,6 @@
 ---
 name: explain-architecture
-description: Explain the architecture of a codebase (or a subsystem/service/module within it) as a self-contained HTML orientation page — a clickable component map, the layers and seams, one flow traced end-to-end with file:line evidence, cross-cutting concerns, and "where to look next" — tuned to a newcomer, implementer, or reviewer audience. Use when the user asks "how does this codebase/service work", "explain the architecture", "give me the lay of the land", "onboard me to this repo", "what talks to what", or wants an architecture overview page. A single narrow lookup ("where does Y live") gets a direct answer, not a page. For an exhaustive drill-down walkthrough of one subsystem with many verbatim code panels use html-explainer; for REVIEWING architecture quality use architecture-lens — this skill EXPLAINS, it does not judge.
+description: "Create a self-contained HTML orientation page explaining a codebase or subsystem with a map and one traced flow. Use for onboarding or architecture overviews; use html-explainer for a detailed code walkthrough."
 disable-model-invocation: true
 ---
 
@@ -31,7 +31,7 @@ Default to _newcomer + whole-repo overview_ if the user just says "explain the a
 
 Once the viewpoint is fixed, read `references/viewpoints.md` for that viewpoint's emphasis and page budget before exploring.
 
-Output path: `docs/<scope>-architecture.html` in the project repo. Only ask when a same-named file you did not create already exists.
+Output path: `docs/<scope>-architecture.html` in the project repo. An explicit request to update that artifact authorizes the scoped edit. If an existing destination was not selected for replacement, use a new path or ask which artifact to update; preserve unrelated content.
 
 ## Step 1 — Explore (don't guess)
 

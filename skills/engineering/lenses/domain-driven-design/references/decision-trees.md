@@ -1,6 +1,6 @@
 # DDD Tactical — Decision Trees & Checklists
 
-Deep-dive reference for the `domain-driven-design` skill (tactical part — Part B). SKILL.md carries the operational lenses; this file keeps only the verbatim figures and the details that go beyond them. Source: _Learning Domain-Driven Design_, Vlad Khononov (O'Reilly, 2021), Chapters 5–11 — Ch. 6 (aggregates & value objects), Ch. 9 (event publishing), Ch. 10 (pattern & architecture decision trees, Figs. 10-3/10-4/10-7), Ch. 11 (evolving patterns).
+Deep-dive reference for the `domain-driven-design` skill (tactical part — Part B). [tactical-review.md](tactical-review.md) carries the operational lenses; this file keeps only the verbatim figures and the details that go beyond them. Source: _Learning Domain-Driven Design_, Vlad Khononov (O'Reilly, 2021), Chapters 5–11 — Ch. 6 (aggregates & value objects), Ch. 9 (event publishing), Ch. 10 (pattern & architecture decision trees, Figs. 10-3/10-4/10-7), Ch. 11 (evolving patterns).
 
 ## Business-logic pattern decision tree — verbatim (Ch. 10, Fig. 10-3 / 10-7)
 
@@ -25,7 +25,7 @@ require a consistent audit log, or need deep behavioral analytics?
                                                             reversed testing pyramid)
 ```
 
-The architecture/testing mapping that follows from each pattern is Ch. 10, Fig. 10-4 — see SKILL.md Lens 2.
+The architecture/testing mapping that follows from each pattern is Ch. 10, Fig. 10-4 — see [tactical-review.md](tactical-review.md), Lens B2.
 
 ## Lens 3 — Aggregate correctness (Ch. 6) — only when it's a domain model
 
@@ -47,7 +47,7 @@ Details beyond the rules:
 - **Primitive obsession.** Domain concepts modeled as bare `string`/`number`/`Date` — `countryCode: string`, `email: string`, `amount: number` — should be value objects (`Money`, `EmailAddress`, `Weight`) that centralize validation + behavior and make invalid states unrepresentable. Especially money, weights, and measures in this domain.
 - **Value objects are immutable.** A change produces a new instance. A "value object" with setters is really an entity (or a bug).
 - **Behavior, not just data.** Logic that manipulates a value belongs _on_ the value object (`weight.convertTo(...)`, `money.add(...)`), not scattered in services.
-- **Names speak the business language.** Code that reads as generic CRUD when the domain experts speak in processes is a naming/modeling smell — see Part A Lens A2 for the full ubiquitous-language lens.
+- **Names speak the business language.** Code that reads as generic CRUD when the domain experts speak in processes is a naming/modeling smell — see [strategic-review.md](strategic-review.md), Lens A2 for the full ubiquitous-language lens.
 
 Details beyond the rules:
 

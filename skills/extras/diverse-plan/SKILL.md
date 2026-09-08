@@ -1,6 +1,6 @@
 ---
 name: diverse-plan
-description: Explore genuinely different implementation approaches with independent model seats, then produce one reviewed plan. Use when the user explicitly asks for several approaches, a diverse plan, or a multi-model design comparison for a non-trivial change. It produces a plan, not code, and never invokes models-consensus.
+description: Compare independent implementation approaches and produce one reviewed plan. Use when the user explicitly requests a diverse plan or several model-generated approaches; it does not implement the plan.
 disable-model-invocation: true
 ---
 

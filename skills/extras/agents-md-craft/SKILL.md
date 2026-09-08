@@ -1,6 +1,6 @@
 ---
 name: agents-md-craft
-description: Create, audit, or improve project agent instruction files such as AGENTS.md and CLAUDE.md. Use when the user asks to create, update, shrink, audit, or fix drift in project agent instructions. Keep the root file short and universal, move conditional detail into agent_docs, and use skill-expert for SKILL.md files.
+description: Create, audit, or simplify project instruction files such as AGENTS.md and CLAUDE.md. Use to fix instruction drift or separate conditional guidance; use skill-expert for SKILL.md files.
 disable-model-invocation: true
 ---
 
@@ -20,8 +20,8 @@ Produce one authoritative instruction set grounded in verified project facts. An
    1. project purpose and major areas;
    2. commands and constraints that apply to normal work;
    3. short links to conditional guidance.
-4. Move runbooks, long command recipes, subsystem rules, ADRs, and style rules into `agent_docs/` or the project's existing documentation. Replace formatting prose with the formatter, linter, or hook that enforces it. Use verified `file:line` pointers instead of copied code.
+4. Move runbooks, long command recipes, subsystem rules, and ADRs into `agent_docs/` or the project's existing documentation. Point to existing formatters, linters, and hooks for rules they enforce. Preserve team standards and security boundaries that need prose. Use stable file or symbol pointers instead of copied code; verify line numbers when including them.
 5. For `audit`, return findings, a budget view, and a concrete draft without writing files. For `create` or `update`, write only the requested files and their necessary `agent_docs/` references. Do not invent project facts.
-6. Verify every command, link, and `file:line` pointer that remains. Report the canonical file, any pointer stub, changes, unresolved facts, and validation evidence.
+6. Check changed commands against their actual definitions and resolve changed links or line pointers. Run commands only when needed to resolve a material uncertainty or satisfy a repository gate; documenting a deployment command does not authorize deployment. Reuse valid evidence for unchanged content. Report the canonical file, changes, unresolved facts, and validation evidence.
 
-Read [references/principles.md](references/principles.md) for the placement and budget rules. Read [references/checklist.md](references/checklist.md) before reporting or writing.
+Read [references/principles.md](references/principles.md) when deciding placement or scope. Use [references/checklist.md](references/checklist.md) for an audit or a substantial restructure; a small edit needs only the checks for its changed contract.

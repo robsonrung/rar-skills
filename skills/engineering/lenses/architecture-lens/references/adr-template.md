@@ -2,17 +2,15 @@
 
 An ADR captures _one_ architecturally significant decision: the context, the choice, and the consequences. Write one only when the decision is significant (see test below) — not for routine choices.
 
-## When a decision is "architecturally significant"
+## When to record a decision
 
-Write an ADR if the decision affects **any** of:
+Use **all three or no ADR**. The decision must be:
 
-- Structure (a new component, boundary, layer, or service).
-- A cross-cutting characteristic (security, scalability, availability…).
-- Dependencies between parts of the system, or a new external dependency.
-- A public interface or contract others rely on.
-- …or it was hard-won and likely to be questioned again later ("why did we do it this way?").
+1. Hard to reverse.
+2. Surprising without its context.
+3. A real tradeoff among viable choices.
 
-If none apply, skip the ADR — a one-line code comment or PR note is enough.
+Structure, dependencies, public interfaces, or cross-cutting qualities can expose such a decision, but touching one does not by itself require an ADR. If the three conditions do not hold, keep the reason in the task or review note. **Record on settle** when they do; accepted decisions remain inputs to later work.
 
 ## Storage
 

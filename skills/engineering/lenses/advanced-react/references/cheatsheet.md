@@ -1,6 +1,6 @@
 # Advanced React — per-chapter cheat sheet
 
-Source: _Advanced React_ by Nadia Makarevich (2023). Page-level decision tables and the canonical code snippets behind each lens in `SKILL.md`. Consult a section when a lens fires and you need the exact pattern.
+Source: _Advanced React_ by Nadia Makarevich (2023). Page-level decision tables and the canonical code snippets behind each review lens in [lenses.md](lenses.md). Consult a section when a lens fires and you need the exact pattern.
 
 ---
 

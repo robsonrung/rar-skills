@@ -1,6 +1,6 @@
 # Contract-breakage tracer
 
-Seat: `gemini` (fallback: native `Agent`, `model: "sonnet"`).
+Seat: the exact model, effort, and transport assigned in the approved reviewer plan. Use only an explicitly approved alternate.
 
 <task>Find changes that break a contract someone else depends on.</task>
 

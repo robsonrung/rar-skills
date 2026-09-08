@@ -5,55 +5,39 @@ description: "Run a repository's deterministic checks from its own command surfa
 
 # Verify Changes
 
-Produce hard evidence that a change passes the repository's own gates. This skill is a deterministic evidence producer: it discovers the repo's command surface, runs the checks in a fixed order, and reports captured results. It never judges code and never fixes anything — a failing check is a finding for `diagnose`, not a repair job for this skill.
+Produce captured evidence for the repository's required gates and the requested change. Discover commands, select the relevant checks, run their actual prerequisites, and report results. This skill does not repair code.
 
 ## Modes
 
-1. **Manual (default):** run every discovered gate and present the human table. Ask only when the user explicitly limits the check set.
-2. **Pipeline (`mode:pipeline`):** a non-interactive caller. Never ask a question. Return the structured result from `references/checks-schema.json` and one verdict. Resolve an ambiguous surface with the discovery precedence.
+- **Manual:** honor the user's requested check set. An explicit request for all checks runs every required gate; otherwise select the affected checks and applicable repository gates.
+- **Pipeline (`mode:pipeline`):** use the caller's scope and acceptance contract without questions. Return the structured result from `references/checks-schema.json` and one verdict. Required repository gates still apply.
 
-## Workflow
+## Discover and scope
 
-### 1. Discover the command surface
+Read [references/command-discovery.md](references/command-discovery.md). Prefer the repository's named scripts and read-only CI configuration over reconstructed commands. Record detected build systems and command sources in `commandSurface`.
 
-Follow `references/command-discovery.md`. In brief:
+Resolve the base from `origin/HEAD`, code-host metadata, then `main`. Include staged and unstaged changes for the current worktree. Use native affected-package support when available. Without it, identify safe package or file checks from the repository's commands; use whole-repository checks when required or when a narrower valid check is unavailable. Record `workspacesScoped.supported: false` when native scoping is absent.
 
-1. Detect every build system present (a monorepo may have more than one).
-2. Prefer the repo's own named scripts (`typecheck`, `lint`, `test`, `build`, `check`) over reconstructed tool invocations — the repo's aliases carry its flags and environment.
-3. Use CI config (`.github/workflows/`, `.gitlab-ci.yml`, etc.) as a **read-only oracle** for which commands the repo itself treats as gating. Never edit CI; read it to learn what "green" means here.
-4. Record the discovered surface in `commandSurface` with its `source` (`scripts`, `makefile`, `ci`, or `reconstructed`).
+## Execute the selected checks
 
-### 2. Scope to the diff
+- Follow real command dependencies. Build first only when later checks require its output. Install only when dependencies need preparation or the requested clean-environment check requires it.
+- Use the repository's lockfile-respecting install command. Do not modify lockfiles or install global tools to invent a check.
+- Run an aggregate script once when it already includes the required build, type, lint, or test checks. Record which checks it covers instead of running its parts again.
+- Show absent commands as `not-applicable`. Show deliberately unrun commands as `skipped` with a reason, including an unnecessary install or a check covered by an aggregate command.
+- Reuse supplied prior evidence only when the relevant revision, files, dependencies, environment, and assumptions still match and the caller permits reuse. Label its original command and evidence path; do not claim it ran in this invocation. A request for fresh runs requires fresh execution.
+- Capture exit code, duration, and decisive output in a temporary evidence directory outside the project. Default per-check timeout is 15 minutes unless the caller supplies another ceiling.
+- After success, repeat or expand only for changed content, failures, or unresolved concerns.
 
-Compute the workspaces/packages the branch diff touches. For the current worktree, include staged and unstaged changes. When the repo has a native scoping mechanism, use it. Otherwise run the whole repo and record `workspacesScoped.supported: false`. Resolve the base branch from `origin/HEAD`, then code-host metadata, then `main`.
+Capture the tracked working-tree baseline before execution and compare it afterward. `treeClean` describes the final tracked state; `treeChanged` describes changes introduced by verification. Preserve pre-existing changes. Never stash, reset, or clean the tree.
 
-### 3. Execute
+## Evidence and result
 
-Run in canonical order: **install → build → typecheck → lint → test**.
+**Only captured command results count as evidence.** Never claim a check ran that you did not run. Never modify tests, source, lockfiles, or CI configuration to obtain a pass. Report failures for the caller or `diagnose`.
 
-- Skip a rung only when the repo has no such command; record it as `not-applicable`, never omit it.
-- A rung you deliberately chose not to run (e.g. caller passed a subset) is `skipped` with a note — a check that is absent from the report reads as "covered", and it wasn't.
-- Capture each command's exit code, duration, and output tail in a temporary directory outside the project.
-- Apply a per-check timeout ceiling (default 15 minutes; callers may override). A timed-out check is recorded with `result: timeout` and counts as a failure.
+Return the machine result matching `references/checks-schema.json`, a human table of commands and results, and a verdict:
 
-### 4. Report
+- `PASS`: every selected required check has valid passing evidence.
+- `FAIL`: an executed required check failed or timed out.
+- `SKIP`: no check was verified, or a required check could not run and has no valid supplied evidence.
 
-Emit:
-
-1. The machine result validated against `references/checks-schema.json`.
-2. A human table: one row per check with command, result, and duration.
-3. A one-line verdict: `PASS` (every executed check passed), `FAIL` (any `fail`/`timeout`), or `SKIP` (nothing was executed — a run that verified nothing is never reported as a pass).
-
-## Evidence rules
-
-- **Only captured command results count as evidence — narrative doesn't.** Writing "tests pass" proves nothing; the captured command, exit code, and duration are the result, and prose that disagrees with them is discarded.
-- Never claim a check ran that you did not run.
-- Never modify tests, source, lockfiles, or CI config to make a check pass. Fixing anything is out of scope; report the failure and stop.
-- Capture the tracked working-tree baseline before the run and compare it after the run. `treeClean` reports whether the tree is clean after the run. `treeChanged` reports whether verification added tracked changes relative to the baseline. Do not make the tree clean by stashing, resetting, or cleaning it.
-
-## Gotchas
-
-1. A dirty working tree is run as-is and recorded as the baseline. Never stash, reset, or `git clean`.
-2. Monorepos with multiple build systems get each surface run and reported; don't pick a favourite.
-3. Install steps honour the repo's own lockfile-respecting command (`npm ci`, `pnpm install --frozen-lockfile`, `yarn install --immutable`) when one exists; the lockfile itself is never modified.
-4. Long output goes to the evidence dir; the report carries the tail, not the transcript.
+Name skipped work and the coverage limit. A partial check set is not proof that the whole repository passes. Keep long output in the evidence directory and only its decisive tail in the report.

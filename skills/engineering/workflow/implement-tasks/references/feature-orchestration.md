@@ -30,7 +30,7 @@ Workers load selected lenses and practices when their task needs them. They cann
 1. Validate the graph before starting. Reject unknown IDs, self-dependencies, and cycles. Preserve stable task IDs.
 2. A task is ready when every blocker is `done` and its changes passed acceptance on the integration state.
 3. Honor the queue's parallelization constraints. Serialize shared files, migrations, interfaces, and security-sensitive paths unless there is an explicit merge plan.
-4. Start at most the approved number of tasks. Each new worktree starts at the current integration revision. A running independent task can finish on its recorded base; check its result again after integration.
+4. Start at most the approved number of tasks. Each new worktree starts at the current integration revision. A running independent task can finish on its recorded base; after integration, check interactions and rerun acceptance affected by the combined state.
 5. Record worker IDs and task states. Read compact status and result envelopes. Open report bodies for failures and final synthesis, not repeated polling.
 
 ## Integration
@@ -39,7 +39,7 @@ Use the project's branch convention and preserve unrelated changes. Use commit-b
 
 Before an authorized merge, record a pending effect with task ID, source revision, and target revision. Merge, verify ancestry and acceptance, then confirm the effect. After a crash, inspect the repository before retrying a pending merge.
 
-Do not mark a task done on worker completion alone. Review conflict resolutions, capture checks on the combined state, then release dependents. A failed task blocks descendants, not unrelated tasks.
+Do not mark a task done on worker completion alone. Review conflict resolutions and capture applicable acceptance on the combined state before releasing dependents. Reuse a captured task result only when the relevant code, dependencies, environment, and acceptance contract still match and the caller does not require a fresh run. A failed task blocks descendants, not unrelated tasks.
 
 ## Per-task launcher
 
@@ -51,4 +51,4 @@ If a launcher cannot represent a model, effort, or execution mode, report the mi
 
 Keep task reports after workers finish. Close native workers through the host lifecycle when needed. Leave user-owned tasks, branches, and worktrees intact unless cleanup is authorized.
 
-Run combined acceptance and the approved seam review. Report blocked tasks and missing evidence. Resume from the ledger and repository state; a report path alone does not prove its revision is current.
+Capture combined acceptance and the approved seam review using [completion.md](completion.md). Report blocked tasks and missing evidence. Resume from the ledger and repository state; a report path alone does not prove its revision is current.

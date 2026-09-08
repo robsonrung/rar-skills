@@ -1,6 +1,6 @@
 ---
 name: security-gate
-description: Shift security left in a development workflow — ask a threat-model-lite checklist while specifying a feature, then deterministically decide which tasks need a deep security review pass before delivery. Use during spec or planning interviews, when a pipeline phase requires the security gate, or when the user asks to threat model a feature, run a security checklist, or decide whether a change needs a security review. Do not use to perform the deep review itself — that is full-review's security dimension or a dedicated security audit.
+description: Identify security decisions during an interview and classify slices for deep or standard review. Use when defining an exposed security surface or planning its review; full-review performs the code review.
 ---
 
 # Security Gate
@@ -11,7 +11,7 @@ The two leitwörter below are what you name as you work: a **threat-model-lite**
 
 ## Threat-model-lite — spec-time checklist (interactive)
 
-Run this inside the requirements interview. Ask only the questions relevant to the feature; skip rows with no exposure. Record every answer in the decision record and PRD's Security Decisions section so later phases never have to ask.
+Run this inside the requirements interview. Resolve repository facts from evidence and return only unresolved security decisions to the interview's frontier. These questions share its five-question limit; do not send a second question batch. Record the answers in the decision record. `to-prd` carries them into the PRD's Security Decisions section.
 
 1. **Actors & auth**: who can invoke this? What roles/permissions gate each action? What happens for unauthenticated or wrong-role access?
 2. **Untrusted input**: what data arrives from users or external systems? Where is it validated, and what is rejected?

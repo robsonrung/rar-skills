@@ -1,6 +1,6 @@
 ---
 name: interview-me
-description: Settle the requirements for a feature, plan, or design in short interview rounds, then write a decision record for `to-prd`. Use when the user says interview me, grill this idea, make this spec ready, or resolve product and architecture choices before a PRD. Ask exactly five independent questions when five exist, otherwise fewer, never more. Do not write a PRD, tasks, code, or gather extra model opinions.
+description: Settle feature and design choices through interview rounds of up to five questions. Use when the user asks to be interviewed or to settle requirements before a PRD; produce a decision record for to-prd.
 disable-model-invocation: true
 ---
 

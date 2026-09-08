@@ -1,22 +1,22 @@
 ---
 name: diagnose
-description: Procedural debugging from reproduction to regression test — reproduce, minimize, read the actual error, differential hypotheses, instrument, fix the cause, encode the regression. Use when a bug, failing test, or unexpected behavior needs root-causing; when the user says diagnose this, debug this, find the root cause, or why does this fail; or when a pipeline loops a verify failure back to implementation (mode:pipeline for the non-interactive structured return). Distinct from `tdd` (owns the implementation loop — a test failure understood at a glance mid-loop needs no diagnosis), `fable-mindset` (the epistemic posture of its Diagnosis moment — this skill is the procedure), and `full-review` (finds issues in diffs, not in live failures).
+description: "Find and prove the cause of a bug, failing test, or unexpected behavior. Use for unexplained failures, including pipeline verification failures; an understood failure within a TDD loop stays with tdd."
 ---
 
 # Diagnose — From Symptom to Proven Cause
 
-The step-by-step procedure for root-causing a failure. The posture comes from `fable-mindset`'s Diagnosis moment — **pattern-match is not diagnosis**: recognition proposes, evidence disposes — and every step below exists to turn a recognition into evidence or kill it. Say the leitwörter as you work; they are the checkpoints.
+An evidence-driven method for root-causing a failure. The posture comes from `fable-mindset`'s Diagnosis moment: **pattern-match is not diagnosis**. Use the techniques below to resolve uncertainty; do not perform a step whose question the evidence already answers. Say the leitwörter as you work; they are the checkpoints.
 
 ## The procedure
 
 1. **Reproduce first.** A bug you cannot reproduce is a report, not a diagnosis. Capture the exact failing command and its exact output before anything else — that pair is the ground truth every later step is measured against. If you cannot reproduce it, say so and stop guessing (see the pipeline return below).
-2. **Minimize.** Shrink the input, the scope, and the setup until the failure is tight: smallest input that fails, fewest components involved, shortest path from command to symptom. Every layer removed is a hypothesis you no longer have to hold.
+2. **Minimize when needed.** Shrink the input, scope, or setup when doing so separates possible causes or produces a usable regression case. Keep an existing reproduction when it already establishes the mechanism.
 3. **Read the actual error and the actual code path.** The real message, the real stack, the real code it names — before hypothesizing. The tell that you skipped this: your explanation describes similar bugs ("this is usually…") instead of facts from this one.
-4. **Differential hypotheses.** List the 2–3 candidate causes that fit the evidence. For each, say what evidence would discriminate it from the others, then run the **cheapest discriminating probe** first: _"a log line at the cache read splits stale-key from race — cheaper than bisecting, so it goes first."_ A probe that cannot tell two hypotheses apart is not worth running.
-5. **Instrument.** Add targeted logging, assertions, or breakpoints until the surviving hypothesis produces an **artifact of proof** — a printed value, a log line, a failing test you wrote. Instrumentation is not a state change: it creates evidence and destroys none, which is exactly what fix-shaped moves (restart, clear, reinstall) do not.
+4. **Resolve competing hypotheses.** When more than one cause fits, choose the **cheapest discriminating probe** that separates them. Do not invent alternatives after the existing evidence establishes one cause.
+5. **Instrument only for missing evidence.** Use existing logs, values, code paths, or a failing test as the **artifact of proof** when sufficient. Add targeted logging, assertions, or breakpoints only to resolve the remaining uncertainty. Prefer probes that preserve failure state; instrumentation can itself affect timing or behavior.
 6. **Fix the cause, not the symptom.** Before editing, state why this fix addresses the mechanism the artifact proved — _"the fix clears the leaked connection in the retry path, which is the mechanism behind the pool exhaustion"_ — not merely why it makes the symptom stop.
 7. **Regression-test.** Encode the failure as a test that fails before the fix and passes after — both runs observed, not assumed. Hand the write-the-test loop to `tdd`; the reproduction from step 1 is its red.
-8. **Clean up.** Remove the instrumentation from step 5. Keep only what earns permanent residence (an assertion stating a real invariant); scratch repros and debug logging go.
+8. **Clean up.** Remove any temporary instrumentation added during diagnosis. Keep only what earns permanent residence (an assertion stating a real invariant); scratch repros and debug logging go.
 
 ## Rules
 

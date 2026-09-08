@@ -1,6 +1,6 @@
 ---
 name: coding-design-plan
-description: Turn one nontrivial approved coding task into a small, checkable implementation plan. Use after product decisions are settled and before implementation when a change crosses a module, data, API, component, or deployment boundary. Do not use for product discovery or task decomposition; use interview-me, to-prd, and to-tasks for those steps.
+description: Plan the implementation shape of one approved coding task. Use when a module, data, API, component, or deployment boundary still needs a design decision; use to-tasks for task decomposition.
 ---
 
 # Coding Design Plan

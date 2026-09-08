@@ -1,6 +1,6 @@
 ---
 name: html-explainer
-description: Create a self-contained, drill-down HTML explainer for a codebase subsystem, service, or architecture — a clickable big-picture SVG map, numbered sections, and expandable panels holding verbatim code snippets with file:line sources. Use when the user asks for an HTML page that explains how a system/feature/service works, an interactive architecture explainer, "document how X works as HTML", or a drill-down technical walkthrough grounded in real code. For a lighter orientation page (map, layers, one flow, where to look next) use explain-architecture; not for a single standalone diagram (use architecture-diagram) and not for slide decks.
+description: "Create a self-contained HTML walkthrough of a subsystem or flow, with diagrams and expandable source evidence. Use for detailed interactive code explanations; use explain-architecture for a short orientation."
 disable-model-invocation: true
 ---
 
@@ -30,7 +30,7 @@ Choose one audience: a _newcomer_ needs a map and plain ledes; an _implementer_ 
 
 Default question set when the user just says "explain how X works": architecture + technologies and where each lives in code, the end-to-end data flow (input → output), authorization/tenancy, and logging/observability. Honor any additions the user named.
 
-Default output path: `docs/<topic>-explainer.html` in the project repo. Only ask when a same-named file you did not create already exists.
+Default output path: `docs/<topic>-explainer.html` in the project repo. An explicit request to update that artifact authorizes the scoped edit. If an existing destination was not selected for replacement, use a new path or ask which artifact to update; preserve unrelated content.
 
 ### 2. Evidence pass
 

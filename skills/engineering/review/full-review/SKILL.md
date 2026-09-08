@@ -1,6 +1,6 @@
 ---
 name: full-review
-description: Run an evidence-backed, proportionate review of a pull request, branch, diff, task seam, or requirements document. Use for feature integration seams, public contracts, security-sensitive changes, migrations, or an explicitly requested deep review. Do not make this the automatic final pass for every small task.
+description: Review code changes or requirements with evidence-backed findings. Use for integration seams, public contracts, security, migrations, or a requested deep review; keep local task reviews scoped.
 allowed-tools:
   - Bash
   - Read
@@ -34,7 +34,7 @@ Do not launch a blanket panel. Seat names, model choice, runner, and effort come
 5. Give every selected seat the same scoped context, conventions, and output contract. Preserve **seat fidelity**: an unavailable seat is recorded as unavailable, never replaced silently. Run independent seats concurrently when the host supports it.
 6. Verify runtime, security, correctness, compatibility, reliability, and performance findings when execution is possible. Evidence-check structural findings against the changed code. Mark an unverified claim as unverified or lower confidence; do not turn it into a blocker by assertion.
 7. For code, read `references/filtering_pipeline.md` and `references/review_output_schema.json`. For a document, use `references/doc-findings-schema.json`. Deduplicate, retain only evidence-backed findings with a location, then apply the active threshold and cap. **Precision over volume**: do not report cosmetic preference, broad refactor wishes, or pre-existing issues outside scope.
-8. Return the verdict. The default is report-only. Apply fixes only with explicit `apply_fixes: true` authority, then re-review the changed paths before delivery.
+8. Return the verdict. The default is report-only. When the user or caller has explicitly authorized fixes, record `apply_fixes: true` and apply them within that scope; no second approval or exact user syntax is needed. Review the changed paths before delivery.
 
 ## Security and documents
 

@@ -1,6 +1,6 @@
 # Command discovery
 
-How to find a repository's own verification commands without assuming a toolchain. The output of this procedure is the `commandSurface` block of the result: the build systems present, the package manager, and one concrete command per rung of install → build → typecheck → lint → test, each tagged with where it came from.
+How to find a repository's own verification commands without assuming a toolchain. The output of this procedure is the `commandSurface` block of the result: the build systems present, the package manager, and the available install, build, typecheck, lint, and test commands, each tagged with its source. These categories are an inventory, not a mandatory execution order.
 
 ## Precedence
 
@@ -23,9 +23,9 @@ For each rung, take the first source that yields a command:
 | `gradlew`, `build.gradle*`, `pom.xml` | JVM | `./gradlew build test` / `mvn verify` |
 | `pyproject.toml`, `tox.ini`, `setup.cfg` | Python | Named tool configs (`ruff`, `mypy`, `pytest`, `tox -e`); prefer a `Makefile`/script wrapper when one exists |
 
-A repo can match several rows; run each surface it matches.
+A repo can match several rows. Record each detected surface, then run the affected checks and required repository gates. An explicit all-checks request includes every required surface.
 
-## Rung mapping
+## Command categories
 
 | Rung | Typical names to look for |
 | --- | --- |
@@ -51,7 +51,7 @@ When the diff maps cleanly onto workspace roots, prefer the repo's native affect
 | Cargo workspace | `cargo <cmd> -p <crate>`                      |
 | Go              | `go test ./path/to/pkg/...`                   |
 
-Root-level rungs (repo-wide lint, typecheck of a single tsconfig) still run at the root even when tests are scoped.
+Required root-level checks (repo-wide lint, typecheck of a single tsconfig) still run at the root even when tests are scoped. Install only when dependencies need preparation; build before other checks only when they consume build output.
 
 ## What discovery must not do
 

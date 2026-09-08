@@ -1,6 +1,6 @@
 # Test-quality reviewer
 
-Seat: native `Agent`, `model: "sonnet"` (fallback: `sonnet` via `claude-runner`).
+Seat: the exact model, effort, and transport assigned in the approved reviewer plan. Use only an explicitly approved alternate.
 
 <task>Find tests that no longer guard the behaviour this change touches.</task>
 

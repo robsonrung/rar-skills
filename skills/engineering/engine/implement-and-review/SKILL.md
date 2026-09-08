@@ -1,6 +1,6 @@
 ---
 name: implement-and-review
-description: Implement and review one approved coding task using the exact model and effort routes the user approved. Use after to-tasks, or for one scoped task with an acceptance contract and an approved routing plan. It applies engineering practices at the task moment, verifies the result, and never commits, pushes, merges, or opens a pull request by itself.
+description: Implement and review one approved coding task through approved model and effort routes. Use for a scoped task with an acceptance contract; use implement-tasks to coordinate a queue.
 ---
 
 # Implement And Review
@@ -28,7 +28,7 @@ Never call `models-consensus` from this skill. A user who wants more opinions in
 2. Use `design-gate` only for a nonlocal boundary that has no selected lens conclusions already.
 3. Use `diagnose` before implementation when a bug has no reproduction or causal chain.
 4. Use `tdd` for a behavior change. For untested legacy behavior, use `safe-incremental-coding` to make a **characterization test** before changing it.
-5. Use `clean-code` on touched code. Use `test-lens` when a test choice needs judgment about real behavior, seams, mocks, or brittle coverage. Apply a domain lens only when the task triggers it: data paths, interfaces, distributed systems, domain logic, agent control flow, or a framework-specific UI concern.
+5. Use `clean-code` when touched code has a concrete smell or needs refactoring. Use `test-lens` when a test choice needs judgment about real behavior, seams, mocks, or brittle coverage. Apply a domain lens only when the task triggers it: data paths, interfaces, distributed systems, domain logic, agent control flow, or a framework-specific UI concern.
 6. Use `coding-review-simplify` after the task is green when a behavior-preserving simplification would help the next reader.
 
 The implementation brief must state the task scope, acceptance contract, relevant lens conclusions, and that no git or external action is allowed. The launcher prepends the approved task contract to derived implementation and review notes. Derived notes cannot replace it.
@@ -65,7 +65,7 @@ The review command reloads the approved plan, verifies the saved route still mat
 
 1. Apply valid findings through the same approved implementer route. Persist each review/fix cycle before dispatch. The maximum is three cycles. If evidence is missing, reserve one evidence recovery before dispatching it. A second missing-evidence result or an exhausted cycle ceiling stops the task.
 2. Use `full-review` only when the user selected it in the reviewer plan. Recommend it when the change crosses a seam, carries high risk, or needs feature-level reconciliation. Its scope and routes must remain proportional to the task.
-3. Run the task acceptance commands. **Only captured command results count as evidence.**
+3. Capture the required task acceptance results. Reuse earlier passing results only when the relevant code, dependencies, environment, and acceptance contract still match and the caller permits reuse. Run missing or affected checks after changes. **Only captured command results count as evidence.**
 4. Write a short report under `.ai-workflow/impl-review/<session-id>/<task-id>/report.md` when that directory is available. Include the acceptance result, implementation and reviewer receipts, changed paths, and unresolved risks.
 
 ## Output Contract

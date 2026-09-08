@@ -1,6 +1,6 @@
 ---
 name: consensus-summary-html
-description: Turn a completed models-consensus result into a self-contained, readable HTML decision brief with a clear verdict, agreement map, divergence cards, evidence trace, separate confidence views, and one next step. Use when the user asks to render, visualize, present, or explain a consensus report as HTML or asks for a beautiful consensus summary page. Do not use this skill to run a council, change its decision, or explain a codebase architecture (that is html-explainer).
+description: Render an existing models-consensus result as a self-contained HTML decision brief. Use when asked to visualize a council report; preserve its opinions and evidence without running a new council.
 disable-model-invocation: true
 ---
 
@@ -54,7 +54,7 @@ Use **selection over compression**. Remove repeated prose, not evidence, caveats
 
 Copy `assets/template.html` from this skill's directory to the agreed output path. Replace every marked slot and remove every placeholder.
 
-Use `<report directory>/<session_id>-summary.html` by default when `report_path` is persisted. When there is no report path, use `docs/consensus/<slug>-summary.html`. If that path already exists and was not created in the current run, ask before overwriting it.
+Use `<report directory>/<session_id>-summary.html` by default when `report_path` is persisted. When there is no report path, use `docs/consensus/<slug>-summary.html`. An explicit request to update that artifact authorizes the scoped edit. If an existing destination was not selected for replacement, use a new path or ask which artifact to update; preserve unrelated content.
 
 Use this section order and keep the ids unchanged:
 

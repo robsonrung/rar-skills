@@ -1,6 +1,6 @@
 ---
 name: to-prototype
-description: Build a throwaway experiment to answer one design question that reading cannot settle. Use for a technical spike, a logic or state-model demo, or visual alternatives. Return the question, answer, decision snippets, and artifact disposition to interview-me or coding-design-plan. Use a production tracer bullet instead when the code is intended to ship.
+description: Build a throwaway experiment to answer a design question that reading cannot settle. Use for technical spikes, state-model demos, or visual alternatives; use a tracer bullet when the code must ship.
 ---
 
 # Prototype

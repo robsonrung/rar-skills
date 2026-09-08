@@ -12,7 +12,7 @@ source for workflow behavior.
 
 | Stage | Output | Main responsibility |
 | --- | --- | --- |
-| `interview-me` | `decision-record.md` | Read the repository first, then ask exactly five independent questions when five exist and the interface can show them. Otherwise ask fewer, never more. Record decisions, assumptions, exclusions, security decisions, and observable success conditions. The record becomes `ready-for-prd` only when the interview closes. |
+| `interview-me` | `decision-record.md` | Use relevant repository facts, then ask exactly five independent questions when five exist and the interface can show them. Otherwise ask fewer, never more. Security questions share this limit. Record settled decisions and scope; the record becomes `ready-for-prd` when the interview closes. |
 | `to-prd` | `prd.md` | Turn a `ready-for-prd` decision record into a draft PRD. The user reviews it before it becomes approved. |
 | `to-tasks` | `tasks-draft.md`, then task slices | Create dependency-aware tasks with acceptance evidence and applicable engineering checks. The user approves the task breakdown before slices become `ready-for-agent`. |
 | `implement-tasks` | Verified local result | Show the proposed roles, exact implementation and review models, runners, reasoning effort, and model-verification policy before dispatch. Start work only after the user approves or changes that model plan. |
@@ -45,14 +45,15 @@ and [model-roster.md](skills/shared/references/model-roster.md).
 | --- | --- |
 | Discover risk and behavior | `security-gate`, a broad lens only when it changes the next question, and `to-prototype` when a runnable question blocks a decision |
 | Plan a task slice | `design-gate` once, `security-gate` for the security classification, and `test-lens` only for a real test-design decision |
-| Change the design during implementation | `coding-design-plan` and the inherited gate constraints |
+| Resolve an implementation shape | `coding-design-plan` when the shape is unresolved; reuse inherited gate constraints |
 | Build new behavior | `tdd`, then `clean-code` for a refactor decision and `test-lens` for a test-design decision |
 | Change untested legacy code | `safe-incremental-coding` before broad edits |
 | Investigate an unexpected failure | `diagnose` |
-| Verify a completed change | `coding-review-simplify`, `full-review`, and `browser-smoke` for affected web flows |
+| Review a completed change | Approved scoped review; `full-review` for integration seams or named risks, `coding-review-simplify` for a useful simplification, and `browser-smoke` for affected web flows |
 
-Routine reviews use the normal design and review skills. They do not start a
-council.
+Reuse captured checks when the relevant code, dependencies, environment, and
+contract still match; rerun affected checks and any required fresh checks.
+Routine reviews do not start a council.
 
 ## Optional council
 

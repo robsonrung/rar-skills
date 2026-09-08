@@ -36,7 +36,7 @@
         "claim": { "type": "string", "description": "One or two sentences: what the PR claims to do." },
         "methodology": {
           "type": "string",
-          "description": "How the review establishes whether it does: personas, seats, checks planned, whether a preview exists. Record \"single-model degraded\" here when fewer than 3 external seats were available."
+          "description": "How the review establishes whether it does: selected personas, actual model diversity, planned checks, and preview scope. Distinguish a planned single-route review from lost or unavailable coverage."
         },
         "agents": {
           "type": "array",
@@ -113,7 +113,7 @@
     },
     "findings": {
       "type": "array",
-      "description": "Anchored defects that survived the adversarial verifier. Empty is a valid result.",
+      "description": "Anchored defects retained after candidate evidence checks, including the adversarial verifier when selected. Empty is a valid result.",
       "items": {
         "type": "object",
         "required": ["findingId", "path", "line", "severity", "confidence", "title", "body", "agent"],

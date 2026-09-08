@@ -1,22 +1,25 @@
 ---
 name: software-design-philosophy
-description: Reduce long-term complexity in an app or codebase using Ousterhout's Philosophy of Software Design (2nd ed.) — deep modules, information hiding, strategic investment, comments as design, and deciding what matters — with Brooks' conceptual integrity. Use when designing, improving, or maintaining modules, APIs, or codebases; when code works but is expensive to change; when choosing a boundary, writing comments first, renaming for precision, adding a feature into existing design, or reviewing design quality; or when the user says deep modules, shallow modules, tactical tornado, design it twice, pull complexity down, information leakage, or decide what matters. Distinct from clean-code (local smell refactoring), tdd (the red-green loop), design-patterns (GoF), and architecture-lens (connascence and layer placement). Under design-gate this skill is read-only.
+description: "Reduce design complexity through deep modules, information hiding, and coherent interfaces. Use when a module or API is hard to understand or change; use clean-code for local cleanup."
 ---
 
 # A Philosophy of Software Design
 
-Grounded in Ousterhout, _A Philosophy of Software Design_, 2nd ed. (all 22 chapters plus the official principle and red-flag summaries). Brooks' **conceptual integrity** stays as the second anchor.
+Use Ousterhout's _A Philosophy of Software Design_, 2nd edition, to reduce the cost of understanding and changing software. Brooks' **conceptual integrity** is the second anchor. Return a named design or fix, its reason, and the next move.
 
-Complexity is anything about structure that makes software hard to understand or modify. It is incremental. The job is to keep the system cheap to change.
+## Select the route
 
-## Outcome
+| Work | Method to load |
+| --- | --- |
+| New module or consequential API/interface shape | [references/design-mode.md](references/design-mode.md) |
+| Change existing code while reducing its complexity | [references/improve-mode.md](references/improve-mode.md) |
+| Assess a diff, design, PR, or `design-gate` input | [references/review-mode.md](references/review-mode.md) |
 
-- **Result:** a named design (or a named fix) that lowers complexity, plus the next move.
-- **Next consumer:** the user, or `design-gate` / an implementation skill after they accept the shape.
-- **Done:** the route's required fields are filled; every finding uses an official red-flag or principle name; rejected alternatives are named; if this turn edited code, the project's checks that you ran are reported (or you say you could not run them).
-- **Intent:** stop two failures — shipping working code that is expensive to live with, and treating a local cleanup (`clean-code`) as if it were a module-boundary decision.
+Use `clean-code` for a local naming or structure cleanup with no boundary decision, and `tdd` for test-first execution. Continue the requested work through that skill; selecting the proper method is not a new approval gate.
 
-State these **leitwörter** by name as you act, not only in headings:
+## Shared design rules
+
+Use these **leitwörter** to explain an actual design decision:
 
 - **strategic** — invest a little design now so the next change is cheaper. The opposite is **tactical** ("just make it work") and the **tactical tornado** (the person who ships fastest by leaving a mess).
 - **deep module** — a simple interface hiding a lot of functionality. Cost is the interface; benefit is what it hides. A **shallow module** costs about as much to learn as to inline.
@@ -31,78 +34,19 @@ Modelled sentence: _"This is **tactical** — a special case on a **shallow modu
 
 A second modelled sentence, from the official extract: _"`backspace(cursor)` is a **false abstraction** — the UI still has to know which characters vanish. One `delete(start, end)` has **leverage**; the special methods do not."_
 
-## Classify the job
+## Evidence and authority
 
-Pick one route and stay on it:
+Inspect enough of the live code or stated design to identify the abstraction, the informal interface (everything a caller must know), and a relevant red flag or principle. Read further only when it could change the decision. With no repository, use the supplied constraints and mark assumptions.
 
-| Route | Signal |
-| --- | --- |
-| `design` | New module, API, or feature shape; "how should this be structured" |
-| `improve` | Existing code that works; add a feature, rename, deepen, pull complexity down |
-| `review` | Diff, plan, or PR; design-gate; "is this too complex" |
+Ask **reader, not writer**: would the next developer need a fact absent from the interface? That is evidence of leakage or obscurity. Reuse settled choices; alternatives belong to a consequential unresolved design decision, not every local edit.
 
-If the user asked only for a local tidy (rename, extract, flatten) with no boundary question, stop and say this is `clean-code`. If they asked for red-green tests, stop — that is `tdd`.
+`review` and all `design-gate` invocations are read-only: findings only, no edits or test runs. `design` and `improve` may edit within the user's request. They do not authorize unrelated refactors.
 
-**Authority.** `review` and any `design-gate` invocation are read-only: findings only, no edits, no test runs. `design` and `improve` may edit the files in the user's request (or the files a named finding requires). They do not authorize drive-by refactors of unrelated modules.
+## Acceptance contract
 
-## Evidence
+Use the selected mode's output fields. Name the official red flag or principle behind each finding. Report real rejected alternatives, or state that no new design choice was required. For edits, identify changed files, behavior-preserving work or exact behavior changes, and checks run or unavailable.
 
-Inspect the live code or the stated design. Do not invent a module.
-
-Read budget: enough to name the abstraction, the _informal_ interface (everything a caller must know — not just the signature), and one red flag or principle. Stop when another file would not change the decision.
-
-Ask **reader, not writer**: would a second developer need a fact that is not in the interface? That fact is either leakage or obscurity.
-
-If there is no repo, use the user's constraints. Mark those `assumed`.
-
-## Routes
-
-**`design`** — state the abstraction in one sentence (what the caller gets to _not_ know). Then **design it twice**. Functionality matches today's needs; the interface does not — it is _somewhat general_. Over-specialization is the usual source of extra complexity: do not put `backspace`/`deleteKey`/`deleteSelection` on the text module. Answer the three questions in `references/principles.md` before coding. Pull complexity down; define errors out of existence; write the interface comment _before_ the body so a caller need not read the implementation. Read `references/principles.md`, then `references/comments-and-names.md`.
-
-**`improve`** — **stay strategic**. Design is never finished: the first cut is usually wrong, and implementation is how you find that. If the change is a special case that fights the design, fix the design (or say why you will not). Keep comments next to the code they describe; check the diff for comment drift. Read `references/modifying.md`. Load `references/comments-and-names.md` when names or comments are the work. Load `references/trends-and-performance.md` only when the question is a trend (TDD, patterns, inheritance) or a hot path.
-
-**`review`** — walk the official red flags in `references/red-flags.md`. Name each finding. Then run the three Brooks checks. If a category is clean, write `clean`.
-
-Load `references/chapter-map.md` only when you need to route a question to a specific chapter.
-
-## Output contract
-
-Standalone `design` or `improve`:
-
-```text
-## Philosophy of Software Design
-Route: design | improve
-Abstraction: <one sentence>
-Principles: <which of the 16 you used>
-Red flags: <name or clean>
-Strategic vs tactical: <one line>
-What we rejected: <one alternative and its cost>
-Next move: <one action>
-```
-
-If you edited code, add: files touched, **behavior-preserving** or the exact behavior change, checks run.
-
-Standalone `review`:
-
-```text
-## Design review (Philosophy of Software Design)
-### Findings
-- [file:line] <red-flag name> (<dependency|obscurity>) — <what's complex>. Fix: <structural change>.
-### Conceptual integrity
-<which of conceptual integrity / change ownership / smallest coherent shape holds>
-### Verdict
-<one line>
-```
-
-When run as a **reviewer** under `design-gate`:
-
-1. `verdict`: `proceed` or `revise`
-2. `conceptual_integrity_check`
-3. `blocking_findings`
-4. `advisory_findings`
-5. `required_changes`
-
-`revise` when a leaked decision, a shallow public interface on a new module, or a tactical special-case that will have to be undone is load-bearing. Cosmetic naming is advisory.
+Under `design-gate`, return `verdict` (`proceed` | `revise`), `conceptual_integrity_check`, `blocking_findings`, `advisory_findings`, and `required_changes`. A leaked decision, shallow new public interface, or tactical special case can block when it is load-bearing; cosmetic naming is advisory.
 
 ## Gotchas
 
@@ -116,13 +60,6 @@ When run as a **reviewer** under `design-gate`:
 8. `private` plus a getter is not information hiding. If callers must know the field exists, it is in the interface.
 9. Lots of documentation is often a **hard to describe** flag, not a virtue. Simplify the design.
 
-## References
+## Chapter lookup
 
-Load only the file the current step names:
-
-- `references/principles.md` — the 16 official principles as operational checks
-- `references/red-flags.md` — official red-flag catalog and fixes
-- `references/comments-and-names.md` — comments (ch. 12–15) and names (ch. 14)
-- `references/modifying.md` — existing code, consistency, obviousness, what matters (ch. 16–18, 21)
-- `references/trends-and-performance.md` — trends and performance (ch. 19–20)
-- `references/chapter-map.md` — chapter → file, when a question does not fit a route
+The selected mode links to its needed principles, red flags, and methods. Load [references/chapter-map.md](references/chapter-map.md) only to locate a question that does not fit those routes.

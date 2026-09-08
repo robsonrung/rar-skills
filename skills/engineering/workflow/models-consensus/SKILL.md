@@ -1,6 +1,6 @@
 ---
 name: models-consensus
-description: Run a read-only council of independent model opinions. Use only when the user explicitly invokes this skill or explicitly asks for extra model opinions on a meaningful decision. Before any model call, show the exact seats, requested model labels, receipt requirement, roles, efforts, transport, and call budget, then wait for explicit approval or changes. Never invoke from another skill, as an automatic escalation, or to implement work.
+description: Run a read-only council of model opinions after the user approves its model plan. Use only when the user invokes this skill or explicitly asks for extra model opinions; never use as an automatic escalation.
 disable-model-invocation: true
 ---
 
@@ -34,7 +34,7 @@ The preview must show every planned and conditional call:
 | Tools | The shared read-only tool profile |
 | Evidence | Which transport checks passed and that serving-model receipts are still pending |
 
-Use **seat fidelity**: an approved seat is that exact requested-model label, receipt requirement, and transport. Every runner call uses `--disable-fallback`. If a selected seat, model label, receipt status, transport, effort, or role changes after the preview, stop and show a revised preview. Do not substitute, downgrade, add a seat, switch mode, or degrade to personas without new approval.
+Use **seat fidelity**: an approved seat is that exact requested-model label, receipt requirement, and transport. Every runner call uses `--disable-fallback`. If a selected seat, model label, receipt requirement, transport, effort, or role changes after the preview, stop and show a revised preview. A pending receipt becoming verified for the approved model is new evidence and needs no new approval. An observed model mismatch or an unmet required receipt blocks that route; never weaken the receipt requirement to continue. Do not substitute, downgrade, add a seat, switch mode, or degrade to personas without new approval.
 
 Use this preview shape after resolving the roster:
 
