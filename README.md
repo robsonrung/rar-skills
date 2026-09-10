@@ -74,12 +74,12 @@ item. Those actions are never implied by task or model-plan approval.
 
 ## Library map
 
-There are 59 installable skills. The following map keeps every skill
+There are 60 installable skills. The following map keeps every skill
 discoverable while leaving detailed instructions in each `SKILL.md`.
 
 | Domain | Skills |
 | --- | --- |
-| Workflow | `brainstorm`, `interview-me`, `to-prd`, `to-tasks`, `implement-tasks`, `to-prototype`, `models-consensus` |
+| Workflow | `brainstorm`, `interview-me`, `to-prd`, `to-tasks`, `implement-tasks`, `to-prototype`, `models-consensus`, `pre-pr-review` |
 | Engine | `coding-design-plan`, `implement-and-review`, `worktree` |
 | Gates | `design-gate`, `security-gate` |
 | Lenses | `advanced-react`, `agent-architecture-lens`, `architecture-lens`, `data-systems-coding-lens`, `design-patterns`, `distributed-systems-patterns`, `domain-driven-design`, `macro-architecture`, `software-design-philosophy`, `ui-ux-pro-max` |

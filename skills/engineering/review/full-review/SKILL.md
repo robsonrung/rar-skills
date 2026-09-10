@@ -52,6 +52,14 @@ For a plan or requirements document, review feasibility, scope, coherence, and d
 
 ## Output
 
+When the caller supplies a snapshot from `shared/references/review-evidence.md`,
+use that shared contract for the complete final JSON response. It replaces the
+normal final response below for this mode. Keep the human report separate.
+Account for every snapshot path, retain earlier finding IDs during rechecks,
+and reference captured check and browser evidence. Map CRITICAL, HIGH, MEDIUM,
+and LOW to P0, P1, P2, and P3. The coordinator records the actual response and
+runs the verifier; execution success is not approval.
+
 For code, return a human report and JSON that matches `references/review_output_schema.json`. For a requirements document, use `references/doc-findings-schema.json` instead. Use `references/review_report_template.md` for the report.
 
 Every code finding includes severity, confidence, category, location, evidence, smallest useful fix, and verification. A document finding uses its section and quoted evidence. End a code report with:

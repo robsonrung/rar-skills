@@ -1,0 +1,366 @@
+#!/usr/bin/env python3
+"""Capture source state, check results, and structured review evidence."""
+
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+import os
+import re
+import signal
+import stat
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+
+VERSION = 1
+
+
+def digest(value):
+    return hashlib.sha256(json.dumps(value, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+
+
+def file_hash(path):
+    hasher = hashlib.sha256()
+    with Path(path).open("rb") as stream:
+        for block in iter(lambda: stream.read(1024 * 1024), b""):
+            hasher.update(block)
+    return hasher.hexdigest()
+
+
+def contract_hash(path):
+    text = Path(path).read_text().replace("\r\n", "\n").replace("\r", "\n")
+    lines = [line for line in text.splitlines() if not re.fullmatch(r"\*\*Status:\*\* (?:ready-for-agent|in-progress|done|blocked)", line)]
+    return digest("\n".join(lines))
+
+
+def read_json(path):
+    return json.loads(Path(path).read_text())
+
+
+def require(condition, message):
+    if not condition:
+        raise ValueError(message)
+
+
+def write_record(path, payload):
+    """Never replace a previous record, including a failed check."""
+    path = Path(path)
+    record = {"payload": payload, "sha256": digest(payload)}
+    if path.exists():
+        require(read_json(path) == record, f"record already exists with different content: {path}")
+        return path
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("x") as stream:
+        stream.write(json.dumps(record, indent=2) + "\n")
+    return path
+
+
+def load_record(path):
+    record = read_json(path)
+    require(isinstance(record, dict) and set(record) == {"payload", "sha256"}, "invalid record envelope")
+    require(record["sha256"] == digest(record["payload"]), f"record checksum mismatch: {path}")
+    return record["payload"]
+
+
+def git(root, *args):
+    result = subprocess.run(["git", "-C", str(root), *args], capture_output=True, check=False)
+    require(result.returncode == 0, result.stderr.decode(errors="replace").strip() or "git command failed")
+    return result.stdout
+
+
+def names(data):
+    return {item.decode("utf-8", errors="surrogateescape") for item in data.split(b"\0") if item}
+
+
+def safe_path(root, name):
+    require(isinstance(name, str) and name and not Path(name).is_absolute(), "expected a relative path")
+    require(".." not in Path(name).parts, "parent traversal is not allowed")
+    path = root / name
+    require(path == root or path.parent.resolve().is_relative_to(root), f"path parent escapes the source root: {name}")
+    return path
+
+
+def source_state(root, base_ref, artifact_dir):
+    root, artifact_dir = Path(root).resolve(), Path(artifact_dir).resolve()
+    actual_root = Path(os.fsdecode(git(root, "rev-parse", "--show-toplevel")).strip()).resolve()
+    require(root == actual_root, "source root must be the git worktree root")
+    base = git(root, "rev-parse", "--verify", f"{base_ref}^{{commit}}").decode().strip()
+    tracked = names(git(root, "ls-files", "-z"))
+    untracked = names(git(root, "ls-files", "--others", "--exclude-standard", "-z"))
+    require(not any((root / p).is_relative_to(artifact_dir) for p in tracked), "artifact directory contains tracked source")
+    require(artifact_dir != root and not root.is_relative_to(artifact_dir), "artifact directory contains the source root")
+    included = {p for p in tracked | untracked if not (root / p).is_relative_to(artifact_dir)}
+    files = {}
+    for name in sorted(included):
+        path = safe_path(root, name)
+        if path.is_symlink():
+            require(path.resolve().is_relative_to(root), f"symbolic link target escapes the source root: {name}")
+            files[name] = {"kind": "symlink", "target": os.readlink(path)}
+        elif not path.exists():
+            files[name] = {"kind": "deleted"}
+        else:
+            require(path.is_file(), f"unsupported source entry (including submodules): {name}")
+            files[name] = {"kind": "file", "sha256": file_hash(path), "executable": bool(path.stat().st_mode & stat.S_IXUSR)}
+    index = git(root, "ls-files", "--stage", "-z")
+    require(not git(root, "ls-files", "--unmerged", "-z"), "unresolved index conflicts prevent source capture")
+    require(not any(row.startswith(b"160000 ") for row in index.split(b"\0")), "submodule evidence is not supported")
+    changed = names(git(root, "diff", "--no-ext-diff", "--no-renames", "--name-only", "-z", base, "--"))
+    changed |= names(git(root, "diff", "--no-ext-diff", "--no-renames", "--cached", "--name-only", "-z", base, "--"))
+    changed |= untracked
+    changed = sorted(p for p in changed if not (root / p).is_relative_to(artifact_dir))
+    return {"root": str(root), "base": base, "files": files, "index_sha256": hashlib.sha256(index).hexdigest(), "changed_paths": changed}
+
+
+def validate_requirements(value, root):
+    require(isinstance(value, dict) and set(value) == {"context", "checks", "observations", "exclusions"}, "requirements need context, checks, observations, and exclusions")
+    require(isinstance(value["context"], dict) and bool(value["context"]), "context must describe the current runtime and external state")
+    require(isinstance(value["checks"], list), "checks must be a list")
+    ids = set()
+    for check in value["checks"]:
+        require(isinstance(check, dict) and set(check) == {"id", "command", "cwd", "timeout_seconds"}, "invalid check definition")
+        key = check["id"]
+        require(isinstance(key, str) and re.fullmatch(r"[a-z0-9][a-z0-9-]*", key) and key not in ids, "invalid or duplicate check id")
+        ids.add(key)
+        require(isinstance(check["command"], list) and bool(check["command"]) and all(isinstance(x, str) and x for x in check["command"]), "command must be a nonempty argument list")
+        require(safe_path(root, check["cwd"]).resolve().is_relative_to(root), "check cwd escapes source root")
+        require(type(check["timeout_seconds"]) is int and 0 < check["timeout_seconds"] <= 3600, "invalid check timeout")
+    observations = value["observations"]
+    require(isinstance(observations, list) and all(isinstance(x, str) and x for x in observations), "invalid observation ids")
+    require(len(set(observations)) == len(observations), "duplicate observation ids")
+    require(isinstance(value["exclusions"], dict) and all(isinstance(k, str) and isinstance(v, str) and v.strip() for k, v in value["exclusions"].items()), "exclusions need path and reason")
+
+
+def prepare(root, base, contract, requirements, output, artifact_dir=None, previous_reviews=()):
+    root, output = Path(root).resolve(), Path(output).resolve()
+    artifact_dir = Path(artifact_dir or output).resolve()
+    require(output.is_relative_to(artifact_dir), "output must be within the artifact directory")
+    plan = read_json(requirements)
+    validate_requirements(plan, root)
+    source = source_state(root, base, artifact_dir)
+    require(set(plan["exclusions"]) <= set(source["changed_paths"]), "exclusions contain paths outside the diff")
+    payload = {
+        "schema_version": VERSION, "source": source, "source_id": digest(source),
+        "base_ref": base, "artifact_dir": str(artifact_dir),
+        "contract": {"path": str(Path(contract).resolve()), "sha256": contract_hash(contract)},
+        "requirements": {"path": str(Path(requirements).resolve()), "sha256": file_hash(requirements), "value": plan},
+        "previous_reviews": [{"path": str(Path(p).resolve()), "sha256": file_hash(p)} for p in previous_reviews],
+    }
+    previous_findings(payload)
+    require(source == source_state(root, base, artifact_dir), "source changed while preparing the snapshot")
+    return write_record(output / "snapshot.json", payload)
+
+
+def current_snapshot(path, base=None):
+    snapshot = load_record(path)
+    require(snapshot["schema_version"] == VERSION and snapshot["source_id"] == digest(snapshot["source"]), "invalid source snapshot")
+    for key in ("contract", "requirements"):
+        observed = contract_hash(snapshot[key]["path"]) if key == "contract" else file_hash(snapshot[key]["path"])
+        require(observed == snapshot[key]["sha256"], f"{key} changed since review preparation")
+    require(read_json(snapshot["requirements"]["path"]) == snapshot["requirements"]["value"], "captured requirements differ from their source")
+    previous_findings(snapshot)
+    source = source_state(snapshot["source"]["root"], base or snapshot["base_ref"], snapshot["artifact_dir"])
+    old = snapshot["source"]
+    changed = sorted(p for p in set(old["files"]) | set(source["files"]) if old["files"].get(p) != source["files"].get(p))
+    require(source == old, f"source snapshot is stale; changed paths: {changed}; base or index may also differ")
+    return snapshot
+
+
+def check_definition(snapshot, key):
+    entries = [x for x in snapshot["requirements"]["value"]["checks"] if x["id"] == key]
+    require(len(entries) == 1, f"check id is not in requirements: {key}")
+    return entries[0]
+
+
+def run_check(snapshot_path, key):
+    snapshot_path = Path(snapshot_path).resolve()
+    snapshot = current_snapshot(snapshot_path)
+    definition = check_definition(snapshot, key)
+    output = snapshot_path.parent / "checks" / key
+    output.mkdir(parents=True, exist_ok=False)
+    started = time.monotonic()
+    timed_out = False
+    with (output / "stdout.log").open("wb") as stdout, (output / "stderr.log").open("wb") as stderr:
+        try:
+            process = subprocess.Popen(definition["command"], cwd=safe_path(Path(snapshot["source"]["root"]), definition["cwd"]), stdout=stdout, stderr=stderr, start_new_session=True)
+            try:
+                code = process.wait(timeout=definition["timeout_seconds"])
+            except subprocess.TimeoutExpired:
+                os.killpg(process.pid, signal.SIGKILL)
+                code = process.wait()
+                timed_out = True
+        except OSError as error:
+            stderr.write(str(error).encode())
+            code = 127
+    stale = False
+    try:
+        current_snapshot(snapshot_path)
+    except (ValueError, OSError):
+        stale = True
+    payload = {
+        "snapshot_sha256": file_hash(snapshot_path), "source_id": snapshot["source_id"],
+        "context_id": digest(snapshot["requirements"]["value"]["context"]), "definition": definition,
+        "exit_code": code, "duration_ms": round((time.monotonic() - started) * 1000),
+        "timed_out": timed_out, "source_changed": stale,
+        "logs": [{"path": str(output / name), "sha256": file_hash(output / name)} for name in ("stdout.log", "stderr.log")],
+    }
+    return write_record(output / "result.json", payload)
+
+
+def validate_check(path, snapshot, definition):
+    check = load_record(path)
+    require(check["source_id"] == snapshot["source_id"], "check source does not match")
+    require(check["context_id"] == digest(snapshot["requirements"]["value"]["context"]), "check context does not match")
+    require(check["definition"] == definition, "check command does not match requirements")
+    require(type(check["exit_code"]) is int and type(check["duration_ms"]) is int and check["duration_ms"] >= 0, "invalid command result")
+    require(type(check["timed_out"]) is bool and type(check["source_changed"]) is bool, "invalid command status")
+    require(len(check["logs"]) == 2, "command logs are missing")
+    for log in check["logs"]:
+        require(file_hash(log["path"]) == log["sha256"], "command log checksum mismatch")
+    return check["exit_code"] == 0 and not check["timed_out"] and not check["source_changed"]
+
+
+def previous_findings(snapshot):
+    findings = {}
+    paths = set()
+    for link in snapshot["previous_reviews"]:
+        require(link["path"] not in paths, "duplicate previous review")
+        paths.add(link["path"])
+        require(file_hash(link["path"]) == link["sha256"], "previous review checksum mismatch")
+        record = load_record(link["path"])
+        require(record["schema_version"] == VERSION, "unsupported previous review version")
+        for finding in record["result"]["findings"]:
+            key = finding["id"]
+            require(key not in findings or findings[key] == finding, "conflicting prior finding ids; use task-specific ids")
+            findings[key] = finding
+    return findings
+
+
+def validate_result(result, snapshot, snapshot_path):
+    require(isinstance(result, dict) and set(result) == {"snapshot_sha256", "coverage", "findings", "checks", "observations", "summary"}, "invalid review result fields")
+    require(result["snapshot_sha256"] == file_hash(snapshot_path), "review is bound to a different snapshot")
+    require(isinstance(result["summary"], str) and result["summary"].strip(), "review summary is missing")
+    plan = snapshot["requirements"]["value"]
+    coverage = result["coverage"]
+    require(isinstance(coverage, list), "coverage must be a list")
+    seen = set()
+    for row in coverage:
+        require(isinstance(row, dict) and set(row) == {"path", "outcome", "reason"}, "invalid coverage row")
+        require(isinstance(row["path"], str) and row["path"] not in seen, "duplicate coverage path")
+        seen.add(row["path"])
+        require(row["outcome"] in {"reviewed", "excluded"} and isinstance(row["reason"], str) and row["reason"].strip(), "coverage needs an outcome and reason")
+        expected = plan["exclusions"].get(row["path"])
+        require((row["outcome"] == "excluded") == (expected is not None), "coverage exclusion differs from requirements")
+        if expected:
+            require(row["reason"] == expected, "exclusion reason differs from requirements")
+    require(seen == set(snapshot["source"]["changed_paths"]), "review coverage is incomplete or outside the diff")
+    require(isinstance(result["findings"], list), "findings must be a list")
+    previous = previous_findings(snapshot)
+    finding_paths = seen | {f["path"] for f in previous.values()}
+    ids = set()
+    for finding in result["findings"]:
+        require(isinstance(finding, dict) and set(finding) == {"id", "path", "severity", "status", "evidence"}, "invalid finding fields")
+        require(isinstance(finding["id"], str) and finding["id"] and finding["id"] not in ids, "invalid or duplicate finding id")
+        ids.add(finding["id"])
+        require(finding["path"] in finding_paths, "finding path is outside review scope")
+        require(finding["severity"] in {"P0", "P1", "P2", "P3"}, "unknown finding severity")
+        require(finding["status"] in {"open", "fixed", "rejected", "deferred", "disputed"}, "unknown finding status")
+        require(isinstance(finding["evidence"], str) and finding["evidence"].strip(), "finding evidence is missing")
+        if finding["id"] in previous:
+            old = previous[finding["id"]]
+            require((finding["path"], finding["severity"]) == (old["path"], old["severity"]), "prior finding path or severity changed; retain its identity and record resolution")
+    require(set(previous) <= ids, "prior findings were dropped from the recheck")
+    require(isinstance(result["checks"], dict), "checks must map ids to captured result paths")
+    require(set(result["checks"]) == {c["id"] for c in plan["checks"]}, "required checks are missing or unknown")
+    require(isinstance(result["observations"], list), "observations must be a list")
+    observed = set()
+    for observation in result["observations"]:
+        require(isinstance(observation, dict) and set(observation) == {"id", "result", "evidence"}, "invalid observation fields")
+        require(isinstance(observation["id"], str) and observation["id"] not in observed, "duplicate observation")
+        observed.add(observation["id"])
+        require(observation["result"] in {"pass", "fail", "skipped"}, "unknown observation result")
+        require(isinstance(observation["evidence"], list) and bool(observation["evidence"]), "observation needs captured evidence files")
+        for entry in observation["evidence"]:
+            require(set(entry) == {"path", "sha256"} and file_hash(entry["path"]) == entry["sha256"], "observation evidence checksum mismatch")
+    require(observed == set(plan["observations"]), "required observations are missing or unknown")
+
+
+def record_review(snapshot_path, result, execution):
+    snapshot_path = Path(snapshot_path).resolve()
+    snapshot = current_snapshot(snapshot_path)
+    validate_result(result, snapshot, snapshot_path)
+    require(isinstance(execution, dict) and execution.get("success") is True, "review execution did not succeed")
+    require(json.loads(execution.get("agent_message", "")) == result, "result differs from the recorded reviewer response")
+    checks = []
+    for definition in snapshot["requirements"]["value"]["checks"]:
+        path = Path(result["checks"][definition["id"]]).resolve()
+        validate_check(path, snapshot, definition)
+        checks.append({"id": definition["id"], "path": str(path), "sha256": file_hash(path)})
+    payload = {"schema_version": VERSION, "snapshot_sha256": file_hash(snapshot_path), "result": result, "execution": execution, "checks": checks}
+    return write_record(snapshot_path.parent / "review.json", payload)
+
+
+def assess(snapshot_path, base):
+    snapshot_path = Path(snapshot_path).resolve()
+    snapshot = current_snapshot(snapshot_path, base)
+    record = load_record(snapshot_path.parent / "review.json")
+    require(record["schema_version"] == VERSION and record["snapshot_sha256"] == file_hash(snapshot_path), "review snapshot mismatch")
+    result = record["result"]
+    validate_result(result, snapshot, snapshot_path)
+    require(record["execution"].get("success") is True and json.loads(record["execution"].get("agent_message", "")) == result, "review execution result mismatch")
+    plan = snapshot["requirements"]["value"]
+    links = record["checks"]
+    require(len(links) == len(plan["checks"]) and {x["id"] for x in links} == {x["id"] for x in plan["checks"]}, "check references are incomplete")
+    failed_checks = []
+    for link in links:
+        require(file_hash(link["path"]) == link["sha256"], "check result checksum mismatch")
+        require(str(Path(result["checks"][link["id"]]).resolve()) == link["path"], "check result path mismatch")
+        if not validate_check(link["path"], snapshot, check_definition(snapshot, link["id"])):
+            failed_checks.append(link["id"])
+    open_findings = [f["id"] for f in result["findings"] if f["status"] in {"open", "disputed"} or (f["status"] == "deferred" and f["severity"] != "P3")]
+    failed_observations = [x["id"] for x in result["observations"] if x["result"] != "pass"]
+    status = "needs-work" if open_findings or failed_checks or failed_observations else "ready"
+    return {"status": status, "snapshot_sha256": file_hash(snapshot_path), "open_findings": open_findings, "failed_checks": failed_checks, "failed_observations": failed_observations}
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    commands = parser.add_subparsers(dest="action", required=True)
+    prepare_parser = commands.add_parser("prepare", help="freeze source and required evidence before review")
+    for name in ("root", "base", "contract", "requirements", "output"):
+        prepare_parser.add_argument("--" + name, required=True)
+    prepare_parser.add_argument("--artifact-dir")
+    prepare_parser.add_argument("--previous-review", action="append", default=[], help="prior review.json; repeat for independent task records")
+    check_parser = commands.add_parser("run-check", help="execute one declared command and capture its result")
+    check_parser.add_argument("--snapshot", required=True)
+    check_parser.add_argument("--id", required=True)
+    record_parser = commands.add_parser("record", help="store the structured response from a completed reviewer")
+    record_parser.add_argument("--snapshot", required=True)
+    record_parser.add_argument("--execution", required=True)
+    verify_parser = commands.add_parser("verify", help="check current source, evidence integrity, and readiness")
+    verify_parser.add_argument("--snapshot", required=True)
+    verify_parser.add_argument("--base", required=True)
+    args = parser.parse_args()
+    try:
+        if args.action == "prepare":
+            result = {"snapshot": str(prepare(args.root, args.base, args.contract, args.requirements, args.output, args.artifact_dir, args.previous_review))}
+        elif args.action == "run-check":
+            path = run_check(args.snapshot, args.id)
+            result = {"check": str(path), "passed": validate_check(path, load_record(args.snapshot), check_definition(load_record(args.snapshot), args.id))}
+        elif args.action == "record":
+            execution = read_json(args.execution)
+            result = {"review": str(record_review(args.snapshot, json.loads(execution.get("agent_message", "")), execution))}
+        else:
+            result = assess(args.snapshot, args.base)
+        print(json.dumps(result))
+        return 1 if result.get("status") == "needs-work" or result.get("passed") is False else 0
+    except (ValueError, OSError, KeyError, TypeError) as error:
+        print(json.dumps({"status": "blocked", "error": str(error)}))
+        return 2
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

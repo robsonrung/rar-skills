@@ -89,6 +89,26 @@ SKILLS_DIR = _skills_dir()
 JOBS_CLI = SKILLS_DIR / "shared" / "scripts" / "runner_jobs.py"
 
 
+def evidence_module():
+    shared = str(SKILLS_DIR / "shared" / "scripts")
+    if shared not in sys.path:
+        sys.path.insert(0, shared)
+    import review_evidence
+    return review_evidence
+
+
+def review_source_binding(snapshot_path, working_dir, contract, base, previous=None):
+    evidence = evidence_module()
+    snapshot_path = Path(require_string(snapshot_path, "review snapshot")).expanduser().resolve()
+    snapshot = evidence.current_snapshot(snapshot_path, base)
+    evidence.require(snapshot["source"]["root"] == str(working_dir), "review snapshot belongs to another worktree")
+    evidence.require(snapshot["contract"]["path"] == str(contract["path"]), "review snapshot uses another task contract")
+    evidence.require(snapshot["contract"]["sha256"] == evidence.contract_hash(contract["path"]), "review contract changed")
+    if previous is not None:
+        evidence.require(previous in snapshot["previous_reviews"], "snapshot must reference the latest recorded review for this track")
+    return {"path": str(snapshot_path), "sha256": file_digest(snapshot_path)}
+
+
 def runner_script(name: str) -> Path:
     shared = str(SKILLS_DIR / "shared" / "scripts")
     if shared not in sys.path:
@@ -1480,8 +1500,27 @@ def cmd_review(args: argparse.Namespace) -> int:
         )
     except (OSError, UnicodeError) as error:
         fail(f"could not prepare a bound review brief: {error}")
+    try:
+        prior_records = [r for r in manifest.get("reviews", []) if r.get("track") == args.track and r.get("review_evidence")]
+        previous = max(prior_records, key=lambda r: r["cycle"])["review_evidence"] if prior_records else None
+        source_binding = review_source_binding(
+            getattr(args, "review_snapshot", None), working_dir,
+            routing["scope_inputs"][route["input_path"]], manifest.get("base"),
+            previous,
+        )
+    except (ValueError, OSError, KeyError, TypeError) as error:
+        fail(f"review evidence cannot be bound: {error}")
     cycle = next_review_cycle(manifest, args.track, args.cycle, args.dry_run, path)
     bound_brief = Path(manifest["artifact_dir"]) / f"{args.track}-review-{cycle}-brief.md"
+    rendered += (
+        "\nStructured review evidence\n"
+        f"Snapshot: {source_binding['path']}\n"
+        f"Snapshot file SHA-256: {source_binding['sha256']}\n"
+        "Read shared/references/review-evidence.md for the result contract. "
+        "Return the result JSON as your entire final response. Cover every snapshot "
+        "changed path and use only captured check results. Do not write evidence files; "
+        "the coordinator records your response.\n"
+    )
     input_revision = text_digest(rendered)
     metadata = {
         "session": manifest.get("session_id"),
@@ -1502,6 +1541,7 @@ def cmd_review(args: argparse.Namespace) -> int:
         "brief_binding": binding,
         "input_revision": input_revision,
         "reviewer_route": approved_route,
+        "source_snapshot": source_binding,
         "launch": {"status": "pending", "selected_route": approved_route},
     }
     context_before_launch: dict[str, Any] | None = None
@@ -1558,6 +1598,78 @@ def cmd_review(args: argparse.Namespace) -> int:
         save_manifest(manifest, path)
     print(json.dumps(record, indent=2, ensure_ascii=False))
     return 0
+
+
+def selected_review(manifest, track, cycle=None):
+    records = [r for r in manifest.get("reviews", []) if r.get("track") == track]
+    if cycle is not None:
+        records = [r for r in records if r.get("cycle") == cycle]
+    if not records:
+        raise ValueError("no matching review record")
+    return max(records, key=lambda r: r["cycle"])
+
+
+def bound_snapshot(record):
+    binding = record.get("source_snapshot")
+    if not isinstance(binding, dict) or file_digest(Path(binding["path"])) != binding["sha256"]:
+        raise ValueError("source snapshot is missing or its checksum changed")
+    return binding["path"]
+
+
+def cmd_record_review(args):
+    manifest, path = load_manifest(args)
+    try:
+        record = selected_review(manifest, args.track, args.cycle)
+        snapshot_path = bound_snapshot(record)
+        entry = record["launch"]
+        route = entry.get("effective_route") or entry["selected_route"]
+        routing = load_routing_plan(manifest["routing_plan"]["path"], manifest["task_id"], {args.track}, True, Path(manifest["working_root"]))
+        approved = routing["routes"][args.track]["reviewer"]
+        if canonical_digest(record["reviewer_route"]) != canonical_digest(approved) or not any(canonical_digest(route) == canonical_digest(x) for x in route_variants(approved)):
+            raise ValueError("review route no longer matches the approved plan")
+        review_source_binding(snapshot_path, Path(record["working_dir"]), routing["scope_inputs"][approved["input_path"]], manifest["base"])
+        snapshot, terminal = job_snapshot(entry, record["working_dir"])
+        if not terminal or snapshot.get("success") is not True:
+            raise ValueError("review execution has no successful terminal result")
+        execution = entry["completion_receipt"] if entry["mode"] == "native" else jobs_query("result", entry["job_id"], record["working_dir"])
+        mismatch = receipt_error(route, execution)
+        if mismatch:
+            raise ValueError(mismatch)
+        if entry["mode"] == "native":
+            mismatch = native_execution_error(route, execution, manifest["task_id"], entry.get("native_dispatch"))
+            if mismatch:
+                raise ValueError(mismatch)
+        evidence = evidence_module()
+        result_path = evidence.record_review(snapshot_path, json.loads(execution.get("agent_message", "")), execution)
+        record["review_evidence"] = {"path": str(result_path), "sha256": file_digest(result_path)}
+        save_manifest(manifest, path)
+        result = evidence.assess(snapshot_path, manifest["base"])
+        print(json.dumps(result))
+        return 0 if result["status"] == "ready" else 1
+    except (ValueError, OSError, KeyError, TypeError) as error:
+        print(json.dumps({"status": "blocked", "error": str(error)}))
+        return 2
+
+
+def cmd_verify_review(args):
+    manifest, _ = load_manifest(args)
+    try:
+        record = selected_review(manifest, args.track)
+        snapshot_path = bound_snapshot(record)
+        routing = load_routing_plan(manifest["routing_plan"]["path"], manifest["task_id"], {args.track}, True, Path(manifest["working_root"]))
+        approved = routing["routes"][args.track]["reviewer"]
+        if canonical_digest(record["reviewer_route"]) != canonical_digest(approved):
+            raise ValueError("review route no longer matches the approved plan")
+        review_source_binding(snapshot_path, Path(record["working_dir"]), routing["scope_inputs"][approved["input_path"]], args.base)
+        link = record.get("review_evidence")
+        if not isinstance(link, dict) or Path(link["path"]).resolve() != Path(snapshot_path).parent / "review.json" or file_digest(Path(link["path"])) != link["sha256"]:
+            raise ValueError("recorded review evidence is missing or changed")
+        result = evidence_module().assess(snapshot_path, args.base)
+        print(json.dumps(result))
+        return 0 if result["status"] == "ready" else 1
+    except (ValueError, OSError, KeyError, TypeError) as error:
+        print(json.dumps({"status": "blocked", "error": str(error)}))
+        return 2
 
 
 def cmd_record_native(args: argparse.Namespace) -> int:
@@ -1974,10 +2086,21 @@ def build_parser() -> argparse.ArgumentParser:
     add_manifest_arguments(review)
     review.add_argument("--track", required=True)
     review.add_argument("--review-brief", required=True)
+    review.add_argument("--review-snapshot", required=True, help="prepared source and required-evidence snapshot")
     review.add_argument("--cycle", type=int, help="must equal the next persisted review cycle")
     review.add_argument("--timeout", type=int, default=1800)
     review.add_argument("--dry-run", action="store_true")
     review.set_defaults(handler=cmd_review)
+    record_review = commands.add_parser("record-review", help="validate and store a completed review response")
+    add_manifest_arguments(record_review)
+    record_review.add_argument("--track", required=True)
+    record_review.add_argument("--cycle", type=int, required=True)
+    record_review.set_defaults(handler=cmd_record_review)
+    verify_review = commands.add_parser("verify-review", help="check the latest recorded review against current source")
+    add_manifest_arguments(verify_review)
+    verify_review.add_argument("--track", required=True)
+    verify_review.add_argument("--base", required=True, help="current intended review base")
+    verify_review.set_defaults(handler=cmd_verify_review)
     record_native = commands.add_parser("record-native", help="record a completed exact native route receipt")
     add_manifest_arguments(record_native)
     record_native.add_argument("--track", required=True)
@@ -2022,7 +2145,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main() -> int:
     arguments = build_parser().parse_args()
-    if arguments.command in {"poll", "review", "record-native", "resume-native", "evidence-recovery", "cleanup"} and not arguments.manifest:
+    if arguments.command in {"poll", "review", "record-native", "record-review", "verify-review", "resume-native", "evidence-recovery", "cleanup"} and not arguments.manifest:
         if not arguments.session_id or not arguments.task_id:
             fail("provide --manifest or both --session-id and --task-id")
     return arguments.handler(arguments)

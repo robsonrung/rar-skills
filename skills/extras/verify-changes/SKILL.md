@@ -20,6 +20,13 @@ Resolve the base from `origin/HEAD`, code-host metadata, then `main`. Include st
 
 ## Execute the selected checks
 
+When the caller supplies a snapshot from `shared/references/review-evidence.md`,
+execute its checks through `shared/scripts/review_evidence.py run-check`. Return
+captured result paths with the normal check report. Reuse an older captured check
+only when the shared validator accepts its source, context, and command definition.
+A prose pass is insufficient. If discovery reveals a missing requirement, update
+the plan and prepare a new snapshot before execution. Never edit a frozen record.
+
 - Follow real command dependencies. Build first only when later checks require its output. Install only when dependencies need preparation or the requested clean-environment check requires it.
 - Use the repository's lockfile-respecting install command. Do not modify lockfiles or install global tools to invent a check.
 - Run an aggregate script once when it already includes the required build, type, lint, or test checks. Record which checks it covers instead of running its parts again.

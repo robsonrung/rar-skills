@@ -49,6 +49,7 @@
         "./workflow/implement-tasks",
         "./workflow/interview-me",
         "./workflow/models-consensus",
+        "./workflow/pre-pr-review",
         "./workflow/to-prd",
         "./workflow/to-prototype",
         "./workflow/to-tasks"

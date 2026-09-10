@@ -120,6 +120,13 @@ Every check you ran goes in `checks[]` with its command and result — and never
 
 ## Phase 3 — result
 
+When the caller supplies a snapshot from `shared/references/review-evidence.md`,
+also follow its coverage and result contract. Return the shared result as the
+complete final JSON response so the coordinator can record the exact output.
+Keep the normal gate JSON below as a separate report. The shared verifier uses
+the stricter readiness threshold, including open P2 findings and missing checks;
+this does not change the gate's own approval threshold.
+
 Write one JSON file to `output_dir`, validated against `references/result-schema.json`, and render the human report per `references/report-template.md`. Without the JSON file the run is void.
 
 Verdict rule: any surviving P0 or P1 finding → `request-changes`; otherwise `approve` — P2/P3 findings and `comments[]` ride along as non-blocking. If you found nothing, return an empty findings list and say so: a clean review is a valid result, and inventing a finding to look useful is a failure.

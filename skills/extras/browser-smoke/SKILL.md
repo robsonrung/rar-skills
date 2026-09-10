@@ -12,6 +12,13 @@ Produce browser evidence for the routes a change can affect. This is a diff-scop
 
 Result: a route table with captured browser evidence.
 
+When the caller uses `shared/references/review-evidence.md`, save actual driver
+output or screenshots for each required observation. Return their absolute paths
+and SHA-256 hashes with observation IDs from the prepared requirements. Report
+pass, fail, or skipped from the observed result. The shared verifier checks the
+files and declared result; it does not repeat browser actions. A skipped required
+observation prevents readiness.
+
 Done: every mapped route is Pass, Fail, or Skip with a reason. A run that exercises no route is `SKIP`, never `PASS`.
 
 ## Modes

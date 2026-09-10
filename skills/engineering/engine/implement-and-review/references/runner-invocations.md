@@ -71,6 +71,12 @@ non-dry launch rejects a plan without recorded approval.
 
 ## Launch review
 
+First follow `shared/references/review-evidence.md`: prepare a new snapshot and
+requirements file, then capture required checks. Use the task's recorded base
+and approved contract path. Exclude the launcher's generated artifact directory
+when it is inside the worktree. The snapshot binds actual source and index
+state; `input_revision` continues to identify the review brief.
+
 The launcher starts review only after the implementation route has a terminal,
 successful result with a valid receipt. It reloads the plan and compares the
 saved reviewer route with it.
@@ -81,7 +87,8 @@ python3 "$SKILL_DIR/scripts/launch.py" review \
   --session-id <session-id> \
   --task-id <task-id> \
   --track <track-name> \
-  --review-brief <review-notes.md>
+  --review-brief <review-notes.md> \
+  --review-snapshot <snapshot.json>
 ```
 
 The manifest counts the review/fix attempt before dispatch. It permits three
@@ -98,6 +105,23 @@ python3 "$SKILL_DIR/scripts/launch.py" evidence-recovery \
 ```
 
 ## Receipts and native routes
+
+The reviewer returns the shared evidence JSON contract. After its native receipt
+is recorded, or its runner job completes, capture that exact response:
+
+```bash
+python3 "$SKILL_DIR/scripts/launch.py" record-review \
+  --manifest <launch-manifest.json> --track <track-name> --cycle <number>
+python3 "$SKILL_DIR/scripts/launch.py" verify-review \
+  --manifest <launch-manifest.json> --track <track-name> --base <current-review-base>
+```
+
+`record-review` preserves valid results even when findings or failed checks
+prevent readiness. `verify-review` uses the latest review cycle for the track.
+Both return 0 for ready, 1 for remaining work, and 2 for missing, invalid,
+or stale evidence. A fix requires a new snapshot and reviewer recheck. Preserve
+earlier records and cycle limits. Non-Git implementation can still run, but the
+source evidence gate requires Git.
 
 For every runner result, the effective runner and configured model must match
 the approved route. A `required` route also needs a verified model receipt from

@@ -37,6 +37,8 @@ jobs:
         run: python3 skills/shared/tests/test_native_panel_dispatch.py
       - name: Approved implementation dispatch
         run: python3 skills/engineering/engine/implement-and-review/tests/test_launch.py
+      - name: Review evidence integrity
+        run: python3 skills/shared/tests/test_review_evidence.py
       - name: Review finding integrity
         run: python3 skills/engineering/review/full-review/tests/test_findings_mechanics.py
       - name: Council approval boundary

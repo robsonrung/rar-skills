@@ -4,11 +4,24 @@ Read when the task results are ready for integration review and delivery.
 
 ## Verify the complete change
 
+Read `shared/references/review-evidence.md`. Each task must pass the launcher's
+`verify-review` before integration. Final readiness needs a current structured
+record for the combined source state and intended PR base. If integration makes
+a task snapshot stale, use its report as context and assess affected interactions
+against a new combined snapshot. Task completion labels alone are insufficient.
+
 Capture the feature's acceptance results. Reuse task results only when the relevant code, dependencies, environment, and contract still match and no fresh run is required; run missing or affected checks on the combined state. For several tasks, call `full-review` once on the combined change, focused on integration seams, shared contracts, migration order, and gaps in task reviews. Use the approved integration route and its separate persistent context; it does not replace task-level independent review. Use the approved reviewer plan and `security_focus=true` when a task has deep security exposure.
 
 A single task with a complete scoped review does not need a duplicate full panel. Reuse task evidence when the code and assumptions still match. After a fix, rerun affected checks and review changed paths; broaden only when the change or a failure requires it. Never weaken acceptance checks to obtain a pass.
 
 Record unapplied findings using [residual-findings.md](residual-findings.md). A blocking defect stays blocked; recording it does not complete the feature.
+
+Use the shared snapshot, required check plan, and structured response for the
+combined review. Record the actual reviewer response and run the shared verifier.
+A single task can reuse its record when the verifier accepts its current source
+and intended base. Link the snapshot, review record, check records, and verifier
+output from the report. Only `ready` meets this gate; open P2 findings and skipped
+required checks prevent completion.
 
 ## Deliver and report
 

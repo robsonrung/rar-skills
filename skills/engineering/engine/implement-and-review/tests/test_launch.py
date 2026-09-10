@@ -778,6 +778,7 @@ class LauncherTests(unittest.TestCase):
         )
         with mock.patch.object(launcher, "load_manifest", return_value=(manifest, self.root / "launch-manifest.json")), \
              mock.patch.object(launcher, "implementation_ready"), \
+             mock.patch.object(launcher, "review_source_binding", return_value={"path": "snapshot.json", "sha256": "fixture"}), \
              mock.patch.object(launcher, "dispatch_route", side_effect=reject_after_reservation), \
              mock.patch.object(launcher, "save_manifest"), \
              contextlib.redirect_stdout(io.StringIO()), \
@@ -788,6 +789,52 @@ class LauncherTests(unittest.TestCase):
         self.assertEqual(context["status"], "completed")
         self.assertNotIn("pending_call_id", context)
         self.assertIs(launcher.resumable_context(manifest, reviewer), context)
+
+    def test_execution_success_requires_structured_current_review_evidence(self) -> None:
+        plan_path, _, reviewer = self.plan()
+        for arguments in (["init", "-q"], ["config", "user.email", "test@example.test"], ["config", "user.name", "Test"], ["add", "."], ["commit", "-qm", "Initial fixture"]):
+            subprocess.run(["git", "-C", str(self.root), *arguments], check=True, capture_output=True)
+        base = subprocess.check_output(["git", "-C", str(self.root), "rev-parse", "HEAD"], text=True).strip()
+        (self.root / "source.txt").write_text("new behavior")
+        manifest_path = self.manifest_for("evidence")
+        artifact_dir = manifest_path.parent
+        artifact_dir.mkdir(parents=True)
+        requirements = artifact_dir / "requirements.json"
+        requirements.write_text(json.dumps({"context": {"runtime": "fixture"}, "checks": [], "observations": [], "exclusions": {}}))
+        evidence = launcher.evidence_module()
+        snapshot_path = evidence.prepare(self.root, base, self.task, requirements, artifact_dir / "cycle-1", artifact_dir)
+        binding = launcher.review_source_binding(str(snapshot_path), self.root, {"path": self.task}, base)
+        response = {
+            "snapshot_sha256": evidence.file_hash(snapshot_path),
+            "coverage": [{"path": "source.txt", "outcome": "reviewed", "reason": "Read the changed behavior."}],
+            "findings": [], "checks": {}, "observations": [], "summary": "No defect found.",
+        }
+        execution = {
+            "success": True, "effective_runner": reviewer["runner"],
+            "configured_model": reviewer["model"], "effective_model": reviewer["model"],
+            "effective_effort": reviewer["effort"],
+            "model_receipt": {"status": "verified", "source": "provider_event", "observed_model": reviewer["model"]},
+            "agent_message": json.dumps(response),
+        }
+        routing = launcher.load_routing_plan(str(plan_path), "task1", {"api"}, True, self.root)
+        manifest = launcher.initial_manifest(self.launch_arguments(plan_path, "evidence"), self.root, self.root, base, artifact_dir, None, routing)
+        manifest["tracks"]["api"] = {"working_dir": str(self.root)}
+        manifest["reviews"] = [{"track": "api", "cycle": 1, "working_dir": str(self.root), "source_snapshot": binding, "reviewer_route": reviewer, "launch": {"mode": "runner", "job_id": "fixture-job", "selected_route": reviewer, "effective_route": reviewer}}]
+        launcher.save_manifest(manifest, manifest_path)
+        arguments = Namespace(manifest=str(manifest_path), working_dir=None, session_id=None, task_id=None, track="api", cycle=1, base=base)
+        with contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(launcher.cmd_verify_review(arguments), 2)
+        def query(action, *_args):
+            return {"status": "completed"} if action == "status" else execution
+        with mock.patch.object(launcher, "jobs_query", side_effect=query), contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(launcher.cmd_record_review(arguments), 0)
+            self.assertEqual(launcher.cmd_verify_review(arguments), 0)
+            (self.root / "source.txt").write_text("later change")
+            self.assertEqual(launcher.cmd_verify_review(arguments), 2)
+
+    def test_missing_review_snapshot_is_rejected(self) -> None:
+        with self.assertRaises(ValueError):
+            launcher.review_source_binding(None, self.root, {"path": self.task}, "HEAD")
 
     def test_active_same_track_review_blocks_another_cycle_before_poll(self) -> None:
         plan_path, _, reviewer = self.plan()
