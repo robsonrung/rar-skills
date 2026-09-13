@@ -16,7 +16,7 @@ Runner and native worker routes receive the task brief, not the skill library. P
 | --- | --- |
 | A behavior changes | `tdd`: one failing check, minimal implementation, then refactor on green. |
 | Untested legacy behavior | `safe-incremental-coding`: make the **characterization test** before changing behavior. |
-| A bug lacks reproduction or cause | `diagnose` before implementation. |
+| Available failure evidence does not establish the cause | `diagnose` before implementation. |
 | Module or public boundary is unresolved | `coding-design-plan`, then `design-gate` only if no selected lens exists. |
 | Stored state, queue, migration, retry, or external API | `data-systems-coding-lens`: name the source of truth and make writes idempotent. |
 | Business rule, aggregate, or context boundary | `domain-driven-design`. |

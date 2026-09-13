@@ -47,8 +47,8 @@ Resolve only the selected skills by name through the host catalog or collection 
 | Missing or invalid check results | Use `verify-changes` for the affected checks and any required fresh checks. |
 | Missing browser evidence | Use `browser-smoke` for the affected interface flows. |
 | Confirmed defects or disputed findings | Apply the correction and recheck rules below. |
-| A concrete simplification need | Use `coding-review-simplify` on that scope. Keep the change **behavior-preserving**. |
-| No usable review evidence | Run the full sequence described below. Reuse any valid check results. |
+| A concrete simplification need | Use `coding-review-simplify` on that scope. Keep the change **behavior-preserving**, including required validation, authorization, and error handling. |
+| No usable review evidence | Run an independent `review-gate` on the task diff as described below. Reuse any valid check results. |
 
 Use the existing approved reviewer context for a focused recheck, or `full-review` with a focused scope when no suitable context remains. Select specialists only for exposed risks. The absence of a separate simplification report is not a gap after a complete task review. Do not run simplification just because this skill was invoked.
 
@@ -63,9 +63,9 @@ let the reviewer assess which prior findings and coverage remain valid.
 
 For browser checks, pass the running local application's URL and port explicitly. Reuse matching browser evidence when available. A missing server or skipped required flow remains a verification gap. The absence of a published preview does not complete browser verification.
 
-### Full sequence when review evidence is unavailable
+### Review when evidence is unavailable
 
-Run `coding-review-simplify`, then an independent `review-gate`. Keep required validation, authorization, and error handling during simplification. Configure `verify: true` for missing or invalid check results and let the gate call `verify-changes`. Use `verify: false` only when all required checks already have valid evidence and no fresh run is required. Pass those evidence references into the final report. Complete missing browser checks separately when needed.
+Run an independent `review-gate` with the task requirements, intended base, and current source snapshot. Configure `verify: true` for missing or invalid check results and let the gate call `verify-changes`. Use `verify: false` only when all required checks already have valid evidence and no fresh run is required. Pass those evidence references into the final report. Complete missing browser checks separately when needed.
 
 Do not repeat commands already covered by an aggregate check. After simplification or a fix, invalidate only the evidence affected by that change.
 

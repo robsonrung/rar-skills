@@ -3,32 +3,51 @@ name: diagnose
 description: "Find and prove the cause of a bug, failing test, or unexpected behavior. Use for unexplained failures, including pipeline verification failures; an understood failure within a TDD loop stays with tdd."
 ---
 
-# Diagnose — From Symptom to Proven Cause
+# Diagnose
 
-An evidence-driven method for root-causing a failure. The posture comes from `fable-mindset`'s Diagnosis moment: **pattern-match is not diagnosis**. Use the techniques below to resolve uncertainty; do not perform a step whose question the evidence already answers. Say the leitwörter as you work; they are the checkpoints.
+Find the cause from observed failure evidence and the relevant code. **Pattern-match is not diagnosis**: a familiar symptom gives a hypothesis. An **artifact of proof** connects symptom → mechanism → cause.
 
-## The procedure
+A diagnosis is complete when that chain is supported. If the investigation cannot establish it, report the remaining uncertainty and the evidence needed to resolve it. Apply a fix when the request authorizes it.
 
-1. **Reproduce first.** A bug you cannot reproduce is a report, not a diagnosis. Capture the exact failing command and its exact output before anything else — that pair is the ground truth every later step is measured against. If you cannot reproduce it, say so and stop guessing (see the pipeline return below).
-2. **Minimize when needed.** Shrink the input, scope, or setup when doing so separates possible causes or produces a usable regression case. Keep an existing reproduction when it already establishes the mechanism.
-3. **Read the actual error and the actual code path.** The real message, the real stack, the real code it names — before hypothesizing. The tell that you skipped this: your explanation describes similar bugs ("this is usually…") instead of facts from this one.
-4. **Resolve competing hypotheses.** When more than one cause fits, choose the **cheapest discriminating probe** that separates them. Do not invent alternatives after the existing evidence establishes one cause.
-5. **Instrument only for missing evidence.** Use existing logs, values, code paths, or a failing test as the **artifact of proof** when sufficient. Add targeted logging, assertions, or breakpoints only to resolve the remaining uncertainty. Prefer probes that preserve failure state; instrumentation can itself affect timing or behavior.
-6. **Fix the cause, not the symptom.** Before editing, state why this fix addresses the mechanism the artifact proved — _"the fix clears the leaked connection in the retry path, which is the mechanism behind the pool exhaustion"_ — not merely why it makes the symptom stop.
-7. **Regression-test.** Encode the failure as a test that fails before the fix and passes after — both runs observed, not assumed. Hand the write-the-test loop to `tdd`; the reproduction from step 1 is its red.
-8. **Clean up.** Remove any temporary instrumentation added during diagnosis. Keep only what earns permanent residence (an assertion stating a real invariant); scratch repros and debug logging go.
+## Establish the evidence
 
-## Rules
+Read the supplied error, logs, traces, values, failing test results, and the code path they identify. Check that the evidence applies to the affected version and conditions. Reuse sufficient evidence from the current task.
 
-- **Pattern-match is not diagnosis.** The click of recognition earns a hypothesis in step 4 — never the fix.
-- **Never "fix" by restarting or clearing state before extracting the evidence.** The restart that makes the symptom vanish also burns the state that would have told you why — and the bug returns next week with the evidence gone.
-- **One variable at a time.** Change one thing per probe, or the result attributes to nothing.
-- **Two fixes, one disappearance — back one out.** If two changes are in place when the bug stops, you don't know which one worked; you have a coincidence, not a diagnosis.
-- A closed diagnosis narrates symptom → mechanism → cause with the artifact of proof at the mechanism link. Anything less is a lead — label it as one.
+Existing evidence can prove the cause without a new local reproduction. State the connection, for example: “The trace is the **artifact of proof**: the retry leaves the connection open, which exhausts the pool.”
+
+## Resolve open questions
+
+Use only the techniques that can resolve a remaining uncertainty:
+
+1. **Reproduce when needed.** Choose the command, input, and environment that can confirm or reject an open hypothesis. Record the exact command and output.
+2. **Bound attempts.** Before repeating a probe, set an attempt or time limit. Reuse the caller's limit when supplied. Stop when the evidence answers the question or the limit is reached. A repeated failure does not reset the limit.
+3. **Minimize when useful.** Reduce the input or setup when this separates possible causes or gives a usable regression case.
+4. **Choose the cheapest discriminating probe.** When several causes fit, choose a probe whose possible results distinguish them. Do not invent alternatives after the evidence establishes the cause.
+5. **Instrument missing evidence.** Add targeted logs, assertions, or breakpoints only when existing evidence is insufficient. Preserve failure state and account for effects on timing or behavior.
+
+If a probe cannot run or does not reproduce the failure, record that result. Continue with other available evidence that can resolve the cause. If uncertainty remains at the investigation limit, report the supported links, open hypotheses, and smallest missing evidence.
+
+## Fix and verify
+
+For an authorized code fix:
+
+1. State how the change addresses the proven mechanism.
+2. Use `tdd` to encode that mechanism in a regression test. Observe the expected failure before the fix and a passing result after it. A focused test can establish the mechanism without reproducing the full production incident. Reuse valid failing test evidence already captured.
+3. Run the checks affected by the fix and record their results. If required verification cannot run, report the limit and leave the fix unconfirmed.
+4. Remove temporary instrumentation and scratch reproductions added during diagnosis. Keep the regression test, useful evidence records, and assertions that protect a real invariant.
+
+An assessment request ends with the diagnosis and evidence. It does not require an implementation or a new regression test.
+
+## Evidence rules
+
+1. Preserve relevant evidence before restarting a process or clearing state.
+2. Change one variable per probe so the result can identify its effect.
+3. If several code changes remove the symptom, isolate their effects before claiming which change fixes the cause.
+4. Label an unsupported causal link as unresolved. A passing test or vanished symptom alone does not establish the cause.
 
 ## Pipeline mode (mode:pipeline)
 
-Non-interactive: never pause to ask; decisions follow the calling pipeline's escalation ladder. Return a structured result whose field names align with the delegate-return vocabulary in `shared/references/pr-watch-contracts.md` (status states verbatim from there — never invent new ones):
+Do not pause for questions. Follow the calling pipeline's escalation rules and the status vocabulary in `shared/references/pr-watch-contracts.md`.
 
 ```json
 {
@@ -42,17 +61,12 @@ Non-interactive: never pause to ask; decisions follow the calling pipeline's esc
 }
 ```
 
-If it cannot reproduce, it returns `"reproduced": false` with what it tried (commands, environments, inputs) rather than a guessed cause — a not-reproduced return is a valid result; a fabricated diagnosis is not.
+Set `reproduced` to `true` only when a reproduction was observed during this run or is supported by captured reproduction evidence supplied to it. Otherwise set it to `false`. In `evidence`, distinguish a reproduction that was unnecessary, unavailable, or attempted without reproducing the failure.
+
+A `false` value can accompany a cause proved by logs or traces. If the cause remains unknown, state that in `root_cause` and record the evidence gap in `residuals`. Use `fixed-and-pushed` only after the fix is verified and an authorized push succeeds.
 
 ## Boundaries
 
-- `tdd` owns the red-green loop; a test failure mid-loop that you understand at a glance is just the red — fix it there, don't ceremonially invoke this.
-- `fable-mindset` owns the posture (evidence over recognition, no state change without evidence); this skill owns the procedure. Cite it, don't restate it.
-- `safe-incremental-coding` handles code that is merely untested; come here when behavior is _surprising_, not just unpinned.
-
-## Gotchas
-
-1. Do not skip reproduction because the cause "is obvious" — obvious is a hypothesis.
-2. Do not fix during minimization; shrinking is measurement, not repair.
-3. Do not leave step-5 instrumentation in the shipped diff.
-4. Do not report "should be fixed" — the regression test passing after the fix is the sentence that ends a diagnosis.
+1. `tdd` owns the test execution loop. An understood failing test stays in that loop.
+2. `fable-mindset` owns the evidence posture; this skill supplies the diagnostic techniques.
+3. `safe-incremental-coding` protects untested existing behavior. Use diagnosis when that behavior is unexpected and its cause needs investigation.

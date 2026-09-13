@@ -38,7 +38,7 @@ The implementation engine starts from the approved Slice Contract. It uses the i
 | --- | --- | --- |
 | Any new behavior or bug fix with a usable test seam | `tdd` | Default execution loop |
 | Untested legacy code must change | `safe-incremental-coding` then `tdd` | Build the characterization test net first |
-| Failure is surprising or cause is unknown | `diagnose` | Reproduce and prove the cause before fixing |
+| Failure is surprising or cause is unknown | `diagnose` | Prove the cause from existing evidence or a bounded probe before fixing |
 | Green refactor, local smell, naming, or comment decision | `clean-code` | Refactor step only |
 | Test value, mock boundary, or brittle test needs a decision | `test-lens` | Before writing or keeping that test |
 | Stored state, migration, queue, cache, retry, concurrency, or external API | `data-systems-coding-lens` | Before the affected implementation step and in verification |

@@ -44,7 +44,7 @@ A model, runner, role, mode, native transport, effort, or receipt-policy change 
 
 ## Delivery boundary
 
-Deliver the verified local diff by default. Reuse explicit authorization for commits, integration, push, or a PR; `open-pr` handles an authorized PR. Preserve unrelated changes. Do not create, rename, pin, archive, or remove user-owned tasks or worktrees as routine execution work.
+Deliver the verified local diff by default. Reuse explicit authorization for commits, integration, push, or a PR; `open-pr` handles an authorized PR. Preserve unrelated changes. Do not create, rename, pin, archive, or remove user-owned tasks as routine execution work. Task isolation follows `references/worktree-and-integration.md` from the loaded `implement-and-review` skill. Do not rename or remove user-owned worktrees without explicit authorization.
 
 Never invoke `models-consensus` automatically. An explicit user request for more opinions enters that workflow's own model approval; a previous council report is only an input.
 

@@ -63,10 +63,10 @@ event. The current Astra and Fable wrappers can lack an observed serving-model
 ID, so an `allow_unverified` route needs explicit approval and the report
 labels that limit clearly.
 
-Use native subagents for bounded work when the host supports them. Run tasks
-sequentially when isolated integration is not authorized. Worktrees and
-integration require user authorization. Otherwise the expected output is a
-local, verified result.
+Use native subagents for bounded work when the host supports them. Select
+workspaces under the engine's
+[isolation and integration contract](../skills/engineering/engine/implement-and-review/references/worktree-and-integration.md).
+The expected output is a local, verified result unless delivery is authorized.
 
 ## Optional council
 

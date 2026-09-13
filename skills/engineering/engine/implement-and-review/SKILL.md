@@ -26,7 +26,7 @@ Never call `models-consensus` from this skill. A user who wants more opinions in
 
 1. Use `coding-design-plan` when the implementation shape or boundary is still unresolved. Use the task's settled decisions as inputs.
 2. Use `design-gate` only for a nonlocal boundary that has no selected lens conclusions already.
-3. Use `diagnose` before implementation when a bug has no reproduction or causal chain.
+3. Use `diagnose` before implementation when the available failure evidence does not establish the cause.
 4. Use `tdd` for a behavior change. For untested legacy behavior, use `safe-incremental-coding` to make a **characterization test** before changing it.
 5. Use `clean-code` when touched code has a concrete smell or needs refactoring. Use `test-lens` when a test choice needs judgment about real behavior, seams, mocks, or brittle coverage. Apply a domain lens only when the task triggers it: data paths, interfaces, distributed systems, domain logic, agent control flow, or a framework-specific UI concern.
 6. Use `coding-review-simplify` after the task is green when a behavior-preserving simplification would help the next reader.

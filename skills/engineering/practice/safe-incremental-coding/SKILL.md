@@ -3,82 +3,58 @@ name: safe-incremental-coding
 description: "Build characterization tests before a risky change to untested legacy code. Use to preserve existing behavior while making the affected code testable, then hand behavior changes to tdd."
 ---
 
-# Safe Incremental Coding — the Legacy Net
+# Safe Incremental Coding
 
-Take untested code to a state where you can change it safely, distilled from Dave Farley's _The Software Developers' Guidebook_. The single measure of "good" throughout is **ease of change**: quality in code is your ability to change it safely — and for legacy code, that ability starts with a **characterization test** net built _before_ any change.
+Protect the existing behavior needed for a requested change, using the legacy change method from Dave Farley's _The Software Developers' Guidebook_. The aim is **ease of change**: the affected code can be changed safely.
 
-Work **incrementally on the area you actually need to touch**, never as a big-bang rewrite. Stabilise the code you're about to change, change it, move on.
+Build a **characterization test** net before refactoring. Keep the work within the area needed for the requested change.
 
-Two principles frame every step:
+## Build the net
 
-- **Quality is your ability to change the code.** Every step exists to make the code easier to change.
-- **Refactoring is _always_ behavior-preserving.** If a change alters what the code does, it isn't refactoring — it's a behavior change needing its own test and its own step. Run the net (step 1) after every transformation to confirm behavior is unchanged.
+1. Identify the affected behavior and an observable boundary that can exercise it.
+2. Capture current outputs or side effects with representative inputs, including relevant boundary and failure cases. Pin existing behavior even when it contains a known defect; an intentional behavior change is a separate step.
+3. Control or normalize timestamps, identifiers, seeds, and other variable values without hiding behavior that matters to the change.
+4. Prefer tests at an acceptance or integration boundary when unit tests would depend on the current internal structure.
+5. If no existing boundary exposes the behavior, limit the initial production edit to the minimum observation seam. Keep its business logic unchanged and capture the baseline before further production changes.
+6. Check that the test passes against the baseline and would detect a relevant change in behavior.
 
-## Why this is a separate skill from `tdd`
+A passing baseline protects only the cases it exercises. Add coverage for a missing case when the requested change depends on it.
 
-**Do not retrofit fine-grained, TDD-style unit tests to legacy code.** The code isn't shaped for them yet; writing them now bakes in the bad structure. Approval/acceptance tests at a coarser boundary are the right net for now. This rule deliberately opposes `tdd`'s Iron Law (no production code without a failing test first) — which is exactly why the two stay separate skills: `tdd` assumes code shaped for tests; legacy code must first be reshaped under a coarser net.
+## Remove a testability obstacle
 
-## The five steps
+Once the net exists, identify what still prevents the requested change from being tested. Use only a structural technique that removes that obstacle.
 
-Ordered — you can't safely simplify code until there's a net under it, and you can't see the structure until the clutter is gone.
+| Obstacle | Possible change |
+| --- | --- |
+| Proven dead code or comments obscure the affected path | Remove that material within the requested scope. Test coverage alone does not prove code is unused. |
+| A block combines several decisions that the change must isolate | Extract a cohesive operation with a name that explains its purpose. |
+| Control flow hides the behavior that needs testing | Simplify the affected conditions or flow while preserving behavior. |
+| A dependency prevents control of input or observation of output | Add a narrow seam or separate the relevant decision from its side effect. |
+| Unrelated responsibilities prevent a focused test | Separate those responsibilities within the affected boundary. |
 
-### 1. Characterization (approval) tests — build the net
+Choose structure that fits the surrounding code and the required test. Use supported refactoring tools when they reduce risk.
 
-> "Legacy code is code without tests." — Michael Feathers
+Keep each structural change **behavior-preserving**. Run the affected characterization checks after each coherent structural change before starting the next one. Investigate a failure before continuing. Broaden checks when a change or failure exposes a wider risk.
 
-Capture the code's _current_ behavior and pin it, even if weird or buggy — you're documenting reality, not judging it.
+## Completion and handoff
 
-- Drive the code with representative inputs and capture its output.
-- If output is nondeterministic (timestamps, UUIDs, seeds) or side-effect-only, normalize/scrub the variable parts or introduce a minimal seam to capture it before pinning.
-- An approval test records output on first run, then fails on any future run whose output differs — that difference proves a change was _not_ behavior-preserving.
-- Defend module/service boundaries with extra care and looser coupling (Ports & Adapters, contract tests) — they should change more slowly than the innards.
+Stop this preparation when:
 
-You can now modify the code and _know_ whether you changed its behavior.
+1. The relevant existing behavior has a passing characterization test.
+2. The requested change can be exercised through a usable test boundary.
+3. Any required structural changes preserve the captured behavior.
 
-### 2. Remove clutter
+If these conditions already hold after the net is built, proceed directly to the requested work.
 
-Delete what isn't earning its keep (it isn't covered by the net and only obscures intent): dead code, unreachable branches, code called from nowhere, commented-out code, superfluous comments. Version control is your history.
+For example: “The **characterization test** protects the current output, and the dependency seam lets `tdd` test the requested change.”
 
-### 3. Reduce complexity
+Use `tdd` for the intentional behavior change. Keep the characterization tests as protection while finer tests become useful. Retire one only when replacement tests demonstrably cover the same behavior.
 
-Drive down cyclomatic complexity (the number of execution paths):
+Report the protected behavior, any testability changes, checks run, and remaining evidence gaps.
 
-- **Reduce indentation** — extract the bodies of loops and `if`/`else`/`break`/`continue` blocks into well-named methods, even if called once. Name with your best guess; refine as understanding grows.
-- **Eliminate `break`/`continue`** as flow clears.
-- **Aim for a single exit/return point** per method.
+## Boundaries
 
-Use your IDE's automated refactorings — faster and far less risky than hand-editing.
-
-### 4. Compose methods — tell the story
-
-Keep extracting and naming until a function reads as a short narrative, mostly calls to lower-level methods: group related code, separate unrelated code, choose names that make the enclosing function read like sentences, then recurse. The reader of the top-level function should understand _what_ happens without wading through _how_.
-
-### 5. Refactor to testability
-
-Restructure so the code is genuinely testable: move unrelated code apart (modularity), move related code together (cohesion), improve separation of concerns, and introduce abstractions at dependency seams so collaborators can be substituted in tests. Now real unit/integration tests are possible, coverage rises naturally, and the code is safe and pleasant to change.
-
-| Step | Move | Done when |
-| --- | --- | --- |
-| 1. Characterization tests | Pin current behavior | A behavior change makes a test fail |
-| 2. Remove clutter | Delete dead/commented code | Only live code remains |
-| 3. Reduce complexity | Extract blocks, flatten flow | Low indentation, fewer paths |
-| 4. Compose methods | Name & arrange sub-methods | Top function reads as a story |
-| 5. Refactor to testability | Modularity + cohesion + seams | You can write real tests |
-
-## Net built → hand back to `tdd`
-
-This skill's job ends when the net holds. The actual behavior change — and all new code — runs through `tdd`'s red-green-refactor loop, which the reshaped code can now support. The characterization tests stay as a backstop; add finer-grained tests as the new structure supports them, and retire net tests only when a finer test provably covers the same behavior.
-
-Say the handoff out loud: "the **characterization test** net holds — handing execution to `tdd`."
-
-## Gotchas
-
-1. Do not change behavior while building the net — pinning and changing are separate steps, and bugs get pinned too (fix them later, test-first, as their own move).
-2. Do not retrofit fine-grained unit tests before the structure supports them (see above) — the coarse net comes first.
-3. Do not big-bang rewrite; stabilise only the area you need to touch.
-4. If the code's behavior is _surprising_ rather than merely untested, that's diagnosis — route to `diagnose` before pinning a mystery.
-5. Do not quote or reconstruct source text from the book this skill distills.
-
-## A note on scope
-
-This skill builds the _legacy safety net_ only. For red-green-refactor execution use `tdd`; for naming and local structure on already-tested code use `clean-code`; for whether a test is worth keeping use `test-lens`; for coupling/connascence or layer-placement review use `architecture-lens`.
+1. Keep intentional behavior changes separate from characterization and refactoring.
+2. Use `diagnose` when unexpected behavior needs an explanation before it can be safely pinned.
+3. Use `clean-code` for local cleanup of code already protected by tests, `test-lens` for test value, and `architecture-lens` for module boundary decisions.
+4. Do not quote or reconstruct source text from the book.

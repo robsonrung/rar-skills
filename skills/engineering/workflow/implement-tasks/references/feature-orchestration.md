@@ -49,7 +49,7 @@ Keep each context available until its role is complete and all required evidence
 
 ## Integration
 
-Use the project's branch convention and preserve unrelated changes. Use commit-based worktree integration only when commits are authorized. Otherwise run tasks sequentially in the working tree and record acceptance after each task.
+Use the project's branch convention and preserve unrelated changes. Default to one sequential writer in the selected workspace and record acceptance after each task. Follow `references/worktree-and-integration.md` from the loaded `implement-and-review` skill for isolation and integration. Perform commit-based integration only when its required git actions are explicitly authorized.
 
 Before an authorized merge, record a pending effect with task ID, source revision, and target revision. Merge, verify ancestry and acceptance, then confirm the effect. After a crash, inspect the repository before retrying a pending merge.
 

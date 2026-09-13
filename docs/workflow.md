@@ -72,8 +72,9 @@ native host capability, then external runner availability, and presents an
 implementation plan. The plan names, for every task or task group, the role,
 exact model, execution path, reasoning effort, model-verification policy, and
 any unavailable seat. The user can approve the plan or change it.
-A missing preferred seat stops the run or requires an explicit approved
-replacement. It never silently downgrades a model or effort.
+Handle an unavailable route under the shared
+[approval and exact route rules](../skills/shared/references/task-shaped-model-routing.md#approval-and-exact-routes):
+block the affected route and continue independent authorized work.
 
 A requested or configured model name is not proof that it served a run. Each
 approved route records `model_verification` as `required` or
@@ -89,9 +90,10 @@ After model-plan approval, an exact native model uses a persistent isolated
 subagent. In the ChatGPT app, a supported and authorized task thread can hold
 that role instead. A runner serves a foreign model or a native route that cannot
 meet the approved plan. An implementer and reviewer never share a context, and
-each keeps its own context for later fixes or rechecks. It uses isolated
-worktrees only when the user authorizes integration work. Otherwise it works
-sequentially and produces a local, verified diff. It does not create user-owned
+each keeps its own context for later fixes or rechecks. Use the engine's
+[isolation and integration contract](../skills/engineering/engine/implement-and-review/references/worktree-and-integration.md)
+to choose workspaces and determine authority for integration. The result stays
+local and verified unless delivery is authorized. It does not create user-owned
 tasks or require sidebar naming, pinning, or goals.
 
 The implementation path is selected by the task shape:

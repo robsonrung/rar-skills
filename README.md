@@ -25,9 +25,10 @@ availability, chooses the route for each task shape, and uses the approved
 effort. It reports unavailable seats and never silently replaces a preferred
 model or effort. An exact native model uses an isolated persistent subagent or,
 when supported and authorized, a task thread. A runner serves a foreign model
-or an exact route the host cannot provide. Isolated worktrees and integration
-happen only when the user authorizes that work. Without delivery authorization,
-the result stays local and verified.
+or an exact route the host cannot provide. Workspace selection and integration
+follow the engine's
+[isolation and integration contract](skills/engineering/engine/implement-and-review/references/worktree-and-integration.md).
+Without delivery authorization, the result stays local and verified.
 
 A requested or configured model is not proof that it served a run. Each route
 records `model_verification` as `required` or `allow_unverified`. `required`
