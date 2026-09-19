@@ -51,10 +51,14 @@ if str(_SHARED_SCRIPTS) not in sys.path:
     sys.path.insert(0, str(_SHARED_SCRIPTS))
 
 from model_receipt import attach_model_receipt
+from model_routing import default_model, load_config, runner_efforts, seat_models
+
+ROUTING_CONFIG = load_config()
+DEFAULT_EFFORT = ROUTING_CONFIG["runners"]["pi"]["default_effort"]
 from output_contract import validate_output_contract
 
-DEFAULT_MODEL = None
-DEFAULT_PROVIDER = "openrouter"
+DEFAULT_MODEL = default_model("pi", ROUTING_CONFIG)
+DEFAULT_PROVIDER = ROUTING_CONFIG["runners"]["pi"]["provider"]
 DEFAULT_RUNNER = "pi"
 DEFAULT_OUTPUT_FORMAT = "stream-json"
 
@@ -73,21 +77,12 @@ PROVIDER_BY_RUNNER = {
     "gemma": "google",
 }
 
-# Named seats served by this wrapper. `--seat <name>` pins the seat's model on
-# OpenRouter and reports `runner=<name>, effective_runner=pi` in the envelope.
-# Model ids are mirrored in shared/references/model-roster.md and the
-# SEAT_SPECS table in shared/scripts/discover_runners.py — change all three.
-PI_SEATS = {
-    "kimi": "moonshotai/kimi-k3",
-    "glm": "z-ai/glm-5.3-flash",
-    "qwen": "qwen/qwen3.8-max",
-    "gemma": "google/gemma-4-31b-it",
-}
+# Named seats are resolved from the shared routing configuration.
+PI_SEATS = seat_models("pi", ROUTING_CONFIG)
 
 
 def infer_provider_from_model(model_id: str | None) -> str | None:
-    # OpenRouter model ids are `vendor/model` (e.g. z-ai/glm-5.3-flash,
-    # moonshotai/kimi-k3) — the prefix is the real vendor. The stream's own
+    # Model ids use `vendor/model`; the prefix is the real vendor. The stream's own
     # `provider` field is the serving gateway (openrouter), not the vendor, so
     # it is intentionally not used for effective_provider.
     if isinstance(model_id, str) and "/" in model_id:
@@ -376,7 +371,7 @@ def _run_pi(
     restrict_tools: bool = False,
     no_tools: bool = False,
     allow_write: bool = False,
-    thinking: str | None = None,
+    thinking: str | None = DEFAULT_EFFORT,
     session_id: str | None = None,
     system_prompt: str | None = None,
     disable_fallback: bool = False,
@@ -457,7 +452,7 @@ def _run_pi(
     if model:
         command.extend(["--model", model])
     if thinking:
-        command.extend(["--thinking", "off" if thinking == "none" else thinking])
+        command.extend(["--thinking", ROUTING_CONFIG["runners"]["pi"]["effort_aliases"].get(thinking, thinking)])
     if session_id:
         command.extend(["--session", session_id])
     elif no_session_persistence or ephemeral:
@@ -624,7 +619,7 @@ def build_parser(default_model: str | None, description: str) -> argparse.Argume
         epilog="""
 Examples:
   %(prog)s "What is 2+2?"
-  %(prog)s "Explain this module" --model moonshotai/kimi-k3
+  %(prog)s "Explain this module" --model <approved-model>
   %(prog)s --prompt-file .ai-workflow/prompts/review.md --role codereviewer
   %(prog)s "Read-only analysis" --restrict-tools --json
         """,
@@ -672,7 +667,7 @@ Examples:
         type=str,
         default=None,
         help="Model id in `vendor/model` form as listed by the serving provider's catalog "
-        "(e.g. moonshotai/kimi-k3, z-ai/glm-5.3-flash on OpenRouter). Ids absent from Pi's bundled "
+        "(see shared/model-routing.json for maintained seats). Ids absent from Pi's bundled "
         "catalog are passed through to the provider unchanged. Omit to use the runner default.",
     )
     parser.add_argument(
@@ -694,8 +689,8 @@ Examples:
     parser.add_argument(
         "--thinking",
         type=str,
-        choices=["none", "off", "minimal", "low", "medium", "high", "xhigh"],
-        default=None,
+        choices=runner_efforts("pi", accepted=True, config=ROUTING_CONFIG),
+        default=DEFAULT_EFFORT,
         help="Reasoning effort passed to native --thinking; `none` is accepted as an alias for `off` (default: provider default)",
     )
     parser.add_argument(

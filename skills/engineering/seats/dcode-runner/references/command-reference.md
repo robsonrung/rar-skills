@@ -2,6 +2,10 @@
 
 Load the section needed for the selected operation. Prose paths resolve from the loaded skill root. Command examples using `.agents/skills/` assume a flat installation; substitute the actual loaded skill path in other layouts.
 
+Model and reasoning defaults are read from `shared/model-routing.json`.
+Use the approved route values in placeholders below; `--help` shows the current
+adapter choices.
+
 ## Usage
 
 ```bash
@@ -20,7 +24,7 @@ source checkout, invoke
 | `--timeout`, `-t` | Maximum execution time in seconds | 3600 |
 | `--working-dir`, `-w` | Working directory | Current directory |
 | `--json`, `-j` | Wrap runner output in JSON | False |
-| `--model`, `-m` | Compatibility metadata label. `dcode` uses its configured model — this is **not** forwarded. | `dcode-configured-model` |
+| `--model`, `-m` | Exact approved model or supported alias from the central configuration. | Configured adapter default |
 | `--output-format`, `-o` | Response format hint: `text`, `json`, or `stream-json`. **Advisory only** — `dcode -n` emits plain text, so the wrapper just asks the model for the format in the prompt. For `json` it does a best-effort fence-strip and reports `output_json_valid`; it does not guarantee or re-shape the output. | `text` |
 | `--prompt-file` | Read the prompt from a file (repeatable; files are concatenated in order) | None |
 | `--role` | Apply a role overlay | None |

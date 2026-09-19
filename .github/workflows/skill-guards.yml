@@ -8,7 +8,7 @@ name: skill guards
 #   2. Skill frontmatter — every SKILL.md has routable name + description,
 #      name matches its directory, no upstream prefixes.
 #   3. Runner-dir parity — a runner skill cannot land without registering
-#      its seat in discover_runners.py (or being deliberately allowlisted).
+#      its seat in model-routing.json (or being deliberately allowlisted).
 #   4. Task-shaped routing — planning, review, and delivery assignments keep
 #      their intended seat roles and launcher defaults.
 #   5. Command guard — the runner-fleet denylist blocks every catastrophic
@@ -29,6 +29,8 @@ jobs:
           python-version: "3.x"
       - name: Cross-runner envelope parity
         run: python3 skills/shared/tests/test_runner_parity.py
+      - name: Central model configuration
+        run: python3 skills/shared/tests/test_model_config.py
       - name: Task shaped model routing
         run: python3 skills/shared/tests/test_model_routing.py
       - name: Serving model receipt provenance

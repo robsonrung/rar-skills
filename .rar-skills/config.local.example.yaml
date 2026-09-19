@@ -2,15 +2,9 @@
 # Copy to .rar-skills/config.local.yaml (gitignored). Every key is optional.
 # A direct user instruction wins. This file never changes an approved route.
 #
-# Use known seat ids and model ids from shared/references/model-roster.md.
+# Use known seat ids from shared/model-routing.json.
 # Do not put credentials, runner paths, command flags, or effort overrides here.
 
 seats:
   preferred: []  # Example: [astra, fable, gemini]
   excluded: []   # Example: [glm]
-
-# Optional exact model ids to propose for a selected seat. They are validated
-# against the roster and must appear in the approval preview.
-models: {}
-  # astra: gpt-6-astra
-  # fable: claude-fable-5-1

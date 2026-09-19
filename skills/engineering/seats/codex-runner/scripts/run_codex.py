@@ -41,6 +41,10 @@ if str(_SHARED_SCRIPTS) not in sys.path:
     sys.path.insert(0, str(_SHARED_SCRIPTS))
 
 from model_receipt import attach_model_receipt
+from model_routing import default_model, load_config, model_aliases, model_efforts, runner_efforts
+
+ROUTING_CONFIG = load_config()
+DEFAULT_EFFORT = ROUTING_CONFIG["runners"]["codex"]["default_effort"]
 
 ROLE_INSTRUCTIONS = {
     "planner": "Act as a planning specialist. Break work into phases, call out risks, and keep the output actionable.",
@@ -55,39 +59,11 @@ ROLE_INSTRUCTIONS = {
 # Roles that modify the workspace; every other role defaults to a read-only sandbox.
 WRITE_ROLES = {"implementer"}
 
-# Direct calls use the current frontier default. Workflow routes always pass a
-# model explicitly and record the requested and effective values in their
-# approval and receipt artifacts.
-DEFAULT_MODEL = "gpt-6-astra"
-
-MODEL_ALIASES = {
-    "astra": "gpt-6-astra",
-    "codex": "gpt-6-astra",
-    "sol": "gpt-5.6-sol",
-    "terra": "gpt-5.6-terra",
-    "luna": "gpt-5.6-luna",
-    "spark": "gpt-5.3-codex-spark",
-    "codex-code": "gpt-5.6-terra",
-    "gpt-6-astra": "gpt-6-astra",
-    "gpt-5.6-sol": "gpt-5.6-sol",
-    "gpt-5.6-terra": "gpt-5.6-terra",
-    "gpt-5.6-luna": "gpt-5.6-luna",
-}
-
-EFFORT_LEVELS = ("none", "minimal", "low", "medium", "high", "xhigh", "max", "ultra")
-
-# Known effort ranges from the current local model catalog. Keep direct calls
-# compatible by clamping obsolete settings, while approved routes reject an
-# unsupported setting before dispatch.
-MODEL_EFFORT_LEVELS = {
-    "gpt-6-astra": ("low", "medium", "high", "xhigh", "max", "ultra"),
-    "gpt-5.6-sol": ("low", "medium", "high", "xhigh", "max", "ultra"),
-    "gpt-5.6-terra": ("low", "medium", "high", "xhigh", "max", "ultra"),
-    "gpt-5.6-luna": ("low", "medium", "high", "xhigh", "max"),
-    "gpt-5.5": ("low", "medium", "high", "xhigh"),
-    "gpt-5.4-mini": ("low", "medium", "high", "xhigh"),
-    "gpt-5.3-codex-spark": ("low", "medium", "high", "xhigh"),
-}
+# Direct calls and approved plans share the same maintained capabilities.
+DEFAULT_MODEL = default_model("codex", ROUTING_CONFIG)
+MODEL_ALIASES = model_aliases("codex", ROUTING_CONFIG)
+EFFORT_LEVELS = runner_efforts("codex", accepted=True, config=ROUTING_CONFIG)
+MODEL_EFFORT_LEVELS = model_efforts("codex", ROUTING_CONFIG)
 
 DEFAULT_CONTINUE_PROMPT = (
     "Continue from the current thread state. Pick the next highest-value step "
@@ -202,8 +178,6 @@ def resolve_effort(model: str | None, effort: str | None) -> str | None:
     supported = MODEL_EFFORT_LEVELS.get(model or "")
     if not supported or effort is None or effort in supported or effort not in EFFORT_LEVELS:
         return effort
-    if effort in {"none", "minimal"}:
-        return supported[0]
     requested_index = EFFORT_LEVELS.index(effort)
     for candidate in reversed(supported):
         if EFFORT_LEVELS.index(candidate) <= requested_index:
@@ -358,7 +332,7 @@ def _run_codex(
     timeout: int = 3600,
     working_dir: str | None = None,
     model: str | None = None,
-    effort: str | None = None,
+    effort: str | None = DEFAULT_EFFORT,
     sandbox: str | None = None,
     approval_policy: str | None = None,
     skip_git_repo_check: bool = False,
@@ -523,9 +497,8 @@ def _run_codex(
                 **meta,
             }
         if not disable_fallback:
-            fallback_script = (
-                _skill_dir("claude-runner") / "scripts" / "run_claude.py"
-            )
+            fallback_runner = ROUTING_CONFIG["runners"]["codex"]["fallback_runner"]
+            fallback_script = _skill_dir(f"{fallback_runner}-runner") / "scripts" / f"run_{fallback_runner}.py"
             if fallback_script.is_file():
                 fallback_result = invoke_fallback(
                     fallback_script,
@@ -645,14 +618,14 @@ def main():
         "-m",
         type=str,
         default=None,
-        help="Model (default: gpt-6-astra). Aliases: astra/codex -> gpt-6-astra; sol -> gpt-5.6-sol; terra/codex-code -> gpt-5.6-terra; spark -> gpt-5.3-codex-spark.",
+        help=f"Model or configured seat alias (default: {DEFAULT_MODEL}). See shared/model-routing.json.",
     )
     parser.add_argument(
         "--effort",
         "-e",
         type=str,
         choices=EFFORT_LEVELS,
-        default=None,
+        default=DEFAULT_EFFORT,
         help="Reasoning effort override. Direct calls clamp unsupported known values; approved routes must validate them before dispatch.",
     )
     parser.add_argument(

@@ -18,8 +18,8 @@ The required key contract is shared — see `shared/references/runner-common.md`
 
 - `agent_message` — the clean final answer. With `--output-format json` it is the payload's `text` field; with `stream-json` it is the concatenated `text` events; with `text` it is the trimmed stdout.
 - `session_id` — the Grok session id (available with `json`/`stream-json` output), usable for `--resume <id>` follow-ups.
-- `native_model_id` — the model that actually answered, harvested from grok's `modelUsage` (e.g. `grok-4.6-build`). It produces `model_receipt.status: verified` and feeds `effective_model`.
-- `reasoning_effort_forwarded` / `effort_clamped` — what `--effort` value was actually sent to grok, and whether the shared `xhigh`/`max` tiers were clamped to grok's `high`.
+- `native_model_id` — the model that actually answered, harvested from grok's `modelUsage`. It produces `model_receipt.status: verified` and feeds `effective_model`.
+- `reasoning_effort_forwarded` / `effort_clamped` — what `--effort` value was actually sent to grok, and whether the requested level was clamped to the configured adapter limit.
 - `structured_output` — the final schema-valid object when `--output-schema` is used. The wrapper checks it locally after Grok's native constraint.
 
 

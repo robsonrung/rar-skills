@@ -6,6 +6,10 @@ disable-model-invocation: true
 
 # Implement Tasks
 
+Model IDs, effort support, and task defaults come only from
+`shared/model-routing.json`. Resolve the relevant route before preview or
+approval; preserve the exact saved route during dispatch, retry, and resume.
+
 Turn an approved queue into a verified change. Be a **thin conductor**: own model selection, scheduling, integration, and delivery. `implement-and-review` owns each task's implementation, focused review, and acceptance evidence.
 
 The sequence is `interview-me` → `to-prd` → `to-tasks` → `implement-tasks`. Receive the approved PRD and task queue under `.ai-workflow/work/<feature-slug>/`. A complete single task uses the same model approval and skips graph scheduling. Missing product decisions return to the appropriate earlier stage.

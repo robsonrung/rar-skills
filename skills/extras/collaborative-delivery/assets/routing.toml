@@ -15,74 +15,57 @@ required_outputs = ["execution_log.md", "test_evidence.md", "review_notes.md", "
 workflow = "Follow the skill SKILL.md instructions, resolve each exact route through host-model-execution before dispatch, keep one context per task and role, preserve disagreements in the decision log, and do not mark the phase complete until every listed role has a real response and mandatory anchor roles are recorded."
 
 [providers.synthesis_anchor]
+route = "hard-implementation"
+family = "gpt"
+route_role = "implementer"
 kind = "native"
 host = "chatgpt-or-codex"
-provider = "openai"
-transport = "native"
-model = "gpt-6-astra"
-model_label = "Astra"
-effort = "high"
-effort_control = "native"
 session_policy = "per-role-persistent"
 enabled = true
 native_response_required = true
 duty = "Synthesize, reconcile, coordinate the host-native role when allowed, and own final decisions for a normal repository change."
 
 [providers.adversarial_anchor]
+route = "precision-review"
+family = "claude"
+route_role = "reviewer"
 kind = "runner"
-runner = "claude"
-provider = "anthropic"
-transport = "claude-runner"
-model = "claude-opus-5"
-model_label = "Opus 5"
-effort = "xhigh"
-effort_control = "runner"
 session_policy = "per-role-persistent"
 enabled = true
 script = ".agents/skills/claude-runner/scripts/run_claude.py"
 timeout_seconds = 1200
-duty = "Run the independent precision pass for subtle semantics, high-impact claims, and evidence quality. Check exact Opus effort support before approval."
-runner_args = ["--output-format", "json", "--restrict-tools", "--effort", "xhigh"]
+duty = "Run the independent precision pass for subtle semantics, high-impact claims, and evidence quality. Check exact adapter support before approval."
+runner_args = ["--output-format", "json", "--restrict-tools"]
 
 [providers.design_analysis]
+route = "architecture"
+family = "claude"
+route_role = "worker"
 kind = "runner"
-runner = "claude"
-provider = "anthropic"
-transport = "claude-runner"
-model = "claude-fable-5-1"
-model_label = "Fable 5.1"
-effort = "max"
-effort_control = "runner"
 session_policy = "per-role-persistent"
 enabled = true
 script = ".agents/skills/claude-runner/scripts/run_claude.py"
 timeout_seconds = 1200
 duty = "Analyze architecture, design, delivery trade-offs, and unresolved reasoning chains. This is not the default broad code review."
-runner_args = ["--output-format", "json", "--restrict-tools", "--effort", "max"]
+runner_args = ["--output-format", "json", "--restrict-tools"]
 
 [providers.test_driver]
+route = "test-design"
+family = "gpt"
+route_role = "worker"
 kind = "native"
 host = "chatgpt-or-codex"
-provider = "openai"
-transport = "native"
-model = "gpt-6-astra"
-model_label = "Astra"
-effort = "max"
-effort_control = "native"
 session_policy = "per-role-persistent"
 enabled = true
 native_response_required = true
 duty = "Drive TDD, failure-mode tests, and red-green-refactor evidence."
 
 [providers.broad_review]
+route = "independent-review"
+family = "gpt"
+route_role = "reviewer"
 kind = "native"
 host = "chatgpt-or-codex"
-provider = "openai"
-transport = "native"
-model = "gpt-5.6-sol"
-model_label = "Sol"
-effort = "high"
-effort_control = "native"
 session_policy = "per-role-persistent"
 enabled = true
 native_response_required = true

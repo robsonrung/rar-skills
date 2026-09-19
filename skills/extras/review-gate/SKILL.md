@@ -62,13 +62,11 @@ then present the exact selected routes for approval before dispatch. Probe only
 the selected capabilities without starting model jobs. Record the approved seat
 table; persona briefs cannot override it.
 
-For a broad code pass, start with Astra at `high`, or `max` for a difficult
-scope. When Astra wrote the code, use Sol at `high` for an independent broad
-pass. Add Opus at supported `xhigh` for subtle or high-impact claims after
-validating the exact model, transport, and effort. Fable at `max` is for
-research, design, or architecture analysis, not a generic code review. Terra
-is not a default review route. The conditional Cyber security route follows the
-roster's availability rules; do not treat ordinary Gemini Flash as that route.
+Resolve `broad-review`, `independent-review`, `precision-review`, or
+`security-review` from `shared/model-routing.json` for the selected scope.
+The reviewer must differ from the writer and inspect actual code and evidence.
+A design analysis is a separate role. Validate each exact host or adapter before
+approval; an unverified specialist cannot be treated as available.
 
 | Persona | Required review shape |
 | --- | --- |

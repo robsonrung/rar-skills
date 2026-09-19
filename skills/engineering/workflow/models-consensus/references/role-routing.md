@@ -21,41 +21,24 @@ from openings and from each other.
 
 ## Default poll and debate panels
 
-| Question shape | Opening roles | Organizer and synthesis | Judges |
-| --- | --- | --- | --- |
-| Developer technical problem, difficult debugging, TDD, or tool-heavy repository work | Astra: executable diagnosis; Fable: assumptions and alternatives; Opus: subtle semantic risk | Astra | Fable and Opus |
-| Ambiguous problem, research, architecture, or trade-off | Fable: deep reasoning; Astra: execution feasibility; Opus: precision constraints | Fable | Astra and Opus |
-| Broad code review or migration | Astra: broad defect discovery; Fable: system and design impact; Opus: precision review | Astra | Fable and Opus |
-| Many competing approaches | Astra: branch exploration; Fable: coherent deep path; Opus: decision precision | Astra | Fable and Opus |
-| Routine, explicit change when a council is still justified | Terra: simplest correct implementation; Astra: hidden risk and acceptance; Fable: requirement ambiguity | Astra | Fable and Astra |
+All opening, organizer, judge, and synthesis selections live in
+`councils` in `shared/model-routing.json`. Select the technical, analysis, routine,
+or security council by question shape. Run `scripts/model_routing.py council
+<name>` from the resolved shared skill to produce exact preview values without
+starting any calls. A council remains optional and user invoked.
 
-Use the task routing defaults for effort. In particular, use Astra `ultra` only
-when parallel branch exploration is part of the approved question; it does not
-add council seats by itself. A broad-review panel may use Sol in place of Astra
-only when that produces a distinct approved model perspective, such as review
-of an Astra-authored artifact.
-
-When a panel selects Opus at `xhigh`, preflight must validate that the selected
-native or runner adapter accepts that exact label for the selected model. If it
-cannot, block the route and show a revised plan. Do not silently translate
-`xhigh` to `max`.
+Use the task route's conditions and escalation policy when more reasoning is
+needed. Record changes as exact proposed roles before approval. More reasoning
+does not add seats or change the call ceiling. A reviewer of an existing artifact
+must be independent of its writer when the role requires that independence.
 
 ## Defensive security panel
 
-Use a Gemini 3.8 Flash Cyber seat at `high` only after preflight proves its
-exact identifier, access, model selection, and effort control. Ordinary Gemini
-Flash is not that seat. A serving-model receipt can arrive only after an
-approved call; until then the preview must explicitly allow an unverified
-receipt, and the result must not count Cyber toward diversity confidence. A
-matching later receipt updates evidence without changing the approved plan.
-Use Cyber for adversarial security analysis, Astra for attack-surface and repair
-feasibility, and Opus for exploitability precision. Astra organizes and
-synthesizes; Cyber and Opus judge.
-
-If Cyber cannot meet that preflight, do not silently replace it. Show an
-explicit alternate panel for approval: Astra at `max` for security analysis,
-Fable at `max` for architecture and evidence gaps, and Opus at `xhigh` for
-precision review. State that this is an Astra fallback, not a Cyber result.
+Use the configured security council. `conditional_models` records specialist
+candidates that cannot be dispatched until their exact model ID, entitlement,
+effort, tools, and receipt policy are established. An ordinary model does not
+satisfy a specialist selection. Any proposed specialist or alternate panel must
+appear in the approval preview; unavailable capability never permits substitution.
 
 ## Budgets and diversity
 
@@ -78,9 +61,7 @@ or failed seats do not increase diversity confidence.
 ## Personas
 
 Use one selected model for all five advisors, five reviewers, and the chairman.
-For a coding or systems question, the shared routing normally selects Astra; for
-ambiguous architecture, research, or product judgment, it normally selects
-Fable. Resolve the exact effort before the preview. Advisors and chairman use
+Select the task route and exact effort from the central configuration before the preview. Advisors and chairman use
 the route's primary effort; reviewers use a lower supported effort only when the
 approved plan says so.
 

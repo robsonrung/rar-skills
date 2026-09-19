@@ -18,7 +18,7 @@ Before any panel dispatch, the caller shows all roles, resolved model IDs, effor
 
 ## Routing and configurability
 
-The caller owns its routing file; the default model mapping is editable there. Model ids come from `shared/references/model-roster.md` — when a provider ships a new model, update the roster and the routing files that name it.
+The caller owns its phase and role template. Each provider references a task route, family, and role in `shared/model-routing.json`; the template contains no model or effort defaults. The engine resolves those references and forwards the selected effort. It stores `resolved_routing.json` before the first real phase and rejects later changes before dispatch. Use a new approved run for changed selections. Explicit approved snapshots remain supported.
 
 Do not hardcode model choices in the workflow. Use the role names the calling skill declares (always including `synthesis_anchor` and `adversarial_anchor`). Resolve the mapping with the shared task-shaped routing reference, then bind the actual role/model/effort assignments to the user-approved plan. Read [host-model-execution.md](references/host-model-execution.md) before selecting a native or runner transport.
 

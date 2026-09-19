@@ -28,6 +28,8 @@ import traceback
 from pathlib import Path
 from typing import Any
 
+from model_routing import resolve_panel_providers
+
 try:
     import tomllib
 except ImportError:  # pragma: no cover
@@ -436,6 +438,9 @@ def run_runner_role(
     model = provider_cfg.get("model")
     if model:
         cmd.extend(["--model", str(model)])
+    if "route" in provider_cfg and provider_cfg.get("effort_control") == "runner":
+        flag = provider_cfg["effort_flag"]
+        cmd.extend([flag, provider_cfg["effort"]])
     runner_role = role_cfg.get("runner_role") or provider_cfg.get("runner_role")
     if runner_role:
         cmd.extend(["--role", str(runner_role)])
@@ -756,7 +761,10 @@ def main() -> int:
     else:
         skill_root = get_skill_root()
         routing_path = skill_root / "assets" / "routing.toml"
-    cfg = load_toml(routing_path)
+    try:
+        cfg = resolve_panel_providers(load_toml(routing_path))
+    except ValueError as exc:
+        raise SystemExit(str(exc)) from exc
     skill = cfg.get("skill", {})
     working_dir = Path(args.working_dir).expanduser().resolve()
     phase_cfg = cfg.get("phases", {}).get(args.phase, {})
@@ -785,6 +793,15 @@ def main() -> int:
         )
     context = read_context(args.context_file)
     base_out = Path(args.out or skill.get("artifact_dir") or ".ai-workflow/panel")
+    snapshot_path = base_out / "resolved_routing.json"
+    if "model_routing_digest" in cfg:
+        if snapshot_path.exists():
+            saved = json.loads(snapshot_path.read_text(encoding="utf-8"))
+            if saved != cfg:
+                raise SystemExit("Panel routing changed. Review and approve a new run before dispatch.")
+        elif not args.dry_run:
+            base_out.mkdir(parents=True, exist_ok=True)
+            snapshot_path.write_text(json.dumps(cfg, indent=2) + "\n", encoding="utf-8")
     prompts_dir = base_out / "prompts"
     transcripts_dir = base_out / "transcripts"
     native_responses_dir = base_out / "native_responses"

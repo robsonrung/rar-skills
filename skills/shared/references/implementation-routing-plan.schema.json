@@ -105,14 +105,8 @@
     },
     "effort": {
       "type": "string",
-      "enum": [
-        "low",
-        "medium",
-        "high",
-        "xhigh",
-        "max",
-        "ultra"
-      ]
+      "minLength": 1,
+      "description": "Validate against shared/model-routing.json and the exact host or adapter capability."
     },
     "native_transport": {
       "type": "string",

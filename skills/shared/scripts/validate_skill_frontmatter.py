@@ -12,7 +12,7 @@ Checks, across every top-level skill dir (any dir containing SKILL.md):
      are banned in skill names.
   3. `description:` present and at least 20 characters (enough to route on).
   4. Runner parity: every `*-runner/` dir ships scripts/run_<prefix>.py and is
-     either registered in shared/scripts/discover_runners.py or explicitly
+     either registered in shared/model-routing.json or explicitly
      allowlisted below as a non-seat runner. A new runner dir that is neither
      fails CI — adding a runner skill without registering its seat is the
      drift this guard exists to catch.
@@ -39,6 +39,7 @@ except ImportError:  # keep the guard runnable without the dep
 REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from skill_paths import iter_skill_dirs  # noqa: E402
+from model_routing import load_config, model_aliases  # noqa: E402
 
 # AgentSkills name rule: lowercase alphanumerics separated by single hyphens.
 SKILL_NAME_RE = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
@@ -139,9 +140,11 @@ def extract_description(fm: str) -> str | None:
 
 
 def check_runner_parity(failures: list[str]) -> None:
-    discover_src = (REPO_ROOT / "shared" / "scripts" / "discover_runners.py").read_text(
-        encoding="utf-8", errors="replace"
-    )
+    config = load_config()
+    registered = {
+        runner for runner in config["runners"]
+        if any(spec["seat"] in model_aliases(runner, config) for spec in config["discovery"])
+    }
     for runner_dir in sorted(d for d in iter_skill_dirs(REPO_ROOT) if d.name.endswith("-runner")):
         if not runner_dir.is_dir():
             continue
@@ -153,9 +156,9 @@ def check_runner_parity(failures: list[str]) -> None:
         script = runner_dir / "scripts" / f"run_{prefix}.py"
         if not script.exists():
             failures.append(f"{runner_dir.name}: missing scripts/run_{prefix}.py")
-        if prefix not in discover_src:
+        if prefix not in registered:
             failures.append(
-                f"{runner_dir.name}: not registered in discover_runners.py and not in "
+                f"{runner_dir.name}: not registered in model-routing.json and not in "
                 "NON_SEAT_RUNNERS — register the seat or allowlist it deliberately"
             )
 

@@ -13,14 +13,11 @@ Read `shared/references/host-model-execution.md` before choosing an external rou
 
 ## Named seats
 
-| `--seat` | Pinned model | Envelope |
-| --- | --- | --- |
-| `kimi` | `moonshotai/kimi-k3` | `runner=kimi`, `effective_runner=pi`, `effective_provider=moonshotai` |
-| `glm` | `z-ai/glm-5.3-flash` | `runner=glm`, `effective_provider=z-ai` |
-| `qwen` | `qwen/qwen3.8-max` | `runner=qwen`, `effective_provider=qwen` |
-| `gemma` | `google/gemma-4-31b-it` | `runner=gemma`, `effective_provider=google` |
-
-`--seat` pins the seat's model and labels the envelope with the seat name; an explicit `--model` still wins, so a seat can be tried against a newer id without editing the table. The pins live in `PI_SEATS` in `scripts/run_pi.py`, mirrored by `shared/references/model-roster.md` and the seat table in `shared/scripts/discover_runners.py` — change all three together. A missing `pi` CLI or key reports `status: seat_unavailable` for the named seat; there is no fallback to another seat.
+Named seats and their exact model IDs live in `shared/model-routing.json`.
+`--seat` reads those pins and labels the envelope with the seat name. An explicit
+`--model` is a per-call selection and must match the approved plan when one
+exists. Change maintained pins only in the central file. A missing CLI or key
+reports `status: seat_unavailable`; there is no fallback to another seat.
 
 ## Default Provider
 
@@ -44,12 +41,12 @@ Every run disables Pi's extension, skill, prompt-template, and theme discovery a
 
 ## Shared Wrapper Reference
 
-Supported options, roles, the `--json` output envelope key contract, return codes, and gotchas follow `shared/references/runner-common.md`. The envelope reports `runner=pi` (or the `--seat` name), `effective_runner=pi`, and `effective_provider` inferred from the model id's vendor prefix (`moonshotai/kimi-k3` → `moonshotai`). Its terminal stream can supply `native_model_id`, which produces a verified model receipt.
+Supported options, roles, the `--json` output envelope key contract, return codes, and gotchas follow `shared/references/runner-common.md`. The envelope reports `runner=pi` (or the `--seat` name), `effective_runner=pi`, and `effective_provider` inferred from the model id's vendor prefix (`vendor/model` gives `vendor`). Its terminal stream can supply `native_model_id`, which produces a verified model receipt.
 
 ## Usage
 
 ```bash
-python3 .agents/skills/pi-runner/scripts/run_pi.py "your prompt here" --model moonshotai/kimi-k3
+python3 .agents/skills/pi-runner/scripts/run_pi.py "your prompt here" --seat kimi
 ```
 
 ## Examples
@@ -57,8 +54,8 @@ python3 .agents/skills/pi-runner/scripts/run_pi.py "your prompt here" --model mo
 ```bash
 python3 .agents/skills/pi-runner/scripts/run_pi.py "Summarize this module" --seat glm
 python3 .agents/skills/pi-runner/scripts/run_pi.py --prompt-file .ai-workflow/prompts/review.md --role codereviewer --seat kimi --json
-python3 .agents/skills/pi-runner/scripts/run_pi.py --prompt-file .ai-workflow/prompts/review.md --role codereviewer --model moonshotai/kimi-k3
-python3 .agents/skills/pi-runner/scripts/run_pi.py "Answer from the brief only" --no-tools --json --model z-ai/glm-5.3-flash
+python3 .agents/skills/pi-runner/scripts/run_pi.py --prompt-file .ai-workflow/prompts/review.md --role codereviewer --seat kimi
+python3 .agents/skills/pi-runner/scripts/run_pi.py "Answer from the brief only" --no-tools --json --seat glm
 ```
 
 ## Gotchas

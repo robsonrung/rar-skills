@@ -8,17 +8,16 @@ It is not a council and does not invoke `models-consensus`.
 
 Read `shared/references/model-roster.md`,
 `shared/references/task-shaped-model-routing.md`, and
-`shared/references/host-model-execution.md`. Use the `Interview auto roles`
-mapping from the task-shaped routing reference. It owns the exact interviewer,
-respondent, model, and effort selection.
+`shared/references/host-model-execution.md`. Resolve `interview-product` or `interview-technical` from
+`shared/model-routing.json`. That file owns all role, model, and effort defaults.
 
 Classify the request before the first call:
 
 | Request shape | Route |
 | --- | --- |
-| Ambiguous user or product problem | Default interview-auto route |
-| Explicit developer technical problem | Developer-technical interview-auto route |
-| Unclear | Default interview-auto route; record the classification assumption |
+| Ambiguous user or product problem | `interview-product` route |
+| Explicit developer technical problem | `interview-technical` route |
+| Unclear | `interview-product` route; record the classification assumption |
 
 Record a compact auto route preview with the classification, roles, host
 execution paths, effort, receipt status, and ceilings. Continue without a

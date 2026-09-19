@@ -1,5 +1,9 @@
 # Prepare and Approve the Model Plan
 
+Model IDs, effort support, and task defaults come only from
+`shared/model-routing.json`. Resolve the relevant route before preview or
+approval; preserve the exact saved route during dispatch, retry, and resume.
+
 Read before any implementation, reviewer, council, or model probe job. The preview is the concrete plan the user approves.
 
 ## Prepare the execution plan
@@ -35,3 +39,18 @@ Ask: **"Approve this model plan, including routes, transport, role-session strat
 Task approval from `to-tasks` does not approve the model plan. `--auto`, a default selection, or silence cannot approve it. Reuse approval when the user already approved this exact scope, models, effort, receipt policy, mode, and transport. A dynamic session or context ID does not require a new approval. Do not start implementation, reviewer, council, or model probe jobs before this gate.
 
 Carry the approved model and effort into every worker and runner call. Check configured values and serving-model receipts against the approved receipt policy. Any change to model, runner, mode, native transport, role, effort, or receipt policy requires approval of the changed rows unless that exact fallback was already approved. A missing model or unsupported effort blocks its route. Never silently use a cheaper model or the host model instead. On resume, compare saved scope and routes before reusing approval, then reconcile each pending context or runner call before sending its next turn.
+
+## Select bounded routes
+
+Resolve the task route from `shared/model-routing.json` with the shared
+`model_routing.py resolve` command. Apply its risk triggers before selecting a
+worker. Record the selected route key, family, and configuration digest beside
+the exact proposed rows. The resolver does not grant approval or start workers.
+
+For a difficult design with routine implementation, name a strong design role
+before the bounded implementation roles and retain integration review. Separate
+test design from test implementation when expected behavior is uncertain.
+Exceptional effort requires a recorded reason. Apply the configuration's
+escalation triggers through the existing approval boundary, never an automatic
+model change. Record total usage, elapsed time, and repair cycles when available;
+unavailable metrics remain unknown.

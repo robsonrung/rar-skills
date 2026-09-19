@@ -1,0 +1,1449 @@
+{
+  "schema_version": 1,
+  "description": "Single maintained source for model identities, adapter effort support, task routes, and panel defaults. Approved run plans are immutable snapshots, not additional defaults.",
+  "evidence": "Task-fit policy. No measured quality, token, cost, or latency equivalence is claimed.",
+  "effort_levels": [
+    "none",
+    "off",
+    "minimal",
+    "low",
+    "medium",
+    "high",
+    "xhigh",
+    "max",
+    "ultra"
+  ],
+  "effort_profiles": {
+    "extended": [
+      "low",
+      "medium",
+      "high",
+      "xhigh",
+      "max",
+      "ultra"
+    ],
+    "standard": [
+      "low",
+      "medium",
+      "high",
+      "xhigh",
+      "max"
+    ],
+    "legacy": [
+      "low",
+      "medium",
+      "high",
+      "xhigh"
+    ],
+    "grok": [
+      "low",
+      "medium",
+      "high"
+    ],
+    "pi": [
+      "none",
+      "off",
+      "minimal",
+      "low",
+      "medium",
+      "high",
+      "xhigh"
+    ],
+    "cline": [
+      "none",
+      "low",
+      "medium",
+      "high",
+      "xhigh"
+    ],
+    "runtime": []
+  },
+  "runners": {
+    "codex": {
+      "provider": "openai",
+      "effort_flag": "--effort",
+      "effort_profile": "extended",
+      "accepted_efforts": [
+        "none",
+        "minimal",
+        "low",
+        "medium",
+        "high",
+        "xhigh",
+        "max",
+        "ultra"
+      ],
+      "default_seat": "astra",
+      "default_effort": null,
+      "known_model_required": true,
+      "fallback_runner": "claude"
+    },
+    "claude": {
+      "provider": "anthropic",
+      "effort_flag": "--effort",
+      "effort_profile": "standard",
+      "default_seat": null,
+      "default_effort": null,
+      "fallback_runner": "codex"
+    },
+    "grok": {
+      "provider": "xai",
+      "effort_flag": "--effort",
+      "effort_profile": "grok",
+      "accepted_effort_profile": "standard",
+      "default_seat": null,
+      "default_effort": null
+    },
+    "gemini": {
+      "provider": "google",
+      "effort_flag": null,
+      "effort_profile": "runtime",
+      "default_seat": "gemini",
+      "default_effort": null,
+      "model_control": "runtime",
+      "fallbacks": [
+        {
+          "runner": "pi",
+          "seat": "qwen"
+        },
+        {
+          "runner": "pi",
+          "seat": "kimi"
+        },
+        {
+          "runner": "codex",
+          "seat": null
+        },
+        {
+          "runner": "claude",
+          "seat": null
+        }
+      ]
+    },
+    "pi": {
+      "provider": "openrouter",
+      "effort_flag": "--thinking",
+      "effort_profile": "pi",
+      "default_seat": null,
+      "default_effort": null,
+      "effort_aliases": {
+        "none": "off"
+      }
+    },
+    "cline": {
+      "provider": "cline",
+      "effort_flag": "--thinking",
+      "effort_profile": "cline",
+      "default_seat": null,
+      "default_effort": null
+    },
+    "dcode": {
+      "provider": "dcode",
+      "effort_flag": null,
+      "effort_profile": "runtime",
+      "default_seat": null,
+      "metadata_model": "dcode-configured-model",
+      "default_effort": null,
+      "model_control": "runtime",
+      "approved_dispatch": false,
+      "fallbacks": [
+        {
+          "runner": "claude",
+          "seat": null
+        },
+        {
+          "runner": "codex",
+          "seat": null
+        },
+        {
+          "runner": "pi",
+          "seat": "qwen"
+        },
+        {
+          "runner": "pi",
+          "seat": "kimi"
+        }
+      ]
+    }
+  },
+  "models": {
+    "astra": {
+      "model": "gpt-6-astra",
+      "runner": "codex",
+      "family": "gpt",
+      "effort_profile": "extended",
+      "aliases": [
+        "codex"
+      ]
+    },
+    "sol": {
+      "model": "gpt-5.6-sol",
+      "runner": "codex",
+      "family": "gpt",
+      "effort_profile": "extended",
+      "aliases": []
+    },
+    "terra": {
+      "model": "gpt-5.6-terra",
+      "runner": "codex",
+      "family": "gpt",
+      "effort_profile": "extended",
+      "aliases": [
+        "codex-code"
+      ]
+    },
+    "luna": {
+      "model": "gpt-5.6-luna",
+      "runner": "codex",
+      "family": "gpt",
+      "effort_profile": "standard",
+      "aliases": []
+    },
+    "fable": {
+      "model": "claude-fable-5-1",
+      "runner": "claude",
+      "family": "claude",
+      "effort_profile": "standard",
+      "aliases": []
+    },
+    "opus": {
+      "model": "claude-opus-5",
+      "runner": "claude",
+      "family": "claude",
+      "effort_profile": "standard",
+      "aliases": []
+    },
+    "sonnet": {
+      "model": "claude-sonnet-5",
+      "runner": "claude",
+      "family": "claude",
+      "effort_profile": "standard",
+      "aliases": []
+    },
+    "grok": {
+      "model": "grok-4.6",
+      "runner": "grok",
+      "family": "grok",
+      "effort_profile": "grok",
+      "aliases": []
+    },
+    "gemini": {
+      "model": "gemini-3.8-flash",
+      "runner": "gemini",
+      "family": "gemini",
+      "effort_profile": "runtime",
+      "aliases": []
+    },
+    "kimi": {
+      "model": "moonshotai/kimi-k3",
+      "runner": "pi",
+      "family": "kimi",
+      "effort_profile": "pi",
+      "aliases": []
+    },
+    "glm": {
+      "model": "z-ai/glm-5.3-flash",
+      "runner": "pi",
+      "family": "glm",
+      "effort_profile": "pi",
+      "aliases": []
+    },
+    "qwen": {
+      "model": "qwen/qwen3.8-max",
+      "runner": "pi",
+      "family": "qwen",
+      "effort_profile": "pi",
+      "aliases": []
+    },
+    "gemma": {
+      "model": "google/gemma-4-31b-it",
+      "runner": "pi",
+      "family": "gemma",
+      "effort_profile": "pi",
+      "aliases": []
+    },
+    "muse": {
+      "model": "meta/muse-spark-1.3",
+      "runner": "cline",
+      "family": "muse",
+      "effort_profile": "cline",
+      "aliases": []
+    },
+    "minimax": {
+      "model": "minimax/minimax-m2.7",
+      "runner": "cline",
+      "family": "minimax",
+      "effort_profile": "cline",
+      "aliases": []
+    },
+    "gpt-legacy": {
+      "model": "gpt-5.5",
+      "runner": "codex",
+      "family": "gpt",
+      "effort_profile": "legacy",
+      "aliases": [],
+      "legacy": true
+    },
+    "gpt-mini-legacy": {
+      "model": "gpt-5.4-mini",
+      "runner": "codex",
+      "family": "gpt",
+      "effort_profile": "legacy",
+      "aliases": [],
+      "legacy": true
+    },
+    "spark": {
+      "model": "gpt-5.3-codex-spark",
+      "runner": "codex",
+      "family": "gpt",
+      "effort_profile": "legacy",
+      "aliases": [],
+      "legacy": true
+    }
+  },
+  "discovery": [
+    {
+      "seat": "astra",
+      "execution_path": "codex_runner",
+      "probe_cli": "codex",
+      "depends_on": [],
+      "tier": "frontier"
+    },
+    {
+      "seat": "sol",
+      "execution_path": "codex_runner",
+      "probe_cli": "codex",
+      "depends_on": [],
+      "tier": "backup"
+    },
+    {
+      "seat": "terra",
+      "execution_path": "codex_runner",
+      "probe_cli": "codex",
+      "depends_on": [],
+      "tier": "backup"
+    },
+    {
+      "seat": "luna",
+      "execution_path": "codex_runner",
+      "probe_cli": "codex",
+      "depends_on": [],
+      "tier": "backup"
+    },
+    {
+      "seat": "fable",
+      "execution_path": "claude_runner",
+      "probe_cli": "claude",
+      "depends_on": [],
+      "tier": "frontier"
+    },
+    {
+      "seat": "opus",
+      "execution_path": "claude_runner",
+      "probe_cli": "claude",
+      "depends_on": [],
+      "tier": "default"
+    },
+    {
+      "seat": "sonnet",
+      "execution_path": "claude_runner",
+      "probe_cli": "claude",
+      "depends_on": [],
+      "tier": "default"
+    },
+    {
+      "seat": "codex",
+      "execution_path": "codex_runner",
+      "probe_cli": "codex",
+      "depends_on": [],
+      "tier": "legacy"
+    },
+    {
+      "seat": "gemini",
+      "execution_path": "gemini_runner",
+      "probe_cli": "agy",
+      "depends_on": [],
+      "tier": "default"
+    },
+    {
+      "seat": "grok",
+      "execution_path": "grok_runner",
+      "probe_cli": "grok",
+      "depends_on": [],
+      "tier": "default"
+    },
+    {
+      "seat": "kimi",
+      "execution_path": "pi_runner_seat",
+      "probe_cli": "pi",
+      "depends_on": [
+        "pi"
+      ],
+      "tier": "default"
+    },
+    {
+      "seat": "glm",
+      "execution_path": "pi_runner_seat",
+      "probe_cli": "pi",
+      "depends_on": [
+        "pi"
+      ],
+      "tier": "default"
+    },
+    {
+      "seat": "qwen",
+      "execution_path": "pi_runner_seat",
+      "probe_cli": "pi",
+      "depends_on": [
+        "pi"
+      ],
+      "tier": "backup"
+    },
+    {
+      "seat": "muse",
+      "execution_path": "cline_runner_seat",
+      "probe_cli": "cline",
+      "depends_on": [
+        "cline"
+      ],
+      "tier": "backup"
+    },
+    {
+      "seat": "gemma",
+      "execution_path": "pi_runner_seat",
+      "probe_cli": "pi",
+      "depends_on": [
+        "pi"
+      ],
+      "tier": "backup"
+    },
+    {
+      "seat": "minimax",
+      "execution_path": "cline_runner_seat",
+      "probe_cli": "cline",
+      "depends_on": [
+        "cline"
+      ],
+      "tier": "backup"
+    }
+  ],
+  "policy": {
+    "risk_levels": [
+      "normal",
+      "high"
+    ],
+    "high_risk_triggers": [
+      "Unresolved requirements or contradictory evidence",
+      "Authorization, security, privacy, money, or irreversible effects",
+      "Data migrations, concurrency, or public contract changes",
+      "Weak acceptance checks or scope exceeding the planned slice"
+    ],
+    "escalation_triggers": [
+      "Repeated repair without new evidence",
+      "Unknown causal chain",
+      "Reviewer finds a blocking design defect",
+      "Implementation cannot state the behavior and invariant it preserves"
+    ],
+    "review_inputs": [
+      "Original requirements and acceptance criteria",
+      "Full diff and relevant source files",
+      "Affected interfaces and invariants",
+      "Captured test results and known uncertainty"
+    ],
+    "efficiency": [
+      "Gather facts with bounded workers",
+      "Use tools directly for deterministic work",
+      "Parallelize only independent authorized work",
+      "Reuse each role context without sharing implementer and reviewer conversations",
+      "Measure total tokens, elapsed time, cost, and repair cycles per accepted result"
+    ],
+    "evaluation": [
+      "Compare representative tasks per task class with the same starting revision and acceptance checks",
+      "Keep independent review and failure cases",
+      "Retain cheaper routes only where observed quality holds",
+      "A small trial does not prove universal equivalence"
+    ],
+    "escalation_authority": "Resolve candidates before approval. Later changes require the calling workflow authority; never silently change an approved route."
+  },
+  "routes": {
+    "lookup": {
+      "purpose": "Find exact files, symbols, values, or commands.",
+      "conditions": [
+        "Return source references; do not infer missing behavior."
+      ],
+      "risk_route": "technical-analysis",
+      "families": {
+        "gpt": {
+          "worker": {
+            "seat": "luna",
+            "effort": "low"
+          }
+        },
+        "claude": {
+          "worker": {
+            "seat": "sonnet",
+            "effort": "low"
+          }
+        }
+      }
+    },
+    "code-exploration": {
+      "purpose": "Map one bounded feature and its callers and tests.",
+      "conditions": [
+        "Verify relationships from source. Escalate conclusions that affect design or behavior."
+      ],
+      "risk_route": "technical-analysis",
+      "families": {
+        "gpt": {
+          "worker": {
+            "seat": "luna",
+            "effort": "medium"
+          }
+        },
+        "claude": {
+          "worker": {
+            "seat": "sonnet",
+            "effort": "medium"
+          }
+        }
+      }
+    },
+    "mechanical-edit": {
+      "purpose": "Apply an established transformation without changing behavior.",
+      "conditions": [
+        "Use compiler, lint, and applicable regression checks."
+      ],
+      "risk_route": "sensitive-implementation",
+      "families": {
+        "gpt": {
+          "implementer": {
+            "seat": "luna",
+            "effort": "medium"
+          },
+          "reviewer": {
+            "seat": "astra",
+            "effort": "high"
+          }
+        },
+        "claude": {
+          "implementer": {
+            "seat": "sonnet",
+            "effort": "medium"
+          },
+          "reviewer": {
+            "seat": "fable",
+            "effort": "high"
+          }
+        }
+      }
+    },
+    "isolated-implementation": {
+      "purpose": "Implement a small function with explicit acceptance.",
+      "conditions": [
+        "Known inputs, outputs, failure cases, and a local pattern."
+      ],
+      "risk_route": "sensitive-implementation",
+      "families": {
+        "gpt": {
+          "implementer": {
+            "seat": "luna",
+            "effort": "high"
+          },
+          "reviewer": {
+            "seat": "astra",
+            "effort": "high"
+          }
+        },
+        "claude": {
+          "implementer": {
+            "seat": "sonnet",
+            "effort": "high"
+          },
+          "reviewer": {
+            "seat": "fable",
+            "effort": "high"
+          }
+        }
+      }
+    },
+    "routine-function": {
+      "purpose": "Implement a routine, fully specified function.",
+      "conditions": [],
+      "risk_route": "sensitive-implementation",
+      "families": {
+        "gpt": {
+          "implementer": {
+            "seat": "terra",
+            "effort": "medium"
+          },
+          "reviewer": {
+            "seat": "astra",
+            "effort": "high"
+          }
+        },
+        "claude": {
+          "implementer": {
+            "seat": "sonnet",
+            "effort": "medium"
+          },
+          "reviewer": {
+            "seat": "fable",
+            "effort": "high"
+          }
+        }
+      }
+    },
+    "routine-implementation": {
+      "purpose": "Implement a bounded feature across files.",
+      "conditions": [
+        "Stable interfaces and meaningful acceptance checks."
+      ],
+      "risk_route": "sensitive-implementation",
+      "families": {
+        "gpt": {
+          "implementer": {
+            "seat": "terra",
+            "effort": "high"
+          },
+          "reviewer": {
+            "seat": "astra",
+            "effort": "high"
+          }
+        },
+        "claude": {
+          "implementer": {
+            "seat": "sonnet",
+            "effort": "high"
+          },
+          "reviewer": {
+            "seat": "fable",
+            "effort": "high"
+          }
+        }
+      }
+    },
+    "balanced-implementation": {
+      "purpose": "Alternate bounded feature route for comparison.",
+      "conditions": [],
+      "risk_route": "sensitive-implementation",
+      "families": {
+        "gpt": {
+          "implementer": {
+            "seat": "sol",
+            "effort": "medium"
+          },
+          "reviewer": {
+            "seat": "astra",
+            "effort": "high"
+          }
+        },
+        "claude": {
+          "implementer": {
+            "seat": "opus",
+            "effort": "medium"
+          },
+          "reviewer": {
+            "seat": "fable",
+            "effort": "high"
+          }
+        }
+      }
+    },
+    "direct-implementation": {
+      "purpose": "Compare a capable worker with less thinking against delegation overhead.",
+      "conditions": [
+        "Retain independent review when code changes."
+      ],
+      "risk_route": "sensitive-implementation",
+      "families": {
+        "gpt": {
+          "implementer": {
+            "seat": "astra",
+            "effort": "medium"
+          },
+          "reviewer": {
+            "seat": "sol",
+            "effort": "high"
+          }
+        },
+        "claude": {
+          "implementer": {
+            "seat": "fable",
+            "effort": "medium"
+          },
+          "reviewer": {
+            "seat": "opus",
+            "effort": "high"
+          }
+        }
+      }
+    },
+    "known-cause-fix": {
+      "purpose": "Fix a reproduced bug with an established causal chain.",
+      "conditions": [
+        "Capture the failing regression before the fix."
+      ],
+      "risk_route": "sensitive-implementation",
+      "families": {
+        "gpt": {
+          "implementer": {
+            "seat": "terra",
+            "effort": "high"
+          },
+          "reviewer": {
+            "seat": "astra",
+            "effort": "high"
+          }
+        },
+        "claude": {
+          "implementer": {
+            "seat": "sonnet",
+            "effort": "high"
+          },
+          "reviewer": {
+            "seat": "fable",
+            "effort": "high"
+          }
+        }
+      }
+    },
+    "test-implementation": {
+      "purpose": "Implement tests from agreed cases and expected results.",
+      "conditions": [
+        "Reviewer checks missing cases and expected behavior independently."
+      ],
+      "risk_route": "sensitive-implementation",
+      "families": {
+        "gpt": {
+          "implementer": {
+            "seat": "luna",
+            "effort": "high"
+          },
+          "reviewer": {
+            "seat": "astra",
+            "effort": "high"
+          }
+        },
+        "claude": {
+          "implementer": {
+            "seat": "sonnet",
+            "effort": "high"
+          },
+          "reviewer": {
+            "seat": "fable",
+            "effort": "high"
+          }
+        }
+      }
+    },
+    "test-execution": {
+      "purpose": "Run named checks and report actual results.",
+      "conditions": [
+        "Use tools directly when no model judgment is needed."
+      ],
+      "risk_route": "diagnosis",
+      "families": {
+        "gpt": {
+          "worker": {
+            "seat": "luna",
+            "effort": "low"
+          }
+        },
+        "claude": {
+          "worker": {
+            "seat": "sonnet",
+            "effort": "low"
+          }
+        }
+      }
+    },
+    "documentation": {
+      "purpose": "Summarize supplied facts or describe verified behavior.",
+      "conditions": [
+        "Cite source evidence. Use architecture for design conclusions."
+      ],
+      "risk_route": "technical-analysis",
+      "families": {
+        "gpt": {
+          "worker": {
+            "seat": "luna",
+            "effort": "medium"
+          }
+        },
+        "claude": {
+          "worker": {
+            "seat": "sonnet",
+            "effort": "medium"
+          }
+        }
+      }
+    },
+    "research": {
+      "purpose": "Collect sources and synthesize a bounded question.",
+      "conditions": [
+        "Explicitly retrieve current facts; low effort must not skip required evidence."
+      ],
+      "risk_route": "technical-analysis",
+      "families": {
+        "gpt": {
+          "worker": {
+            "seat": "astra",
+            "effort": "high"
+          }
+        },
+        "claude": {
+          "worker": {
+            "seat": "fable",
+            "effort": "high"
+          }
+        }
+      }
+    },
+    "technical-analysis": {
+      "purpose": "Resolve technical uncertainty or broad repository relationships.",
+      "conditions": [],
+      "risk_route": "technical-analysis",
+      "families": {
+        "gpt": {
+          "worker": {
+            "seat": "astra",
+            "effort": "high"
+          }
+        },
+        "claude": {
+          "worker": {
+            "seat": "fable",
+            "effort": "high"
+          }
+        }
+      }
+    },
+    "architecture": {
+      "purpose": "Decide interfaces, invariants, and tradeoffs before implementation.",
+      "conditions": [],
+      "risk_route": "architecture",
+      "families": {
+        "gpt": {
+          "worker": {
+            "seat": "astra",
+            "effort": "high"
+          }
+        },
+        "claude": {
+          "worker": {
+            "seat": "fable",
+            "effort": "high"
+          }
+        }
+      }
+    },
+    "ambiguous-problem": {
+      "purpose": "Resolve unclear requirements and material assumptions.",
+      "conditions": [],
+      "risk_route": "ambiguous-problem",
+      "families": {
+        "gpt": {
+          "worker": {
+            "seat": "astra",
+            "effort": "high"
+          }
+        },
+        "claude": {
+          "worker": {
+            "seat": "fable",
+            "effort": "high"
+          }
+        }
+      }
+    },
+    "test-design": {
+      "purpose": "Define failure cases and independent expected behavior.",
+      "conditions": [],
+      "risk_route": "test-design",
+      "families": {
+        "gpt": {
+          "worker": {
+            "seat": "astra",
+            "effort": "high"
+          }
+        },
+        "claude": {
+          "worker": {
+            "seat": "fable",
+            "effort": "high"
+          }
+        }
+      }
+    },
+    "diagnosis": {
+      "purpose": "Find the cause of an unexplained or recurring failure.",
+      "conditions": [],
+      "risk_route": "diagnosis",
+      "families": {
+        "gpt": {
+          "worker": {
+            "seat": "astra",
+            "effort": "high"
+          }
+        },
+        "claude": {
+          "worker": {
+            "seat": "fable",
+            "effort": "high"
+          }
+        }
+      }
+    },
+    "deep-analysis": {
+      "purpose": "Analyze competing hypotheses or a difficult reasoning chain.",
+      "conditions": [],
+      "risk_route": "deep-analysis",
+      "families": {
+        "gpt": {
+          "worker": {
+            "seat": "astra",
+            "effort": "xhigh"
+          }
+        },
+        "claude": {
+          "worker": {
+            "seat": "fable",
+            "effort": "xhigh"
+          }
+        }
+      }
+    },
+    "hard-implementation": {
+      "purpose": "Implement difficult behavior after resolving the design.",
+      "conditions": [],
+      "risk_route": "sensitive-implementation",
+      "families": {
+        "gpt": {
+          "implementer": {
+            "seat": "astra",
+            "effort": "high"
+          },
+          "reviewer": {
+            "seat": "sol",
+            "effort": "high"
+          }
+        },
+        "claude": {
+          "implementer": {
+            "seat": "fable",
+            "effort": "high"
+          },
+          "reviewer": {
+            "seat": "opus",
+            "effort": "high"
+          }
+        }
+      }
+    },
+    "sensitive-implementation": {
+      "purpose": "Lead changes to security, data, concurrency, or public contracts.",
+      "conditions": [
+        "Strong model leads before edits; tests and independent review remain required."
+      ],
+      "risk_route": "sensitive-implementation",
+      "families": {
+        "gpt": {
+          "implementer": {
+            "seat": "astra",
+            "effort": "high"
+          },
+          "reviewer": {
+            "seat": "sol",
+            "effort": "high"
+          }
+        },
+        "claude": {
+          "implementer": {
+            "seat": "fable",
+            "effort": "high"
+          },
+          "reviewer": {
+            "seat": "opus",
+            "effort": "high"
+          }
+        }
+      }
+    },
+    "migration": {
+      "purpose": "Plan and implement a migration with rollback and data checks.",
+      "conditions": [],
+      "risk_route": "migration",
+      "families": {
+        "gpt": {
+          "implementer": {
+            "seat": "astra",
+            "effort": "high"
+          },
+          "reviewer": {
+            "seat": "sol",
+            "effort": "high"
+          }
+        },
+        "claude": {
+          "implementer": {
+            "seat": "fable",
+            "effort": "high"
+          },
+          "reviewer": {
+            "seat": "opus",
+            "effort": "high"
+          }
+        }
+      }
+    },
+    "difficult-implementation": {
+      "purpose": "Escalate a bounded reasoning difficulty after evidence shows a need.",
+      "conditions": [],
+      "risk_route": "difficult-implementation",
+      "families": {
+        "gpt": {
+          "implementer": {
+            "seat": "astra",
+            "effort": "xhigh"
+          },
+          "reviewer": {
+            "seat": "sol",
+            "effort": "high"
+          }
+        },
+        "claude": {
+          "implementer": {
+            "seat": "fable",
+            "effort": "xhigh"
+          },
+          "reviewer": {
+            "seat": "opus",
+            "effort": "high"
+          }
+        }
+      }
+    },
+    "isolated-deep-implementation": {
+      "purpose": "Candidate for a difficult but isolated algorithm.",
+      "conditions": [
+        "Do not select for unclear requirements, system behavior, or hidden dependencies."
+      ],
+      "risk_route": "difficult-implementation",
+      "families": {
+        "gpt": {
+          "implementer": {
+            "seat": "luna",
+            "effort": "xhigh"
+          },
+          "reviewer": {
+            "seat": "astra",
+            "effort": "high"
+          }
+        },
+        "claude": {
+          "implementer": {
+            "seat": "sonnet",
+            "effort": "xhigh"
+          },
+          "reviewer": {
+            "seat": "fable",
+            "effort": "high"
+          }
+        }
+      }
+    },
+    "broad-review": {
+      "purpose": "Review behavior, interfaces, tests, and missing requirements.",
+      "conditions": [],
+      "risk_route": "deep-review",
+      "families": {
+        "gpt": {
+          "reviewer": {
+            "seat": "astra",
+            "effort": "high"
+          }
+        },
+        "claude": {
+          "reviewer": {
+            "seat": "fable",
+            "effort": "high"
+          }
+        }
+      }
+    },
+    "independent-review": {
+      "purpose": "Review work produced by the family lead.",
+      "conditions": [],
+      "risk_route": "deep-review",
+      "families": {
+        "gpt": {
+          "reviewer": {
+            "seat": "sol",
+            "effort": "high"
+          }
+        },
+        "claude": {
+          "reviewer": {
+            "seat": "opus",
+            "effort": "high"
+          }
+        }
+      }
+    },
+    "precision-review": {
+      "purpose": "Review subtle semantics and counterexamples.",
+      "conditions": [],
+      "risk_route": "deep-review",
+      "families": {
+        "gpt": {
+          "reviewer": {
+            "seat": "astra",
+            "effort": "high"
+          }
+        },
+        "claude": {
+          "reviewer": {
+            "seat": "opus",
+            "effort": "high"
+          }
+        }
+      }
+    },
+    "deep-review": {
+      "purpose": "Review difficult semantics, concurrency, or integration.",
+      "conditions": [],
+      "risk_route": "deep-review",
+      "families": {
+        "gpt": {
+          "reviewer": {
+            "seat": "astra",
+            "effort": "xhigh"
+          }
+        },
+        "claude": {
+          "reviewer": {
+            "seat": "fable",
+            "effort": "xhigh"
+          }
+        }
+      }
+    },
+    "design-review": {
+      "purpose": "Review design assumptions and tradeoffs.",
+      "conditions": [
+        "Does not replace code review when code is in scope."
+      ],
+      "risk_route": "design-review",
+      "families": {
+        "gpt": {
+          "reviewer": {
+            "seat": "astra",
+            "effort": "high"
+          }
+        },
+        "claude": {
+          "reviewer": {
+            "seat": "fable",
+            "effort": "high"
+          }
+        }
+      }
+    },
+    "security-review": {
+      "purpose": "Review attack surface, authorization, and exploitability.",
+      "conditions": [
+        "Use relevant scans and reproduce claimed defects."
+      ],
+      "risk_route": "security-review",
+      "families": {
+        "gpt": {
+          "reviewer": {
+            "seat": "astra",
+            "effort": "xhigh"
+          }
+        },
+        "claude": {
+          "reviewer": {
+            "seat": "fable",
+            "effort": "xhigh"
+          }
+        }
+      }
+    },
+    "exhaustive-analysis": {
+      "purpose": "Exceptional reasoning after a measured gap at lower effort.",
+      "conditions": [
+        "Record the unresolved question and evidence justifying additional effort."
+      ],
+      "risk_route": "exhaustive-analysis",
+      "families": {
+        "gpt": {
+          "worker": {
+            "seat": "astra",
+            "effort": "max"
+          }
+        },
+        "claude": {
+          "worker": {
+            "seat": "fable",
+            "effort": "max"
+          }
+        }
+      }
+    },
+    "interview-product": {
+      "purpose": "Interview unclear user or product requirements.",
+      "conditions": [],
+      "risk_route": "interview-product",
+      "families": {
+        "mixed": {
+          "interviewer": {
+            "seat": "fable",
+            "effort": "high"
+          },
+          "respondent": {
+            "seat": "astra",
+            "effort": "medium"
+          }
+        },
+        "gpt": {
+          "interviewer": {
+            "seat": "astra",
+            "effort": "high"
+          },
+          "respondent": {
+            "seat": "sol",
+            "effort": "medium"
+          }
+        },
+        "claude": {
+          "interviewer": {
+            "seat": "fable",
+            "effort": "high"
+          },
+          "respondent": {
+            "seat": "opus",
+            "effort": "medium"
+          }
+        }
+      }
+    },
+    "interview-technical": {
+      "purpose": "Interview explicit technical requirements.",
+      "conditions": [],
+      "risk_route": "interview-technical",
+      "families": {
+        "mixed": {
+          "interviewer": {
+            "seat": "astra",
+            "effort": "high"
+          },
+          "respondent": {
+            "seat": "fable",
+            "effort": "medium"
+          }
+        },
+        "gpt": {
+          "interviewer": {
+            "seat": "astra",
+            "effort": "high"
+          },
+          "respondent": {
+            "seat": "sol",
+            "effort": "medium"
+          }
+        },
+        "claude": {
+          "interviewer": {
+            "seat": "fable",
+            "effort": "high"
+          },
+          "respondent": {
+            "seat": "opus",
+            "effort": "medium"
+          }
+        }
+      }
+    }
+  },
+  "councils": {
+    "technical": {
+      "openings": [
+        {
+          "route": "technical-analysis",
+          "family": "gpt",
+          "role": "worker"
+        },
+        {
+          "route": "technical-analysis",
+          "family": "claude",
+          "role": "worker"
+        },
+        {
+          "route": "precision-review",
+          "family": "claude",
+          "role": "reviewer"
+        }
+      ],
+      "organizer": {
+        "route": "technical-analysis",
+        "family": "gpt",
+        "role": "worker"
+      },
+      "judges": [
+        {
+          "route": "broad-review",
+          "family": "claude",
+          "role": "reviewer"
+        },
+        {
+          "route": "precision-review",
+          "family": "claude",
+          "role": "reviewer"
+        }
+      ],
+      "synthesis": {
+        "route": "technical-analysis",
+        "family": "gpt",
+        "role": "worker"
+      }
+    },
+    "analysis": {
+      "openings": [
+        {
+          "route": "architecture",
+          "family": "gpt",
+          "role": "worker"
+        },
+        {
+          "route": "architecture",
+          "family": "claude",
+          "role": "worker"
+        },
+        {
+          "route": "precision-review",
+          "family": "claude",
+          "role": "reviewer"
+        }
+      ],
+      "organizer": {
+        "route": "architecture",
+        "family": "claude",
+        "role": "worker"
+      },
+      "judges": [
+        {
+          "route": "broad-review",
+          "family": "gpt",
+          "role": "reviewer"
+        },
+        {
+          "route": "precision-review",
+          "family": "claude",
+          "role": "reviewer"
+        }
+      ],
+      "synthesis": {
+        "route": "architecture",
+        "family": "claude",
+        "role": "worker"
+      }
+    },
+    "routine": {
+      "openings": [
+        {
+          "route": "routine-function",
+          "family": "gpt",
+          "role": "implementer"
+        },
+        {
+          "route": "technical-analysis",
+          "family": "gpt",
+          "role": "worker"
+        },
+        {
+          "route": "architecture",
+          "family": "claude",
+          "role": "worker"
+        }
+      ],
+      "organizer": {
+        "route": "technical-analysis",
+        "family": "gpt",
+        "role": "worker"
+      },
+      "judges": [
+        {
+          "route": "broad-review",
+          "family": "claude",
+          "role": "reviewer"
+        },
+        {
+          "route": "precision-review",
+          "family": "claude",
+          "role": "reviewer"
+        }
+      ],
+      "synthesis": {
+        "route": "technical-analysis",
+        "family": "gpt",
+        "role": "worker"
+      }
+    },
+    "security": {
+      "openings": [
+        {
+          "route": "security-review",
+          "family": "gpt",
+          "role": "reviewer"
+        },
+        {
+          "route": "security-review",
+          "family": "claude",
+          "role": "reviewer"
+        },
+        {
+          "route": "precision-review",
+          "family": "claude",
+          "role": "reviewer"
+        }
+      ],
+      "organizer": {
+        "route": "technical-analysis",
+        "family": "gpt",
+        "role": "worker"
+      },
+      "judges": [
+        {
+          "route": "broad-review",
+          "family": "claude",
+          "role": "reviewer"
+        },
+        {
+          "route": "precision-review",
+          "family": "claude",
+          "role": "reviewer"
+        }
+      ],
+      "synthesis": {
+        "route": "technical-analysis",
+        "family": "gpt",
+        "role": "worker"
+      }
+    }
+  },
+  "conditional_models": {
+    "security_specialist": {
+      "model": null,
+      "effort": null,
+      "available": false,
+      "reason": "Exact identity, account access, effort, and tools must be verified before registration. Use the security-review route when no specialist is approved."
+    }
+  },
+  "discovery_presets": {
+    "light": [
+      "kimi",
+      "glm"
+    ]
+  }
+}

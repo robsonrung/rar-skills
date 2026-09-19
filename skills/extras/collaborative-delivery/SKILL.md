@@ -6,6 +6,10 @@ disable-model-invocation: true
 
 # Collaborative Delivery
 
+Model IDs, effort support, and task defaults come only from
+`shared/model-routing.json`. Resolve the relevant route before preview or
+approval; preserve the exact saved route during dispatch, retry, and resume.
+
 Use this only after an approved task plan exists and a panel audit trail is required. It is intentionally more expensive than the normal implementation path. The panel is mandatory once this skill is chosen.
 
 Read `shared/collaborative-panel-runner.md` and

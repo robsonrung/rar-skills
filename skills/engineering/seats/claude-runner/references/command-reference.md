@@ -2,6 +2,10 @@
 
 Load the section needed for the selected operation. Prose paths resolve from the loaded skill root. Command examples using `.agents/skills/` assume a flat installation; substitute the actual loaded skill path in other layouts.
 
+Model and reasoning defaults are read from `shared/model-routing.json`.
+Use the approved route values in placeholders below; `--help` shows the current
+adapter choices.
+
 ## Usage
 
 ```bash
@@ -19,14 +23,14 @@ Use `--working-dir` when the prompt depends on package-local files or generated 
 | `--working-dir`, `-w` | Working directory | Current dir |
 | `--json`, `-j` | Wrap runner output in a JSON envelope | False |
 | `--prompt-file` | Read prompt content from a file; may be repeated | None |
-| `--model`, `-m` | Claude model alias (`fable`, `opus`, `sonnet`) or a full model id. The canonical pins live in `shared/references/model-roster.md`. Approved routes use the pinned id so a model change cannot be silent. | CLI default |
+| `--model`, `-m` | Exact approved model or supported alias from the central configuration. | Configured adapter default |
 | `--output-format`, `-o` | Claude print-mode output format: `text`, `json`, or `stream-json` | `text` |
 | `--safe` | Informational no-op; permission checks are always enabled whether or not the flag is passed | True |
 | `--bare` | Use Claude bare mode for faster startup and fewer implicit context sources | False |
 | `--no-session-persistence` | Do not persist Claude session files to disk | False |
 | `--restrict-tools` | Use Claude planning mode (read-only) | True for analysis roles |
 | `--allow-write` | Opt an analysis role out of the default planning mode | False |
-| `--effort`, `-e` | Claude effort level: `low`, `medium`, `high`, `xhigh`, `max` | CLI default |
+| `--effort`, `-e` | Reasoning selection from the central configuration; `--help` lists accepted values. Approved routes reject unsupported selections. | Configured adapter default |
 | `--role` | Apply a role overlay | None |
 | `--resume SESSION_ID` | Natively resume a Claude session by id | None |
 | `--continue` | Resume the most recent Claude conversation; only safe for one non-concurrent role | False |
@@ -45,7 +49,7 @@ python3 .agents/skills/claude-runner/scripts/run_claude.py "Compare two implemen
 python3 .agents/skills/claude-runner/scripts/run_claude.py --prompt-file .ai-workflow/prompts/overlay.md --prompt-file .ai-workflow/prompts/brief.md --role codereviewer --model opus
 python3 .agents/skills/claude-runner/scripts/run_claude.py "Read-only architecture review" --restrict-tools --bare --no-session-persistence
 python3 .agents/skills/claude-runner/scripts/run_claude.py "Continue from the accepted report" --role implementer --session-file .ai-workflow/consensus/feature-x.md
-python3 .agents/skills/claude-runner/scripts/run_claude.py "Deep audit of the auth module" --role codereviewer --effort high --output-format json --json
+python3 .agents/skills/claude-runner/scripts/run_claude.py "Deep audit of the auth module" --role codereviewer --effort '<approved-effort>' --output-format json --json
 python3 .agents/skills/claude-runner/scripts/run_claude.py --resume 1f2e3d4c-... "Apply the top recommendation" --role implementer --allow-write
 python3 .agents/skills/claude-runner/scripts/run_claude.py "Investigate the flaky test" --output-format json --background
 ```

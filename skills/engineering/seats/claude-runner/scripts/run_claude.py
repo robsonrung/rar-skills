@@ -39,6 +39,11 @@ if str(_SHARED_SCRIPTS) not in sys.path:
     sys.path.insert(0, str(_SHARED_SCRIPTS))
 
 from model_receipt import attach_model_receipt
+from model_routing import default_model, load_config, runner_efforts
+
+ROUTING_CONFIG = load_config()
+DEFAULT_MODEL = default_model("claude", ROUTING_CONFIG)
+DEFAULT_EFFORT = ROUTING_CONFIG["runners"]["claude"]["default_effort"]
 
 ROLE_INSTRUCTIONS = {
     "planner": "Act as a planning specialist. Break work into phases, call out risks, and keep the output actionable.",
@@ -53,7 +58,7 @@ ROLE_INSTRUCTIONS = {
 # Roles that modify the workspace; every other role defaults to restricted (plan) mode.
 WRITE_ROLES = {"implementer"}
 
-EFFORT_LEVELS = ("low", "medium", "high", "xhigh", "max")
+EFFORT_LEVELS = runner_efforts("claude", accepted=True, config=ROUTING_CONFIG)
 
 
 PROVIDER_BY_RUNNER = {
@@ -72,7 +77,7 @@ PROVIDER_BY_RUNNER = {
 def normalize_envelope(
     result: dict[str, Any],
     requested_runner: str,
-    requested_model: str | None = None,
+    requested_model: str | None = DEFAULT_MODEL,
 ) -> dict[str, Any]:
     effective_runner = str(
         result.get("effective_runner") or result.get("runner") or requested_runner
@@ -381,7 +386,7 @@ def _run_claude(
     prompt: str,
     timeout: int = 3600,
     working_dir: str | None = None,
-    model: str | None = None,
+    model: str | None = DEFAULT_MODEL,
     safe_mode: bool = True,
     prompt_files: list[str] | None = None,
     role: str | None = None,
@@ -392,7 +397,7 @@ def _run_claude(
     no_session_persistence: bool = False,
     restrict_tools: bool = False,
     allow_write: bool = False,
-    effort: str | None = None,
+    effort: str | None = DEFAULT_EFFORT,
     resume: str | None = None,
     continue_last: bool = False,
     disable_fallback: bool = False,
@@ -509,9 +514,8 @@ def _run_claude(
 
     if shutil.which("claude") is None:
         if not disable_fallback:
-            fallback_script = (
-                _skill_dir("codex-runner") / "scripts" / "run_codex.py"
-            )
+            fallback_runner = ROUTING_CONFIG["runners"]["claude"]["fallback_runner"]
+            fallback_script = _skill_dir(f"{fallback_runner}-runner") / "scripts" / f"run_{fallback_runner}.py"
             if fallback_script.is_file():
                 fallback_result = invoke_fallback(
                     fallback_script,
@@ -636,7 +640,7 @@ Examples:
   %(prog)s "What is 2+2?"
   %(prog)s "List Python files" --working-dir /path/to/project
   %(prog)s "Explain this code" --json --timeout 3600
-  %(prog)s "Summarize this repo" --model claude-sonnet-5
+  %(prog)s "Summarize this repo" --model <approved-model>
   %(prog)s "Review this code"
         """,
     )
@@ -679,8 +683,8 @@ Examples:
         "--model",
         "-m",
         type=str,
-        default=None,
-        help="Claude model alias ('fable', 'opus', 'sonnet') or a full model id; approved routes use the pin in shared/references/model-roster.md",
+        default=DEFAULT_MODEL,
+        help="Claude model alias ('fable', 'opus', 'sonnet') or a full model id; approved routes use the pin in shared/model-routing.json",
     )
     parser.add_argument(
         "--output-format",
@@ -722,7 +726,7 @@ Examples:
         "-e",
         type=str,
         choices=EFFORT_LEVELS,
-        default=None,
+        default=DEFAULT_EFFORT,
         help="Claude effort level override",
     )
     parser.add_argument(

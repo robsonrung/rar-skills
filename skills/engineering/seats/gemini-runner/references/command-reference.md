@@ -2,6 +2,10 @@
 
 Load the section needed for the selected operation. Prose paths resolve from the loaded skill root. Command examples using `.agents/skills/` assume a flat installation; substitute the actual loaded skill path in other layouts.
 
+Model and reasoning defaults are read from `shared/model-routing.json`.
+Use the approved route values in placeholders below; `--help` shows the current
+adapter choices.
+
 ## Usage
 
 ```bash
@@ -20,7 +24,7 @@ source checkout, invoke
 | `--timeout`, `-t` | Maximum execution time in seconds | 3600 |
 | `--working-dir`, `-w` | Working directory | Current directory |
 | `--json`, `-j` | Wrap runner output in JSON | False |
-| `--model`, `-m` | Compatibility request label. `agy` uses its configured model from `/model` or settings. The wrapper does not forward this option, so it remains unverified unless a native receipt identifies the serving model. | `gemini-3.8-flash` |
+| `--model`, `-m` | Compatibility request label from the central configuration. The adapter uses its own model settings and does not forward this flag. | Configured adapter default |
 | `--output-format`, `-o` | Response format hint: `text`, `json`, or `stream-json`. **Advisory only** — `agy` print mode has no output-format launch flag, so the wrapper just asks the model for the format in the prompt. For `json` it does a best-effort fence-strip and reports `output_json_valid`; it does not guarantee or re-shape the output. | `text` |
 | `--prompt-file` | Read the prompt from a file (repeatable; files are concatenated in order) | None |
 | `--role` | Apply a role overlay | None |

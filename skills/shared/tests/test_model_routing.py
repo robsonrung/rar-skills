@@ -12,6 +12,8 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT / "shared" / "scripts"))
 from skill_paths import skill_dir  # noqa: E402
+import model_routing
+import discover_runners
 
 LAUNCH_PATH = REPO_ROOT / "engineering" / "engine" / "implement-and-review" / "scripts" / "launch.py"
 LAUNCH_SPEC = importlib.util.spec_from_file_location("model_routing_launch", LAUNCH_PATH)
@@ -32,20 +34,21 @@ class ModelRoutingContractTests(unittest.TestCase):
         return P(path).read_text(encoding="utf-8")
 
     def test_frontier_roster_has_astra_and_fable(self):
+        config = model_routing.load_config()
+        self.assertEqual(config["models"]["astra"]["model"], "gpt-6-astra")
+        self.assertEqual(config["models"]["fable"]["model"], "claude-fable-5-1")
         roster = self.read("shared/references/model-roster.md")
-        self.assertIn("| astra |", roster)
-        self.assertIn("gpt-6-astra", roster)
-        self.assertIn("| fable |", roster)
-        self.assertIn("claude-fable-5-1", roster)
+        self.assertIn("model-routing.json", roster)
         self.assertIn("effective_model", roster)
         self.assertIn("not a benchmark ranking", roster)
 
     def test_task_routing_names_current_quality_defaults_and_native_contract(self):
         routing = self.read("shared/references/task-shaped-model-routing.md")
         self.assertIn("host-model-execution.md", routing)
-        self.assertIn("Terra `medium`", routing)
-        self.assertIn("Astra `high`", routing)
-        self.assertIn("Opus `xhigh`", routing)
+        self.assertIn("model-routing.json", routing)
+        roles = model_routing.resolve_route("routine-function", "gpt")["roles"]
+        self.assertEqual((roles["implementer"]["seat"], roles["implementer"]["effort"]), ("terra", "medium"))
+        self.assertEqual((roles["reviewer"]["seat"], roles["reviewer"]["effort"]), ("astra", "high"))
 
     def test_routing_plan_binds_approval_scope_and_routes(self):
         schema = json.loads(
@@ -161,20 +164,21 @@ class ModelRoutingContractTests(unittest.TestCase):
         )
 
     def test_frontier_seats_are_opt_in_transport_probes(self):
-        discovery = self.read("shared/scripts/discover_runners.py")
-        self.assertIn('seat="astra"', discovery)
-        self.assertIn('seat="fable"', discovery)
-        self.assertIn('tier="frontier"', discovery)
-        self.assertIn("only a verified model receipt can confirm", discovery)
-        self.assertIn('"codex": "astra"', discovery)
+        specs = {spec.seat: spec for spec in discover_runners.SEAT_SPECS}
+        self.assertEqual(specs["astra"].tier, "frontier")
+        self.assertEqual(specs["fable"].tier, "frontier")
+        self.assertNotIn("astra", [spec.seat for spec in discover_runners.filter_specs(None)])
+        self.assertEqual(discover_runners.SEAT_IDENTITIES["codex"], "astra")
 
     def test_codex_runner_uses_astra_and_records_clamps(self):
+        spec = importlib.util.spec_from_file_location("routing_worker", P("codex-runner/scripts/run_codex.py"))
+        worker = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(worker)
+        self.assertEqual(worker.DEFAULT_MODEL, model_routing.default_model("codex"))
+        self.assertEqual(worker.resolve_model("codex"), worker.resolve_model("astra"))
+        self.assertEqual(worker.resolve_effort(worker.resolve_model("astra"), "ultra"), "ultra")
+        self.assertEqual(worker.resolve_effort(worker.resolve_model("luna"), "ultra"), "max")
         runner = self.read("codex-runner/scripts/run_codex.py")
-        self.assertIn('DEFAULT_MODEL = "gpt-6-astra"', runner)
-        self.assertIn('"astra": "gpt-6-astra"', runner)
-        self.assertIn('"codex": "gpt-6-astra"', runner)
-        self.assertNotIn('"codex": "gpt-5.3-codex"', runner)
-        self.assertIn('"ultra"', runner)
         self.assertIn('"requested_effort": effort', runner)
         self.assertIn('"effort_clamped": effort is not None', runner)
 
@@ -190,17 +194,22 @@ class ModelRoutingContractTests(unittest.TestCase):
     def test_diverse_plan_uses_shared_task_routing(self):
         text = self.read("diverse-plan/SKILL.md")
         self.assertIn("task-shaped-model-routing.md", text)
-        self.assertIn("Astra", text)
-        self.assertIn("Fable", text)
+        self.assertIn("shared/model-routing.json", text)
+        self.assertIn("deep-analysis", text)
         self.assertNotIn("Synthesize and enrich (Opus seat)", text)
 
     def test_collaborative_delivery_uses_persistent_exact_routes(self):
-        routing = self.read("collaborative-delivery/assets/routing.toml")
+        import tomllib
+        raw = tomllib.loads(self.read("collaborative-delivery/assets/routing.toml"))
+        resolved = model_routing.resolve_panel_providers(raw)
+        primary = resolved["providers"]["synthesis_anchor"]
+        reviewer = resolved["providers"]["adversarial_anchor"]
+        self.assertNotEqual(primary["model"], reviewer["model"])
+        self.assertEqual(primary["effort_control"], "native")
+        self.assertEqual(reviewer["effort_control"], "runner")
+        for provider in resolved["providers"].values():
+            self.assertEqual(provider["session_policy"], "per-role-persistent")
         workflow = self.read("collaborative-delivery/SKILL.md")
-        self.assertIn('model = "gpt-6-astra"', routing)
-        self.assertIn('model = "claude-opus-5"', routing)
-        self.assertIn('effort_control = "native"', routing)
-        self.assertIn('session_policy = "per-role-persistent"', routing)
         self.assertIn("exact model", workflow)
         self.assertIn("persistent native", workflow)
 
@@ -212,7 +221,8 @@ class ModelRoutingContractTests(unittest.TestCase):
         implementation = self.read("implement-tasks/SKILL.md")
         council = self.read("models-consensus/SKILL.md")
         self.assertIn("seats:", example)
-        self.assertIn("models: {}", example)
+        self.assertNotIn("models:", example)
+        self.assertIn("model-routing.json", example)
         self.assertNotIn("work_engine_preferences", example)
         self.assertNotIn("runner_base_path", example)
         self.assertNotIn("quorum:", example)

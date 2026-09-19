@@ -88,7 +88,7 @@ python3 .agents/skills/shared/scripts/discover_runners.py probe --native-agent n
 ```
 
 The current model identifiers are in
-`.agents/skills/shared/references/model-roster.md`. The task-shaped selection
+`.agents/skills/shared/model-routing.json`. The task-shaped selection
 rules are in `.agents/skills/shared/references/task-shaped-model-routing.md`.
 Do not copy model identifiers into an OpenHands prompt or configuration file.
 A successful probe confirms only that a transport may start. The serving-model

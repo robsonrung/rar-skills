@@ -5,9 +5,13 @@ description: Implement and review one approved coding task through exact model r
 
 # Implement And Review
 
+Model IDs, effort support, and task defaults come only from
+`shared/model-routing.json`. Resolve the relevant route before preview or
+approval; preserve the exact saved route during dispatch, retry, and resume.
+
 Build one task to its **acceptance contract** with the exact approved implementation and review routes. The next consumer is `implement-tasks` or the user. A worker result is evidence for integration. It must not mark a task queue complete. The parent marks a task complete only after integration checks pass with no unresolved acceptance or blocking defect.
 
-The routing plan is a binding record, not a suggestion. It selects the implementation and independent review model, effort, native or runner execution, and any approved fallback. Read `shared/references/implementation-routing-plan.schema.json`, `shared/references/task-shaped-model-routing.md`, and `shared/references/host-model-execution.md` before dispatching work. Use the task defaults in the shared table; do not infer model quality from the current host or an old implementation/review pair.
+The routing plan is a binding record, not a suggestion. It selects the implementation and independent review model, effort, native or runner execution, and any approved fallback. Read `shared/references/implementation-routing-plan.schema.json`, `shared/references/task-shaped-model-routing.md`, and `shared/references/host-model-execution.md` before dispatching work. Use the task defaults in the central configuration; do not infer model quality from the current host or an old implementation/review pair.
 
 ## Authority
 

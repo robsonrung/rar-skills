@@ -6,6 +6,10 @@ disable-model-invocation: true
 
 # Interview Me
 
+Model IDs, effort support, and task defaults come only from
+`shared/model-routing.json`. Resolve the relevant route before preview or
+approval; preserve the exact saved route during dispatch, retry, and resume.
+
 Turn a raw request into a **spec-ready** decision record that `to-prd` can turn into a PRD without reopening requirements. A material decision is spec-ready only when it is confirmed, settled by supplied scope and evidence in `--auto` mode, or out of scope. An explicit default is allowed only for a nonmaterial uncertainty.
 
 ## Boundary

@@ -2,6 +2,10 @@
 
 Load the section needed for the selected operation. Prose paths resolve from the loaded skill root. Command examples using `.agents/skills/` assume a flat installation; substitute the actual loaded skill path in other layouts.
 
+Model and reasoning defaults are read from `shared/model-routing.json`.
+Use the approved route values in placeholders below; `--help` shows the current
+adapter choices.
+
 ## Usage
 
 ```bash
@@ -24,8 +28,8 @@ Before composing non-trivial prompts (reviews, implementations, research seats),
 | `--timeout`, `-t` | Timeout in seconds | 3600 |
 | `--working-dir`, `-w` | Working directory | Current dir |
 | `--json`, `-j` | Wrap runner output in JSON | False |
-| `--model`, `-m` | Model. Default `gpt-6-astra`. Aliases: `astra`/`codex` -> `gpt-6-astra`; `sol` -> `gpt-5.6-sol`; `terra`/`codex-code` -> `gpt-5.6-terra`; `luna` -> `gpt-5.6-luna`; `spark` -> `gpt-5.3-codex-spark`. | `gpt-6-astra` |
-| `--effort`, `-e` | Reasoning effort: `none`, `minimal`, `low`, `medium`, `high`, `xhigh`, `max`, or `ultra`. Direct calls clamp an unsupported known value and report `requested_effort`, `effort`, and `effort_clamped`. Approved routing plans validate instead of clamping. | CLI default |
+| `--model`, `-m` | Exact approved model or supported alias from the central configuration. | Configured adapter default |
+| `--effort`, `-e` | Reasoning selection from the central configuration; `--help` lists accepted values. Approved routes reject unsupported selections. | Configured adapter default |
 | `--sandbox`, `-s` | Codex sandbox mode override | CLI default |
 | `--restrict-tools` | Force `--sandbox read-only` | True for analysis roles |
 | `--allow-write` | Opt an analysis role out of the read-only default | False |
@@ -55,7 +59,7 @@ When `--json` and `--output-file` are combined, stdout becomes a compact pointer
 python3 .agents/skills/codex-runner/scripts/run_codex.py "Explain this module"
 python3 .agents/skills/codex-runner/scripts/run_codex.py "Review the staged diff" --role codereviewer
 python3 .agents/skills/codex-runner/scripts/run_codex.py --prompt-file .ai-workflow/prompts/review.md --role challenger --ephemeral
-python3 .agents/skills/codex-runner/scripts/run_codex.py "Audit the auth module" --effort high --json --output-file .ai-workflow/runs/codex-audit.json
+python3 .agents/skills/codex-runner/scripts/run_codex.py "Audit the auth module" --effort '<approved-effort>' --json --output-file .ai-workflow/runs/codex-audit.json
 python3 .agents/skills/codex-runner/scripts/run_codex.py "Fix it quickly" --model spark --role implementer
 python3 .agents/skills/codex-runner/scripts/run_codex.py --resume-last "Apply the top recommendation" --role implementer --full-auto
 python3 .agents/skills/codex-runner/scripts/run_codex.py "Investigate the flaky integration test" --background

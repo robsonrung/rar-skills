@@ -25,29 +25,6 @@ SKILL_ROOT = Path(__file__).resolve().parents[1]
 JOB_ID_RE = re.compile(r"\b([a-z]+-[0-9a-f]{8})\b")
 RUNNERS = {"codex", "claude", "pi", "grok", "gemini", "cline"}
 NATIVE_TRANSPORTS = {"subagent", "thread"}
-EFFORT_FLAGS = {
-    "codex": "--effort",
-    "claude": "--effort",
-    "grok": "--effort",
-    "pi": "--thinking",
-    "cline": "--thinking",
-}
-RUNNER_CONTROLLED_EFFORTS = {"low", "medium", "high", "xhigh", "max", "ultra"}
-RUNNER_EFFORTS = {
-    "claude": {"low", "medium", "high", "xhigh", "max"},
-    "grok": {"low", "medium", "high"},
-    "pi": {"low", "medium", "high", "xhigh"},
-    "cline": {"low", "medium", "high", "xhigh"},
-}
-CODEX_MODEL_EFFORTS = {
-    "gpt-6-astra": {"low", "medium", "high", "xhigh", "max", "ultra"},
-    "gpt-5.6-sol": {"low", "medium", "high", "xhigh", "max", "ultra"},
-    "gpt-5.6-terra": {"low", "medium", "high", "xhigh", "max", "ultra"},
-    "gpt-5.6-luna": {"low", "medium", "high", "xhigh", "max"},
-    "gpt-5.5": {"low", "medium", "high", "xhigh"},
-    "gpt-5.4-mini": {"low", "medium", "high", "xhigh"},
-    "gpt-5.3-codex-spark": {"low", "medium", "high", "xhigh"},
-}
 RUNNER_RESUME_FLAGS = {
     "codex": "--resume",
     "claude": "--resume",
@@ -87,6 +64,17 @@ def _skills_dir() -> Path:
 
 SKILLS_DIR = _skills_dir()
 JOBS_CLI = SKILLS_DIR / "shared" / "scripts" / "runner_jobs.py"
+_SHARED_SCRIPTS = str(SKILLS_DIR / "shared" / "scripts")
+if _SHARED_SCRIPTS not in sys.path:
+    sys.path.insert(0, _SHARED_SCRIPTS)
+from model_routing import load_config, model_efforts, runner_efforts, validate_selection
+
+ROUTING_CONFIG = load_config()
+EFFORT_FLAGS = {name: value["effort_flag"] for name, value in ROUTING_CONFIG["runners"].items() if value["effort_flag"]}
+RUNNER_CONTROLLED_EFFORTS = set(ROUTING_CONFIG["effort_levels"])
+RUNNER_EFFORTS = {name: set(runner_efforts(name, config=ROUTING_CONFIG)) for name in EFFORT_FLAGS}
+CODEX_MODEL_EFFORTS = model_efforts("codex", ROUTING_CONFIG)
+
 
 
 def evidence_module():
@@ -288,18 +276,7 @@ def validate_route(route: Any) -> dict[str, Any]:
     if effort_control == "runner":
         if route["runner"] not in EFFORT_FLAGS:
             raise ValueError(f"route.runner {route['runner']!r} cannot enforce a selected effort")
-        if effort not in RUNNER_CONTROLLED_EFFORTS:
-            raise ValueError("route.effort must be low, medium, high, xhigh, max, or ultra when effort_control is runner")
-        if route["runner"] == "codex":
-            supported = CODEX_MODEL_EFFORTS.get(route["model"])
-            if supported is None:
-                raise ValueError(f"route.model {route['model']!r} has no known codex effort capability")
-        else:
-            supported = RUNNER_EFFORTS[route["runner"]]
-        if effort not in supported:
-            raise ValueError(
-                f"route.effort {effort!r} is not supported by {route['runner']}/{route['model']}"
-            )
+        validate_selection(route["runner"], route["model"], effort, ROUTING_CONFIG)
     elif effort_control == "runtime":
         if route["mode"] != "runner" or route["runner"] != "gemini":
             raise ValueError("runtime controlled effort is only valid for a gemini runner route")

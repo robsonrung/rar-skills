@@ -11,6 +11,10 @@ allowed-tools:
 
 # Full Review
 
+Model IDs, effort support, and task defaults come only from
+`shared/model-routing.json`. Resolve the relevant route before preview or
+approval; preserve the exact saved route during dispatch, retry, and resume.
+
 Review the risks that a focused implementation pass cannot see. The result is a precise, evidence-backed verdict. The next consumer is the author or delivery workflow. A review is complete when its scope, evidence, findings, verification limits, and verdict are explicit.
 
 ## Review plan

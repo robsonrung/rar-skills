@@ -9,7 +9,7 @@ one. The routing rules live in
 [`workflow-stage-routing.md`](../skills/shared/references/workflow-stage-routing.md).
 Current model and effort choices live in
 [`task-shaped-model-routing.md`](../skills/shared/references/task-shaped-model-routing.md)
-and [`model-roster.md`](../skills/shared/references/model-roster.md). Native
+and the single [`model-routing.json`](../skills/shared/model-routing.json) configuration. Native
 delegation and session rules live in
 [`host-model-execution.md`](../skills/shared/references/host-model-execution.md).
 
@@ -26,9 +26,8 @@ It records settled decisions, assumptions, exclusions, security decisions, and
 observable success conditions in `.ai-workflow/work/<slug>/decision-record.md`.
 
 With `--auto`, the interview keeps two isolated role contexts through its
-rounds. For an ambiguous user or product problem, Fable at `max` is the
-interviewer and Astra at `max` is the respondent. For a developer technical
-problem, Astra is the interviewer and Fable is the respondent. The respondent
+rounds. Resolve the product or technical interview roles from
+[`model-routing.json`](../skills/shared/model-routing.json). The respondent
 can investigate evidence and propose alternatives. It cannot invent a material
 user preference, approval, or decision. The interviewer still asks no more than
 five user questions in one turn.

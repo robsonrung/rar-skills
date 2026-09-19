@@ -21,22 +21,14 @@ Read
 before selecting seats. Use the semantic route selected there, not a legacy
 seat name or pinned model id.
 
-For several competing approaches, use Astra at `ultra` for branch exploration
-and Fable at `max` for the independent deep reasoning branch. For an ambiguous
-architecture or design question, Fable at `max` leads the analysis; for a
-developer technical problem, Astra at `max` leads it. Use Opus at supported
-`xhigh` only for a selected precision critique. Do not use Terra or Luna for a
-diverse planning branch.
+Resolve `deep-analysis`, `architecture`, or `technical-analysis` from
+`shared/model-routing.json` for each selected branch. Use `precision-review`
+only when a specific semantic risk needs an independent critique. Branches must
+explore different premises; they must not repeat the same brief at higher effort.
 
-Use two blind branch seats by default. Add a third branch only when a different boundary, failure mode, or delivery tradeoff is still unresolved. Select domain lenses only for surfaces the change touches:
-
-| Need | Route |
-| --- | --- |
-| Competing technical approaches or plan reconciliation | Astra `ultra`, paired with Fable `max` |
-| Ambiguous architecture, research, or trade-off analysis | Fable `max`, paired with Astra `max` when execution details need testing |
-| Focused precision review | Opus at supported `xhigh` only when the route explicitly selects it |
-| Explicit implementation plan and execution gaps | Approved implementation route |
-| Regression, concurrency, security, maintainability, or tests | Matching reviewer route from the shared routing |
+Use two blind branch seats by default. Add a third only when an unresolved
+boundary, failure case, or delivery tradeoff needs a distinct approach. The
+configuration supplies models and effort; this skill supplies the branch protocol.
 
 Resolve the exact native model through the active host first. Start each blind
 branch in its own isolated persistent subagent or supported task context. Use a

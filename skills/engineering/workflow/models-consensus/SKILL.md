@@ -6,6 +6,10 @@ disable-model-invocation: true
 
 # Models Consensus
 
+Model IDs, effort support, and task defaults come only from
+`shared/model-routing.json`. Resolve the relevant route before preview or
+approval; preserve the exact saved route during dispatch, retry, and resume.
+
 Produce a decision report for a user who wants more than one model's opinion. The next consumer is the user. Done means the report names the recommendation, dissent, evidence limits, one next step, configured and observed seats, and receipt limits.
 
 This is a user-controlled, read-only workflow. A council is justified only when the user decides that independent opinions are worth its time and cost.

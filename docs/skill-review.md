@@ -13,7 +13,7 @@ The review covered all 59 executable skills and the shared library. 43 skills or
 2. Interview rounds contain five independent questions when possible, never more. Material decisions cannot be silently settled with defaults.
 3. Broad architecture, domain, topology, UX, and security choices run during discovery only when they change a decision. Task planning selects focused lenses. Implementation reuses their findings and applies practices when their trigger occurs.
 4. Model approval is separate from task approval. The plan binds task inputs, exact model and runner, effort, review assignment, and any approved fallback before execution.
-5. The default implementation/review pair uses Astra and Fable, with direction chosen by the work. Medium effort is the bounded default; complex work uses high. No silent change of model or effort is allowed.
+5. Resolve implementation and independent review roles from `skills/shared/model-routing.json`. Task difficulty, uncertainty, and verification strength determine the route. No silent change of model or effort is allowed.
 6. `models-consensus` is user-invoked only and shows its complete seat, role, effort, and call-budget plan before dispatch.
 7. Removed the separate brainstorm, PRD, and task-planning panel configurations and the two panel-mode references. Explicit extra opinions use the council. Standalone specialist workflows remain optional.
 8. Removed routine user-task creation, host goals, sidebar changes, automatic publication, and mandatory duplicate task/feature review panels. Local verified work is the default deliverable.

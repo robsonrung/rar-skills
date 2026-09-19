@@ -2,6 +2,10 @@
 
 Load the section needed for the selected operation. Prose paths resolve from the loaded skill root. Command examples using `.agents/skills/` assume a flat installation; substitute the actual loaded skill path in other layouts.
 
+Model and reasoning defaults are read from `shared/model-routing.json`.
+Use the approved route values in placeholders below; `--help` shows the current
+adapter choices.
+
 ## Usage
 
 ```bash
@@ -21,10 +25,10 @@ source checkout, invoke
 | `--working-dir`, `-w` | Working directory for execution | Current dir |
 | `--json`, `-j` | Output wrapper results in JSON format | `False` |
 | `--prompt-file` | Read prompt content from a file; repeatable | None |
-| `--model`, `-m` | Cline model id, `provider/model` form | Locally configured default |
+| `--model`, `-m` | Exact approved model or supported alias from the central configuration. | Configured adapter default |
 | `--provider`, `-P` | Cline provider id (native `-P`) | Locally configured default |
 | `--output-format`, `-o` | `text` or `stream-json` (native `--json` on/off) | `stream-json` |
-| `--thinking` | Reasoning effort: `none\|low\|medium\|high\|xhigh` | Provider default |
+| `--thinking` | Reasoning selection from the central configuration; `--help` lists accepted values. Approved routes reject unsupported selections. | Configured adapter default |
 | `--session` | Resume a specific Cline session by id (native `--id`) | None |
 | `--worktree` | Auto-create a detached git worktree under `~/.cline/worktrees/` and run there (native `--worktree`) | `False` |
 | `--data-dir` | Isolated local state directory (native `--data-dir`) — use for automated runs to avoid mutating `~/.cline` | None |
@@ -49,11 +53,11 @@ source checkout, invoke
 
 ```bash
 python3 .agents/skills/cline-runner/scripts/run_cline.py "Summarize the core module architecture"
-python3 .agents/skills/cline-runner/scripts/run_cline.py "Explain this module" --model anthropic/claude-sonnet-5
+python3 .agents/skills/cline-runner/scripts/run_cline.py "Explain this module" --model '<approved-model>'
 python3 .agents/skills/cline-runner/scripts/run_cline.py --prompt-file .ai-workflow/prompts/review.md --role codereviewer
-python3 .agents/skills/cline-runner/scripts/run_cline.py "Implement the accepted fix" --role implementer --model openai/gpt-5.1
+python3 .agents/skills/cline-runner/scripts/run_cline.py "Implement the accepted fix" --role implementer --model '<approved-model>'
 python3 .agents/skills/cline-runner/scripts/run_cline.py "Resume and continue" --session 1782865158637_s2n62
-python3 .agents/skills/cline-runner/scripts/run_cline.py "Run this in CI" --model zai/glm-5.3-flash --data-dir .ai-workflow/cline-state/ci
+python3 .agents/skills/cline-runner/scripts/run_cline.py "Run this in CI" --model '<approved-model>' --data-dir .ai-workflow/cline-state/ci
 python3 .agents/skills/cline-runner/scripts/run_cline.py --seat muse "Review this change" --restrict-tools --json
 ```
 

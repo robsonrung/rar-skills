@@ -5,7 +5,7 @@ This skill is the unit of portability. It must be usable when copied into any `.
 Principles
 
 1. Keep the skill focused on one job.
-2. Keep this skill's routing, contracts, and references inside the skill folder. The panel scripts (`shared/scripts/panel_round.py`, `record_native_response.py`, `validate_artifacts.py`) and the engineering rules (`shared/references/engineering-rules.md`) are shared, single-copy dependencies — do not re-bundle them per skill.
+2. Keep this skill's phase and role template, contracts, and references inside the skill folder. Model and effort values are resolved from `shared/model-routing.json`. The panel scripts (`shared/scripts/panel_round.py`, `record_native_response.py`, `validate_artifacts.py`) and the engineering rules (`shared/references/engineering-rules.md`) are shared, single-copy dependencies — do not re-bundle them per skill.
 3. Treat any top level repository agent profile as optional optimization, never as a required dependency.
 4. Use roles in instructions and routing. Read `shared/references/task-shaped-model-routing.md`, `shared/references/model-roster.md`, and `shared/references/host-model-execution.md` before binding a role to its exact model, effort, and execution path.
 5. Run independent role rounds before reconciliation.

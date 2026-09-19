@@ -38,7 +38,7 @@ Keep permanent project facts, security boundaries, team standards, output schema
 
 - Preserve the source layout, installed names, invocation policy, and useful resources unless changing them is part of the request. Do not edit global installations from a repository-only request.
 - Inspect the affected script or consumer before changing an executable contract. An audit's recommendation is evidence to assess, not a reason to append another rule.
-- Keep exact model choices in the maintained roster and approved run plan. A generic tier or inherited model cannot override a user-approved route.
+- Keep model and effort defaults only in `shared/model-routing.json`; preserve exact choices in each approved run snapshot. A generic tier or inherited model cannot override a user-approved route.
 - Follow the repository's canonical vocabulary and named-concept rules when present. Use a **leitwort** to explain a real decision: "This keeps the acceptance contract while moving the command manual out of the shared budget."
 - Replace obsolete instructions where they live, including affected references and templates. Do not leave a conflicting old workflow behind the new router.
 - Resolve discoverable facts directly. Ask only when a material decision or action lies outside the user's request; proceed with unaffected work.

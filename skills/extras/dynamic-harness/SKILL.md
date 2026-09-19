@@ -6,6 +6,10 @@ disable-model-invocation: true
 
 # Dynamic Harness
 
+Model IDs, effort support, and task defaults come only from
+`shared/model-routing.json`. Resolve the relevant route before preview or
+approval; preserve the exact saved route during dispatch, retry, and resume.
+
 Use this skill for work that benefits from explicit delegation. It is not the default for a normal task. The **smallest coherent shape** is one local worker or one bounded check; add agents only when independent work reduces time or improves evidence.
 
 ## Outcome

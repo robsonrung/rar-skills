@@ -47,7 +47,7 @@ def main() -> int:
     parser.add_argument("-f", "--file", help="file containing the task prompt")
     parser.add_argument("--agent", choices=sorted(AGENTS), default="claude",
                         help="which CLI acts as the agent (default: claude)")
-    parser.add_argument("--model", help="model for the CLI to use, e.g. 'sonnet', 'gpt-5.5'")
+    parser.add_argument("--model", help="exact model from the approved route")
     parser.add_argument("--resume", metavar="CONVERSATION_ID",
                         help="resume a previous conversation")
     parser.add_argument("--keep-api-keys", action="store_true",

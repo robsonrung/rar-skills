@@ -38,6 +38,11 @@ if str(_SHARED_SCRIPTS) not in sys.path:
     sys.path.insert(0, str(_SHARED_SCRIPTS))
 
 from model_receipt import attach_model_receipt
+from model_routing import default_model, load_config, runner_efforts
+
+ROUTING_CONFIG = load_config()
+DEFAULT_MODEL = default_model("grok", ROUTING_CONFIG)
+DEFAULT_EFFORT = ROUTING_CONFIG["runners"]["grok"]["default_effort"]
 from output_contract import validate_output_contract, validate_value
 
 ROLE_INSTRUCTIONS = {
@@ -53,10 +58,9 @@ ROLE_INSTRUCTIONS = {
 # Roles that modify the workspace; every other role defaults to restricted (plan) mode.
 WRITE_ROLES = {"implementer"}
 
-EFFORT_LEVELS = ("low", "medium", "high", "xhigh", "max")
+EFFORT_LEVELS = runner_efforts("grok", accepted=True, config=ROUTING_CONFIG)
 
-# Grok's --reasoning-effort only accepts these; the shared xhigh/max tiers clamp to high.
-GROK_EFFORT_LEVELS = {"low", "medium", "high"}
+GROK_EFFORT_LEVELS = runner_efforts("grok", config=ROUTING_CONFIG)
 
 # Wrapper output-format enum (shared across runners) -> grok CLI --output-format value.
 GROK_OUTPUT_FORMATS = {
@@ -82,7 +86,7 @@ PROVIDER_BY_RUNNER = {
 def normalize_envelope(
     result: dict[str, Any],
     requested_runner: str,
-    requested_model: str | None = None,
+    requested_model: str | None = DEFAULT_MODEL,
 ) -> dict[str, Any]:
     effective_runner = str(
         result.get("effective_runner") or result.get("runner") or requested_runner
@@ -166,12 +170,12 @@ def resolve_restrict_tools(
 
 
 def resolve_grok_effort(effort: str | None) -> tuple[str | None, bool]:
-    """Return (forwarded_effort, clamped). Grok only accepts low/medium/high."""
+    """Return the supported effort and whether the direct call was clamped."""
     if effort is None:
         return None, False
     if effort in GROK_EFFORT_LEVELS:
         return effort, False
-    return "high", True
+    return GROK_EFFORT_LEVELS[-1], True
 
 
 def extract_native_model_id(payload: dict[str, Any]) -> str | None:
@@ -308,7 +312,7 @@ def _run_grok(
     prompt: str,
     timeout: int = 3600,
     working_dir: str | None = None,
-    model: str | None = None,
+    model: str | None = DEFAULT_MODEL,
     prompt_files: list[str] | None = None,
     role: str | None = None,
     session_file: str | None = None,
@@ -316,7 +320,7 @@ def _run_grok(
     output_format: str = "text",
     restrict_tools: bool = False,
     allow_write: bool = False,
-    effort: str | None = None,
+    effort: str | None = DEFAULT_EFFORT,
     resume: str | None = None,
     continue_last: bool = False,
     output_schema: str | None = None,
@@ -538,7 +542,7 @@ Examples:
   %(prog)s "What is 2+2?"
   %(prog)s "List Python files" --working-dir /path/to/project
   %(prog)s "Explain this code" --json --timeout 3600
-  %(prog)s "Review this code" --role codereviewer --effort high
+  %(prog)s "Review this code" --role codereviewer --effort <approved-effort>
   %(prog)s "Answer per schema" --output-schema schema.json --json
         """,
     )
@@ -581,8 +585,8 @@ Examples:
         "--model",
         "-m",
         type=str,
-        default=None,
-        help="Grok model id (default: the grok CLI's default model, grok-4.6)",
+        default=DEFAULT_MODEL,
+        help="Exact model from shared/model-routing.json; omit to use the CLI configuration",
     )
     parser.add_argument(
         "--output-format",
@@ -608,8 +612,8 @@ Examples:
         "-e",
         type=str,
         choices=EFFORT_LEVELS,
-        default=None,
-        help="Reasoning effort; grok accepts low/medium/high, so xhigh/max clamp to high",
+        default=DEFAULT_EFFORT,
+        help="Reasoning effort; direct calls report clamping to the configured adapter limit",
     )
     parser.add_argument(
         "--resume",

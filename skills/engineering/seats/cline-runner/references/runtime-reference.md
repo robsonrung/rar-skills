@@ -4,19 +4,16 @@ Load the section needed for the selected operation. Prose paths resolve from the
 
 ## Named seats
 
-| `--seat` | Pinned model | Envelope |
-| --- | --- | --- |
-| `muse` | `meta/muse-spark-1.3` | `runner=muse`, `effective_runner=cline`, `effective_provider=meta` |
-| `minimax` | `minimax/minimax-m2.7` | `runner=minimax`, `effective_provider=minimax` |
-
-`--seat` pins the seat's model and labels the envelope with the seat name; an explicit `--model` still wins. The pins live in `CLINE_SEATS` in `scripts/run_cline.py`, mirrored by `shared/references/model-roster.md` and the seat table in `shared/scripts/discover_runners.py` — change all three together. Muse access on OpenRouter is limited to users in the United States. Two Cline-backed seats in the same run must each get their own `--data-dir` or `--lane`; Cline state is shared otherwise.
-
+Named seats and their exact model IDs come from `shared/model-routing.json`.
+`--seat` reads a pin and labels the envelope with that seat; an explicit `--model`
+is a per-call selection. Each concurrent run needs its own `--data-dir` or
+`--lane` because the adapter shares mutable state otherwise.
 
 ## Default Model
 
-None forced. Cline uses whichever `provider/model` the local `cline auth` last configured (inspect with `cline config` interactively, or `cat ~/.cline/data/settings/providers.json`). Pass `--model provider/model-id` to pick a specific model for a run — e.g. `--model anthropic/claude-sonnet-5`, `--model openai/gpt-5.1`. Pass `--provider` to select an authenticated provider id (`cline`, `cline-pass`, `openrouter`, or whatever `cline auth` set up) independently of the model string.
+None forced. Cline uses whichever `provider/model` the local `cline auth` last configured (inspect with `cline config` interactively, or `cat ~/.cline/data/settings/providers.json`). Pass `--model provider/model-id` to pick a specific model for a run. Pass `--provider` to select an authenticated provider id (`cline`, `cline-pass`, `openrouter`, or whatever `cline auth` set up) independently of the model string.
 
-**Model ids are catalog-specific per provider.** The vendor prefix in `vendor/model` is each provider's own catalog slug, and providers disagree: OpenRouter lists Z.AI's GLM as `z-ai/glm-5.3-flash`, while the cline gateway lists the same model as `zai/glm-5.3-flash`. An id from the wrong catalog fails the run with a native model-not-found error. Headless runs route through cline's persisted `lastUsedProvider` unless `--provider` overrides it — pick the id that matches the provider that will actually serve the run. Seat shims can pass `main()` a `default_model_by_provider` map to automate this.
+**Model ids are catalog-specific per provider.** The vendor prefix in `vendor/model` is each provider's own catalog slug, and providers can use different vendor prefixes for the same model. An id from the wrong catalog fails the run with a native model-not-found error. Headless runs route through cline's persisted `lastUsedProvider` unless `--provider` overrides it — pick the id that matches the provider that will actually serve the run. Seat shims can pass `main()` a `default_model_by_provider` map to automate this.
 
 
 ## Security Model
@@ -49,7 +46,7 @@ With `--output-file` set, the `--json` stdout pointer is `{success, return_code,
 - **`--model` persists globally.** See Security Model — every `--model` invocation rewrites `~/.cline/data/settings/providers.json` for the requested provider, including on a failed run with an invalid model string. Use `--data-dir` for automated runs to avoid surprising the user's next interactive `cline` session.
 - **Do not share an unisolated Cline state.** Parallel Kimi/GLM calls without lanes can race on provider/model selection. Configure separate, authenticated lane state directories and an appropriate pool limit before parallelizing them.
 - **No session id in the stream.** Cline's `--json` output never includes a `sessionId`/`session_id` field (the `agentId`/`taskId` in `hook_event` lines are different, per-run identifiers, not the resumable session id). The wrapper cross-references `cline history --json` by cwd + start time; this is best-effort and can miss under heavy concurrent use of the same working directory.
-- **Model ids don't transfer between providers.** `z-ai/glm-5.3-flash` (OpenRouter) and `zai/glm-5.3-flash` (cline gateway) are the same model under different catalog slugs; the wrong one fails the run with a native model-not-found error against the serving provider. Check `lastUsedProvider` in `~/.cline/data/settings/providers.json` when a "valid" id mysteriously fails.
+- **Model ids don't transfer between providers.** Different gateways can use different catalog slugs for the same model; the wrong one fails the run with a native model-not-found error against the serving provider. Check `lastUsedProvider` in `~/.cline/data/settings/providers.json` when a "valid" id mysteriously fails.
 - **`--no-tools` fails tool calls, it doesn't skip them.** The model sees an explicit approval error and keeps reasoning — expect it to explain what it couldn't do rather than silently omitting the attempt. This is a real boundary (verified: no hang, no silent bypass). The injected constraint text tells the seat tool calls will fail so it answers from the prompt instead of burning its retry budget hunting for a working tool path — keep prompts for `--no-tools` runs self-contained.
 - **`--output-schema` has two layers.** Cline receives the schema as a prompt because it has no native schema switch; afterward this wrapper validates the final terminal response locally. The model's native exit code alone never makes a schema-invalid answer successful.
 - Cline's non-JSON native error lines (e.g. `hook dispatch failed: ...`) can appear on stderr even for a run whose `agent_message` and `finishReason` are otherwise fine — treat `success`/`finish_reason` as authoritative over stray stderr noise.

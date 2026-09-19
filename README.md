@@ -12,7 +12,7 @@ source for workflow behavior.
 
 | Stage | Output | Main responsibility |
 | --- | --- | --- |
-| `interview-me` | `decision-record.md` | Use relevant repository facts, then ask at most five independent questions in one turn. With `--auto`, keep two isolated role contexts: Fable at `max` interviews and Astra at `max` responds for an ambiguous user or product problem; reverse them for a developer technical problem. The respondent can provide evidence and alternatives, but cannot settle a material user decision. Record settled decisions and scope; the record becomes `ready-for-prd` when the interview closes. |
+| `interview-me` | `decision-record.md` | Use relevant repository facts, then ask at most five independent questions in one turn. With `--auto`, keep two isolated role contexts: resolve the product or technical interview roles from the central routing configuration. The respondent can provide evidence and alternatives, but cannot settle a material user decision. Record settled decisions and scope; the record becomes `ready-for-prd` when the interview closes. |
 | `to-prd` | `prd.md` | Turn a `ready-for-prd` decision record into a draft PRD. The user reviews it before it becomes approved. |
 | `to-tasks` | `tasks-draft.md`, then task slices | Create dependency-aware tasks with acceptance evidence and applicable engineering checks. The user approves the task breakdown before slices become `ready-for-agent`. |
 | `implement-tasks` | Verified local result | Show the proposed roles, exact implementation and review models, execution paths, reasoning effort, and model-verification policy before dispatch. Start work only after the user approves or changes that model plan. |
@@ -147,3 +147,23 @@ with OpenHands.
 ## License
 
 See [LICENSE](LICENSE).
+
+## Model routing
+
+[`skills/shared/model-routing.json`](skills/shared/model-routing.json) is the
+single maintained configuration for model IDs, aliases, reasoning levels,
+runner capabilities, task routes, and council roles. Skills and adapters read
+it; approved run plans preserve exact selections as immutable snapshots.
+
+```bash
+python3 skills/shared/scripts/model_routing.py resolve code-exploration --family gpt
+python3 skills/shared/scripts/model_routing.py resolve routine-implementation --family claude
+python3 skills/shared/scripts/model_routing.py resolve isolated-implementation --family gpt --risk high
+python3 skills/shared/scripts/model_routing.py validate
+```
+
+Resolution is read only. It does not dispatch workers or change an approved plan.
+Bounded tasks use smaller workers with evidence requirements; implementation
+routes include an independent stronger reviewer. Risk and escalation rules stay
+in the same configuration. These are task defaults, not measured savings or a
+guarantee of equal results.

@@ -40,6 +40,10 @@ if str(_SHARED_SCRIPTS) not in sys.path:
     sys.path.insert(0, str(_SHARED_SCRIPTS))
 
 from model_receipt import attach_model_receipt
+from model_routing import default_model, load_config, runner_efforts, seat_models
+
+ROUTING_CONFIG = load_config()
+DEFAULT_EFFORT = ROUTING_CONFIG["runners"]["cline"]["default_effort"]
 from output_contract import validate_output_contract
 
 from cline_lanes import (
@@ -51,18 +55,12 @@ from cline_lanes import (
     load_lane,
 )
 
-DEFAULT_MODEL = None  # None = whatever `cline auth` already configured locally
+DEFAULT_MODEL = default_model("cline", ROUTING_CONFIG)
 DEFAULT_RUNNER = "cline"
 DEFAULT_OUTPUT_FORMAT = "stream-json"
 
-# Named seats served by this wrapper. `--seat <name>` pins the seat's model and
-# reports `runner=<name>, effective_runner=cline` in the envelope. Model ids are
-# mirrored in shared/references/model-roster.md and the SEAT_SPECS table in
-# shared/scripts/discover_runners.py — change all three.
-CLINE_SEATS = {
-    "muse": "meta/muse-spark-1.3",
-    "minimax": "minimax/minimax-m2.7",
-}
+# Named seats are resolved from the shared routing configuration.
+CLINE_SEATS = seat_models("cline", ROUTING_CONFIG)
 
 # Seat labels served by this wrapper (and by pi-runner, whose seats share the
 # vendor map) map to their real vendor here, used only when the native stream
@@ -79,8 +77,7 @@ PROVIDER_BY_RUNNER = {
 
 
 def infer_provider_from_model(model_id: str | None) -> str | None:
-    # Cline model ids are `vendor/model` (e.g. zai/glm-5.3-flash, moonshotai/kimi-k3,
-    # anthropic/claude-sonnet-5) — the prefix is the real vendor. The stream's own
+    # Model ids use `vendor/model`; the prefix is the real vendor. The stream's own
     # `model.provider` field is the *account* (cline, cline-pass), not the vendor, so
     # it is intentionally not used for effective_provider.
     if isinstance(model_id, str) and "/" in model_id:
@@ -243,7 +240,7 @@ def resolve_default_model(
 ) -> str | None:
     """Pick the seat's default model id for the provider that will serve the
     run. Cline providers do not share one model-id namespace (OpenRouter lists
-    GLM as z-ai/glm-5.3-flash; the cline gateway uses zai/glm-5.3-flash), so seat shims
+    a model under a different vendor prefix than another gateway), so seat shims
     can pass a per-provider map instead of a single id. "*" is the map's
     fallback entry for unrecognized providers."""
     if not default_model_by_provider:
@@ -419,7 +416,7 @@ def _run_cline(
     restrict_tools: bool = False,
     no_tools: bool = False,
     allow_write: bool = False,
-    thinking: str | None = None,
+    thinking: str | None = DEFAULT_EFFORT,
     session_id: str | None = None,
     worktree: bool = False,
     data_dir: str | None = None,
@@ -717,9 +714,9 @@ def build_parser(default_model: str | None, description: str) -> argparse.Argume
         epilog="""
 Examples:
   %(prog)s "What is 2+2?"
-  %(prog)s "Explain this module" --model anthropic/claude-sonnet-5
+  %(prog)s "Explain this module" --model <approved-model>
   %(prog)s --prompt-file .ai-workflow/prompts/review.md --role codereviewer
-  %(prog)s "Implement the fix" --role implementer --model openai/gpt-5.1
+  %(prog)s "Implement the fix" --role implementer --model <approved-model>
   %(prog)s "Resume and continue" --session 1782865158637_s2n62
         """,
     )
@@ -765,9 +762,8 @@ Examples:
         "-m",
         type=str,
         default=None,
-        help="Cline model id in `provider/model` form (e.g. anthropic/claude-sonnet-5, "
-        "openai/gpt-5.1). Ids are catalog-specific per provider — OpenRouter lists GLM as "
-        "z-ai/glm-5.3-flash while the cline gateway uses zai/glm-5.3-flash. Omit to use the runner default.",
+        help="Exact provider/model id from the approved route. IDs are catalog-specific. "
+        "Maintained seat defaults live in shared/model-routing.json.",
     )
     parser.add_argument(
         "--provider",
@@ -787,8 +783,8 @@ Examples:
     parser.add_argument(
         "--thinking",
         type=str,
-        choices=["none", "low", "medium", "high", "xhigh"],
-        default=None,
+        choices=runner_efforts("cline", accepted=True, config=ROUTING_CONFIG),
+        default=DEFAULT_EFFORT,
         help="Reasoning effort passed to native --thinking (default: provider default)",
     )
     parser.add_argument(

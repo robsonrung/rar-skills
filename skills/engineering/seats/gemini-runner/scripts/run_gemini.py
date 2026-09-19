@@ -46,13 +46,14 @@ if str(_SHARED_SCRIPTS) not in sys.path:
     sys.path.insert(0, str(_SHARED_SCRIPTS))
 
 from model_receipt import attach_model_receipt
+from model_routing import default_model, load_config
+
+ROUTING_CONFIG = load_config()
 
 # The agy binary can be overridden for non-standard installs / tests.
 AGY_CLI = os.environ.get("AGY_CLI_PATH", "agy")
-# The Gemini seat targets Gemini 3.8 Flash (High). agy uses whichever model
-# its own settings/model picker is configured with. This wrapper does not
-# forward `--model`, so it records that value only as a request.
-DEFAULT_MODEL = "gemini-3.8-flash"
+# The model label is metadata; the adapter selects its model through its own settings.
+DEFAULT_MODEL = default_model("gemini", ROUTING_CONFIG)
 
 # Keys every emitted envelope must carry (the shared runner-envelope contract).
 REQUIRED_ENVELOPE_KEYS = (
@@ -563,12 +564,9 @@ def _run_gemini_impl(
         if disable_fallback:
             return unavailable_env
 
-        # (script, seat) — seats are named pi-runner seats selected with --seat.
         fallback_candidates = [
-            (_skill_dir("pi-runner") / "scripts" / "run_pi.py", "qwen"),
-            (_skill_dir("pi-runner") / "scripts" / "run_pi.py", "kimi"),
-            (_skill_dir("codex-runner") / "scripts" / "run_codex.py", None),
-            (_skill_dir("claude-runner") / "scripts" / "run_claude.py", None),
+            (_skill_dir(f"{item['runner']}-runner") / "scripts" / f"run_{item['runner']}.py", item["seat"])
+            for item in ROUTING_CONFIG["runners"]["gemini"]["fallbacks"]
         ]
         attempted_fallbacks: list[dict[str, Any]] = []
         last_failure: dict[str, Any] | None = None

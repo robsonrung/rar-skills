@@ -1,75 +1,72 @@
-# Task-shaped model routing
+# Task shaped model routing
 
-Select a model for its role, then select the execution path. Read
-[model-roster.md](model-roster.md) for exact identifiers and availability limits,
-[host-model-execution.md](host-model-execution.md) for native delegation and
-session reuse, and [workflow-stage-routing.md](workflow-stage-routing.md) for
-skill placement. The defaults below implement the user's 2026-09-08 quality-first
-policy. They do not claim a measured ranking for this repository.
+Read [`model-routing.json`](../model-routing.json) for every maintained model
+and effort selection. [model-roster.md](model-roster.md) explains its fields;
+[host-model-execution.md](host-model-execution.md) controls native execution,
+transport checks, and separate role contexts. This reference defines selection
+and review procedure, not another table of model defaults.
 
-## Task defaults
+## Select before approval
 
-| Task | Primary seat and effort | Second seat and effort | Host-only choice for the Astra family |
-| --- | --- | --- | --- |
-| Web research and synthesis | Fable `max` | Astra `high` or `max` when tools and structured collection matter | Astra `high` or `max` |
-| Ambiguous user problem | Fable `max` | Astra `max` | Astra `max` |
-| Developer's technical problem | Astra `max` | Fable `max` | Astra `max`; Sol `max` |
-| Many branches or competing approaches | Astra `ultra` | Fable `max` | Astra `ultra` |
-| One deep reasoning chain | Fable `max` | Astra `max` | Astra `max` |
-| TDD and failure-mode tests | Astra `max` | Opus `high` or supported `xhigh` | Astra `high` or `max` |
-| Routine explicit functions | Terra `medium` | Sonnet `low` or `medium` | Terra `medium`; Luna `low` for trivial pure code |
-| Normal repository changes | Astra `high` | Opus `xhigh` precision review, subject to support | Astra `high`; Sol `high` |
-| Hard functions | Astra `xhigh` or `max` | Opus `max` | Astra `max`; Sol `max` |
-| Difficult debugging and root cause | Astra `max` | Opus `xhigh` or `max` | Astra `max` |
-| Large refactor or migration | Astra `ultra` | Fable `max` for design; Opus for independent code review | Astra `ultra` |
-| Broad defect discovery | Astra `high` or `max` | Sol `high` or `ultra` | Astra `high`; Sol `high` |
-| Precision and subtle code issues | Opus `xhigh` | Astra `max` | Sol `high`, then Astra `high` if independent of the writer |
-| Defensive security | Verified Cyber route `high`, only under the roster's access conditions | Astra `max` or `ultra` | Astra `max` or `ultra`; Sol `ultra` |
-| Architecture and trade-offs | Fable `max` | Astra `max` | Astra `max` |
-| Documentation and explanation | Opus `high` | Fable `high` | Sol `high` |
+1. Match the work to a `routes` entry by its purpose and conditions. Use bounded
+   exploration for evidence collection, isolated implementation for a small
+   explicit function, and routine implementation for a feature with stable
+   interfaces and meaningful checks. Use tools directly for deterministic work.
+2. Select a supported family. Resolve the route with `scripts/model_routing.py`
+   from the shared skill. The output names the exact model and effort for each
+   role and records a configuration digest. It starts no workers.
+3. Apply `policy.high_risk_triggers` before editing. Resolve with `--risk high`
+   when a trigger applies. A strong lead must settle requirements, interfaces,
+   invariants, and critical acceptance cases before routine parts are delegated.
+4. Validate native or adapter support. Copy the exact selections and source
+   digest into the proposed run plan. An alternate, a specialist, or a second
+   review is a separate planned role, not an implicit extra call.
+5. During execution, apply `policy.escalation_triggers`. Continue independent
+   authorized work while the affected route follows the caller's change rules.
+   More thinking does not replace missing evidence or an unclear contract.
 
-The second choice is an alternative or a useful independent role, not a required
-extra call for every task. A high-quality routine function can use Terra without
-a separate cost experiment. Hidden ambiguity, a difficult failure, or system
-impact changes its classification to the matching stronger route.
+Use the selected route's conditions and the configuration's policy fields.
+Exceptional analysis routes require a recorded gap at the normal setting.
+Effort labels do not imply parallel workers or equivalent reasoning across models.
 
-Use `ultra` when multiple hypotheses, a large migration, or broad exploration
-justify it, and state that reason in the plan. Plan actual branches, workers,
-write ownership, and call limits separately. Do not infer parallel execution from
-the effort name. Never map a UI label such as Pro to a runner effort flag.
+## Review and verification
 
-## Interview auto roles
+Implementation routes name a worker and a different review model. Keep separate
+contexts and reuse each only for that role's repairs or rechecks. Give the reviewer
+all `policy.review_inputs`, including the original requirement, actual diff,
+relevant source, and captured checks. Permit further source inspection. Derive
+expected behavior independently and check omissions, failure cases, and interfaces.
+A summary from the implementer is not sufficient review evidence.
 
-`interview-me --auto` uses two distinct model contexts. Default to Fable `max`
-as interviewer and Astra `max` as respondent for an ambiguous user or product
-problem. For a developer's technical problem, use Astra `max` as interviewer and
-Fable `max` as respondent. Explain the selected classification in the preview.
-The respondent answers from supplied intent and evidence; it cannot grant user
-approval or invent a material preference. Each role keeps its session through
-the interview. The skill owns its round bounds and human decision boundary.
+A `broad-review` role performs actual code review regardless of the selected
+family. A `design-review` role assesses design and cannot substitute for code
+review. Use `independent-review` when the usual reviewer wrote the code. Use a
+separate integration review for the combined revision and task boundaries.
 
-If the host is restricted to its own family, propose Astra `max` interviewer and
-Sol `max` respondent as an explicit alternate. Do not silently turn a missing
-Fable route into two Astra contexts. An external Fable runner remains a valid
-route when external models are permitted.
+Run the compiler, tests, lint, types, or security checks applicable to the change.
+Capture a failing regression before a bug fix where applicable. Do not weaken
+checks to make a patch pass. Review opinions do not replace deterministic evidence.
 
-## Implementation and review roles
+## Efficiency and comparison
 
-Each task track has one implementer and at least one independent reviewer whose
-model differs from the writer. A fresh instance of the writer model is not model
-diversity. For normal or hard work, pair the implementation route with the Opus
-precision route. For a routine function, a focused independent Astra review is
-sufficient unless risk calls for the precision pass.
+Apply `policy.efficiency` and `policy.evaluation`. Keep worker briefs narrow,
+return evidence paths, and reuse role context. Compare total work per accepted
+result, including exploration, review, repairs, tokens, elapsed time, and cost.
+A cheaper model can use more tokens; parallel workers can increase total usage.
+Pilot candidate routes on representative tasks by class and retain them only
+where observed acceptance and independent review hold. Do not claim equivalence
+from the configuration or a small trial.
 
-When broad review is justified, use Astra `high` or `max`, or Sol `high` if Astra
-wrote the code. Add an Opus precision pass for subtle semantics, high impact, or
-an explicit two-pass review. Do not make the writer the only reviewer. Design
-review by Fable does not replace a code review. Integration review inspects the
-combined revision and task seams; select its roles in the original run plan.
+## Interview and council roles
 
-Require captured compiler, tests, lint, type, or security checks that apply to the
-change. For TDD, capture red before green and cover failure paths. Do not weaken
-tests to make a patch pass. Model opinions do not replace deterministic evidence.
+Resolve `interview-product` or `interview-technical` with the selected family.
+The mixed family keeps distinct interviewer and respondent models. A restricted
+host can use an explicitly selected family route. The auto interview's own
+mandate, role separation, and round limits still apply.
+
+Council assignments are in `councils` in the same configuration. Resolve them
+with `model_routing.py council <name>` only to prepare the approval preview.
+`models-consensus` remains user invoked and deliberation only.
 
 ## Approval and exact routes
 

@@ -39,6 +39,10 @@ import sys
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 
+from model_routing import load_config
+
+ROUTING_CONFIG = load_config()
+
 SCHEMA_VERSION = 1
 
 LIGHT_QUORUM = 2
@@ -60,150 +64,19 @@ class SeatSpec:
     tier: str = "default"
 
 
-# Seat → probe table and the single source for seat availability. Model ids for
-# each seat live in shared/references/model-roster.md. Keep in sync with
-# full-review SKILL.md Phase 3 and models-consensus SKILL.md preflight.
-SEAT_SPECS: tuple[SeatSpec, ...] = (
+# Probe metadata describes transport availability, never account entitlement.
+SEAT_SPECS: tuple[SeatSpec, ...] = tuple(
     SeatSpec(
-        seat="astra",
-        execution_path="codex_runner",
-        probe_cli="codex",
-        notes="Frontier seat. Probe confirms the CLI only; only a verified model receipt can confirm gpt-6-astra access.",
-        tier="frontier",
-    ),
-    SeatSpec(
-        seat="sol",
-        execution_path="codex_runner",
-        probe_cli="codex",
-        notes="Opt-in Codex-family seat. Probe confirms the CLI only; only a verified model receipt can confirm gpt-5.6-sol access.",
-        tier="backup",
-    ),
-    SeatSpec(
-        seat="terra",
-        execution_path="codex_runner",
-        probe_cli="codex",
-        notes="Opt-in Codex-family seat. Probe confirms the CLI only; only a verified model receipt can confirm gpt-5.6-terra access.",
-        tier="backup",
-    ),
-    SeatSpec(
-        seat="luna",
-        execution_path="codex_runner",
-        probe_cli="codex",
-        notes="Opt-in Codex-family seat. Probe confirms the CLI only; only a verified model receipt can confirm gpt-5.6-luna access.",
-        tier="backup",
-    ),
-    SeatSpec(
-        seat="fable",
-        execution_path="claude_runner",
-        probe_cli="claude",
-        notes="Frontier seat. Probe confirms the CLI only; only a verified model receipt can confirm Claude Fable 5.1 access.",
-        tier="frontier",
-    ),
-    SeatSpec(
-        seat="opus",
-        execution_path="claude_runner",
-        probe_cli="claude",
-        notes="Prefer the native Agent tool when --native-agent yes is set; otherwise probe the external claude-runner CLI.",
-    ),
-    SeatSpec(
-        seat="sonnet",
-        execution_path="claude_runner",
-        probe_cli="claude",
-        notes="Prefer the native Agent tool when --native-agent yes is set; otherwise probe the external claude-runner CLI.",
-    ),
-    SeatSpec(
-        seat="codex",
-        execution_path="codex_runner",
-        probe_cli="codex",
-        notes="Legacy seat label. New routing plans select astra, sol, terra, or luna explicitly.",
-        tier="legacy",
-    ),
-    SeatSpec(
-        seat="gemini",
-        execution_path="gemini_runner",
-        probe_cli="agy",
-        notes="Antigravity CLI (`agy`).",
-    ),
-    SeatSpec(
-        seat="grok",
-        execution_path="grok_runner",
-        probe_cli="grok",
-        notes="xAI Grok CLI (Grok 4.6); no fallback chain — the seat blocks-and-reports when `grok` is missing.",
-    ),
-    SeatSpec(
-        seat="kimi",
-        execution_path="pi_runner_seat",
-        probe_cli="pi",
-        depends_on=("pi",),
-        notes="`pi-runner --seat kimi`; pins --provider openrouter --model moonshotai/kimi-k3 (Kimi K3) per invocation, requires OPENROUTER_API_KEY (or an OpenRouter credential in Pi's auth store).",
-    ),
-    SeatSpec(
-        seat="glm",
-        execution_path="pi_runner_seat",
-        probe_cli="pi",
-        depends_on=("pi",),
-        notes="`pi-runner --seat glm`; pins --provider openrouter --model z-ai/glm-5.3-flash per invocation, requires OPENROUTER_API_KEY (or an OpenRouter credential in Pi's auth store).",
-    ),
-    # Backup seats. Not part of the default council rosters — probed so skills
-    # that name them explicitly (`--seat qwen`) resolve instead of exiting 2.
-    SeatSpec(
-        seat="qwen",
-        execution_path="pi_runner_seat",
-        probe_cli="pi",
-        depends_on=("pi",),
-        notes="Backup seat. `pi-runner --seat qwen`; pins --provider openrouter --model qwen/qwen3.8-max (Qwen3.8 Max, the open-weight VLM of the Qwen3.8 Max family) per invocation, requires OPENROUTER_API_KEY (or an OpenRouter credential in Pi's auth store).",
-        tier="backup",
-    ),
-    SeatSpec(
-        seat="muse",
-        execution_path="cline_runner_seat",
-        probe_cli="cline",
-        depends_on=("cline",),
-        notes="Backup seat. `cline-runner --seat muse`; pins --model meta/muse-spark-1.3. OpenRouter limits access to users in the United States.",
-        tier="backup",
-    ),
-    SeatSpec(
-        seat="gemma",
-        execution_path="pi_runner_seat",
-        probe_cli="pi",
-        depends_on=("pi",),
-        notes="Backup seat. `pi-runner --seat gemma`; pins --provider openrouter --model google/gemma-4-31b-it per invocation, requires OPENROUTER_API_KEY (or an OpenRouter credential in Pi's auth store).",
-        tier="backup",
-    ),
-    SeatSpec(
-        seat="minimax",
-        execution_path="cline_runner_seat",
-        probe_cli="cline",
-        depends_on=("cline",),
-        notes="Backup seat. `cline-runner --seat minimax`; pins --model minimax/minimax-m2.7.",
-        tier="backup",
-    ),
+        **{**spec, "depends_on": tuple(spec.get("depends_on", []))},
+        notes="Probe confirms transport availability only; exact model access and effort require host evidence.",
+    )
+    for spec in ROUTING_CONFIG["discovery"]
 )
-
-# `--native-agent yes` is a caller-declared Claude Code subagent transport
-# signal. It does not verify access to an exact model or effort; approved
-# native routes must prove that separately through the active host.
-CLAUDE_SEATS = frozenset({"fable", "opus", "sonnet"})
-
-# Seat labels can point at the same configured model. This table keeps quorum
-# accounting honest without claiming model access before a receipt exists.
+CLAUDE_SEATS = frozenset(seat for seat, entry in ROUTING_CONFIG["models"].items() if entry["runner"] == "claude")
 SEAT_IDENTITIES = {
-    "astra": "astra",
-    "codex": "astra",
-    "sol": "sol",
-    "terra": "terra",
-    "luna": "luna",
-    "fable": "fable",
-    "opus": "opus",
-    "sonnet": "sonnet",
-    "gemini": "gemini",
-    "grok": "grok",
-    "kimi": "kimi",
-    "glm": "glm",
-    "qwen": "qwen",
-    "muse": "muse",
-    "gemma": "gemma",
-    "minimax": "minimax",
+    alias: seat
+    for seat, entry in ROUTING_CONFIG["models"].items()
+    for alias in [seat, *entry.get("aliases", [])]
 }
 
 
@@ -347,7 +220,7 @@ def apply_preset_filter(probes: list[SeatProbe], preset: str | None) -> list[Sea
         return probes
     if preset == "light":
         # `light` = two cheap broad-sweep seats. Surface the cheap pool only.
-        cheap = {"kimi", "glm"}
+        cheap = set(ROUTING_CONFIG["discovery_presets"]["light"])
         return [p for p in probes if p.seat in cheap]
     if preset == "quality":
         return probes
