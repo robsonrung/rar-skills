@@ -59,3 +59,8 @@ In a Slice Contract, carry `lenses_run`, `verdict`, `required_changes`, `decisio
 3. Do not block on style opinions; only findings that change boundaries, data ownership, contracts, or correctness block.
 4. Do not re-run the full gate after a `revise` fix — re-run only the lens that raised the blocking finding.
 5. Do not use a consensus panel to break a tie. The gate can identify a decision; it cannot manufacture user preference.
+
+When delegated under an approved route, give each selected lens a bounded current
+decision packet and source locators in a fresh context. Reuse that lens context only
+for its own recheck. Do not fork the full product discussion into a narrow gate.
+This changes context loading, not the gate cap or model approval boundary.

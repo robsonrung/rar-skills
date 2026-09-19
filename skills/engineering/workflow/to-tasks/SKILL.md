@@ -28,11 +28,11 @@ Task approval confirms the queue only. It does not approve implementation, exter
 4. Attach the Slice Contract to each draft.
 
    1. Describe the end to end behavior without file paths.
-   2. List verified commands and observable acceptance behavior. A feature slice must name behavior. A non feature slice may state `Test expectation: none — <reason>`. Never delete, skip, weaken, narrow, or mock away a test or acceptance check to make this contract pass. If the contract is wrong, return it before approval.
+   2. List verified commands and observable acceptance behavior. For stateful work, derive the meaningful failure sequences from its state machine and carry relevant defects from earlier slices. Identify which host adapters require realistic stored-value or integration checks; a synthetic happy-path fixture is insufficient. A feature slice must name behavior. A non feature slice may state `Test expectation: none — <reason>`. Never delete, skip, weaken, narrow, or mock away a test or acceptance check to make this contract pass. If the contract is wrong, return it before approval.
    3. Run `design-gate` and resolve its required changes before approval. If it returns `revise`, change the draft and rerun only the lens that raised the blocking finding. Do not rerun the full lens set. Keep the finding and resolution in `tasks-draft.md`. Carry the selected lens names, final verdict, and required changes. A nonempty `decision_required` result stops publication until the user resolves it.
    4. Apply `security-gate` and carry its security flag with the matched trigger.
    5. Record a `test-lens` conclusion only when it resolved a real test design choice.
-   6. State rollback, review focus, blockers, and whether parallel work is safe. Serialize slices that share a migration, contract, security surface, or likely write scope unless the draft names a merge plan.
+   6. State rollback, review focus, product blockers, and write conflicts separately. Name the owner of each shared contract and the condition that releases its consumers. Serialize slices that share a migration, contract, security surface, or likely write scope unless the draft names a merge plan. Settle a narrow shared interface first only when it removes a real blocker; do not invent a foundation phase merely to create parallel work.
 
 5. Write `tasks-draft.md` with status `draft`. Start it with `# Task Queue: <feature name>`, `**Status:** draft`, and `**Parent:** <approved PRD path>`. It contains every slice in dependency order and uses this shape:
 

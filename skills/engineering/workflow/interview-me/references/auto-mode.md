@@ -240,3 +240,13 @@ Set `decision-record.md` to `ready-for-prd` only when all of these are true:
 Otherwise retain `draft`, record the open frontier, and present only the next
 material questions or the terminal limit. The next workflow step after a passed
 gate is `to-prd`.
+
+## Context budget
+
+Use `shared/references/context-packets.md` for each role's first packet. Include the
+current decisions, frontier, user scope, source authority, and targeted locators.
+Keep complete transcripts and reports in the evidence archive, not in every prompt.
+Later turns carry changed decisions and unresolved questions. A source contradiction
+remains explicit; summarization cannot invent authority or settle an open preference.
+If context is exhausted, reconcile the same session and compact from the decision
+record before retrying. Record the failed call and any remaining uncertainty.

@@ -59,7 +59,7 @@ For a plan or requirements document, review feasibility, scope, coherence, and d
 When the caller supplies a snapshot from `shared/references/review-evidence.md`,
 use that shared contract for the complete final JSON response. It replaces the
 normal final response below for this mode. Keep the human report separate.
-Account for every snapshot path, retain earlier finding IDs during rechecks,
+Use the incremental response protocol from that contract for focused rechecks or prose addenda. The expanded record must account for every snapshot path and retain earlier finding IDs,
 and reference captured check and browser evidence. Map CRITICAL, HIGH, MEDIUM,
 and LOW to P0, P1, P2, and P3. The coordinator records the actual response and
 runs the verifier; execution success is not approval.

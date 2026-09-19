@@ -128,3 +128,61 @@ At the start of a run, if a `run-state.json` exists for the target run id with `
 ## Verification — the crash-resume test
 
 A resume path that was never exercised does not work. Once per skill that adopts this contract, exercise crashes before an effect, after the effect but before confirmation, and after confirmation. Assert that the run resumes at the correct `phase`, counters survive, pending effects reconcile, and no operation is lost or duplicated. Use a fake or disposable target; do not interrupt a real publication to test recovery. This is a required check, not an optional one.
+
+## Supported call ledger
+
+Use `shared/scripts/run_state.py` for feature-level call reservations and compact
+status. Extend the existing run-state file; do not create a second feature ledger.
+The task launcher remains authoritative for task dispatch, route validation,
+review-cycle limits, and completion receipts. The feature ledger owns total calls,
+per-route reservations, host setup correlation, and links to those receipts.
+
+```bash
+python3 <shared-dir>/scripts/run_state.py --state <run-state.json> init \
+  --plan <approved-routing-plan.json> --run-id <id> --limits <call-limits.json>
+python3 <shared-dir>/scripts/run_state.py --state <run-state.json> reserve \
+  --route <route-id> --call <call-id> --brief <bound-brief.md> --phase <phase>
+python3 <shared-dir>/scripts/run_state.py --state <run-state.json> reconcile \
+  --call <call-id> --receipt <actual-completion-receipt.json>
+python3 <shared-dir>/scripts/run_state.py --state <run-state.json> status
+```
+
+Limits contain `total_role_calls` and each route ID. Reuse the already approved
+ceilings and existing attempts. A repeated reservation is idempotent bookkeeping,
+not permission to dispatch again. A pending call must be inspected at its host.
+The helper never launches a job, grants authority, resets counters, or marks a task
+accepted. Use `--dry-run` before the subcommand for a read-only preview.
+
+For queued task creation, reserve with `--setup-reference`. Resolve through the
+host's scoped task lookup or creation event, then use `resolve-context --call <id>
+--event <event.json>`. The adapter event has `call_id`, `setup_reference`, actual
+`context_id`, `host`, and `evidence: {"path": "...", "sha256": "..."}` pointing to
+the raw host evidence. A queued
+setup token is never the actual context ID. Do not scan or copy whole transcripts.
+
+Receipts bind call ID, input revision, configured model and effort, and the actual
+context. Save raw completion output before making a normalized receipt. Reconcile
+only that receipt; task acceptance and serving-model verification remain the
+launcher's responsibility. Keep missing metrics unknown. Per-task totals report
+measured sums and missing-call counts, including failed calls and repairs.
+
+The helper uses a POSIX file lock and atomically replaces state. The launcher atomically replaces
+its task manifest; each manifest has one conductor writer. Prefer host waits with
+cursors. For runners use bounded waits with backoff, no longer than the host's
+responsive wait limit. Read reports on a change or failure, not every poll.
+
+Record loaded skill and script hashes, the routing configuration digest, runner
+version when available, and runtime facts. `execution_provenance.py` captures only
+explicitly named resources. Never read credential or advisory local configuration
+files to produce provenance. A changed skill version is execution drift to assess;
+it cannot alter a previously approved route or historical receipt.
+
+## Compare workflow cost
+
+Before claiming a speed or token improvement, compare the same starting revision,
+requirements, and independent acceptance checks on a routine UI change, a
+permission-sensitive mutation, and a concurrency change. Count all calls and repairs
+per accepted result, not only the final successful call. Report unknown measurements
+and missed defects. Offline protocol tests prove mechanics, not model quality or a
+percentage saving. Obtain approval for any new paid comparison routes and bounds;
+reuse existing approval when it already covers that exact comparison.

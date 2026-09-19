@@ -18,7 +18,9 @@ The user provides frontend requirements: a component, page, application, or inte
 
 ## Design Thinking
 
-Before coding, understand the context and commit to a BOLD aesthetic direction:
+For an existing product, preserve its components, theme, density, and interaction conventions unless the user requests a new direction. Use the aesthetic guidance below only for a bespoke design or an authorized visual redesign. Do not replace an established font, control, or layout merely to make the result distinctive.
+
+When a new direction is requested, understand the context and select a clear aesthetic direction:
 
 - **Purpose**: What problem does this interface solve? Who uses it?
 - **Tone**: Pick an extreme: brutally minimal, maximalist chaos, retro-futuristic, organic/natural, luxury/refined, playful/toy-like, editorial/magazine, brutalist/raw, art deco/geometric, soft/pastel, industrial/utilitarian, etc. There are so many flavors to choose from. Use these for inspiration but design one that is true to the aesthetic direction.
@@ -43,7 +45,7 @@ Focus on:
 - **Spatial Composition**: Unexpected layouts. Asymmetry. Overlap. Diagonal flow. Grid-breaking elements. Generous negative space OR controlled density.
 - **Backgrounds & Visual Details**: Create atmosphere and depth rather than defaulting to solid colors. Add contextual effects and textures that match the overall aesthetic. Apply creative forms like gradient meshes, noise textures, geometric patterns, layered transparencies, dramatic shadows, decorative borders, custom cursors, and grain overlays.
 
-NEVER use generic AI-generated aesthetics: overused font families (Inter, Roboto, Arial, system fonts, and don't converge on Space Grotesk either), cliched color schemes (particularly purple gradients on white backgrounds), predictable layouts and component patterns, and cookie-cutter design that lacks context-specific character. Make unexpected choices that feel genuinely designed for the context. No two designs should be the same — vary themes, fonts, and aesthetics across generations.
+For a new bespoke direction, avoid generic aesthetics: overused font families (Inter, Roboto, Arial, system fonts, and don't converge on Space Grotesk either), cliched color schemes (particularly purple gradients on white backgrounds), predictable layouts and component patterns, and cookie-cutter design that lacks context-specific character. Make unexpected choices that feel genuinely designed for the context. No two designs should be the same — vary themes, fonts, and aesthetics across generations.
 
 **IMPORTANT**: Match implementation complexity to the aesthetic vision. Maximalist designs need elaborate code with extensive animations and effects. Minimalist or refined designs need restraint and attention to spacing, typography, and subtle details. Elegance comes from executing the vision well.
 

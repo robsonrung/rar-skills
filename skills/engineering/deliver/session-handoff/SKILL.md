@@ -16,7 +16,7 @@ Preserve enough verified context for a fresh session to continue without guessin
 ## Create
 
 1. Use the destination the user names. Otherwise resolve the repository's common worktree root and create an immutable Markdown file in `.ai-workflow/handoff/`. If no common root is available, use the current repository root. Give each handoff a distinct readable topic path and never overwrite an existing one.
-2. Build the body with `summarize`'s contract. Point to authoritative plans, changes, verification, and files instead of copying large content.
+2. Build the body with `summarize`'s contract. Point to authoritative plans, changes, verification, and files instead of copying large content. Record the revision or content hash of current decision sources. Mark superseded prototypes and decisions; a changed decision requires rebuilding affected derived briefs before execution.
 3. Include enough metadata to discover the handoff: title, creation time, summary, keywords, captured working directory, repository identity when available, branch, and current revision. Quote metadata values safely.
 4. Redact secrets and unrelated personal information. Label machine-local or fragile state, including uncommitted work and temporary paths.
 5. Confirm that the final file exists and report its path. Do not modify commits, stashes, worktrees, ignore rules, or remote state.

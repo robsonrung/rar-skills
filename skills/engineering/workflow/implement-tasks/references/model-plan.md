@@ -54,3 +54,21 @@ Exceptional effort requires a recorded reason. Apply the configuration's
 escalation triggers through the existing approval boundary, never an automatic
 model change. Record total usage, elapsed time, and repair cycles when available;
 unavailable metrics remain unknown.
+
+## Source sharing and review checkpoints
+
+For an external route, the concrete preview names the provider, source and evidence
+scope, allowed follow-up reviews, and exclusions. Save this in the route's optional
+`source_sharing` object with `provider`, `scope`, `follow_ups`, `exclusions`, and the
+actual user approval `reference`. The route digest binds it. Reuse standing approval
+within that scope; do not ask again on each task. Host approval review still applies.
+Older approved plans remain valid under their recorded authority.
+
+Select task review, targeted integration checks at changed boundaries, and one final
+combined review. An earlier broad integration review needs a named unresolved risk.
+Do not schedule a full repeated panel at every wave by default. Keep any review
+sequence the user has already approved until an authorized plan change.
+
+Record loaded skill and script revisions alongside the plan. Use the call ledger
+and normalized per-call metrics from the shared run-state contract. The existing
+model routing configuration remains the only source of model defaults.

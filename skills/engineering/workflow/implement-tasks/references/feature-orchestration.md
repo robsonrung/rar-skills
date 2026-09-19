@@ -43,9 +43,9 @@ Keep each context available until its role is complete and all required evidence
 
 1. Validate the graph before starting. Reject unknown IDs, self-dependencies, and cycles. Preserve stable task IDs.
 2. A task is ready when every blocker is `done` and its changes passed acceptance on the integration state.
-3. Honor the queue's parallelization constraints. Serialize shared files, migrations, interfaces, and security-sensitive paths unless there is an explicit merge plan.
+3. Separate product blockers from write conflicts. Use the queue's named shared-contract owners and release conditions. Honor the queue's parallelization constraints. Serialize shared files, migrations, interfaces, and security-sensitive paths unless there is an explicit merge plan.
 4. Start at most the approved number of tasks. Each new worktree starts at the current integration revision. A running independent task can finish on its recorded base; after integration, check interactions and rerun acceptance affected by the combined state.
-5. Record task role context IDs, runner-session IDs, pending calls, and task states before dispatch. Read compact status and result envelopes. Open report bodies for failures and final synthesis, not repeated polling.
+5. Record task role context IDs, runner-session IDs, pending calls, and task states before dispatch. Use the shared call-ledger helper to reserve and reconcile calls. Read compact status and result envelopes. Prefer cursor-based host waits or bounded runner waits with backoff. Open report bodies for failures, changed results, and final synthesis, not repeated polling.
 
 ## Integration
 
@@ -66,3 +66,17 @@ If a launcher cannot represent a model, effort, or execution mode, report the mi
 Keep task reports and role-session records after workers finish. Do not close a task role before its review, correction, and evidence obligations end; keep the integration context until the feature report is complete. Close native workers only through the host lifecycle when needed. Leave user-owned tasks, branches, and worktrees intact unless cleanup is authorized.
 
 Capture combined acceptance and the approved seam review using [completion.md](completion.md). Report blocked tasks and missing evidence. Resume from the ledger and repository state; a report path alone does not prove its revision is current.
+
+## Context packet before dispatch
+
+Use `shared/scripts/context_packet.py` to bind the derived brief to current decisions
+and selected evidence. Its default brief limit is 24,000 bytes. Link source sections
+instead of embedding complete reports; a larger limit needs a task-specific reason.
+The packet must identify current decisions, evidence, and superseded material.
+Save it beside the brief as `<brief-name>.md.packet.json`; the launcher verifies it
+before dispatch. Missing packets remain compatible with older runs, but new runs
+use them. See `shared/references/context-packets.md` for the input contract.
+
+A changed decision invalidates affected derived notes and prototypes. Rebuild the
+brief from current decisions before dispatch; do not ask the worker to choose
+between conflicting instructions. Keep the original sources available for inspection.

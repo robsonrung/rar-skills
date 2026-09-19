@@ -270,6 +270,13 @@ def validate_route(route: Any) -> dict[str, Any]:
         raise ValueError(f"route.mode must be runner or native, got {route['mode']!r}")
     if route["model_verification"] not in {"required", "allow_unverified"}:
         raise ValueError("route.model_verification must be required or allow_unverified")
+    if "source_sharing" in route:
+        sharing = route["source_sharing"]
+        fields = {"provider", "scope", "follow_ups", "exclusions", "reference"}
+        if not isinstance(sharing, dict) or set(sharing) != fields:
+            raise ValueError("source_sharing needs provider, scope, follow_ups, exclusions and approval reference")
+        for key in fields:
+            require_string(sharing[key], "source_sharing." + key)
     effort_control = route["effort_control"]
     effort = route.get("effort")
     native = validate_native_spec(route)
@@ -415,6 +422,8 @@ def route_arguments(
     read_only: bool,
     resume_context_id: str | None = None,
 ) -> list[str]:
+    from execution_provenance import capture
+    metadata = {**metadata, "execution_provenance": capture([Path(__file__), runner_script(route["runner"])])}
     arguments = [
         "--prompt-file", str(brief),
         "--working-dir", str(working_dir),
@@ -424,6 +433,8 @@ def route_arguments(
         "--disable-fallback",
         "--metadata-json", json.dumps(metadata),
     ]
+    if route["runner"] == "claude":
+        arguments.extend(["--output-format", "json"])
     if route["runner"] in {"pi", "cline"}:
         arguments.extend(["--seat", route["seat"]])
     if route["effort_control"] == "runner":
@@ -603,6 +614,12 @@ def render_bound_brief(
     contract_path = contract["path"]
     contract_text = contract_path.read_text(encoding="utf-8")
     note_text = source.read_text(encoding="utf-8")
+    packet_path = source.with_suffix(source.suffix + ".packet.json")
+    if packet_path.exists():
+        from context_packet import verify
+        verify(packet_path, source)
+    elif len(note_text.encode("utf-8")) > 24000:
+        raise ValueError("derived brief exceeds 24000 bytes; link evidence or supply a bounded context packet")
     rendered = f"""Approved task contract
 Source: {contract_path}
 Canonical content SHA-256: {contract['content_sha256']}
@@ -626,6 +643,7 @@ SHA-256: {file_digest(source)}
         "contract_content_sha256": contract["content_sha256"],
         "derived_path": str(source),
         "derived_sha256": file_digest(source),
+        **({"context_packet": str(packet_path), "context_packet_sha256": file_digest(packet_path)} if packet_path.exists() else {}),
     }
 
 
@@ -679,8 +697,13 @@ def initial_manifest(
     worktrees_dir: Path | None,
     routing: dict[str, Any],
 ) -> dict[str, Any]:
+    from execution_provenance import capture
+    provenance = capture([Path(__file__), SKILL_ROOT / "SKILL.md",
+                          SKILLS_DIR / "shared" / "model-routing.json",
+                          SKILLS_DIR / "shared" / "scripts" / "review_evidence.py"])
     return {
         "schema_version": 1,
+        "skill_provenance": provenance,
         "skill": "implement-and-review",
         "session_id": args.session_id,
         "task_id": args.task_id,
@@ -892,7 +915,8 @@ def load_manifest(args: argparse.Namespace) -> tuple[dict[str, Any], Path]:
 
 def save_manifest(manifest: dict[str, Any], path: Path) -> None:
     manifest["updated_at"] = utc_now()
-    path.write_text(json.dumps(manifest, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    from run_state import atomic_write
+    atomic_write(path, manifest)
 
 
 def context_identity_error(context: Any, route: dict[str, Any], task_id: str, kind: str) -> str | None:
@@ -1331,7 +1355,9 @@ def poll_once(manifest: dict[str, Any]) -> dict[str, Any]:
 
 
 def cmd_poll(args: argparse.Namespace) -> int:
-    deadline = time.time() + args.wait_timeout
+    deadline = time.monotonic() + args.wait_timeout
+    delay = max(1, min(args.interval, 60))
+    previous = None
     while True:
         manifest, path = load_manifest(args)
         snapshot = poll_once(manifest)
@@ -1341,12 +1367,14 @@ def cmd_poll(args: argparse.Namespace) -> int:
             fail(str(error))
         if context_changed:
             save_manifest(manifest, path)
-        if not args.wait or snapshot["all_terminal"] or time.time() >= deadline:
+        if not args.wait or snapshot["all_terminal"] or time.monotonic() >= deadline:
             print(json.dumps(snapshot, indent=2, ensure_ascii=False))
             failures = [entry for group in (snapshot["tracks"], snapshot["reviews"]) for entry in group.values() if entry.get("success") is False]
             return 1 if failures else 0
-        err(f"[poll] waiting {args.interval}s")
-        time.sleep(args.interval)
+        marker = canonical_digest(snapshot)
+        delay = min(delay * 2, 60) if marker == previous else max(1, min(args.interval, 60))
+        previous = marker
+        time.sleep(min(delay, max(0, deadline - time.monotonic())))
 
 
 def track_working_dir(manifest: dict[str, Any], track_name: str, track: dict[str, Any]) -> Path:

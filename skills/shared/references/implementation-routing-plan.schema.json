@@ -315,6 +315,39 @@
         },
         "unavailable": {
           "$ref": "#/definitions/unavailable"
+        },
+        "source_sharing": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "provider",
+            "scope",
+            "follow_ups",
+            "exclusions",
+            "reference"
+          ],
+          "properties": {
+            "provider": {
+              "type": "string",
+              "minLength": 1
+            },
+            "scope": {
+              "type": "string",
+              "minLength": 1
+            },
+            "follow_ups": {
+              "type": "string",
+              "minLength": 1
+            },
+            "exclusions": {
+              "type": "string",
+              "minLength": 1
+            },
+            "reference": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
         }
       },
       "allOf": [

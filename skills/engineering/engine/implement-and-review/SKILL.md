@@ -81,7 +81,8 @@ The review command reloads the approved plan, verifies the saved route still mat
 
 After recording the execution receipt, run `record-review` with the same manifest,
 track, and cycle. It stores the structured reviewer response and rejects missing
-coverage or evidence. Before completion, run `verify-review --manifest
+coverage or evidence. For later turns, use the incremental recheck or prose addendum
+in `shared/references/incremental-review.md`; the expanded record still needs complete coverage. Before completion, run `verify-review --manifest
 <launch-manifest.json> --track <track-name> --base <current-review-base>`.
 Only `ready` meets the review acceptance contract. A successful `poll` reports
 execution status only. Link the snapshot, review record, and verifier result

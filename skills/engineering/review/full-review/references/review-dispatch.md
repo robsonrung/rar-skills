@@ -20,7 +20,10 @@ before dispatch. Do not select a new default while resuming an approved review.
 Resolve family and effort from the configuration, then verify support in the
 selected host or adapter. The review role defines its job: a code reviewer checks
 requirements, full diff, relevant surrounding code, missing cases, and captured
-checks. Design analysis alone cannot approve code.
+checks. Design analysis alone cannot approve code. After the initial review, use
+[Incremental review responses](../../../../shared/references/incremental-review.md)
+for changed and affected paths. Retain earlier coverage through the verified
+record; do not repeat a full review for a prose correction.
 
 ## Dispatch rules
 

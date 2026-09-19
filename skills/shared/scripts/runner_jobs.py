@@ -161,9 +161,9 @@ def job_status(job_dir: Path, manifest: dict[str, Any]) -> str:
     if result_file.is_file():
         try:
             result = json.loads(result_file.read_text(encoding="utf-8"))
-            return "completed" if result.get("success") else "failed"
+            return "completed" if isinstance(result, dict) and result.get("success") is True else "failed"
         except (OSError, json.JSONDecodeError):
-            return "completed"
+            return "failed"
     if pid_alive(int(manifest.get("pid", -1))):
         return "running"
     return "died"

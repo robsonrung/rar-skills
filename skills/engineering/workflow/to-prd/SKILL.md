@@ -32,7 +32,7 @@ Do not call a panel, a runner, `models-consensus`, `design-gate`, `security-gate
    6. Rollout and rollback constraints.
    7. Out of scope items, assumptions, and remaining risks.
 
-4. Keep the PRD at the decision level. Do not include file paths, code snippets, design patterns, or test mechanics. A prototype snippet belongs only when it is the decision itself and cannot be expressed precisely in prose.
+4. Use the current domain glossary and familiar user terms. Define a new term once; add a short scenario when a rule remains ambiguous, naming the actor, record, and outcome. Do not use a technical label as a substitute for its meaning. Keep the PRD at the decision level. Do not include file paths, code snippets, design patterns, or test mechanics. A prototype snippet belongs only when it is the decision itself and cannot be expressed precisely in prose.
 
 5. Present the draft path and its material choices for review. Ask the user to approve it or request changes. Revise only from the settled record or user corrections.
 

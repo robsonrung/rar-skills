@@ -39,6 +39,10 @@ jobs:
         run: python3 skills/shared/tests/test_native_panel_dispatch.py
       - name: Approved implementation dispatch
         run: python3 skills/engineering/engine/implement-and-review/tests/test_launch.py
+      - name: Persistent call ledger and context packets
+        run: python3 skills/shared/tests/test_run_state.py
+      - name: Structured Claude receipts
+        run: python3 skills/engineering/seats/claude-runner/tests/test_run_claude.py
       - name: Review evidence integrity
         run: python3 skills/shared/tests/test_review_evidence.py
       - name: Review finding integrity

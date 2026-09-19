@@ -106,3 +106,34 @@ When tools cannot enforce the required scope, use an authorized no-tools brief
 or a route with the required restrictions. Do not describe a prompt-only request
 as a sandbox. The workflow owns approval, budgets, allowed writes, and terminal
 status. This contract adds no hidden calls, review panel, or publication action.
+
+## Bounded context and receipts
+
+Start bounded research, design-gate, and task roles with a fresh context unless
+that same role is continuing its own work. Pass the current decision packet and
+evidence locators, not the parent transcript. Reuse loaded instructions within a
+context. A provider context limit is not a reason to start another paid role.
+
+Save raw completion output immediately. Use structured runner output for resumable
+roles. A missing session ID or malformed terminal result is a receipt failure to
+reconcile, not authority to restart. Keep provider errors and partial output.
+
+Use `execution_metrics.py` to normalize per-call usage. Input includes cached input;
+reasoning output is a subset of output, not an extra sum. Missing usage, duration,
+or cost stays unknown. Report CLI cost as reported cost, not an invoice. Compare
+total measured work per accepted task, including failed calls and repairs.
+
+For a saved desktop task wait response, `shared/scripts/native_completion.py`
+extracts the exact final message and links it to the raw event and dispatch file:
+
+```bash
+python3 <shared-dir>/scripts/native_completion.py --raw <wait.json> \
+  --dispatch <native-dispatch.json> --context-id <actual-task-id> --host-id <host-id> \
+  --turn-id <expected-turn-id> --completed-turn <role-turn-number> --output <capture.json>
+```
+
+The task, host, and turn must match the scoped host response. This intermediate
+capture is not a launcher approval receipt. Keep it immutable and bind the
+launcher's required route and serving-model evidence separately. Missing serving
+identity remains unverified; never copy the configured model into an observed
+model field. Other host transports retain their raw completion format.

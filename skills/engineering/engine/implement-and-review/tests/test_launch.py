@@ -63,6 +63,32 @@ class LauncherTests(unittest.TestCase):
         route.update(overrides)
         return route
 
+    def test_claude_dispatch_requests_structured_output_and_provenance(self):
+        route = self.route("review-api", "reviewer", "claude-fable-5-1", runner="claude", seat="fable")
+        args = launcher.route_arguments(route, self.brief, self.root, "reviewer", 60, {"call_id": "call-1"}, True)
+        self.assertEqual(args[args.index("--output-format") + 1], "json")
+        metadata = json.loads(args[args.index("--metadata-json") + 1])
+        self.assertEqual(metadata["call_id"], "call-1")
+        self.assertTrue(metadata["execution_provenance"]["resources"])
+
+    def test_source_sharing_is_optional_but_requires_a_complete_scope(self):
+        route = self.route("review-api", "reviewer", "claude-fable-5-1", runner="claude", seat="fable")
+        launcher.validate_route(route)
+        route["source_sharing"] = {"provider": "Anthropic", "scope": "T1 source and tests", "follow_ups": "T1 repairs",
+                                   "exclusions": "credentials", "reference": "user approval"}
+        launcher.validate_route(route)
+        del route["source_sharing"]["reference"]
+        with self.assertRaisesRegex(ValueError, "approval reference"):
+            launcher.validate_route(route)
+
+    def test_launcher_rejects_stale_context_packet(self):
+        import context_packet
+        packet = self.brief.with_suffix(self.brief.suffix + ".packet.json")
+        context_packet.prepare(self.brief, [{"path": str(self.task), "authority": "decision", "locator": "Acceptance"}], packet)
+        self.task.write_text("Changed acceptance")
+        with self.assertRaisesRegex(ValueError, "decision source changed"):
+            launcher.render_bound_brief({"path": self.task, "content_sha256": launcher.content_digest(self.task)}, self.brief, launcher.WRITE_BOUNDARY, "Notes")
+
     def plan(self) -> tuple[Path, dict[str, object], dict[str, object]]:
         scope = {
             "inputs": [

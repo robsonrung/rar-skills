@@ -256,6 +256,176 @@ class ReviewEvidenceTests(unittest.TestCase):
         self.assertEqual(result.returncode, 2)
         self.assertEqual(json.loads(result.stdout)["status"], "blocked")
 
+    def recheck(self, path, previous, name="second"):
+        current = evidence.prepare(self.root, self.base, self.contract, self.requirements,
+                                   self.artifacts / name, previous_reviews=[previous])
+        delta = {"mode": "recheck", "snapshot_sha256": evidence.file_hash(current),
+                 "previous_review": {"path": str(previous), "sha256": evidence.file_hash(previous)},
+                 "reuse_assessment": "Reviewed callers; unchanged paths retain their earlier assessment.",
+                 "affected_paths": [], "coverage": [], "findings": [], "checks": {},
+                 "observations": [], "summary": "Focused recheck."}
+        return current, delta
+
+    def test_delta_keeps_open_findings_until_reviewer_resolves_them(self):
+        path = self.prepare()
+        first = self.response(path)
+        first["findings"] = [{"id": "F1", "path": "app.txt", "severity": "P2", "status": "open", "evidence": "Failure observed."}]
+        previous = self.record(path, first)
+        current, delta = self.recheck(path, previous)
+        self.record(current, delta)
+        self.assertEqual(evidence.assess(current, self.base)["open_findings"], ["F1"])
+        saved = evidence.load_record(current.parent / "review.json")
+        self.assertEqual(json.loads(saved["execution"]["agent_message"]), delta)
+        self.assertEqual(saved["result"]["findings"], first["findings"])
+
+    def test_delta_requires_changed_and_affected_coverage(self):
+        (self.root / "other.txt").write_text("another changed file")
+        path = self.prepare()
+        previous = self.record(path, self.response(path))
+        (self.root / "app.txt").write_text("fixed")
+        current, delta = self.recheck(path, previous)
+        with self.assertRaisesRegex(ValueError, "fresh coverage"):
+            self.record(current, delta)
+        delta["coverage"] = [{"path": "app.txt", "outcome": "reviewed", "reason": "Read the fix and caller."}]
+        delta["affected_paths"] = ["other.txt"]
+        with self.assertRaisesRegex(ValueError, "fresh coverage"):
+            self.record(current, delta)
+        delta["coverage"].append({"path": "other.txt", "outcome": "reviewed", "reason": "Verified the affected caller."})
+        self.record(current, delta)
+        self.assertEqual(evidence.assess(current, self.base)["status"], "ready")
+
+    def test_addendum_corrects_prose_without_closing_findings(self):
+        path = self.prepare()
+        result = self.response(path)
+        result["findings"] = [{"id": "F1", "path": "app.txt", "severity": "P2", "status": "open", "evidence": "Two failing calls."}]
+        previous = self.record(path, result)
+        current, delta = self.recheck(path, previous)
+        delta["mode"] = "addendum"
+        delta["findings"] = [{**result["findings"][0], "status": "fixed", "evidence": "Three calls."}]
+        with self.assertRaisesRegex(ValueError, "cannot change finding"):
+            self.record(current, delta)
+        delta["findings"][0]["status"] = "open"
+        self.record(current, delta)
+        self.assertEqual(evidence.assess(current, self.base)["status"], "needs-work")
+
+    def test_addendum_cannot_cover_changed_source(self):
+        path = self.prepare()
+        previous = self.record(path, self.response(path))
+        (self.root / "app.txt").write_text("changed")
+        current, delta = self.recheck(path, previous)
+        delta.update(mode="addendum", coverage=self.response(current)["coverage"])
+        with self.assertRaisesRegex(ValueError, "unchanged source"):
+            self.record(current, delta)
+
+    def test_delta_cannot_change_finding_severity_or_reference_an_unbound_review(self):
+        path = self.prepare()
+        first = self.response(path)
+        first["findings"] = [{"id": "F1", "path": "app.txt", "severity": "P2", "status": "open", "evidence": "Observed failure."}]
+        previous = self.record(path, first)
+        current, delta = self.recheck(path, previous)
+        delta["previous_review"]["sha256"] = "wrong"
+        with self.assertRaisesRegex(ValueError, "bound prior"):
+            self.record(current, delta)
+        delta["previous_review"]["sha256"] = evidence.file_hash(previous)
+        delta["findings"] = [{**first["findings"][0], "severity": "P3"}]
+        with self.assertRaisesRegex(ValueError, "severity changed"):
+            self.record(current, delta)
+
+    def transfer_assessment(self, old, target):
+        probe = self.artifacts / "environment.txt"
+        probe.write_text("Fresh runtime, installed dependencies, external state and base inspection.")
+        row = {"reason": "Inspected both environments and base interactions.", "evidence": [{"path": str(probe), "sha256": evidence.file_hash(probe)}]}
+        assessment = {"from_snapshot_sha256": evidence.file_hash(old),
+                      "to_source_id": evidence.load_record(target)["source_id"],
+                      **{key: row for key in ("runtime", "dependencies", "external_state", "base_interactions")}}
+        path = self.artifacts / "transfer-assessment.json"
+        path.write_text(json.dumps(assessment))
+        return path
+
+    def test_commit_of_identical_content_transfers_checks_with_provenance(self):
+        self.command("print('pass')")
+        old = self.prepare()
+        check = evidence.run_check(old, "check")
+        self.git("add", ".")
+        self.git("commit", "-qm", "Commit identical content")
+        target = evidence.prepare(self.root, self.base, self.contract, self.requirements, self.artifacts / "committed")
+        self.assertNotEqual(evidence.load_record(old)["source_id"], evidence.load_record(target)["source_id"])
+        moved = evidence.transfer_check(old, target, check, self.transfer_assessment(old, target))
+        result = self.response(target)
+        result["checks"]["check"] = str(moved)
+        self.record(target, result)
+        self.assertEqual(evidence.assess(target, self.base)["status"], "ready")
+        (self.artifacts / "environment.txt").write_text("changed probe")
+        with self.assertRaisesRegex(ValueError, "assessment evidence changed"):
+            evidence.assess(target, self.base)
+
+    def test_transfer_between_worktrees_preserves_deleted_files_and_modes(self):
+        (self.root / "removed.txt").write_text("old")
+        self.git("add", "removed.txt")
+        self.git("commit", "-qm", "Add removal fixture")
+        (self.root / "removed.txt").unlink()
+        self.command("print('pass')")
+        old = self.prepare()
+        check = evidence.run_check(old, "check")
+        self.git("add", ".")
+        self.git("commit", "-qm", "Capture source")
+        target_root = self.artifacts / "worktree"
+        self.git("worktree", "add", "--detach", str(target_root), "HEAD")
+        target = evidence.prepare(target_root, self.base, self.contract, self.requirements, self.artifacts / "transferred")
+        moved = evidence.transfer_check(old, target, check, self.transfer_assessment(old, target))
+        self.assertTrue(evidence.validate_check(moved, evidence.load_record(target), self.plan["checks"][0]))
+        (target_root / "app.txt").chmod(0o755)
+        changed = evidence.prepare(target_root, self.base, self.contract, self.requirements, self.artifacts / "mode-change")
+        with self.assertRaisesRegex(ValueError, "content differs"):
+            evidence.transfer_check(old, changed, check, self.transfer_assessment(old, changed))
+
+    def test_transfer_rejects_changed_dependency_context_and_missing_assessment(self):
+        self.command("print('pass')")
+        old = self.prepare()
+        check = evidence.run_check(old, "check")
+        target = evidence.prepare(self.root, self.base, self.contract, self.requirements, self.artifacts / "target")
+        assessment = self.transfer_assessment(old, target)
+        data = json.loads(assessment.read_text())
+        del data["base_interactions"]
+        assessment.write_text(json.dumps(data))
+        with self.assertRaisesRegex(ValueError, "base_interactions"):
+            evidence.transfer_check(old, target, check, assessment)
+        new_requirements = self.artifacts / "new-requirements.json"
+        changed_plan = copy.deepcopy(self.plan)
+        changed_plan["context"]["dependencies"] = "different installed packages"
+        new_requirements.write_text(json.dumps(changed_plan))
+        changed = evidence.prepare(self.root, self.base, self.contract, new_requirements, self.artifacts / "dependency-change")
+        with self.assertRaisesRegex(ValueError, "context differs"):
+            evidence.transfer_check(old, changed, check, self.transfer_assessment(old, changed))
+
+    def test_transfer_rejects_generated_content_and_symlink_changes(self):
+        self.command("print('pass')")
+        generated = self.root / "generated.txt"
+        generated.write_text("first generation")
+        link = self.root / "current.txt"
+        link.symlink_to("app.txt")
+        old = self.prepare()
+        check = evidence.run_check(old, "check")
+        generated.write_text("changed generation")
+        target = evidence.prepare(self.root, self.base, self.contract, self.requirements, self.artifacts / "generated-change")
+        with self.assertRaisesRegex(ValueError, "content differs"):
+            evidence.transfer_check(old, target, check, self.transfer_assessment(old, target))
+        generated.write_text("first generation")
+        link.unlink()
+        link.symlink_to("generated.txt")
+        target = evidence.prepare(self.root, self.base, self.contract, self.requirements, self.artifacts / "link-change")
+        with self.assertRaisesRegex(ValueError, "content differs"):
+            evidence.transfer_check(old, target, check, self.transfer_assessment(old, target))
+
+    def test_transfer_rejects_failed_checks(self):
+        self.command("raise SystemExit(1)")
+        old = self.prepare()
+        check = evidence.run_check(old, "check")
+        target = evidence.prepare(self.root, self.base, self.contract, self.requirements, self.artifacts / "target")
+        with self.assertRaisesRegex(ValueError, "passing"):
+            evidence.transfer_check(old, target, check, self.transfer_assessment(old, target))
+
+
 
 if __name__ == "__main__":
     unittest.main()

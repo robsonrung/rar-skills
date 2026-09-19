@@ -180,3 +180,22 @@ const useAsyncError = () => {
 Or use `react-error-boundary`, which does the same.
 
 Rule name: **missing-error-boundary**.
+
+## Mutation completion after the editor changes
+
+For a pending mutation, distinguish server outcome from editor ownership. Canceling
+or replacing an editor does not prove the server canceled the write. Derive the
+meaningful cases from the flow: success, definite rejection, uncertain result, and
+permission denial; current, canceled, or replaced editor; unchanged or changed
+actor, organization, and record. Check both cancellation before the response and
+after an uncertain result appears.
+
+A late result must not overwrite another draft or restore inaccessible data. A
+current-scope committed or uncertain result may still require data refresh after
+its editor closes. Process detected permission loss in the current authorized scope;
+an old actor's denial must not clear a new actor's permitted draft. Preserve the
+original request identity and body for an authorized uncertain retry.
+
+Check focus on open and on save, cancel, replacement, and permission loss. Restore
+it to a valid trigger or a permitted fallback, without stealing focus from another
+active interaction. Test observable behavior, not every Cartesian combination.

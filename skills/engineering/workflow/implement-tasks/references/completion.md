@@ -35,5 +35,6 @@ Write `report.md` in the run directory. Include:
 4. Role sessions: route IDs, host, native context or runner-session references, resumed or reconstructed turns, and any unavailable continuation capability.
 5. Review: scope, reviewed revision, applied findings, residual record, and unverified checks.
 6. Decisions: assumptions within scope, blocked decisions, and required next actions.
+7. Cost evidence: measured usage, duration, reported cost, unknown-call counts, and repairs per accepted task. Keep failed attempts in these totals.
 
 The queue is complete only when every task is done and final acceptance passes. `partial` is a report outcome; run state uses the shared status enum. Use `capture-learning` for a reusable project finding or `session-handoff` when work must resume, within the original authorization.

@@ -203,3 +203,15 @@ failures. The launcher writes the manifest before and after every dispatch.
 
 Cleanup accepts only its own manifest path, repository root, worktree path, and
 branch shape. Dry runs report `planned_worktrees`; they do not claim removal.
+
+## Structured rechecks and receipts
+
+The launcher requests structured Claude output so a resumable role returns its
+session ID. Malformed or missing terminal output is a receipt failure, not a pass.
+Use the wrapper's normalized metrics; keep its raw stdout for evidence. Do not
+recover a session by scanning an unrelated or global latest transcript.
+
+For source rechecks use the shared incremental-review contract. For a prose-only
+correction use its addendum mode. Both remain reviewer calls under the approved
+ceilings. They do not authorize extra cycles. The evidence helper expands and
+validates the response; never rewrite the reviewer's response before recording it.

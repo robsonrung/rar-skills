@@ -32,6 +32,6 @@ Return these four fields:
 3. `snippets`: only decision-bearing state, schema, or type shapes; no production-ready claim.
 4. `disposition`: the artifact path and whether it is retained or removed. No prototype code is promoted to production.
 
-Save the evidence beside the caller's decision record or task plan. Keep a local artifact when useful; commit a throwaway branch or update a tracker only when authorized. Do not delete unrelated files during cleanup.
+Save the evidence beside the caller's decision record or task plan, with its decision revision or content hash. A later decision change marks the affected prototype superseded. For a visual decision, record an actual browser review before claiming the layout is verified; model or DOM checks do not prove visual usability. If browser review is unavailable, retain that open limit rather than claiming acceptance. Keep a local artifact when useful; commit a throwaway branch or update a tracker only when authorized. Do not delete unrelated files during cleanup.
 
 Return to `interview-me` to settle its question, or to `coding-design-plan` to revise the slice plan. An unresolved result returns an open decision rather than a fabricated answer. This closes the prototype's acceptance contract.

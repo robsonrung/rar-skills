@@ -64,13 +64,13 @@ python3 <shared-dir>/scripts/review_evidence.py run-check \
 
 The helper executes the declared argument list without an implicit shell. It records exit code, duration, timeout, source changes, and hashes of stdout and stderr. A command that changes captured source cannot supply passing evidence for that snapshot. Run prerequisites that change source before preparation.
 
-Each check runs once per evidence directory. A retry uses a new directory and preserves the failed result. Reference a prior captured check only when its source hash, context hash, and complete command definition match. The validator checks these fields. A prose claim of a pass is insufficient.
+Each check runs once per evidence directory. A retry uses a new directory and preserves the failed result. Reference a prior captured check when its source hash, context hash, and complete command definition match. For identical content after a commit or worktree transfer, use the explicit `transfer-check` protocol below. The validator checks these bindings. A prose claim of a pass is insufficient.
 
 For browser observations, save actual driver output or screenshots and their SHA-256 hashes. The helper checks file integrity and the declared result; it does not execute or interpret browser actions. Missing or skipped required observations prevent readiness.
 
 ## Reviewer response
 
-Give the independent reviewer the snapshot path, its file SHA-256, requirements, prior findings, and check result paths. Its complete final response must be one JSON object with these exact fields:
+Give the independent reviewer the snapshot path, its file SHA-256, requirements, prior findings, and check result paths. For an initial review, its complete final response is one JSON object with these exact fields. For a recheck or a prose-only correction, use [incremental-review.md](incremental-review.md) to retain prior coverage without repeating it:
 
 ```json
 {
@@ -85,7 +85,7 @@ Give the independent reviewer the snapshot path, its file SHA-256, requirements,
 }
 ```
 
-Every changed path needs exactly one coverage row. `outcome` is `reviewed` or `excluded`. Excluded paths and reasons must exactly match requirements. Missing, duplicate, or extra rows are invalid.
+The normalized record needs exactly one coverage row for every changed path. An incremental response supplies only changed or affected coverage; the helper expands the bound prior record. `outcome` is `reviewed` or `excluded`. Excluded paths and reasons must exactly match requirements. Missing, duplicate, or extra rows are invalid.
 
 Each finding has exactly `id`, `path`, `severity`, `status`, and `evidence`. IDs are unique within a review. Severity is P0, P1, P2, or P3. Status is `open`, `fixed`, `rejected`, `deferred`, or `disputed`. Evidence explains the defect or supports its resolution. Carry prior finding IDs into rechecks and record their resolution. The reviewer must assess that resolution; the validator cannot infer it from code. Map full-review severity CRITICAL to P0, HIGH to P1, MEDIUM to P2, and LOW to P3.
 
@@ -110,6 +110,35 @@ The verifier returns JSON and an exit code: 0 for `ready`, 1 for `needs-work`, a
 
 Readiness requires complete coverage, passing required checks and observations, no open or disputed finding, and no deferred P0, P1, or P2. Deferred P3 findings need a reason in their evidence. There is no approval field to override these rules.
 
-A changed source, index, intended base, contract, requirement, or evidence file blocks reuse. The error lists changed source paths where available. Review affected paths and interactions, then create a new snapshot and result. Preserve old records. A reviewer can retain earlier coverage after assessing the effects of later changes; matching individual file hashes cannot prove semantic independence.
+A changed source, index, intended base, contract, requirement, or evidence file blocks implicit reuse. An explicit transfer can reuse a captured check on identical content; it never silently transfers review acceptance. The error lists changed source paths where available. Review affected paths and interactions, then create a new snapshot and result. Preserve old records. A reviewer can retain earlier coverage after assessing the effects of later changes; matching individual file hashes cannot prove semantic independence.
 
 Legacy Markdown reports remain context. They cannot establish deterministic readiness without a current structured record. Human reports link to snapshots, review records, captured checks, and verifier output.
+
+## Transfer checks after a commit or worktree change
+
+The snapshot keeps its original source identity, including root, base, and index.
+`content_id` separately hashes present file contents, executable modes, and symlink
+targets. Deletions are represented by absence, so committing a deletion does not
+change that content identity. Older snapshots remain readable.
+
+Prepare a target snapshot. Capture fresh evidence of runtime, installed dependency
+state, external state, and changed-base interactions. Save an assessment JSON with
+`from_snapshot_sha256`, `to_source_id`, and four objects named `runtime`,
+`dependencies`, `external_state`, and `base_interactions`. Each object needs a
+nonempty `reason` and `evidence` list of absolute `path` and file `sha256` pairs.
+A not-applicable external state still needs a recorded explanation. The reviewer
+assesses these facts; a checksum does not prove that an environment is equivalent.
+
+```bash
+python3 <shared-dir>/scripts/review_evidence.py transfer-check \
+  --from-snapshot <original-snapshot.json> --to-snapshot <target-snapshot.json> \
+  --check <original-check/result.json> --assessment <transfer-assessment.json>
+```
+
+The helper rejects changed content, contract, context, command definitions,
+failed checks, altered logs, and nested transfers. It writes a target check with
+links to the original snapshot, result, and assessment. Use that path in the new
+review. Transfer directly from the original check, not from a prior transfer.
+Keep final combined acceptance and review of changed interactions. Check-specific
+input subsets are not supported; use a fresh check when whole-content equality
+cannot be established.

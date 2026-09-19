@@ -102,3 +102,21 @@ The overcomplicated quadrant (e.g. a fat controller doing real logic _and_ I/O) 
 5. **Report** concretely per finding: `file:line` → which rule → the fix. Skip lenses that don't apply rather than padding.
 
 For the detailed decision trees (style transition, mock flowchart, Humble Object refactor, integration-test rules — path selection, logging, pyramid — and the full anti-pattern catalog with before/after code), read `references/decision-trees.md`.
+
+## Failure sequences and fixture boundaries
+
+For stateful or asynchronous changes, derive a small case table from the actual
+state machine before the first review. Include meaningful event orders and retained
+invariants, not just each handler once. Carry a prior defect case into a related
+slice when the same causal path exists. Read `advanced-react`'s async reference
+when editor cancellation, replacement, scope changes, or late responses apply.
+
+A passing fixture proves only the boundary it exercises. Check production adapters
+with representative stored values, including absent, legacy, and malformed values
+when the schema permits them. Use actual transactions for lock and rollback claims.
+Do not let a fixture create a stronger schema or cleaner data contract than production.
+A default or fallback for bad data must follow the product contract.
+
+Separate model tests, DOM interaction tests, partial application browser checks,
+and full application checks in the acceptance report. A DOM test or screenshot
+cannot establish deployed authorization. Test counts cannot establish completeness.

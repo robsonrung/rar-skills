@@ -39,6 +39,7 @@ if str(_SHARED_SCRIPTS) not in sys.path:
     sys.path.insert(0, str(_SHARED_SCRIPTS))
 
 from model_receipt import attach_model_receipt
+from execution_metrics import normalize_metrics
 from model_routing import default_model, load_config, runner_efforts
 
 ROUTING_CONFIG = load_config()
@@ -165,43 +166,12 @@ def extract_output_fields(
     stdout: str, output_format: str
 ) -> tuple[str | None, str | None]:
     """Return (agent_message, session_id) parsed from Claude print-mode stdout."""
-    if output_format == "json":
-        try:
-            payload = json.loads(stdout)
-        except json.JSONDecodeError:
-            return None, None
-        # claude -p --output-format json returns an array of events ending in a
-        # result event; older versions returned a single result object.
-        events = payload if isinstance(payload, list) else [payload]
-        agent_message = None
-        session_id = None
-        for event in events:
-            if not isinstance(event, dict):
-                continue
-            if isinstance(event.get("session_id"), str):
-                session_id = event["session_id"]
-            if event.get("type") == "result" and isinstance(event.get("result"), str):
-                agent_message = event["result"].strip() or None
-        return agent_message, session_id
-
-    if output_format == "stream-json":
-        agent_message = None
-        session_id = None
-        for line in stdout.splitlines():
-            line = line.strip()
-            if not line.startswith("{"):
-                continue
-            try:
-                event = json.loads(line)
-            except json.JSONDecodeError:
-                continue
-            if not isinstance(event, dict):
-                continue
-            if isinstance(event.get("session_id"), str):
-                session_id = event["session_id"]
-            if event.get("type") == "result" and isinstance(event.get("result"), str):
-                agent_message = event["result"].strip() or None
-        return agent_message, session_id
+    if output_format in {"json", "stream-json"}:
+        event = structured_result(stdout, output_format) or {}
+        message = event.get("result")
+        session_id = event.get("session_id")
+        return (message if isinstance(message, str) and message.strip() else None,
+                session_id if isinstance(session_id, str) and session_id else None)
 
     text = stdout.strip()
     return (text or None), None
@@ -217,16 +187,30 @@ def load_runner_jobs():
     return runner_jobs
 
 
+def structured_result(stdout: str, output_format: str) -> dict | None:
+    try:
+        if output_format == "json":
+            payload = json.loads(stdout)
+            events = payload if isinstance(payload, list) else [payload]
+        elif output_format == "stream-json":
+            events = [json.loads(line) for line in stdout.splitlines() if line.strip()]
+        else:
+            return None
+    except json.JSONDecodeError:
+        return None
+    results = [event for event in events if isinstance(event, dict) and event.get("type") == "result"]
+    return results[-1] if results else None
+
+
 def infer_claude_success(return_code: int, stdout: str, output_format: str) -> bool:
     if return_code != 0:
         return False
-    if output_format != "json":
-        return True
-    try:
-        payload = json.loads(stdout)
-    except json.JSONDecodeError:
-        return True
-    return not (isinstance(payload, dict) and payload.get("is_error") is True)
+    if output_format == "text":
+        return bool(stdout.strip())
+    result = structured_result(stdout, output_format)
+    return bool(result and result.get("is_error") is not True
+                and result.get("subtype") == "success"
+                and isinstance(result.get("result"), str) and result["result"].strip())
 
 
 def build_prompt(
@@ -379,6 +363,14 @@ def run_claude(*args: Any, **kwargs: Any) -> dict[str, Any]:
     via the CLI or imported and called programmatically."""
     requested_model = kwargs.get("model") if "model" in kwargs else (args[3] if len(args) > 3 else None)
     result = _run_claude(*args, **kwargs)
+    metadata = kwargs.get("metadata_json") if "metadata_json" in kwargs else (args[8] if len(args) > 8 else None)
+    if metadata:
+        try:
+            parsed = json.loads(metadata)
+            if isinstance(parsed, dict):
+                result["dispatch_metadata"] = parsed
+        except (TypeError, ValueError):
+            pass  # Metadata is optional context, not execution authority.
     return normalize_envelope(result, requested_runner="claude", requested_model=requested_model)
 
 
@@ -609,6 +601,14 @@ def _run_claude(
         agent_message, session_id = extract_output_fields(process.stdout, output_format)
         result["agent_message"] = agent_message
         result["session_id"] = session_id
+        native_result = structured_result(process.stdout, output_format)
+        result["metrics"] = normalize_metrics(native_result or {})
+        result["terminal_status"] = "completed" if result["success"] else "failed"
+        if output_format != "text" and result["success"] and not no_session_persistence and not session_id:
+            result.update(success=False, return_code=1, terminal_status="invalid_receipt",
+                          error="Structured result has no session ID; reconcile before retrying.")
+        elif output_format != "text" and native_result is None:
+            result.update(terminal_status="invalid_receipt", error="Missing or malformed structured terminal result.")
     except subprocess.TimeoutExpired as e:
         result["stderr"] = f"Timeout expired after {timeout} seconds"
         result["stdout"] = (
@@ -624,6 +624,7 @@ def _run_claude(
         if partial_stderr:
             result["stderr"] = f"{result['stderr']}\n{partial_stderr}"
         result["return_code"] = -1
+        result["terminal_status"] = "interrupted"
     except Exception as e:  # noqa: BLE001
         result["stderr"] = f"Unexpected error: {e!s}"
         result["return_code"] = -3
