@@ -583,6 +583,17 @@ class ReviewEvidenceTests(unittest.TestCase):
         self.assertEqual(result["review_status"], "needs-work")
         self.assertEqual(result, run_state.complete(state, "call-1", receipt))
         self.assertEqual(len(state["steps"]), 1)
+        state_path = self.artifacts / "run-state.json"
+        run_state.atomic_write(state_path, state)
+        proc = subprocess.run([sys.executable, run_state.__file__, "--state", str(state_path),
+                               "complete", "--call", "call-1", "--receipt", str(receipt)], capture_output=True, text=True)
+        self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+        output = json.loads(proc.stdout)
+        self.assertEqual(output["execution_status"], "completed")
+        self.assertEqual(output["review_status"], "needs-work")
+        self.assertNotIn("assessment", output)
+        self.assertLess(len(proc.stdout.encode()), 2048)
+        self.assertEqual(json.loads(state_path.read_text())["attempts"], state["attempts"])
         receipt.write_text('{}')
         with self.assertRaisesRegex(ValueError, "different receipt"):
             run_state.complete(state, "call-1", receipt)

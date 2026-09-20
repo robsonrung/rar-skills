@@ -27,6 +27,9 @@ from typing import Any
 
 JOBS_DIR_PARTS = (".ai-workflow", "runner-jobs")
 LOG_TAIL_LINES = 5
+LOG_TAIL_BYTES = 4096
+RESULT_CACHE_ENTRIES = 32
+RESULT_CACHE_BYTES = 262144
 
 
 def jobs_root(working_dir: str | None) -> Path:
@@ -42,8 +45,9 @@ def write_manifest(job_dir: Path, manifest: dict[str, Any]) -> None:
 
 def load_manifest(job_dir: Path) -> dict[str, Any] | None:
     try:
-        return json.loads((job_dir / "manifest.json").read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError):
+        value = json.loads((job_dir / "manifest.json").read_text(encoding="utf-8"))
+        return value if isinstance(value, dict) else None
+    except (OSError, ValueError):
         return None
 
 
@@ -158,40 +162,53 @@ def pid_alive(pid: int) -> bool:
 
 
 def job_status(job_dir: Path, manifest: dict[str, Any]) -> str:
-    if manifest.get("status") == "cancelled":
-        return "cancelled"
-    result_file = Path(manifest.get("result_file") or job_dir / "result.json")
-    if result_file.is_file():
-        try:
-            result = json.loads(result_file.read_text(encoding="utf-8"))
-            return "completed" if isinstance(result, dict) and result.get("success") is True else "failed"
-        except (OSError, json.JSONDecodeError):
-            return "failed"
-    if pid_alive(int(manifest.get("pid", -1))):
-        return "running"
-    return "died"
+    return observe_job(job_dir, manifest)["status"]
+
+
+def bounded_log_tail(manifest: dict[str, Any], lines: int = LOG_TAIL_LINES) -> tuple[list[str], bool]:
+    log_file = manifest.get("log_file")
+    if not log_file:
+        return [], False
+    try:
+        with Path(log_file).open("rb") as stream:
+            size = stream.seek(0, os.SEEK_END)
+            stream.seek(max(0, size - LOG_TAIL_BYTES))
+            raw = stream.read(LOG_TAIL_BYTES)
+    except OSError:
+        return [], False
+    # Ignore a split UTF-8 character at the byte boundary; output stays bounded.
+    content = raw.decode("utf-8", errors="ignore")
+    nonempty = [line for line in content.splitlines() if line.strip()]
+    return nonempty[-max(0, lines):] if lines > 0 else [], size > len(raw) or len(nonempty) > lines
 
 
 def log_tail(manifest: dict[str, Any], lines: int = LOG_TAIL_LINES) -> list[str]:
-    log_file = manifest.get("log_file")
-    if not log_file:
-        return []
-    try:
-        content = Path(log_file).read_text(encoding="utf-8", errors="replace")
-    except OSError:
-        return []
-    return [line for line in content.splitlines() if line.strip()][-lines:]
+    return bounded_log_tail(manifest, lines)[0]
 
 
-def load_result(job_dir: Path, manifest: dict[str, Any]) -> dict[str, Any] | None:
+def load_result(job_dir: Path, manifest: dict[str, Any], cache=None) -> dict[str, Any] | None:
     result_file = Path(manifest.get("result_file") or job_dir / "result.json")
     try:
-        return json.loads(result_file.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError):
+        raw = result_file.read_bytes()
+        digest = hashlib.sha256(raw).hexdigest() if cache is not None else None
+        key = str(result_file.resolve()) if cache is not None else None
+        if cache is not None and key in cache and cache[key][0] == digest:
+            return cache[key][1]
+        value = json.loads(raw)
+        value = value if isinstance(value, dict) else None
+        if cache is not None and len(raw) <= RESULT_CACHE_BYTES:
+            if key not in cache and len(cache) >= RESULT_CACHE_ENTRIES:
+                del cache[next(iter(cache))]
+            cache[key] = (digest, value)
+        elif cache is not None:
+            cache.pop(key, None)
+        return value
+    except (OSError, ValueError):
         return None
 
 
 def status_payload(job_dir: Path, manifest: dict[str, Any]) -> dict[str, Any]:
+    tail, truncated = bounded_log_tail(manifest)
     return {
         "job_id": manifest.get("job_id", job_dir.name),
         "runner": manifest.get("runner"),
@@ -203,8 +220,40 @@ def status_payload(job_dir: Path, manifest: dict[str, Any]) -> dict[str, Any]:
         "model": manifest.get("model"),
         "result_file": manifest.get("result_file"),
         "log_file": manifest.get("log_file"),
-        "log_tail": log_tail(manifest),
+        "log_tail": tail,
+        "log_tail_truncated": truncated,
     }
+
+
+def observe_job(job_dir, manifest, cache=None):
+    if manifest is None:
+        return {"status": "missing", "result": {}}
+    if manifest.get("status") == "cancelled":
+        return {"status": "cancelled", "result": {}}
+    try:
+        result_path = Path(manifest.get("result_file") or job_dir / "result.json")
+        result = load_result(job_dir, manifest, cache)
+        if result is not None or result_path.exists():
+            status = "completed" if result is not None and result.get("success") is True else "failed"
+        else:
+            status = "running" if pid_alive(int(manifest.get("pid", -1))) else "died"
+        return {"status": status, "result": result or {}}
+    except (OSError, ValueError, TypeError, OverflowError):
+        return {"status": "failed", "result": {"error": "invalid job manifest"}}
+
+
+def observe_many(targets, cache=None):
+    """Read each explicit job once, without processes or logs. Cache is caller-owned."""
+    observations = {}
+    for working_dir, job_id in targets:
+        key = (working_dir, job_id)
+        if key in observations:
+            continue
+        if not isinstance(job_id, str) or job_id in {"", ".", ".."} or Path(job_id).name != job_id:
+            raise ValueError("plain job ID required")
+        job_dir = jobs_root(working_dir) / job_id
+        observations[key] = observe_job(job_dir, load_manifest(job_dir), cache)
+    return observations
 
 
 def wait_many(targets, cursor=None, timeout=50, interval=1):

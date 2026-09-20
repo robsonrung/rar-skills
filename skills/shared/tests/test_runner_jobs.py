@@ -22,6 +22,61 @@ class WaitTests(unittest.TestCase):
         jobs.write_manifest(self.job, {"pid": os.getpid(), "job_id": "fixture"})
         self.targets = [{"working_dir": str(self.root), "job_id": "fixture"}]
 
+    def test_batch_reads_each_job_once_without_processes(self):
+        (self.job / "result.json").write_text('{"success": true, "session_id": "session"}')
+        target = (str(self.root), "fixture")
+        with patch.object(jobs.subprocess, "run", side_effect=AssertionError("no process")), \
+             patch.object(jobs, "load_result", wraps=jobs.load_result) as read:
+            result = jobs.observe_many([target, target])
+        self.assertEqual(read.call_count, 1)
+        self.assertEqual(result[target]["result"]["session_id"], "session")
+
+    def test_cache_checks_content_even_when_size_and_mtime_match(self):
+        path = self.job / "result.json"
+        path.write_text('{"success": true, "session_id": "first"}')
+        target = (str(self.root), "fixture")
+        cache = {}
+        first = jobs.observe_many([target], cache)[target]
+        stamp = path.stat()
+        path.write_text('{"success": true, "session_id": "other"}')
+        os.utime(path, ns=(stamp.st_atime_ns, stamp.st_mtime_ns))
+        second = jobs.observe_many([target], cache)[target]
+        self.assertEqual(first["result"]["session_id"], "first")
+        self.assertEqual(second["result"]["session_id"], "other")
+        path.write_text("[]")
+        self.assertEqual(jobs.observe_many([target], cache)[target]["status"], "failed")
+        path.write_bytes(b"\xff")
+        self.assertEqual(jobs.observe_many([target], cache)[target]["status"], "failed")
+        path.unlink()
+        self.assertEqual(jobs.observe_many([target], cache)[target]["status"], "running")
+
+    def test_log_tail_bounds_reads_and_single_line_unicode_output(self):
+        path = self.job / "run.log"
+        path.write_text("界" * 1_000_000)
+        manifest = {"pid": os.getpid(), "log_file": str(path)}
+        with patch.object(Path, "read_text", side_effect=AssertionError("unbounded read")):
+            payload = jobs.status_payload(self.job, manifest)
+        self.assertLessEqual(len("\n".join(payload["log_tail"]).encode()), jobs.LOG_TAIL_BYTES)
+        self.assertTrue(payload["log_tail_truncated"])
+        path.write_text("one\n\ntwo\n")
+        self.assertEqual(jobs.bounded_log_tail(manifest), (["one", "two"], False))
+
+    def test_batch_terminal_failures(self):
+        target = (str(self.root), "fixture")
+        for content in ('{"success": false}', 'partial', '[]'):
+            (self.job / "result.json").write_text(content)
+            self.assertEqual(jobs.observe_many([target])[target]["status"], "failed")
+        (self.job / "result.json").unlink()
+        jobs.write_manifest(self.job, {"pid": -1})
+        self.assertEqual(jobs.observe_many([target])[target]["status"], "died")
+        jobs.write_manifest(self.job, {"pid": -1, "status": "cancelled"})
+        self.assertEqual(jobs.observe_many([target])[target]["status"], "cancelled")
+        for malformed in ({"pid": "bad"}, {"result_file": 42}, {"pid": None}):
+            jobs.write_manifest(self.job, malformed)
+            self.assertEqual(jobs.observe_many([target])[target]["status"], "failed")
+        (self.job / "manifest.json").write_text("[]")
+        self.assertEqual(jobs.observe_many([target])[target]["status"], "missing")
+
     def test_timeout_is_observation_only_and_returns_cursor(self):
         result = jobs.wait_many(self.targets, timeout=0)
         self.assertEqual(result["reason"], "timeout")

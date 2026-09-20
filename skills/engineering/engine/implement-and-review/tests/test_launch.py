@@ -192,6 +192,101 @@ class LauncherTests(unittest.TestCase):
             context_recovery_reason=None,
         )
 
+    def test_repeated_launch_preserves_pending_and_completed_state(self):
+        plan = self.native_plan()
+        args = self.launch_arguments(plan, "repeat")
+        with contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(launcher.cmd_launch(args), 0)
+        path = self.manifest_for("repeat")
+        for completed in (False, True):
+            if completed:
+                manifest = json.loads(path.read_text())
+                dispatch = manifest["tracks"]["api"]["implementation"]["native_dispatch"]
+                receipt = self.root / "receipt.json"
+                receipt.write_text(json.dumps(self.native_receipt(dispatch, context_id="context", completed_turn=1)))
+                with contextlib.redirect_stdout(io.StringIO()):
+                    launcher.cmd_record_native(self.record_native_arguments(path, receipt))
+            before = {p: p.read_bytes() for p in path.parent.iterdir() if p.is_file()}
+            with mock.patch.object(launcher, "dispatch_route", side_effect=AssertionError("duplicate dispatch")), \
+                 contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+                launcher.cmd_launch(args)
+            self.assertEqual(before, {p: p.read_bytes() for p in path.parent.iterdir() if p.is_file()})
+        args.dry_run = True
+        with contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(launcher.cmd_launch(args), 0)
+        self.assertEqual(before, {p: p.read_bytes() for p in path.parent.iterdir() if p.is_file()})
+        args.session_id = "preview-only"
+        with contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(launcher.cmd_launch(args), 0)
+        self.assertFalse(self.manifest_for("preview-only").parent.exists())
+
+    def test_exclusive_manifest_creation_has_one_winner(self):
+        from concurrent.futures import ThreadPoolExecutor
+        from threading import Barrier
+        from run_state import atomic_write
+        path = self.root / "concurrent.json"
+        barrier = Barrier(4)
+        def create(number):
+            barrier.wait()
+            try:
+                atomic_write(path, {"winner": number}, exclusive=True)
+                return number
+            except FileExistsError:
+                return None
+        with ThreadPoolExecutor(max_workers=4) as pool:
+            winners = [value for value in pool.map(create, range(4)) if value is not None]
+        self.assertEqual(len(winners), 1)
+        self.assertEqual(json.loads(path.read_text()), {"winner": winners[0]})
+        self.assertEqual(list(self.root.glob("concurrent.json.*")), [])
+
+    def test_concurrent_launch_processes_publish_one_task(self):
+        import sys
+        plan = self.native_plan()
+        command = [sys.executable, str(LAUNCH_PATH), "launch", "--session-id", "race",
+                   "--task-id", "task1", "--routing-plan", str(plan), "--working-dir", str(self.root),
+                   "--track", "api", str(self.brief)]
+        processes = [subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+                     for _ in range(2)]
+        outputs = [process.communicate(timeout=10) for process in processes]
+        self.assertEqual(sorted(process.returncode for process in processes), [0, 1], outputs)
+        manifest = json.loads(self.manifest_for("race").read_text())
+        self.assertEqual(manifest["tracks"]["api"]["implementation"]["status"], "awaiting_native_dispatch")
+        self.assertEqual(len(manifest["tracks"]), 1)
+
+    def test_poll_batches_runner_jobs_and_keeps_native_pending(self):
+        jobs = launcher.runner_jobs
+        route = self.route("impl", "implementer", "gpt-6-astra")
+        directory = jobs.jobs_root(str(self.root)) / "fixture"
+        directory.mkdir(parents=True)
+        result = {"success": True, "session_id": "session", "effective_runner": route["runner"],
+                  "configured_model": route["model"], "effective_model": route["model"],
+                  "effective_effort": route["effort"],
+                  "model_receipt": {"status": "verified", "source": "provider_event", "observed_model": route["model"]}}
+        result_path = directory / "result.json"
+        result_path.write_text(json.dumps(result))
+        jobs.write_manifest(directory, {"pid": -1})
+        entry = {"mode": "runner", "job_id": "fixture", "effective_route": route, "result_file": str(result_path)}
+        manifest = {"tracks": {"api": {"working_dir": str(self.root), "implementation": entry},
+                               "native": {"implementation": {"mode": "native"}}},
+                    "reviews": [{"track": "api", "cycle": 1, "working_dir": str(self.root), "launch": entry}]}
+        cache = {}
+        with mock.patch.object(launcher.subprocess, "run", side_effect=AssertionError("no process")), \
+             mock.patch.object(jobs, "load_result", wraps=jobs.load_result) as read:
+            snapshot = launcher.poll_once(manifest, cache)
+        self.assertEqual(read.call_count, 1)
+        self.assertFalse(snapshot["all_terminal"])
+        self.assertTrue(snapshot["tracks"]["api"]["success"])
+        self.assertEqual(snapshot["tracks"]["api"]["runner_session_id"], "session")
+        result["effective_model"] = "wrong-model"
+        result_path.write_text(json.dumps(result))
+        snapshot = launcher.poll_once(manifest, cache)
+        self.assertFalse(snapshot["tracks"]["api"]["success"])
+        self.assertIn("route_error", snapshot["tracks"]["api"])
+        (directory / "manifest.json").unlink()
+        snapshot = launcher.poll_once(manifest, cache)
+        self.assertEqual(snapshot["tracks"]["api"]["status"], "missing")
+        self.assertFalse(snapshot["tracks"]["api"]["success"])
+
     def test_status_only_transition_preserves_scope_but_acceptance_change_blocks(self) -> None:
         path, _, _ = self.plan()
         launcher.load_routing_plan(str(path), "task1", {"api"}, True, self.root)

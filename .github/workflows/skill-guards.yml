@@ -50,6 +50,14 @@ jobs:
           python3 skills/shared/tests/test_context_packet.py
       - name: Structured Claude receipts
         run: python3 skills/engineering/seats/claude-runner/tests/test_run_claude.py
+      - name: Runner output and lane contracts
+        run: |
+          python3 skills/engineering/seats/dcode-runner/tests/test_run_dcode.py
+          python3 skills/engineering/seats/gemini-runner/tests/test_run_gemini.py
+          python3 skills/engineering/seats/cline-runner/tests/test_cline_lanes.py
+          python3 skills/shared/tests/test_output_contract.py
+      - name: Peer fleet lifecycle
+        run: python3 skills/extras/peer-sessions/tests/test_cmux_fleet.py
       - name: Review evidence integrity
         run: python3 skills/shared/tests/test_review_evidence.py
       - name: Review finding integrity

@@ -211,6 +211,20 @@ python3 "$SKILL_DIR/scripts/launch.py" poll \
 
 `died`, `cancelled`, malformed, and receipt-mismatched jobs are terminal
 failures. The launcher writes the manifest before and after every dispatch.
+The first write is exclusive. If the session and task already have a manifest,
+`launch` stops before dispatch or artifact replacement. Use the existing manifest
+to resume or reconcile the task. A dry run remains a preview and writes no files.
+
+Polling reads runner jobs in one process and checks each distinct job once per
+poll. It does not read runner logs. Parsed results can be reused within one wait
+only after their content hash matches. The cache holds at most 32 results of at
+most 256 KiB each and is discarded when the command exits. Receipt checks still
+run on each observation. Missing and corrupt jobs are terminal failures; native
+tasks remain pending until their receipts are recorded.
+
+The standalone runner status command reads at most the final 4 KiB of a log and
+returns at most five nonempty lines. `log_tail_truncated` reports omitted bytes or
+lines. Read the stored log directly when more detail is required.
 
 Cleanup accepts only its own manifest path, repository root, worktree path, and
 branch shape. Dry runs report `planned_worktrees`; they do not claim removal.

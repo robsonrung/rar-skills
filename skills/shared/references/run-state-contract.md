@@ -145,7 +145,23 @@ python3 <shared-dir>/scripts/run_state.py --state <run-state.json> reserve \
 python3 <shared-dir>/scripts/run_state.py --state <run-state.json> reconcile \
   --call <call-id> --receipt <actual-completion-receipt.json>
 python3 <shared-dir>/scripts/run_state.py --state <run-state.json> status
+python3 <shared-dir>/scripts/run_state.py --state <run-state.json> status --details --limit 20 --offset 0
+python3 <shared-dir>/scripts/run_state.py --state <run-state.json> status --task <task-id> --metrics
+python3 <shared-dir>/scripts/run_state.py --state <run-state.json> status --call <call-id>
 ```
+
+Default status returns task and call counts, execution counts, and the remaining
+total call budget. It does not return call history or aggregate usage. Mutations
+return the affected call, execution status, remaining call budgets, and state path.
+An existing reservation still requires reconciliation before dispatch.
+
+Use `--details` for a page of calls. Pages contain at most 100 calls and return
+`next_offset`, or null at the end. `--task` filters the page by task ID. `--call`
+returns one full stored record. Queries do not write state. Read pages from a stable
+ledger when an exact export is required. Request `--metrics` to aggregate usage;
+with `--task`, totals cover all calls for that task, including calls outside the
+page. Without a task filter, totals cover the full run. Unknown usage stays unknown.
+The Python `status(state)` function retains its detailed return shape.
 
 Limits contain `total_role_calls` and each route ID. Reuse the already approved
 ceilings and existing attempts. A repeated reservation is idempotent bookkeeping,
@@ -166,8 +182,10 @@ only that receipt; task acceptance and serving-model verification remain the
 launcher's responsibility. Keep missing metrics unknown. Per-task totals report
 measured sums and missing-call counts, including failed calls and repairs.
 
-The helper uses a POSIX file lock and atomically replaces state. The launcher atomically replaces
-its task manifest; each manifest has one conductor writer. Prefer host waits with
+The helper uses a POSIX file lock and atomically replaces state. The launcher creates
+its first task manifest exclusively and rejects a repeated launch. Resume or reconcile
+that manifest instead. Later updates replace it atomically; each manifest has one
+conductor writer. Prefer host waits with
 cursors. For runners use bounded waits with backoff, no longer than the host's
 responsive wait limit. Read reports on a change or failure, not every poll.
 
@@ -194,6 +212,8 @@ snapshot before dispatch. The host adapter or runner supplies the actual executi
 Use `run_state.py --state <state.json> complete --call <call-id> --receipt <receipt.json>`.
 This validates route, context, input revision, snapshot, and evidence, then records the call and review reference.
 It returns execution status separately from review readiness. An open finding remains `needs-work`.
+The CLI returns review status and the review artifact reference, without the full
+assessment. Use the evidence assessment command when its details are needed.
 An identical retry is idempotent. A changed receipt or missing snapshot binding is rejected.
 The command does not synthesize execution metadata or mark a task queue complete. Legacy calls
 can still use `reconcile` and their existing review recorder.

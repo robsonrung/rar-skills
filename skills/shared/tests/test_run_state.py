@@ -41,6 +41,52 @@ class RunStateTests(unittest.TestCase):
                                     "agent_message": "Completed."}))
         return path
 
+    def cli(self, *args):
+        proc = subprocess.run([sys.executable, ledger.__file__, "--state", str(self.path), *args],
+                              capture_output=True, text=True)
+        self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+        return json.loads(proc.stdout), len(proc.stdout.encode())
+
+    def test_compact_status_scales_and_detail_queries_do_not_write(self):
+        sizes = []
+        for count in (1, 10, 100):
+            state = json.loads(self.path.read_text())
+            calls = {}
+            for n in range(count):
+                route = {**self.route, "id": f"T{n}-writer", "task_id": f"T{n}"}
+                state["call_ledger"]["limits"][route["id"]] = 3
+                for kind in ("pending", "failed"):
+                    calls[f"{n}-{kind}"] = {"status": kind, "intent": {"route": route}}
+            state["call_ledger"]["calls"] = calls
+            ledger.atomic_write(self.path, state)
+            before = self.path.read_bytes()
+            result, size = self.cli("status")
+            sizes.append(size)
+            self.assertLess(size, 2048)
+            self.assertEqual(result["calls"]["pending"], count)
+            self.assertEqual(result["calls"]["failed"], count)
+            self.assertNotIn("metrics_by_task", result)
+            page, _ = self.cli("status", "--details", "--limit", "1", "--offset", "1")
+            self.assertEqual(page["calls"][0]["call_id"], "0-failed")
+            task, _ = self.cli("status", "--task", "T0", "--metrics")
+            self.assertEqual(task["total"], 2)
+            self.assertEqual(task["metrics"]["input_tokens"]["unknown_calls"], 2)
+            detail, _ = self.cli("status", "--call", "0-failed")
+            self.assertEqual(detail["detail"], calls["0-failed"])
+            self.assertEqual(before, self.path.read_bytes())
+        self.assertLess(max(sizes) - min(sizes), 30)
+
+    def test_cli_replayed_reservation_is_compact_and_keeps_attempts(self):
+        command = ("reserve", "--route", "T1-writer", "--call", "call-1",
+                   "--brief", str(self.brief), "--phase", "implementation")
+        first, _ = self.cli(*command)
+        again, size = self.cli(*command)
+        self.assertEqual(first["reservation"], "new")
+        self.assertEqual(again["reservation"], "existing")
+        self.assertEqual(again["remaining_route_calls"], 1)
+        self.assertLess(size, 2048)
+        self.assertEqual(json.loads(self.path.read_text())["attempts"]["total_role_calls"], 1)
+
     def test_crash_after_reservation_does_not_reset_or_duplicate_attempt(self):
         self.reserve()
         self.reserve()

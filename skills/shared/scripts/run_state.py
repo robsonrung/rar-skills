@@ -23,7 +23,7 @@ def sha(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
-def atomic_write(path, data):
+def atomic_write(path, data, *, exclusive=False):
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     fd, temporary = tempfile.mkstemp(prefix=path.name + ".", dir=path.parent)
@@ -33,7 +33,11 @@ def atomic_write(path, data):
             stream.write("\n")
             stream.flush()
             os.fsync(stream.fileno())
-        os.replace(temporary, path)
+        if exclusive:
+            # Publish a complete file only if this run has no owner yet.
+            os.link(temporary, path)
+        else:
+            os.replace(temporary, path)
     finally:
         if os.path.exists(temporary):
             os.unlink(temporary)
@@ -208,6 +212,51 @@ def status(state):
             "metrics_by_task": {key: aggregate_metrics(value) for key, value in tasks.items()}}
 
 
+def summary(state):
+    ledger = state["call_ledger"]
+    counts = {"pending": 0, "completed": 0, "failed": 0, "other": 0}
+    tasks = set()
+    for call in ledger["calls"].values():
+        value = call["status"]
+        counts[value if value in counts else "other"] += 1
+        tasks.add(call["intent"]["route"]["task_id"])
+    used = state["attempts"].get("total_role_calls", 0)
+    limit = ledger["limits"]["total_role_calls"]
+    return {"run_id": state["run_id"], "phase": state["phase"], "status": state["status"],
+            "task_count": len(tasks), "call_count": len(ledger["calls"]), "calls": counts,
+            "total_role_calls": {"used": used, "limit": limit, "remaining": max(0, limit - used)}}
+
+
+def call_summary(state, call_id):
+    call = state["call_ledger"]["calls"][call_id]
+    route = call["intent"]["route"]["id"]
+    used = state["attempts"].get(route, 0)
+    limit = state["call_ledger"]["limits"][route]
+    return {"call_id": call_id, "route": route, "execution_status": call["status"],
+            "remaining_route_calls": max(0, limit - used),
+            "remaining_total_calls": max(0, state["call_ledger"]["limits"]["total_role_calls"]
+                                         - state["attempts"].get("total_role_calls", 0))}
+
+
+def status_query(state, args):
+    if args.call:
+        return {"call_id": args.call, "detail": state["call_ledger"]["calls"][args.call]}
+    if args.details or args.task:
+        require(1 <= args.limit <= 100 and args.offset >= 0, "use limit 1..100 and a nonnegative offset")
+        calls = [(key, value) for key, value in state["call_ledger"]["calls"].items()
+                 if not args.task or value["intent"]["route"]["task_id"] == args.task]
+        page = calls[args.offset:args.offset + args.limit]
+        result = {"total": len(calls), "offset": args.offset,
+                  "next_offset": args.offset + len(page) if args.offset + len(page) < len(calls) else None,
+                  "calls": [call_summary(state, key) for key, _ in page]}
+        if args.metrics:
+            result["metrics"] = aggregate_metrics([value for _, value in calls])
+        return result
+    if args.metrics:
+        return {"metrics_by_task": status(state)["metrics_by_task"]}
+    return summary(state)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--state", required=True, help="existing run-state.json location")
@@ -226,31 +275,42 @@ def main():
         sub = commands.add_parser(name)
         sub.add_argument("--call", required=True)
         sub.add_argument("--" + option, required=True)
-    commands.add_parser("status")
+    query = commands.add_parser("status")
+    selection = query.add_mutually_exclusive_group()
+    selection.add_argument("--call", help="read one complete call record")
+    selection.add_argument("--task", help="list calls for one task")
+    selection.add_argument("--details", action="store_true", help="list a page of calls")
+    query.add_argument("--offset", type=int, default=0)
+    query.add_argument("--limit", type=int, default=20)
+    query.add_argument("--metrics", action="store_true", help="aggregate stored usage only when requested")
     args = parser.parse_args()
     try:
         path = Path(args.state)
         def apply(state):
+            if args.action == "status":
+                return status_query(state, args)
             if args.action == "init":
                 initialize(state, args.plan, args.run_id, json.loads(Path(args.limits).read_text()))
             elif args.action == "reserve":
                 existed = args.call in state["call_ledger"]["calls"]
                 reserve(state, args.route, args.call, args.brief, args.phase, args.setup_reference, args.review_snapshot)
-                return {**status(state), "reservation": "existing" if existed else "new"}
+                return {**call_summary(state, args.call), "reservation": "existing" if existed else "new"}
             elif args.action == "complete":
                 require(not args.dry_run, "complete writes evidence; use receipt validation for a dry run")
-                return complete(state, args.call, args.receipt)
+                result = complete(state, args.call, args.receipt)
+                result.pop("assessment", None)
+                return {**call_summary(state, args.call), **result}
             elif args.action == "reconcile":
                 reconcile(state, args.call, args.receipt)
             elif args.action == "resolve-context":
                 resolve_context(state, args.call, args.event)
-            return status(state)
+            return summary(state) if args.action == "init" else call_summary(state, args.call)
         if args.dry_run or args.action == "status":
             result = apply(json.loads(path.read_text()) if path.exists() else {})
         else:
             with locked(path) as state:
                 result = apply(state)
-        print(json.dumps(result))
+        print(json.dumps({**result, "state_path": str(path.resolve())}))
         return 0
     except (ValueError, OSError, KeyError, TypeError) as error:
         print(json.dumps({"status": "blocked", "error": str(error)}))

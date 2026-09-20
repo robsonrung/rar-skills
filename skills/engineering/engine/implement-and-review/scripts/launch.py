@@ -32,7 +32,7 @@ RUNNER_RESUME_FLAGS = {
     "pi": "--session",
     "cline": "--session",
 }
-TERMINAL_JOB_STATUSES = {"completed", "failed", "died", "cancelled"}
+TERMINAL_JOB_STATUSES = {"completed", "failed", "died", "cancelled", "missing"}
 ACTIVE_REVIEW_STATUSES = {"starting", "running", "awaiting_native_dispatch", "orchestrator-managed"}
 MAX_REVIEW_CYCLES = 3
 MAX_EVIDENCE_RECOVERIES = 1
@@ -63,12 +63,12 @@ def _skills_dir() -> Path:
 
 
 SKILLS_DIR = _skills_dir()
-JOBS_CLI = SKILLS_DIR / "shared" / "scripts" / "runner_jobs.py"
 _SHARED_SCRIPTS = str(SKILLS_DIR / "shared" / "scripts")
 if _SHARED_SCRIPTS not in sys.path:
     sys.path.insert(0, _SHARED_SCRIPTS)
 from model_routing import load_config, model_efforts, runner_efforts, validate_selection
 from context_packet import DEFAULT_MAX_BYTES, measure_rendered, validate_budget
+import runner_jobs
 
 ROUTING_CONFIG = load_config()
 EFFORT_FLAGS = {name: value["effort_flag"] for name, value in ROUTING_CONFIG["runners"].items() if value["effort_flag"]}
@@ -826,7 +826,11 @@ def cmd_launch(args: argparse.Namespace) -> int:
         manifest["status"] = "unapproved_preview"
     manifest_path_value = artifact_dir / "launch-manifest.json"
     if not args.dry_run:
-        save_manifest(manifest, manifest_path_value)
+        from run_state import atomic_write
+        try:
+            atomic_write(manifest_path_value, manifest, exclusive=True)
+        except FileExistsError:
+            fail(f"task manifest already exists: {manifest_path_value}; resume or reconcile the existing task")
     for track in sorted(tracks):
         if args.isolation == "worktree":
             branch = f"impl/{args.task_id}-{track}-{args.session_id}"
@@ -1257,16 +1261,8 @@ def persist_terminal_runner_contexts(manifest: dict[str, Any], snapshot: dict[st
 
 
 def jobs_query(subcommand: str, job_id: str, working_dir: str) -> dict[str, Any]:
-    result = subprocess.run(
-        [sys.executable, str(JOBS_CLI), subcommand, job_id, "--working-dir", working_dir, "--json"],
-        capture_output=True,
-        text=True,
-        check=False,
-    )
-    try:
-        return json.loads(result.stdout.strip() or "{}")
-    except json.JSONDecodeError:
-        return {"status": "unknown", "raw": (result.stdout or result.stderr or "").strip()[:300]}
+    observation = runner_jobs.observe_many([(working_dir, job_id)])[(working_dir, job_id)]
+    return observation["result"] if subcommand == "result" else {"status": observation["status"]}
 
 
 def receipt_error(route: dict[str, Any], result: dict[str, Any]) -> str | None:
@@ -1311,7 +1307,7 @@ def receipt_error(route: dict[str, Any], result: dict[str, Any]) -> str | None:
     return None
 
 
-def job_snapshot(entry: dict[str, Any], working_dir: str) -> tuple[dict[str, Any], bool]:
+def job_snapshot(entry: dict[str, Any], working_dir: str, observation=None) -> tuple[dict[str, Any], bool]:
     if entry.get("mode") == "native":
         receipt = entry.get("completion_receipt")
         if not isinstance(receipt, dict):
@@ -1338,10 +1334,10 @@ def job_snapshot(entry: dict[str, Any], working_dir: str) -> tuple[dict[str, Any
                 "error": entry.get("error") or "route did not start",
             }, True
         return {"mode": entry.get("mode"), "status": "not-started"}, False
-    status = jobs_query("status", job_id, working_dir).get("status", "unknown")
+    status = observation["status"] if observation is not None else jobs_query("status", job_id, working_dir).get("status", "unknown")
     snapshot: dict[str, Any] = {"mode": "runner", "job_id": job_id, "status": status}
     if status in TERMINAL_JOB_STATUSES:
-        result = jobs_query("result", job_id, working_dir)
+        result = observation["result"] if observation is not None else jobs_query("result", job_id, working_dir)
         snapshot["success"] = status == "completed" and result.get("success") is True
         snapshot["runner_session_id"] = result.get("session_id")
         snapshot["model_receipt"] = result.get("model_receipt")
@@ -1360,16 +1356,25 @@ def job_snapshot(entry: dict[str, Any], working_dir: str) -> tuple[dict[str, Any
     return snapshot, False
 
 
-def poll_once(manifest: dict[str, Any]) -> dict[str, Any]:
+def poll_once(manifest: dict[str, Any], cache=None) -> dict[str, Any]:
     result: dict[str, Any] = {"session_id": manifest.get("session_id"), "task_id": manifest.get("task_id"), "tracks": {}, "reviews": {}}
     terminal = True
+    entries = [(info.get("implementation", {}), info.get("working_dir", "."))
+               for info in manifest.get("tracks", {}).values()]
+    entries += [(review.get("launch", {}), review.get("working_dir", "."))
+                for review in manifest.get("reviews", [])]
+    observations = runner_jobs.observe_many(
+        [(directory, entry["job_id"]) for entry, directory in entries
+         if entry.get("mode") != "native" and entry.get("job_id")], cache)
     for track, info in manifest.get("tracks", {}).items():
-        snapshot, done = job_snapshot(info.get("implementation", {}), info.get("working_dir", "."))
+        entry, directory = info.get("implementation", {}), info.get("working_dir", ".")
+        snapshot, done = job_snapshot(entry, directory, observations.get((directory, entry.get("job_id"))))
         result["tracks"][track] = snapshot
         terminal = terminal and done
     for review in manifest.get("reviews", []):
         key = f"{review.get('track', 'unknown')}:{review.get('cycle', '0')}"
-        snapshot, done = job_snapshot(review.get("launch", {}), review.get("working_dir", "."))
+        entry, directory = review.get("launch", {}), review.get("working_dir", ".")
+        snapshot, done = job_snapshot(entry, directory, observations.get((directory, entry.get("job_id"))))
         result["reviews"][key] = snapshot
         terminal = terminal and done
     result["all_terminal"] = terminal
@@ -1380,9 +1385,10 @@ def cmd_poll(args: argparse.Namespace) -> int:
     deadline = time.monotonic() + args.wait_timeout
     delay = max(1, min(args.interval, 60))
     previous = None
+    cache = {}
     while True:
         manifest, path = load_manifest(args)
-        snapshot = poll_once(manifest)
+        snapshot = poll_once(manifest, cache)
         try:
             context_changed = persist_terminal_runner_contexts(manifest, snapshot)
         except ValueError as error:
