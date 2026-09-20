@@ -445,6 +445,38 @@ class ReviewEvidenceTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "checksum mismatch"):
             evidence.assess(snapshot, self.base)
 
+    def test_recheck_packet_replaces_prior_evidence_and_retains_findings(self):
+        self.command("print('old check')")
+        self.plan["observations"] = ["old-flow"]
+        original = self.prepare()
+        check = evidence.run_check(original, "check")
+        capture = self.artifacts / "browser.txt"
+        capture.write_text("Observed both flows")
+        first = self.response(original)
+        first["checks"] = {"check": str(check)}
+        first["observations"] = [{"id": "old-flow", "result": "pass",
+                                  "evidence": [evidence.evidence_link(capture)]}]
+        first["findings"] = [{"id": "F1", "path": "app.txt", "severity": "P2",
+                              "status": "open", "evidence": "Unresolved defect."}]
+        previous = self.record(original, first)
+
+        self.plan["checks"][0]["id"] = "current-check"
+        self.plan["observations"] = ["current-flow"]
+        self.requirements.write_text(json.dumps(self.plan))
+        current, delta = self.recheck(original, previous)
+        evidence.run_check(current, "current-check")
+        packet = evidence.prepare_packet(current, self.artifacts / "current-packet.json", observations=[
+            {"id": "current-flow", "result": "pass", "evidence": [str(capture)]}])
+        del delta["checks"], delta["observations"]
+        delta["evidence_packet"] = evidence.evidence_link(packet)
+        review = self.record(current, delta)
+        recorded = evidence.load_record(review)
+        self.assertEqual(set(recorded["result"]["checks"]), {"current-check"})
+        self.assertEqual([row["id"] for row in recorded["result"]["observations"]], ["current-flow"])
+        self.assertEqual(recorded["result"]["findings"], first["findings"])
+        self.assertEqual(json.loads(recorded["execution"]["agent_message"]), delta)
+        self.assertEqual(evidence.assess(current, self.base)["status"], "needs-work")
+
     def test_packet_rejects_missing_observations_before_dispatch(self):
         self.plan["observations"] = ["save", "denied"]
         snapshot = self.prepare()

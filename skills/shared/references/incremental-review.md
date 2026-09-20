@@ -52,3 +52,5 @@ other's finding. Reviewers may still identify new supported defects in a recheck
 Before dispatch, use `response-contract` to determine the current required observations.
 Use a prepared `evidence_packet` in place of `checks` and `observations` when complete references
 are available. This preserves all coverage and findings without asking the reviewer to copy hashes.
+
+A complete evidence packet replaces prior checks and observations. Inline updates continue to merge with prior evidence. Neither form removes unresolved findings.

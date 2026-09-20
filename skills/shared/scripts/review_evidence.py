@@ -362,7 +362,8 @@ def prior_review(link, depth=0):
 
 
 def expand_response(raw, snapshot, snapshot_path, depth=0):
-    if isinstance(raw, dict) and "evidence_packet" in raw:
+    has_packet = isinstance(raw, dict) and "evidence_packet" in raw
+    if has_packet:
         require("checks" not in raw and "observations" not in raw, "packet replaces checks and observations")
         packet = load_packet(raw["evidence_packet"], snapshot, snapshot_path)
         raw = {key: value for key, value in raw.items() if key != "evidence_packet"}
@@ -410,8 +411,8 @@ def expand_response(raw, snapshot, snapshot_path, depth=0):
         findings[finding["id"]] = finding
     result["findings"] = list(findings.values())
     require(isinstance(raw["checks"], dict) and isinstance(raw["observations"], list), "invalid evidence updates")
-    result["checks"].update(raw["checks"])
-    observations = {row["id"]: row for row in prior["observations"]}
+    result["checks"] = {**({} if has_packet else prior["checks"]), **raw["checks"]}
+    observations = {} if has_packet else {row["id"]: row for row in prior["observations"]}
     seen = set()
     for row in raw["observations"]:
         require(isinstance(row, dict) and isinstance(row.get("id"), str) and row["id"] not in seen, "invalid or duplicate observation update")
