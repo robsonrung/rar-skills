@@ -1,0 +1,6 @@
+interface:
+  display_name: "Validate E2E"
+  short_description: "Validate feature behavior with bounded checks and model selection"
+  default_prompt: "Use $validate-e2e to validate this feature. Define its acceptance contract, reuse current evidence, show editable model and runner routes, then execute within approved limits. Report behavior and runtime gates separately."
+policy:
+  allow_implicit_invocation: false

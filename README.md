@@ -59,6 +59,14 @@ Reuse captured checks when the relevant code, dependencies, environment, and
 contract still match; rerun affected checks and any required fresh checks.
 Routine reviews do not start a council.
 
+## Feature validation
+
+[`validate-e2e`](skills/engineering/workflow/validate-e2e/SKILL.md) validates an
+existing feature against a finite acceptance contract. It previews editable model
+routes and runner choices, reuses current evidence, and records bounded test and
+model attempts. Required behavior and runtime gates remain separate. It returns
+a scoped result without opening a pull request or changing production.
+
 ## Optional council
 
 `models-consensus` is for a user who explicitly asks for more opinions. It is
@@ -75,12 +83,12 @@ item. Those actions are never implied by task or model-plan approval.
 
 ## Library map
 
-There are 60 installable skills. The following map keeps every skill
+There are 61 installable skills. The following map keeps every skill
 discoverable while leaving detailed instructions in each `SKILL.md`.
 
 | Domain | Skills |
 | --- | --- |
-| Workflow | `brainstorm`, `interview-me`, `to-prd`, `to-tasks`, `implement-tasks`, `to-prototype`, `models-consensus`, `pre-pr-review` |
+| Workflow | `brainstorm`, `interview-me`, `to-prd`, `to-tasks`, `implement-tasks`, `to-prototype`, `models-consensus`, `pre-pr-review`, `validate-e2e` |
 | Engine | `coding-design-plan`, `implement-and-review`, `worktree` |
 | Gates | `design-gate`, `security-gate` |
 | Lenses | `advanced-react`, `agent-architecture-lens`, `architecture-lens`, `data-systems-coding-lens`, `design-patterns`, `distributed-systems-patterns`, `domain-driven-design`, `macro-architecture`, `software-design-philosophy`, `ui-ux-pro-max` |

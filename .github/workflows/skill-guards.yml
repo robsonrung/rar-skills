@@ -51,6 +51,8 @@ jobs:
         run: python3 skills/engineering/workflow/models-consensus/tests/test_user_approval_contract.py
       - name: Council terminal transport
         run: python3 skills/engineering/workflow/models-consensus/tests/test_cmux_council.py
+      - name: Feature validation controls
+        run: python3 skills/engineering/workflow/validate-e2e/tests/test_validation_control.py
       - name: Skill frontmatter + runner-dir parity
         run: python3 skills/shared/scripts/validate_skill_frontmatter.py
       - name: Command guard denylist

@@ -1264,6 +1264,150 @@
           }
         }
       }
+    },
+    "validation-scope": {
+      "purpose": "Bound requirements, select checks, and assess the validation result.",
+      "conditions": [
+        "Use only for the scoped validation gap. Preserve approved routes and evidence."
+      ],
+      "risk_route": "validation-risk",
+      "families": {
+        "balanced": {
+          "worker": {
+            "seat": "sol",
+            "effort": "medium"
+          }
+        }
+      },
+      "evidence": "validate-e2e/references/model-research.md, checked 2026-09-19; task-fit judgment, not local measured equivalence."
+    },
+    "validation-unit": {
+      "purpose": "Author missing unit, component, property, or scripted journey tests from agreed cases.",
+      "conditions": [
+        "Use only for the scoped validation gap. Preserve approved routes and evidence."
+      ],
+      "risk_route": "validation-risk",
+      "families": {
+        "balanced": {
+          "implementer": {
+            "seat": "luna",
+            "effort": "high"
+          },
+          "reviewer": {
+            "seat": "sol",
+            "effort": "high"
+          }
+        }
+      },
+      "evidence": "validate-e2e/references/model-research.md, checked 2026-09-19; task-fit judgment, not local measured equivalence."
+    },
+    "validation-integration": {
+      "purpose": "Design API, database, event, migration and performance validation.",
+      "conditions": [
+        "Use only for the scoped validation gap. Preserve approved routes and evidence."
+      ],
+      "risk_route": "validation-risk",
+      "families": {
+        "balanced": {
+          "implementer": {
+            "seat": "sol",
+            "effort": "high"
+          },
+          "reviewer": {
+            "seat": "astra",
+            "effort": "high"
+          }
+        }
+      },
+      "evidence": "validate-e2e/references/model-research.md, checked 2026-09-19; task-fit judgment, not local measured equivalence."
+    },
+    "validation-browser": {
+      "purpose": "Execute interactive browser journeys and interpret visual or accessibility state.",
+      "conditions": [
+        "Use only for the scoped validation gap. Preserve approved routes and evidence."
+      ],
+      "risk_route": "validation-risk",
+      "families": {
+        "balanced": {
+          "worker": {
+            "seat": "sonnet",
+            "effort": "medium"
+          }
+        }
+      },
+      "evidence": "validate-e2e/references/model-research.md, checked 2026-09-19; task-fit judgment, not local measured equivalence."
+    },
+    "validation-risk": {
+      "purpose": "Set safety invariants and diagnose authorization, money, concurrency, or data loss risks.",
+      "conditions": [
+        "Use only for the scoped validation gap. Preserve approved routes and evidence."
+      ],
+      "risk_route": "validation-risk",
+      "families": {
+        "balanced": {
+          "implementer": {
+            "seat": "astra",
+            "effort": "high"
+          },
+          "reviewer": {
+            "seat": "sol",
+            "effort": "high"
+          }
+        }
+      },
+      "evidence": "validate-e2e/references/model-research.md, checked 2026-09-19; task-fit judgment, not local measured equivalence."
+    },
+    "validation-diagnosis": {
+      "purpose": "Diagnose a bounded failure or correct a proven cause within approved scope.",
+      "conditions": [
+        "Use only for the scoped validation gap. Preserve approved routes and evidence."
+      ],
+      "risk_route": "validation-risk",
+      "families": {
+        "balanced": {
+          "implementer": {
+            "seat": "sol",
+            "effort": "high"
+          },
+          "reviewer": {
+            "seat": "astra",
+            "effort": "high"
+          }
+        }
+      },
+      "evidence": "validate-e2e/references/model-research.md, checked 2026-09-19; task-fit judgment, not local measured equivalence."
+    },
+    "validation-review": {
+      "purpose": "Assess missing cases and evidence independently of the test author.",
+      "conditions": [
+        "Use only for the scoped validation gap. Preserve approved routes and evidence."
+      ],
+      "risk_route": "validation-review-risk",
+      "families": {
+        "balanced": {
+          "reviewer": {
+            "seat": "sol",
+            "effort": "high"
+          }
+        }
+      },
+      "evidence": "validate-e2e/references/model-research.md, checked 2026-09-19; task-fit judgment, not local measured equivalence."
+    },
+    "validation-review-risk": {
+      "purpose": "Review high risk validation independently; change the proposed seat if it authored the work.",
+      "conditions": [
+        "Use only for the scoped validation gap. Preserve approved routes and evidence."
+      ],
+      "risk_route": "validation-review-risk",
+      "families": {
+        "balanced": {
+          "reviewer": {
+            "seat": "astra",
+            "effort": "high"
+          }
+        }
+      },
+      "evidence": "validate-e2e/references/model-research.md, checked 2026-09-19; task-fit judgment, not local measured equivalence."
     }
   },
   "councils": {
@@ -1445,5 +1589,40 @@
       "kimi",
       "glm"
     ]
+  },
+  "validation_research": {
+    "checked_at": "2026-09-19",
+    "sources": {
+      "V1": {
+        "title": "Artificial Analysis, September 9",
+        "url": "https://artificialanalysis.ai/articles/benchmarking-gpt-6-astra",
+        "accessed": "2026-09-19"
+      },
+      "V2": {
+        "title": "Provider release and August pricing correction",
+        "url": "https://www.anthropic.com/news/claude-sonnet-5",
+        "accessed": "2026-09-19"
+      },
+      "V3": {
+        "title": "Provider model page",
+        "url": "https://developers.openai.com/api/docs/models/gpt-5.6-luna",
+        "accessed": "2026-09-19"
+      },
+      "V4": {
+        "title": "Provider model page",
+        "url": "https://developers.openai.com/api/docs/models/gpt-5.6-terra",
+        "accessed": "2026-09-19"
+      },
+      "V5": {
+        "title": "Provider model page",
+        "url": "https://developers.openai.com/api/docs/models/gpt-5.6-sol",
+        "accessed": "2026-09-19"
+      },
+      "V6": {
+        "title": "Provider model page",
+        "url": "https://developers.openai.com/api/docs/models/gpt-6-astra",
+        "accessed": "2026-09-19"
+      }
+    }
   }
 }
