@@ -15,7 +15,7 @@ The plan contains:
 | `call_limits` | Positive `total_role_calls` plus every route ID and its positive ceiling; no worker calls are possible with an empty routes list |
 | `budgets` | Positive `total_attempts`, positive `max_parallel`, absolute UTC `deadline`; also record command timeouts and any host enforced spend or token ceiling |
 
-Propose 12 test attempts, 12 role calls, at most 3 calls per role, 2 attempts per unit, 2 concurrent workers, and a 90 minute deadline for one bounded feature. These are editable starting values, not evidence that a larger feature can finish. Required work that exceeds them is split into explicit accepted scopes or reported incomplete. Do not reset counters through renaming a unit or starting a successor run for the same unresolved work. Carry prior consumption and remaining allowance into an explicitly approved extension.
+Propose a total of 12 test and repair attempts, 12 role calls, at most 3 calls per role, 2 validation attempts per unit, 2 concurrent workers, and a 90 minute deadline. Allocate recovery categories inside those totals before approval. These are editable starting values, not evidence that a larger feature can finish. Required work that exceeds them is split into explicit accepted scopes or reported incomplete. Do not reset counters through renaming a unit or starting a successor run for the same unresolved work. Carry prior consumption and remaining allowance into an explicitly approved extension.
 
 Keep the denominator finite before runtime work. `discovery_closed: false` permits bounded preparation, but blocks an overall pass. Put human policy questions and known unavailable source in the plan as named blockers. Do not use “no unknown external writer exists” as a requirement.
 
@@ -82,3 +82,27 @@ On resume, reconcile pending effects first, then finish or retry under the remai
 Map report status to shared state when checkpointing: `passed` to `complete`; `failed` to `failed`; `blocked` to `awaiting_human` only when a decision is needed, otherwise `failed` with dependency reason; `ceiling_hit` to `ceiling_hit`; active `partial` to `running`. An incomplete run is never `complete`. Keep controller summaries and final evidence references in `steps`.
 
 Metrics include every role and failed attempt. Sum unique per response usage records once. Input already includes cached input; output already includes reasoning output. Keep cached reads, cache writes, unknown usage, reported cost, calculated estimates, and subscription limits separate. Use `shared/scripts/execution_metrics.py` for compatible receipts. Record coordinator usage where exposed; role call counts do not count each hidden model response. A feature with missing usage cannot establish a total token saving.
+
+## Recovery categories and preflight
+
+A unit can declare `recovery_attempts`, a map with positive counts for `test_repair`,
+`evidence_repair`, and `product_repair`. Product repair requires `mode: repair`.
+Use `reserve --kind <category> --reason <changed input or new evidence>` for those attempts.
+Each recovery result still accounts for every planned check with captured outcomes; a repair alone
+does not prove that validation passed. Category allowances are part of the approved plan. They do not increase `total_attempts`,
+role call limits, or the deadline. Missing categories grant no allowance. Legacy plans retain their limits.
+
+For a browser or service dependent unit, set `preflight_required: true`. Capture a JSON result
+with `status: ready|blocked`, a `reason`, and actual evidence `{path, sha256}` entries. Record it with:
+
+```bash
+python3 "$SKILL_DIR/scripts/validation_control.py" --shared-dir "$SHARED_DIR" \
+  --state "$RUN_DIR/run-state.json" preflight --unit U1 --id P1 \
+  --input "$RUN_DIR/U1-input.json" --result "$RUN_DIR/P1.json"
+```
+
+A blocked or changed preflight prevents reservation. The result does not claim that a business test ran.
+`budgets.max_preflights` bounds these records; its default is `total_attempts`. Reusing the same ID
+and evidence is idempotent. All model calls still consume their recorded call limits.
+After an environment change, capture a new preflight within the allowance. Ask only for an unresolved
+human action, changed authority, or exhausted approved limits.

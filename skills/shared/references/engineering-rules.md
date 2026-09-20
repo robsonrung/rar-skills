@@ -33,5 +33,5 @@ Test driven development
 Contract integrity
 
 1. Never delete, skip, weaken, narrow, or mock-away tests — and never loosen acceptance checks — to make a contract pass.
-2. If the contract itself is wrong, stop and report it; a corrected contract is a user decision, not an implementation move.
+2. Distinguish the accepted product contract from a test implementation error. Within repair authority, correct a selector, fixture, type expectation, or response expectation when authoritative requirements and source establish the result. Preserve the failed evidence and record the reason. Do not remove an assertion or weaken the accepted behavior. If the requirement itself changes or remains ambiguous, obtain the missing decision.
 3. Green obtained by gaming the check is a failure with extra steps: it converts a visible red into an invisible defect.

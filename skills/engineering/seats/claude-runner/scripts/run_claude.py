@@ -393,6 +393,7 @@ def _run_claude(
     resume: str | None = None,
     continue_last: bool = False,
     disable_fallback: bool = False,
+    event_log: str | None = None,
 ) -> dict[str, Any]:
     cwd = working_dir if working_dir else os.getcwd()
     restrict_effective = resolve_restrict_tools(role, restrict_tools, allow_write)
@@ -466,6 +467,8 @@ def _run_claude(
 
     if output_format and output_format != "text":
         cmd.extend(["--output-format", output_format])
+        if output_format == "stream-json":
+            cmd.append("--verbose")
 
     if no_session_persistence:
         cmd.append("--no-session-persistence")
@@ -579,15 +582,15 @@ def _run_claude(
         return result
 
     try:
-        process = subprocess.run(
-            cmd,
-            cwd=cwd,
-            capture_output=True,
-            text=True,
-            timeout=timeout,
-            env=child_env,
-            check=False,
-        )
+        if event_log and output_format == "stream-json":
+            from stream_capture import capture
+            process = capture(cmd, cwd, child_env, timeout, event_log)
+            result["event_log"] = str(Path(event_log).resolve())
+        else:
+            process = subprocess.run(
+                cmd, cwd=cwd, capture_output=True, text=True,
+                timeout=timeout, env=child_env, check=False,
+            )
         result["stdout"] = process.stdout
         result["stderr"] = process.stderr
         result["return_code"] = process.returncode
@@ -625,6 +628,13 @@ def _run_claude(
             result["stderr"] = f"{result['stderr']}\n{partial_stderr}"
         result["return_code"] = -1
         result["terminal_status"] = "interrupted"
+        from stream_capture import parse_events, progress
+        partial = progress(parse_events(result["stdout"]))
+        result["session_id"] = partial["session_id"] or resume
+        result["metrics"] = partial["metrics"]
+        result["metrics_complete"] = False
+        if event_log:
+            result["event_log"] = str(Path(event_log).resolve())
     except Exception as e:  # noqa: BLE001
         result["stderr"] = f"Unexpected error: {e!s}"
         result["return_code"] = -3
@@ -779,6 +789,7 @@ Examples:
         help="Write the wrapper JSON result to this file atomically",
     )
 
+    parser.add_argument("--event-log", help="exclusive durable stream-json log; defaults beside --output-file")
     args = parser.parse_args()
 
     if (
@@ -836,6 +847,7 @@ Examples:
         resume=args.resume,
         continue_last=args.continue_last,
         disable_fallback=args.disable_fallback,
+        event_log=args.event_log or (str(Path(args.output_file).with_suffix(".events.jsonl")) if args.output_file and args.output_format == "stream-json" else None),
     )
 
     output_file = None

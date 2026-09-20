@@ -163,6 +163,45 @@ class ValidationTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             model_routing.resolve_role({"seat": "gemini", "effort": "high"}, config)
 
+    def test_approved_recovery_categories_preserve_total_limit(self):
+        self.plan["units"][0].update(max_attempts=1, recovery_attempts={"test_repair": 2})
+        self.init()
+        self.reserve(); self.finish("failed")
+        with self.assertRaisesRegex(ValueError, "unit attempt ceiling"):
+            self.reserve("A2", "fix fixture")
+        control.reserve(self.state, "U1", "A2", self.input, "fix fixture", "test_repair")
+        self.finish("failed", "A2")
+        with self.assertRaisesRegex(ValueError, "total attempt ceiling"):
+            control.reserve(self.state, "U1", "A3", self.input, "another fixture fix", "test_repair")
+        self.assertEqual(len(self.state["validation"]["attempts"]), 2)
+
+    def test_preflight_block_does_not_consume_business_attempt(self):
+        self.plan["units"][0]["preflight_required"] = True
+        self.init()
+        with self.assertRaisesRegex(ValueError, "preflight"):
+            self.reserve()
+        blocked = self.root / "blocked.json"
+        blocked.write_text(json.dumps({"status": "blocked", "reason": "driver unavailable", "evidence": [{"path": str(self.raw), "sha256": control.digest(self.raw)}]}))
+        control.record_preflight(self.state, "U1", "P1", self.input, blocked)
+        self.assertEqual(control.record_preflight(self.state, "U1", "P1", self.input, blocked)["reservation"], "existing")
+        with self.assertRaisesRegex(ValueError, "preflight is blocked"):
+            self.reserve()
+        self.assertEqual(self.state["validation"]["attempts"], {})
+        self.assertEqual(control.summarize(self.state)["status"], "blocked")
+        ready = self.root / "ready.json"
+        data = json.loads(blocked.read_text()); data.update(status="ready", reason="driver available")
+        ready.write_text(json.dumps(data))
+        control.record_preflight(self.state, "U1", "P2", self.input, ready)
+        self.reserve()
+        self.assertEqual(len(self.state["validation"]["attempts"]), 1)
+        with self.assertRaisesRegex(ValueError, "preflight ceiling"):
+            control.record_preflight(self.state, "U1", "P3", self.input, ready)
+
+    def test_recovery_does_not_add_product_repair_authority(self):
+        self.plan["units"][0]["recovery_attempts"] = {"product_repair": 1}
+        with self.assertRaisesRegex(ValueError, "repair authority"):
+            self.init()
+
 
 if __name__ == "__main__":
     unittest.main()

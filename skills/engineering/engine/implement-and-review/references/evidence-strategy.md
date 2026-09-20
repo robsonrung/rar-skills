@@ -1,6 +1,6 @@
 # Implementation Evidence
 
-Evidence follows the changed behavior. The worker captures the red baseline before production code changes because it cannot be reconstructed later.
+Evidence follows the changed behavior. Reuse a captured red baseline when it proves the same defect on the same source and relevant environment. Otherwise capture it before a behavior repair. Do not recreate correct work to change the order of its history.
 
 ## Choose One Evidence Route
 
@@ -21,9 +21,9 @@ For every behavior change, report:
 
 For a no-test route, report `no_test_reason` and the replacement verification. Do not add a hollow test only to satisfy a process step.
 
-If required evidence is missing, reserve one evidence recovery in the run state
-before dispatching it. If the recovery still lacks evidence, stop the task with
-the missing proof recorded.
+If required evidence is missing, reserve recovery within the approved route allowance
+before dispatch. Keep prior consumption. Stop with the missing proof recorded when that allowance
+or another shared limit is exhausted.
 
 ## System Boundary Check
 

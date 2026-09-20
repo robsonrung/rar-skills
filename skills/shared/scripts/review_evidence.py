@@ -121,13 +121,53 @@ def content_identity(source):
     return digest({name: value for name, value in source["files"].items() if value["kind"] != "deleted"})
 
 
+def context_identity(context):
+    """Legacy contexts stay strict; version 2 separates notes from identity."""
+    if context.get("version") != 2:
+        return context
+    require(set(context) <= {"version", "identity", "notes"}, "unknown context fields")
+    require(isinstance(context.get("identity"), dict) and bool(context["identity"]), "context identity is required")
+    require(isinstance(context.get("notes", ""), str), "context notes must be text")
+    return {"version": 2, "identity": context["identity"]}
+
+
+def validate_inputs(paths, root):
+    require(isinstance(paths, list) and bool(paths) and all(isinstance(p, str) for p in paths)
+            and len(set(paths)) == len(paths), "inputs need unique relative file paths")
+    for name in paths:
+        path = safe_path(root, name)
+        require(name != "." and not path.is_dir(), "inputs must name files, not directories")
+        require(not path.is_symlink(), "scoped inputs cannot be symbolic links")
+        require(name == Path(name).as_posix(), "inputs must use canonical relative paths")
+
+
+def input_identity(source, paths):
+    return {name: source["files"].get(name, {"kind": "absent"}) for name in paths}
+
+
+def fresh_observations(old, snapshot):
+    before, after = old["requirements"]["value"], snapshot["requirements"]["value"]
+    if context_identity(before["context"]) != context_identity(after["context"]):
+        return set(after["observations"])
+    required = set(after["observations"]) - set(before["observations"])
+    for key in after["observations"]:
+        previous = before.get("observation_inputs", {}).get(key)
+        current = after.get("observation_inputs", {}).get(key)
+        if previous != current or current and input_identity(old["source"], current) != input_identity(snapshot["source"], current):
+            required.add(key)
+    return required
+
+
 def validate_requirements(value, root):
-    require(isinstance(value, dict) and set(value) == {"context", "checks", "observations", "exclusions"}, "requirements need context, checks, observations, and exclusions")
+    require(isinstance(value, dict) and {"context", "checks", "observations", "exclusions"} <= set(value) <= {"context", "checks", "observations", "exclusions", "observation_inputs"}, "requirements need context, checks, observations, and exclusions")
     require(isinstance(value["context"], dict) and bool(value["context"]), "context must describe the current runtime and external state")
+    context_identity(value["context"])
     require(isinstance(value["checks"], list), "checks must be a list")
     ids = set()
     for check in value["checks"]:
-        require(isinstance(check, dict) and set(check) == {"id", "command", "cwd", "timeout_seconds"}, "invalid check definition")
+        require(isinstance(check, dict) and {"id", "command", "cwd", "timeout_seconds"} <= set(check) <= {"id", "command", "cwd", "timeout_seconds", "inputs"}, "invalid check definition")
+        if "inputs" in check:
+            validate_inputs(check["inputs"], root)
         key = check["id"]
         require(isinstance(key, str) and re.fullmatch(r"[a-z0-9][a-z0-9-]*", key) and key not in ids, "invalid or duplicate check id")
         ids.add(key)
@@ -137,6 +177,10 @@ def validate_requirements(value, root):
     observations = value["observations"]
     require(isinstance(observations, list) and all(isinstance(x, str) and x for x in observations), "invalid observation ids")
     require(len(set(observations)) == len(observations), "duplicate observation ids")
+    scopes = value.get("observation_inputs", {})
+    require(isinstance(scopes, dict) and set(scopes) <= set(observations), "unknown observation input scope")
+    for paths in scopes.values():
+        validate_inputs(paths, root)
     require(isinstance(value["exclusions"], dict) and all(isinstance(k, str) and isinstance(v, str) and v.strip() for k, v in value["exclusions"].items()), "exclusions need path and reason")
 
 
@@ -147,6 +191,12 @@ def prepare(root, base, contract, requirements, output, artifact_dir=None, previ
     plan = read_json(requirements)
     validate_requirements(plan, root)
     source = source_state(root, base, artifact_dir)
+    scopes = [check["inputs"] for check in plan["checks"] if "inputs" in check]
+    scopes.extend(plan.get("observation_inputs", {}).values())
+    for paths in scopes:
+        for name in paths:
+            require(not (root / name).exists() or name in source["files"],
+                    f"scoped input is outside captured source: {name}")
     require(set(plan["exclusions"]) <= set(source["changed_paths"]), "exclusions contain paths outside the diff")
     payload = {
         "schema_version": VERSION, "source": source, "source_id": digest(source), "content_id": content_identity(source),
@@ -209,7 +259,7 @@ def run_check(snapshot_path, key):
         stale = True
     payload = {
         "snapshot_sha256": file_hash(snapshot_path), "source_id": snapshot["source_id"],
-        "context_id": digest(snapshot["requirements"]["value"]["context"]), "definition": definition,
+        "context_id": digest(context_identity(snapshot["requirements"]["value"]["context"])), "definition": definition,
         "exit_code": code, "duration_ms": round((time.monotonic() - started) * 1000),
         "timed_out": timed_out, "source_changed": stale,
         "logs": [{"path": str(output / name), "sha256": file_hash(output / name)} for name in ("stdout.log", "stderr.log")],
@@ -222,7 +272,7 @@ def validate_check(path, snapshot, definition):
     require(check["source_id"] == snapshot["source_id"], "check source does not match")
     if "transfer" in check:
         validate_transfer(check, snapshot, definition)
-    require(check["context_id"] == digest(snapshot["requirements"]["value"]["context"]), "check context does not match")
+    require(check["context_id"] == digest(context_identity(snapshot["requirements"]["value"]["context"])), "check context does not match")
     require(check["definition"] == definition, "check command does not match requirements")
     require(type(check["exit_code"]) is int and type(check["duration_ms"]) is int and check["duration_ms"] >= 0, "invalid command result")
     require(type(check["timed_out"]) is bool and type(check["source_changed"]) is bool, "invalid command status")
@@ -312,6 +362,11 @@ def prior_review(link, depth=0):
 
 
 def expand_response(raw, snapshot, snapshot_path, depth=0):
+    if isinstance(raw, dict) and "evidence_packet" in raw:
+        require("checks" not in raw and "observations" not in raw, "packet replaces checks and observations")
+        packet = load_packet(raw["evidence_packet"], snapshot, snapshot_path)
+        raw = {key: value for key, value in raw.items() if key != "evidence_packet"}
+        raw.update(checks=packet["checks"], observations=packet["observations"])
     if not isinstance(raw, dict) or "mode" not in raw:
         return raw
     fields = {"mode", "snapshot_sha256", "previous_review", "reuse_assessment", "affected_paths",
@@ -363,8 +418,7 @@ def expand_response(raw, snapshot, snapshot_path, depth=0):
         seen.add(row["id"])
         observations[row["id"]] = row
     result["observations"] = list(observations.values())
-    if old["requirements"]["value"]["context"] != snapshot["requirements"]["value"]["context"]:
-        require(set(snapshot["requirements"]["value"]["observations"]) <= seen, "changed context requires fresh observations")
+    require(fresh_observations(old, snapshot) <= seen, "changed context or inputs require fresh observations")
     if raw["mode"] == "addendum":
         require(old["source_id"] == snapshot["source_id"] and old["requirements"]["value"] == snapshot["requirements"]["value"],
                 "addendum requires unchanged source and requirements")
@@ -398,9 +452,13 @@ def validate_transfer(check, target, definition):
     require("transfer" not in original, "nested transfer is not permitted")
     require(old["source_id"] == digest(old["source"]), "invalid transfer source")
     require(original["snapshot_sha256"] == links["snapshot"]["sha256"], "original check snapshot differs")
-    require(content_identity(old["source"]) == content_identity(target["source"]), "transfer source content differs")
+    if "inputs" in definition:
+        require(input_identity(old["source"], definition["inputs"]) == input_identity(target["source"], definition["inputs"]),
+                "transfer check inputs differ")
+    else:
+        require(content_identity(old["source"]) == content_identity(target["source"]), "transfer source content differs")
     require(old["contract"]["sha256"] == target["contract"]["sha256"], "transfer contract differs")
-    require(old["requirements"]["value"]["context"] == target["requirements"]["value"]["context"], "transfer context differs")
+    require(context_identity(old["requirements"]["value"]["context"]) == context_identity(target["requirements"]["value"]["context"]), "transfer context differs")
     require(check_definition(old, definition["id"]) == definition, "transfer command definition differs")
     require(validate_check(links["check"]["path"], old, definition), "original check did not pass")
     for key in ("definition", "exit_code", "duration_ms", "timed_out", "source_changed", "logs", "context_id"):
@@ -415,6 +473,86 @@ def validate_transfer(check, target, definition):
                 and isinstance(row["evidence"], list) and row["evidence"], f"transfer needs fresh {key} evidence")
         for entry in row["evidence"]:
             require(set(entry) == {"path", "sha256"} and file_hash(entry["path"]) == entry["sha256"], "transfer assessment evidence changed")
+
+
+def evidence_link(path):
+    path = Path(path).resolve()
+    return {"path": str(path), "sha256": file_hash(path)}
+
+
+def prepare_packet(snapshot_path, output, checks=None, observations=None):
+    """Hash captured artifacts; never infer a result or review judgment."""
+    snapshot_path = Path(snapshot_path).resolve()
+    snapshot = current_snapshot(snapshot_path)
+    plan = snapshot["requirements"]["value"]
+    if checks is None:
+        checks = {row["id"]: str(snapshot_path.parent / "checks" / row["id"] / "result.json") for row in plan["checks"]}
+    require(isinstance(checks, dict), "checks must map ids to captured results")
+    require(isinstance(observations, list), "observations must explicitly state captured results")
+    captured = []
+    for row in observations:
+        require(isinstance(row, dict) and set(row) == {"id", "result", "evidence"}, "invalid observation fields")
+        links = []
+        require(isinstance(row["evidence"], list), "observation evidence must be a list")
+        for entry in row["evidence"]:
+            if isinstance(entry, dict):
+                require(set(entry) == {"path", "sha256"} and evidence_link(entry["path"]) == entry,
+                        "supplied evidence checksum differs")
+                links.append(entry)
+            else:
+                require(isinstance(entry, str) and Path(entry).is_absolute(), "captured evidence needs absolute paths")
+                links.append(evidence_link(entry))
+        captured.append({**row, "evidence": links})
+    packet = {"snapshot_sha256": file_hash(snapshot_path),
+              "checks": {key: str(Path(path).resolve()) for key, path in checks.items()},
+              "check_hashes": {key: file_hash(path) for key, path in checks.items()}, "observations": captured}
+    validate_packet(packet, snapshot, snapshot_path)
+    return write_record(output, packet)
+
+
+def validate_packet(packet, snapshot, snapshot_path):
+    require(isinstance(packet, dict) and set(packet) == {"snapshot_sha256", "checks", "check_hashes", "observations"}, "invalid evidence packet")
+    require(isinstance(packet["checks"], dict) and isinstance(packet["check_hashes"], dict)
+            and isinstance(packet["observations"], list), "invalid evidence packet values")
+    require(packet["snapshot_sha256"] == file_hash(snapshot_path), "packet belongs to another snapshot")
+    plan = snapshot["requirements"]["value"]
+    expected = {c["id"] for c in plan["checks"]}
+    require(set(packet["checks"]) == set(packet["check_hashes"]) == expected, "packet checks are incomplete")
+    for definition in plan["checks"]:
+        key = definition["id"]
+        require(file_hash(packet["checks"][key]) == packet["check_hashes"][key], "packet check checksum mismatch")
+        validate_check(packet["checks"][key], snapshot, definition)
+    # Validate captured observations without supplying any review conclusions.
+    observed = set()
+    for row in packet["observations"]:
+        require(isinstance(row, dict) and set(row) == {"id", "result", "evidence"} and isinstance(row["id"], str) and row["id"] not in observed, "invalid or duplicate observation")
+        observed.add(row["id"])
+        require(row["result"] in {"pass", "fail", "skipped"}, "unknown observation result")
+        require(isinstance(row["evidence"], list) and bool(row["evidence"]), "observation needs captured evidence files")
+        for link in row["evidence"]:
+            require(isinstance(link, dict) and set(link) == {"path", "sha256"} and Path(link["path"]).is_absolute()
+                    and file_hash(link["path"]) == link["sha256"], "observation evidence checksum mismatch")
+    require(observed == set(plan["observations"]), "packet observations are missing or unknown")
+
+
+def load_packet(link, snapshot, snapshot_path):
+    require(isinstance(link, dict) and set(link) == {"path", "sha256"} and Path(link["path"]).is_absolute() and file_hash(link["path"]) == link["sha256"], "evidence packet checksum mismatch")
+    packet = load_record(link["path"])
+    validate_packet(packet, snapshot, snapshot_path)
+    return packet
+
+
+def response_contract(snapshot_path):
+    snapshot = current_snapshot(snapshot_path)
+    fresh = set(snapshot["requirements"]["value"]["observations"])
+    if len(snapshot["previous_reviews"]) == 1:
+        _, old = prior_review(snapshot["previous_reviews"][0])
+        fresh = fresh_observations(old, snapshot)
+    return {"snapshot_sha256": file_hash(snapshot_path), "previous_reviews": snapshot["previous_reviews"],
+            "coverage_paths": snapshot["source"]["changed_paths"],
+            "check_ids": [c["id"] for c in snapshot["requirements"]["value"]["checks"]],
+            "observation_ids": snapshot["requirements"]["value"]["observations"],
+            "fresh_observation_ids": sorted(fresh), "prior_findings": previous_findings(snapshot)}
 
 
 def record_review(snapshot_path, result, execution):
@@ -477,6 +615,12 @@ def main():
     transfer_parser = commands.add_parser("transfer-check", help="reuse a passing check on identical content with explicit environment evidence")
     for name in ("from-snapshot", "to-snapshot", "check", "assessment"):
         transfer_parser.add_argument("--" + name, required=True)
+    packet_parser = commands.add_parser("prepare-packet", help="validate and hash all captured evidence before reviewer dispatch")
+    for name in ("snapshot", "output", "observations"):
+        packet_parser.add_argument("--" + name, required=True)
+    packet_parser.add_argument("--checks", help="JSON map of check ids to captured result paths; defaults to snapshot checks")
+    contract_parser = commands.add_parser("response-contract", help="show exact response requirements before dispatch")
+    contract_parser.add_argument("--snapshot", required=True)
     args = parser.parse_args()
     try:
         if args.action == "prepare":
@@ -484,6 +628,11 @@ def main():
         elif args.action == "run-check":
             path = run_check(args.snapshot, args.id)
             result = {"check": str(path), "passed": validate_check(path, load_record(args.snapshot), check_definition(load_record(args.snapshot), args.id))}
+        elif args.action == "response-contract":
+            result = response_contract(args.snapshot)
+        elif args.action == "prepare-packet":
+            path = prepare_packet(args.snapshot, args.output, read_json(args.checks) if args.checks else None, read_json(args.observations))
+            result = {"evidence_packet": evidence_link(path)}
         elif args.action == "record":
             execution = read_json(args.execution)
             result = {"review": str(record_review(args.snapshot, json.loads(execution.get("agent_message", "")), execution))}

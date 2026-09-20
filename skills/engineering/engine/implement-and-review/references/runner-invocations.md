@@ -77,6 +77,9 @@ and approved contract path. Exclude the launcher's generated artifact directory
 when it is inside the worktree. The snapshot binds actual source and index
 state; `input_revision` continues to identify the review brief.
 
+Prepare the captured evidence packet with `review_evidence.py prepare-packet`. The launcher
+validates the supplied packet before reserving a cycle and includes the required response coverage.
+
 The launcher starts review only after the implementation route has a terminal,
 successful result with a valid receipt. It reloads the plan and compares the
 saved reviewer route with it.
@@ -88,12 +91,14 @@ python3 "$SKILL_DIR/scripts/launch.py" review \
   --task-id <task-id> \
   --track <track-name> \
   --review-brief <review-notes.md> \
-  --review-snapshot <snapshot.json>
+  --review-snapshot <snapshot.json> \
+  --evidence-packet <packet.json>
 ```
 
-The manifest counts the review/fix attempt before dispatch. It permits three
-cycles. Reserve the one allowed evidence recovery before asking the existing
-route to recover missing evidence:
+The manifest counts each review/fix attempt before dispatch. Reviewer routes can declare
+`recovery.review_cycles` and `recovery.evidence_recoveries` in the approved plan. Defaults are
+three cycles and one evidence recovery. Existing total call limits still apply. Reserve an
+approved evidence recovery before asking the existing route to recover missing evidence:
 
 ```bash
 python3 "$SKILL_DIR/scripts/launch.py" evidence-recovery \
@@ -148,7 +153,13 @@ normal envelope model and receipt fields. Add `native_execution` with the actual
 `host`, `transport`, `context_id`, `role`, `task_id`, `configured_model`,
 `configured_effort`, `tool_policy`, and positive `completed_turn`. Copy
 `call_id` and `input_revision` from the dispatched handoff so the receipt is bound
-to that call. Use observed serving-model values only when the host supplies them.
+to that call. New handoffs also require `parent_history: none`: start with the host's supported
+empty-history option and send the exact file at `input_path`, with no copied coordinator history.
+For a `fork_turns` host, use `none` when creating the role. A resume uses the existing role context.
+Record `native_execution.parent_history: none` only after that policy was applied. The recorder
+rejects a missing or different value for these handoffs. Legacy handoffs keep their original fields.
+This receipt is the host adapter's attestation, not independent inspection of hidden context.
+Use observed serving-model values only when the host supplies them.
 
 The launcher stores the receipt under the task's artifacts and records its path
 and digest. `native_contexts[route_id]` keeps the role's context, configuration,
@@ -170,8 +181,8 @@ python3 "$SKILL_DIR/scripts/launch.py" resume-native \
 Send the returned handoff through the host's follow-up tool, then use
 `record-native --phase implementation` for the new result. Use `review` for each
 reviewer recheck; it retains the reviewer session and counts the next review
-cycle. Native follow-ups also have a hard bound; they do not extend the three
-review cycles or the one evidence recovery.
+cycle. Native follow-ups also have a hard bound; they do not extend the approved
+review cycle or evidence recovery allowances.
 
 If a native context is confirmed lost, use `--context-recovery-reason` on the
 documented continuation or receipt command. Reconstruct only the same role from

@@ -29,6 +29,11 @@ jobs:
           python-version: "3.x"
       - name: Cross-runner envelope parity
         run: python3 skills/shared/tests/test_runner_parity.py
+      - name: Bounded job waits and durable streams
+        run: |
+          python3 skills/shared/tests/test_runner_jobs.py
+          python3 skills/shared/tests/test_stream_capture.py
+          python3 skills/shared/tests/test_skill_paths.py
       - name: Central model configuration
         run: python3 skills/shared/tests/test_model_config.py
       - name: Task shaped model routing
@@ -40,7 +45,9 @@ jobs:
       - name: Approved implementation dispatch
         run: python3 skills/engineering/engine/implement-and-review/tests/test_launch.py
       - name: Persistent call ledger and context packets
-        run: python3 skills/shared/tests/test_run_state.py
+        run: |
+          python3 skills/shared/tests/test_run_state.py
+          python3 skills/shared/tests/test_context_packet.py
       - name: Structured Claude receipts
         run: python3 skills/engineering/seats/claude-runner/tests/test_run_claude.py
       - name: Review evidence integrity

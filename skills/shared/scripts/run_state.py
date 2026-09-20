@@ -2,6 +2,7 @@
 """Reserve and reconcile role calls in the caller's existing run ledger. Never dispatch work."""
 
 import argparse
+import copy
 import contextlib
 import fcntl
 import hashlib
@@ -76,7 +77,7 @@ def initialize(state, plan_path, run_id, limits):
     state["call_ledger"] = {"plan": reference, "limits": limits, "calls": {}, "contexts": {}}
 
 
-def reserve(state, route_id, call_id, brief, phase, setup_reference=None):
+def reserve(state, route_id, call_id, brief, phase, setup_reference=None, review_snapshot=None):
     ledger = state["call_ledger"]
     reference = ledger["plan"]
     require(sha(reference["path"]) == reference["sha256"], "plan changed; reconcile authority before reservation")
@@ -86,6 +87,16 @@ def reserve(state, route_id, call_id, brief, phase, setup_reference=None):
     brief = Path(brief).resolve()
     intent = {"route": routes[0], "input": {"path": str(brief), "sha256": sha(brief)},
               "phase": phase, "setup_reference": setup_reference}
+    if review_snapshot is not None:
+        import review_evidence
+        snapshot = review_evidence.current_snapshot(review_snapshot)
+        require(routes[0].get("role") == "reviewer", "only a reviewer can bind review evidence")
+        if routes[0].get("input_path"):
+            route_input = Path(routes[0]["input_path"])
+            if not route_input.is_absolute():
+                route_input = Path(snapshot["source"]["root"]) / route_input
+            require(route_input.resolve() == Path(snapshot["contract"]["path"]).resolve(), "review contract differs from route input")
+        intent["review_snapshot"] = {"path": str(Path(review_snapshot).resolve()), "sha256": sha(review_snapshot)}
     calls = ledger["calls"]
     if call_id in calls:
         require(calls[call_id]["intent"] == intent, "call ID already has different inputs")
@@ -163,6 +174,27 @@ def reconcile(state, call_id, receipt_path):
     return call
 
 
+def complete(state, call_id, receipt_path):
+    """Reconcile the actual receipt and its bound review in one retry-safe operation."""
+    candidate = copy.deepcopy(state)
+    call = reconcile(candidate, call_id, receipt_path)
+    result = {"call_id": call_id, "execution_status": call["status"], "receipt": call["receipt_ref"]}
+    receipt = json.loads(Path(receipt_path).read_text())
+    if receipt["success"] and call["intent"]["route"].get("role") == "reviewer":
+        import review_evidence
+        binding = call["intent"].get("review_snapshot")
+        require(binding and sha(binding["path"]) == binding["sha256"], "completion needs the snapshot bound before dispatch")
+        snapshot = review_evidence.current_snapshot(binding["path"])
+        review = review_evidence.record_review(binding["path"], json.loads(receipt.get("agent_message", "")), receipt)
+        assessment = review_evidence.assess(binding["path"], snapshot["base_ref"])
+        result.update(review={"path": str(review), "sha256": sha(review)}, review_status=assessment["status"], assessment=assessment)
+        call["review"] = result["review"]
+        call["review_status"] = assessment["status"]
+    state.clear()
+    state.update(candidate)
+    return result
+
+
 def status(state):
     ledger = state["call_ledger"]
     calls = ledger["calls"]
@@ -189,7 +221,8 @@ def main():
     for name in ("route", "call", "brief", "phase"):
         reserve_parser.add_argument("--" + name, required=True)
     reserve_parser.add_argument("--setup-reference")
-    for name, option in (("reconcile", "receipt"), ("resolve-context", "event")):
+    reserve_parser.add_argument("--review-snapshot", help="bind a prepared snapshot for atomic review completion")
+    for name, option in (("reconcile", "receipt"), ("complete", "receipt"), ("resolve-context", "event")):
         sub = commands.add_parser(name)
         sub.add_argument("--call", required=True)
         sub.add_argument("--" + option, required=True)
@@ -202,8 +235,11 @@ def main():
                 initialize(state, args.plan, args.run_id, json.loads(Path(args.limits).read_text()))
             elif args.action == "reserve":
                 existed = args.call in state["call_ledger"]["calls"]
-                reserve(state, args.route, args.call, args.brief, args.phase, args.setup_reference)
+                reserve(state, args.route, args.call, args.brief, args.phase, args.setup_reference, args.review_snapshot)
                 return {**status(state), "reservation": "existing" if existed else "new"}
+            elif args.action == "complete":
+                require(not args.dry_run, "complete writes evidence; use receipt validation for a dry run")
+                return complete(state, args.call, args.receipt)
             elif args.action == "reconcile":
                 reconcile(state, args.call, args.receipt)
             elif args.action == "resolve-context":

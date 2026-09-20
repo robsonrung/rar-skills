@@ -23,8 +23,8 @@ Done: every mapped route is Pass, Fail, or Skip with a reason. A run that exerci
 
 ## Modes
 
-1. Manual is the default. The user starts and controls the local server.
-2. Pipeline is a non-interactive caller. Read `references/pipeline-orchestration.md` from this skill's directory. Do not ask questions in this mode.
+1. Pipeline is the default for an authorized implementation or validation workflow. Start owned local services through `references/pipeline-orchestration.md`. Reuse existing authority.
+2. Use manual mode when the user explicitly controls the server or the request is observation only. Reuse an available server. Missing credentials or desktop access block only the affected routes.
 
 ## Workflow
 
@@ -32,7 +32,7 @@ Done: every mapped route is Pass, Fail, or Skip with a reason. A run that exerci
 
 Use the first available driver that can navigate, inspect rendered state, interact, and read console errors. Prefer the host browser surface, then the established browser automation available in the harness. Do not install a new browser stack.
 
-Use one driver for the whole run. Switch only if initialization fails before the first route is tested. Record the driver in the result.
+Initialize the selected driver before reserving a business test attempt. Capture its actual readiness result. A locked desktop is an environment blocker, not an executed test. Resume under the approved recovery allowance when access returns. Use a headless transport only when supported and authorized by the plan. Keep one driver for the run unless an approved fallback applies.
 
 If no available driver meets this contract, stop with `SKIP` and name the missing capability.
 
@@ -40,7 +40,7 @@ If no available driver meets this contract, stop with `SKIP` and name the missin
 
 For a PR, get its changed files from the code host. Otherwise resolve the default branch in this order: local `origin/HEAD`, code-host metadata, then `main`. Diff the requested branch against that branch. When the request targets the current worktree, include staged and unstaged changes too.
 
-Map each changed file to the routes that render it. Read the project's routing and component usage when the path alone is not enough. A layout or shared style change needs at least the root page and each directly affected route. A change with no browser-facing route is `SKIP` with that reason.
+Map each changed file to the routes that render it. Resolve the actual URL from project routing before dispatch; do not infer a route from a component name. A layout or shared style change needs at least the root page and each directly affected route. A change with no browser-facing route is `SKIP` with that reason.
 
 If the diff is empty, stop with `SKIP`. Do not report a pass for an empty scope.
 
@@ -63,9 +63,9 @@ For each route, capture fresh state and check:
 3. No visible application error or new console error is caused by the flow.
 4. A changed form or interaction works when the diff affects it.
 
-Derive targets from the current inspected state. Do not reuse stale element references or guess selectors. Capture a screenshot when a failure, changed visual surface, or later reviewer needs it.
+Derive targets from current inspected state. For an edit, clear the field and read back the exact value before saving. Capture the request and response before navigation or reload. Verify the saved value after reload. Use the supported driver to script stable repeated actions, with assertions at each state change. Capture screenshots for visual evidence and failures; do not return image bytes as text.
 
-For OAuth, email, payment, SMS, or another external action, ask the user for the required confirmation in manual mode. In pipeline mode, mark that route `Skip` and state the missing external action.
+For OAuth, email, payment, SMS, or another external action, use existing explicit authority. If required authority or a human action is missing, ask in manual mode. In pipeline mode, mark only the affected route `Skip` and state the missing action.
 
 ### 5. Record failures
 

@@ -31,8 +31,7 @@ status. IDs, paths, and severity cannot change. A new contract needs a full revi
 
 `checks` and `observations` contain replacement or additional entries. The complete
 normalized record must still satisfy the current requirements. Old check results
-must match source and context or pass the explicit transfer protocol. A changed
-context requires fresh observations. Changed code also requires new browser
+must match source and context or pass the explicit transfer protocol. A changed environment identity requires fresh observations. Version 2 context notes do not change identity. Declared observation input changes also require fresh evidence. Changed code also requires new browser
 observations where the old behavior or runtime no longer represents the change.
 
 For a factual correction to review prose, use `mode: addendum`. Source and
@@ -49,3 +48,7 @@ When two reviewers report one defect, group their IDs in the correction brief an
 fix the common cause once. Retain both findings and each reviewer's resolution in
 the evidence records. A shared correction does not let one reviewer erase the
 other's finding. Reviewers may still identify new supported defects in a recheck.
+
+Before dispatch, use `response-contract` to determine the current required observations.
+Use a prepared `evidence_packet` in place of `checks` and `observations` when complete references
+are available. This preserves all coverage and findings without asking the reviewer to copy hashes.

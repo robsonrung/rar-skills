@@ -66,7 +66,7 @@ class LauncherTests(unittest.TestCase):
     def test_claude_dispatch_requests_structured_output_and_provenance(self):
         route = self.route("review-api", "reviewer", "claude-fable-5-1", runner="claude", seat="fable")
         args = launcher.route_arguments(route, self.brief, self.root, "reviewer", 60, {"call_id": "call-1"}, True)
-        self.assertEqual(args[args.index("--output-format") + 1], "json")
+        self.assertEqual(args[args.index("--output-format") + 1], "stream-json")
         metadata = json.loads(args[args.index("--metadata-json") + 1])
         self.assertEqual(metadata["call_id"], "call-1")
         self.assertTrue(metadata["execution_provenance"]["resources"])
@@ -167,6 +167,7 @@ class LauncherTests(unittest.TestCase):
                 "host": host,
                 "transport": "subagent",
                 "context_id": context_id,
+                "parent_history": dispatch.get("parent_history", "none"),
                 "role": "implementer",
                 "task_id": "task1",
                 "configured_model": "gpt-6-astra",
@@ -805,6 +806,7 @@ class LauncherTests(unittest.TestCase):
         with mock.patch.object(launcher, "load_manifest", return_value=(manifest, self.root / "launch-manifest.json")), \
              mock.patch.object(launcher, "implementation_ready"), \
              mock.patch.object(launcher, "review_source_binding", return_value={"path": "snapshot.json", "sha256": "fixture"}), \
+             mock.patch.object(launcher.evidence_module(), "response_contract", return_value={}), \
              mock.patch.object(launcher, "dispatch_route", side_effect=reject_after_reservation), \
              mock.patch.object(launcher, "save_manifest"), \
              contextlib.redirect_stdout(io.StringIO()), \
@@ -1068,6 +1070,171 @@ class LauncherTests(unittest.TestCase):
         }
         self.assertIsNotNone(launcher.receipt_error(required_route, unverified))
         self.assertIsNone(launcher.receipt_error(unverified_route, unverified))
+
+    def test_approved_recovery_limits_are_enforced_and_cannot_drift(self):
+        path, _, _ = self.plan()
+        plan = json.loads(path.read_text())
+        reviewer = next(route for route in plan["routes"] if route["role"] == "reviewer")
+        reviewer["recovery"] = {"review_cycles": 4, "evidence_recoveries": 2}
+        plan["approval"]["routes_digest"] = launcher.canonical_digest(launcher.normalized_routes(plan["routes"]))
+        path.write_text(json.dumps(plan))
+        manifest = {"working_root": str(self.root), "task_id": "task1", "routing_plan": {"path": str(path), "approval": plan["approval"]}}
+        self.assertEqual(launcher.recovery_limits(manifest, "api"), reviewer["recovery"])
+        with mock.patch.object(launcher, "save_manifest"), contextlib.redirect_stderr(io.StringIO()):
+            for cycle in range(1, 5):
+                self.assertEqual(launcher.next_review_cycle(manifest, "api", None, False, path), cycle)
+            with self.assertRaises(SystemExit):
+                launcher.next_review_cycle(manifest, "api", None, False, path)
+        self.assertEqual(manifest["attempts"]["review_cycles"]["api"], 4)
+        reviewer["recovery"]["review_cycles"] = 5
+        path.write_text(json.dumps(plan))
+        with self.assertRaises(ValueError):
+            launcher.recovery_limits(manifest, "api")
+        for recovery in ({"review_cycles": 0, "evidence_recoveries": 1}, {"review_cycles": True, "evidence_recoveries": 1}, {"review_cycles": 3}):
+            reviewer["recovery"] = recovery
+            with self.assertRaises(ValueError):
+                launcher.validate_route(reviewer)
+
+    def test_invalid_evidence_packet_does_not_consume_or_dispatch_review(self):
+        plan_path, _, reviewer = self.plan()
+        routing = launcher.load_routing_plan(str(plan_path), "task1", {"api"}, True, self.root)
+        manifest = {"working_root": str(self.root), "task_id": "task1", "isolation": "working-tree",
+            "routing_plan": {"path": str(plan_path), "approval": routing["approval"]},
+            "attempts": {"review_cycles": {}}, "tracks": {"api": {"reviewer_route": reviewer, "working_dir": str(self.root), "branch": None}}}
+        arguments = Namespace(track="api", review_brief=str(self.brief), dry_run=False, evidence_packet=str(self.root / "missing-packet.json"))
+        with mock.patch.object(launcher, "load_manifest", return_value=(manifest, self.root / "manifest.json")), \
+             mock.patch.object(launcher, "implementation_ready"), \
+             mock.patch.object(launcher, "poll_once", return_value={"tracks": {}, "reviews": {}}), \
+             mock.patch.object(launcher, "review_source_binding", return_value={"path": "snapshot.json", "sha256": "fixture"}), \
+             mock.patch.object(launcher.evidence_module(), "response_contract", return_value={}), \
+             mock.patch.object(launcher, "dispatch_route") as dispatch, contextlib.redirect_stderr(io.StringIO()):
+            with self.assertRaises(SystemExit):
+                launcher.cmd_review(arguments)
+        dispatch.assert_not_called()
+        self.assertEqual(manifest["attempts"]["review_cycles"], {})
+
+    def update_route_plan(self, path, *, max_bytes=None):
+        plan = json.loads(path.read_text())
+        plan["scope"]["inputs"][0]["content_sha256"] = launcher.content_digest(self.task)
+        if max_bytes is not None:
+            for route in plan["routes"]:
+                route["context_budget"] = {"max_bytes": max_bytes, "reason": "Full acceptance contract is required"}
+        plan["approval"]["scope_digest"] = launcher.canonical_digest(launcher.normalized_scope_inputs(plan["scope"]["inputs"]))
+        plan["approval"]["routes_digest"] = launcher.canonical_digest(launcher.normalized_routes(plan["routes"]))
+        path.write_text(json.dumps(plan))
+
+    def test_complete_contract_overflow_blocks_before_artifacts_or_dispatch(self):
+        path = self.native_plan()
+        self.task.write_text("Required acceptance case\n" * 1100)
+        self.update_route_plan(path)
+        args = self.launch_arguments(path, "large-contract")
+        for dry_run in (False, True):
+            args.dry_run = dry_run
+            with mock.patch.object(launcher, "dispatch_route") as dispatch, \
+                 mock.patch.object(launcher, "create_worktree") as worktree, \
+                 contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+                with self.assertRaises(SystemExit):
+                    launcher.cmd_launch(args)
+            dispatch.assert_not_called()
+            worktree.assert_not_called()
+            self.assertFalse((self.root / ".ai-workflow").exists())
+
+    def test_larger_approved_budget_records_exact_final_input_and_new_context(self):
+        path = self.native_plan()
+        self.task.write_text("Required acceptance case\n" * 1100)
+        self.update_route_plan(path, max_bytes=40000)
+        args = self.launch_arguments(path, "allowed-contract")
+        with contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(launcher.cmd_launch(args), 0)
+        manifest = json.loads(self.manifest_for("allowed-contract").read_text())
+        track = manifest["tracks"]["api"]
+        prompt = Path(track["brief"]).read_bytes()
+        measurement = track["brief_binding"]["input_measurement"]
+        self.assertEqual(measurement["utf8_bytes"], len(prompt))
+        self.assertEqual(measurement["sha256"], launcher.file_digest(Path(track["brief"])))
+        self.assertIn(self.task.read_text().strip(), prompt.decode())
+        dispatch = track["implementation"]["native_dispatch"]
+        self.assertEqual(dispatch["input_measurement"], measurement)
+        self.assertEqual(dispatch["parent_history"], "none")
+        self.assertEqual(dispatch["context_action"], "start")
+        self.assertIsNone(dispatch["context_id"])
+        receipt = self.native_receipt(dispatch, context_id="isolated-role", completed_turn=1)
+        del receipt["native_execution"]["parent_history"]
+        self.assertIn("parent_history", launcher.native_execution_error(track["implementer_route"], receipt, "task1", dispatch))
+        self.update_route_plan(path, max_bytes=50000)
+        # Re-signing the route digest changes approval; an old manifest cannot silently adopt it.
+        self.assertNotEqual(json.loads(path.read_text())["approval"], manifest["routing_plan"]["approval"])
+
+    def test_budget_edit_without_approval_is_rejected(self):
+        path, _, _ = self.plan()
+        plan = json.loads(path.read_text())
+        plan["routes"][0]["context_budget"] = {"max_bytes": 30000, "reason": "More task context"}
+        path.write_text(json.dumps(plan))
+        with self.assertRaises(ValueError):
+            launcher.load_routing_plan(str(path), "task1", {"api"}, True, self.root)
+
+    def test_appended_review_requirements_count_before_cycle_reservation(self):
+        path, _, reviewer = self.plan()
+        routing = launcher.load_routing_plan(str(path), "task1", {"api"}, True, self.root)
+        manifest = {"working_root": str(self.root), "task_id": "task1", "isolation": "working-tree",
+            "routing_plan": {"path": str(path), "approval": routing["approval"]},
+            "attempts": {"review_cycles": {}}, "tracks": {"api": {"reviewer_route": reviewer, "working_dir": str(self.root), "branch": None}}}
+        args = Namespace(track="api", review_brief=str(self.brief), dry_run=False)
+        large_requirements = {"coverage_paths": ["changed/file.txt"] * 2000}
+        with mock.patch.object(launcher, "load_manifest", return_value=(manifest, self.root / "manifest.json")), \
+             mock.patch.object(launcher, "implementation_ready"), \
+             mock.patch.object(launcher, "poll_once", return_value={"tracks": {}, "reviews": {}}), \
+             mock.patch.object(launcher, "review_source_binding", return_value={"path": "snapshot.json", "sha256": "fixture"}), \
+             mock.patch.object(launcher.evidence_module(), "response_contract", return_value=large_requirements), \
+             mock.patch.object(launcher, "dispatch_route") as dispatch, \
+             mock.patch.object(launcher, "save_manifest") as save, \
+             contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+            with self.assertRaises(SystemExit):
+                launcher.cmd_review(args)
+        dispatch.assert_not_called()
+        save.assert_not_called()
+        self.assertEqual(manifest["attempts"]["review_cycles"], {})
+        self.assertNotIn("reviews", manifest)
+
+    def test_changed_rendered_input_is_rejected_before_runner_launch(self):
+        route = self.route("impl-api", "implementer", "gpt-6-astra")
+        metadata = {"input_measurement": launcher.measure_rendered(self.brief.read_text())}
+        self.brief.write_text("Changed after preflight")
+        with mock.patch.object(launcher, "fire_runner") as fire:
+            with self.assertRaisesRegex(ValueError, "changed after budget preflight"):
+                launcher.dispatch_route(route, self.brief, self.root, "implementer", 10, metadata, False, False)
+        fire.assert_not_called()
+
+    def test_oversized_followup_preserves_context_and_attempt_count(self):
+        path = self.native_plan()
+        with contextlib.redirect_stdout(io.StringIO()):
+            launcher.cmd_launch(self.launch_arguments(path, "resume-budget"))
+        manifest_path = self.manifest_for("resume-budget")
+        manifest = json.loads(manifest_path.read_text())
+        dispatch = manifest["tracks"]["api"]["implementation"]["native_dispatch"]
+        receipt_path = self.root / "first-receipt.json"
+        receipt_path.write_text(json.dumps(self.native_receipt(dispatch, context_id="same-role", completed_turn=1)))
+        with contextlib.redirect_stdout(io.StringIO()):
+            launcher.cmd_record_native(self.record_native_arguments(manifest_path, receipt_path))
+        original = manifest_path.read_bytes()
+        followup = self.root / "followup.md"
+        followup.write_text("x" * 23500)
+        args = Namespace(manifest=str(manifest_path), session_id=None, task_id=None, working_dir=None,
+            track="api", follow_up=str(followup), timeout=10, context_recovery_reason=None)
+        with mock.patch.object(launcher, "dispatch_route") as dispatch_call, \
+             contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+            with self.assertRaises(SystemExit):
+                launcher.cmd_resume_native(args)
+        dispatch_call.assert_not_called()
+        self.assertEqual(manifest_path.read_bytes(), original)
+        followup.write_text("Apply the bounded repair and rerun the affected check.")
+        with contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(launcher.cmd_resume_native(args), 0)
+        current = json.loads(manifest_path.read_text())["tracks"]["api"]["implementation"]
+        self.assertEqual(current["native_dispatch"]["context_action"], "resume")
+        self.assertEqual(current["native_dispatch"]["context_id"], "same-role")
+        self.assertEqual(current["native_dispatch"]["parent_history"], "none")
+        self.assertEqual(current["brief_binding"]["input_measurement"]["utf8_bytes"], Path(current["brief"]).stat().st_size)
 
 
 if __name__ == "__main__":

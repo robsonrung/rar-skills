@@ -7,14 +7,14 @@ description: "Implement behavior through the red-green-refactor loop. Use when t
 
 ## The Iron Law
 
-**No production code without a failing test first.** This is enforcement, not advice:
+**Establish a failing behavioral case before a requested behavior repair.** Reuse a captured failure when it proves the same defect on the same code.
 
-- Code written before its test gets **deleted and redone test-first**. Not "test added after" — deleted, then rebuilt from the test.
-- A test that passes on first run is wrong. You never saw it fail, so you don't know it _can_ fail. See the red before you make the green.
+- Preserve existing valid work. Do not delete and recreate code solely to change the order of its history.
+- A passing new test can characterize existing behavior. It does not demonstrate a missing behavior or prove that the test is wrong. Use a relevant failure or controlled counterexample to establish what it detects.
 
 ## Step 0 — whose code is this?
 
-Touching untested legacy code? **STOP.** Run `safe-incremental-coding` to build the characterization net first, then return here. That skill deliberately opposes the Iron Law (no fine-grained TDD tests on legacy structure — they bake in the bad shape), which is exactly why it is a separate skill. New code, or code with tests you can stand on, proceeds directly.
+For a risky change to untested legacy code, use `safe-incremental-coding` for the missing characterization. Reuse existing behavioral and failure evidence that covers the changed surface. Proceed directly when that protection already exists.
 
 ## The loop
 
@@ -33,7 +33,7 @@ You can only learn from a step if you can attribute its effect:
 - **One change at a time.** Never bundle a refactor with a behavior change with a config tweak.
 - An intermittent test is a **failure**, never a pass to be re-run.
 - Avoid programming by coincidence. If the code passes, know why.
-- **Never game the check.** Deleting, skipping, weakening, narrowing, or mocking-away a test to reach green is forbidden; if the test or contract is wrong, stop and report it (`shared/references/engineering-rules.md`, Contract integrity).
+- **Never game the check.** Deleting, skipping, weakening, narrowing, or mocking-away a test to reach green is forbidden; correct a proven test implementation error within repair authority. A change to the accepted product contract needs a decision (`shared/references/engineering-rules.md`, Contract integrity).
 
 ## The test-writing bar
 
@@ -71,7 +71,7 @@ After each loop iteration (or coherent batch), report:
 ## Gotchas
 
 1. **Monster steps** — a half-day of code before the first test run.
-2. **Test-after** — writing the test to fit code you already wrote; you lose the design feedback, and the Iron Law says delete and redo.
+2. **Test-after** — a test fitted to existing code can miss the intended behavior. Check it against the acceptance contract and a relevant counterexample; preserve valid work.
 3. **Coverage-chasing** — coverage is a side effect of the loop, never the target.
 4. **Gold-plating in green** — designing while unsafe; design belongs in the refactor step.
 5. **"No time to test"** — there is no speed-vs-quality trade-off; the way to go faster is to keep rework low.

@@ -40,3 +40,10 @@ record; do not repeat a full review for a prose correction.
    explanation. Verify actionable findings before recommending changes.
 6. Record routes, receipts, captured checks, and coverage limits. Review/fix cycles
    retain the caller's bounds and cannot silently expand scope or model effort.
+
+## Evidence preparation
+
+For a structured review, run `review_evidence.py response-contract` and `prepare-packet` before
+dispatch. Pass the packet path and hash. Ask the reviewer for semantic assessment and findings,
+not copied file hashes. Do not dispatch a brief whose observation list conflicts with the prepared
+contract. Rechecks retain prior findings and examine changed behavior plus affected callers.

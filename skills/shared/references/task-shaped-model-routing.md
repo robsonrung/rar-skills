@@ -101,3 +101,13 @@ edits cannot. The launcher recomputes both digests before side effects.
 Reuse approval while scope and routes match. When a route fails, continue
 independent authorized work and report the affected row. A new model, unsupported
 effort, or changed transport needs the calling workflow's change decision.
+
+## Cost and acceptance
+
+Use scripts for status waits, hashes, evidence assembly, and receipt normalization. These jobs
+need no model route. Keep the coordinator brief limited to changed facts and unresolved decisions.
+Do not reduce an explicitly selected model or effort. Select a cheaper future route only through
+the approved plan, with a bounded comparison against the same acceptance cases. Measure input,
+cached input, output, failed attempts, execution time, approval wait time, and accepted outcomes.
+Preserve independent security and transaction review. Missing usage remains unknown; fewer words
+or lower nominal pricing alone do not prove lower cost per accepted result.

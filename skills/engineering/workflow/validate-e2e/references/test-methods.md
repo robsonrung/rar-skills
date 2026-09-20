@@ -19,4 +19,8 @@ For each check, record command or browser action, tested revision, dependency an
 
 Store reports and generated output outside fingerprint inputs. Bind relevant source, lockfiles, configuration, schema, test code, fixtures, and runtime facts; list per file hashes and explicit exclusions. Do not hash an entire workspace by habit. If a prior contract requires broad hashing, preserve it until a change is approved. An input change creates a new evidence revision and invalidates only dependent checks.
 
+Resolve the actual browser URL, then check driver access before reserving a business attempt.
+Clear and read back the exact input before save. Capture the request and response before reload,
+then verify the saved result. Keep service, port, fixture, and process ownership in the environment manifest.
+
 Preflight required services and credentials once per changed environment. Keep secrets out of evidence. Before a sealed run, ensure no relevant source, build, or report writer is active. On drift, compare saved per file hashes and rerun the affected preparation, not all prior phases. Preserve failed results and old seals.

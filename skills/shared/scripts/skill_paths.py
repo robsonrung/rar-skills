@@ -69,3 +69,38 @@ def iter_skill_dirs(root: Path):
         if parts & skip or skill_md.parent.name == "shared":
             continue
         yield skill_md.parent
+
+
+def resolve_skills(start: Path, names: list[str]) -> dict:
+    """Resolve explicit skills and hash their current entry instructions."""
+    import hashlib
+    import re
+    root = find_skills_root(start)
+    resources = {}
+    for name in names:
+        if not re.fullmatch(r"[a-z0-9][a-z0-9-]*", name) or name in resources:
+            raise ValueError("skill names must be unique plain names")
+        entry = skill_dir(name, root=root) / "SKILL.md"
+        if not entry.is_file():
+            raise ValueError(f"skill is unavailable: {name}")
+        resources[name] = {"path": str(entry.resolve()), "sha256": hashlib.sha256(entry.read_bytes()).hexdigest()}
+    return {"root": str(root), "skills": resources}
+
+
+def main():
+    import argparse
+    import json
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--start", type=Path, required=True)
+    parser.add_argument("--names", nargs="+", required=True)
+    args = parser.parse_args()
+    try:
+        print(json.dumps(resolve_skills(args.start, args.names)))
+        return 0
+    except (ValueError, OSError) as error:
+        print(json.dumps({"status": "blocked", "error": str(error)}))
+        return 2
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

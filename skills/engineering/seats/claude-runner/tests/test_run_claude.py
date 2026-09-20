@@ -68,6 +68,21 @@ class ReceiptTests(unittest.TestCase):
         self.assertEqual(result["stdout"], "partial")
         self.assertEqual(result["terminal_status"], "interrupted")
 
+    def test_stream_timeout_retains_session_and_partial_usage(self):
+        import stream_capture
+        partial = json.dumps({"type": "system", "session_id": "new-session"}) + "\n" + json.dumps({
+            "type": "assistant", "message": {"id": "message-1", "usage": {"input_tokens": 12, "output_tokens": 4}}}) + "\n"
+        with patch.object(runner.shutil, "which", return_value="fixture-cli"), \
+             patch.object(runner, "resolve_claude_oauth_token", return_value=None), \
+             patch.object(stream_capture, "capture", side_effect=subprocess.TimeoutExpired("fixture", 1, output=partial)) as call:
+            result = runner._run_claude("Review", output_format="stream-json", event_log="/tmp/fixture-events.jsonl", disable_fallback=True)
+        self.assertFalse(result["success"])
+        self.assertFalse(result["metrics_complete"])
+        self.assertEqual(result["session_id"], "new-session")
+        self.assertEqual(result["metrics"]["input_tokens"], 12)
+        self.assertEqual(result["metrics"]["output_tokens"], 4)
+        self.assertIn("--verbose", call.call_args.args[0])
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -152,3 +152,12 @@ python3 .agents/skills/shared/scripts/runner_jobs.py cancel [job-id]
 ```
 
 `job-id` defaults to the most recent job. All subcommands accept `--working-dir` and `--json`. `status` reports `running`, `completed`, `failed`, `cancelled`, or `died` plus a log tail; `result` prints the stored `agent_message` (or the full envelope with `--json`) and the session id for follow-up resumes; `cancel` terminates the job's process group.
+
+## Wait for explicit jobs
+
+Use `runner_jobs.py wait-many --targets <targets.json> --timeout 50 --json`.
+The targets file is a list of `{working_dir, job_id}` entries. Store the returned `cursor` map
+and pass its file with `--cursor` on the next wait. One wait checks all targets and returns
+on a status change or the observation timeout. It does not start or cancel work. A timeout
+is not a failed job. Resume the same handle. Read the result file only for changed terminal state.
+The CLI accepts at most 60 seconds per wait so the caller can provide required progress updates.

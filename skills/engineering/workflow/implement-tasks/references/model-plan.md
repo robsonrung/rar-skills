@@ -69,6 +69,20 @@ combined review. An earlier broad integration review needs a named unresolved ri
 Do not schedule a full repeated panel at every wave by default. Keep any review
 sequence the user has already approved until an authorized plan change.
 
+Set any complete worker input limit in the route's optional `context_budget` object.
+The default is 24,000 UTF-8 bytes, including the task contract and appended review instructions.
+A higher `max_bytes` needs a `reason` and is included in the approved route digest. Record that
+new task roles start without parent history and repairs resume the same recorded role context.
+
 Record loaded skill and script revisions alongside the plan. Use the call ledger
 and normalized per-call metrics from the shared run-state contract. The existing
 model routing configuration remains the only source of model defaults.
+
+## Recovery allowance
+
+The reviewer route can include `recovery: {"review_cycles": 3, "evidence_recoveries": 2}`.
+These exact limits are included in the route approval digest. Omission preserves the legacy
+three-cycle and one-recovery limits. The launcher reads the approved route, not editable
+manifest ceilings. Choose the allowance with the total call and time budget; it does not
+increase those totals. Routine evidence repair within this scope requires no new decision.
+A changed model, product requirement, authority, or exhausted total still needs a decision.

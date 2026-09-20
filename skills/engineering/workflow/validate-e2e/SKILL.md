@@ -26,7 +26,7 @@ Read [references/model-selection.md](references/model-selection.md). Resolve onl
 
 Before starting model workers or feature execution, show the concrete scope, test classes, exact models, efforts, native or runner paths, receipt limits, and ceilings. Offer “Use defaults” or edits to any row, including a named runner. A request such as “use defaults and run” already approves unchanged resolved defaults; show them and proceed. Otherwise obtain one decision after the plan is reviewable. Keep useful read-only planning moving. Silence is not approval.
 
-Save the exact approved routes and user decision reference. Reuse them on resume. An unavailable route blocks only its work; never silently substitute a model, effort, transport, or verification policy. Model or budget changes need a new decision. No model research or availability probe loop is required during normal validation; use the dated research only when selecting or updating routes.
+Save the exact approved routes and user decision reference. Reuse them on resume. An unavailable route blocks only its work; never silently substitute a model, effort, transport, or verification policy. Model changes or increases beyond the approved total budget need a new decision. Use approved recovery categories within their existing allowance without another question. No model research or availability probe loop is required during normal validation; use the dated research only when selecting or updating routes.
 
 ## 3. Run the smallest sufficient checks
 
@@ -44,7 +44,7 @@ Classify a failure as product behavior, test harness, environment, runtime gate,
 
 Use `diagnose` only for an unknown cause. Use the cheapest discriminating probe; retain a sufficient reproduction. Do not rerun an unchanged failure without a new hypothesis or changed input. Before a repair, preserve the failing case. In repair mode, fix within scope, then rerun affected cases and required gates. In assess mode, report the defect without changing product code.
 
-Allow two attempts per validation unit by default, with a reason and changed input or new evidence for the second. A separate diagnostic unit needs a bounded question and consumes the same total budget. At exhaustion report the unresolved defect or blocker. A stronger model can resolve uncertainty; it cannot select an unsettled product policy.
+Allow two validation attempts per unit by default. Include any test repair, evidence repair, and authorized product repair allowances in the initial plan. They share the total attempt, call, and time limits. Record a reason and changed input or new evidence for each retry. Record driver and service preflight separately before a business attempt. A separate diagnostic unit needs a bounded question and consumes the same total budget. At exhaustion report the unresolved defect or blocker. A stronger model can resolve uncertainty; it cannot select an unsettled product policy.
 
 Preserve tenant isolation, transaction rollback, event checks, native diagnostics, process exit, and cleanup gates when required. Business passes do not override a failed runtime gate. Do not weaken assertions, exclusions, timeouts, or diagnostic policy to obtain a pass. Finish source, build, and report writers before capturing a runtime seal. Keep per file hashes so drift can be located without reconstructing old outputs.
 

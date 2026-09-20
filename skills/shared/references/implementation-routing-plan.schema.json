@@ -348,6 +348,59 @@
               "minLength": 1
             }
           }
+        },
+        "recovery": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "review_cycles",
+            "evidence_recoveries"
+          ],
+          "properties": {
+            "review_cycles": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "evidence_recoveries": {
+              "type": "integer",
+              "minimum": 1
+            }
+          },
+          "description": "Approved category limits within the total call and time budget. Defaults remain three cycles and one evidence recovery."
+        },
+        "context_budget": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "max_bytes"
+          ],
+          "properties": {
+            "max_bytes": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "reason": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "allOf": [
+            {
+              "if": {
+                "properties": {
+                  "max_bytes": {
+                    "minimum": 24001
+                  }
+                }
+              },
+              "then": {
+                "required": [
+                  "reason"
+                ]
+              }
+            }
+          ],
+          "description": "Maximum UTF-8 bytes of the complete launcher-rendered worker input. Default 24000. Larger limits need a recorded reason and are bound by the route approval digest. Host-added context and retained role history remain unmeasured."
         }
       },
       "allOf": [

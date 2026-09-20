@@ -56,6 +56,7 @@ def validate_plan(plan):
             "requirement IDs must be nonempty and unique")
     budgets = plan["budgets"]
     require(all(positive(budgets.get(k)) for k in ("total_attempts", "max_parallel")), "positive budgets required")
+    require(positive(budgets.get("max_preflights", budgets["total_attempts"])), "positive preflight ceiling required")
     deadline(plan)
     units = plan["units"]
     require(units and len({u["id"] for u in units}) == len(units), "unit IDs must be unique")
@@ -67,6 +68,11 @@ def validate_plan(plan):
         require(unit["checks"] and all(isinstance(c, str) and c for c in unit["checks"])
                 and len(set(unit["checks"])) == len(unit["checks"]), "check IDs must be nonempty and unique")
         require(positive(unit.get("max_attempts")), "positive unit attempt limit required")
+        recovery = unit.get("recovery_attempts", {})
+        require(isinstance(recovery, dict) and set(recovery) <= {"test_repair", "evidence_repair", "product_repair"}
+                and all(positive(v) for v in recovery.values()), "invalid recovery allowance")
+        require("product_repair" not in recovery or plan["mode"] == "repair", "product repair requires repair authority")
+        require(type(unit.get("preflight_required", False)) is bool, "invalid preflight requirement")
         if unit["required"]:
             covered.update(unit["requirements"])
     require(covered == set(reqs), "every requirement needs a required validation unit")
@@ -108,20 +114,33 @@ def initialize(state, path, ledger):
     state["ceilings"].update(plan["budgets"])
 
 
-def reserve(state, unit_id, attempt_id, input_path, reason):
+def reserve(state, unit_id, attempt_id, input_path, reason, kind="validation"):
     plan = load_plan(state)
     units = [u for u in plan["units"] if u["id"] == unit_id]
     require(len(units) == 1, "unknown unit")
     unit = units[0]
     attempts = state["validation"]["attempts"]
     intent = {"unit": unit_id, "input": {"path": str(Path(input_path).resolve()), "sha256": digest(input_path)}, "reason": reason}
+    if kind != "validation":
+        intent["kind"] = kind
     if attempt_id in attempts:
         require(attempts[attempt_id]["intent"] == intent, "attempt ID has different inputs")
         return {"reservation": "existing", "attempt": attempts[attempt_id]}
     require(utc() < deadline(plan), "deadline reached")
     prior = [a for a in attempts.values() if a["intent"]["unit"] == unit_id]
     require(not any(a["status"] == "pending" for a in prior), "reconcile pending unit before another attempt")
-    require(len(prior) < unit["max_attempts"], "unit attempt ceiling reached")
+    allowed = unit["max_attempts"] if kind == "validation" else unit.get("recovery_attempts", {}).get(kind, 0)
+    require(allowed > 0, "recovery category is not approved")
+    require(sum(a["intent"].get("kind", "validation") == kind for a in prior) < allowed, "unit attempt ceiling reached")
+    require(kind == "validation" or reason.strip(), "recovery needs a reason")
+    preflights = [p for p in state["validation"].get("preflights", {}).values() if p["unit"] == unit_id]
+    if unit.get("preflight_required") or preflights:
+        require(preflights, "preflight is required before execution")
+        latest = preflights[-1]
+        verify_refs([latest["input"], latest["record"]])
+        verify_refs(read(latest["record"]["path"])["evidence"])
+        require(latest["input"] == intent["input"], "preflight input changed")
+        require(latest["status"] == "ready", "preflight is blocked; no business attempt reserved")
     require(len(attempts) < plan["budgets"]["total_attempts"], "total attempt ceiling reached")
     require(sum(a["status"] == "pending" for a in attempts.values()) < plan["budgets"]["max_parallel"], "parallel ceiling reached")
     if prior:
@@ -132,6 +151,26 @@ def reserve(state, unit_id, attempt_id, input_path, reason):
     state["attempts"]["validation_attempts"] = len(attempts)
     state["phase"] = unit_id
     return {"reservation": "new", "attempt": attempts[attempt_id]}
+
+
+def record_preflight(state, unit_id, preflight_id, input_path, result_path):
+    plan = load_plan(state)
+    require(any(u["id"] == unit_id for u in plan["units"]), "unknown preflight unit")
+    result = read(result_path)
+    require(result.get("status") in {"ready", "blocked"} and result.get("evidence"), "preflight needs status and evidence")
+    require(result.get("reason"), "preflight needs a reason")
+    verify_refs(result["evidence"])
+    entry = {"unit": unit_id, "status": result["status"],
+             "input": {"path": str(Path(input_path).resolve()), "sha256": digest(input_path)},
+             "record": {"path": str(Path(result_path).resolve()), "sha256": digest(result_path)}}
+    records = state["validation"].setdefault("preflights", {})
+    if preflight_id in records:
+        require(records[preflight_id] == entry, "preflight id has different evidence")
+        return {"reservation": "existing", **entry}
+    require(utc() < deadline(plan), "deadline reached")
+    require(len(records) < plan["budgets"].get("max_preflights", plan["budgets"]["total_attempts"]), "preflight ceiling reached")
+    records[preflight_id] = entry
+    return {"reservation": "new", **entry}
 
 
 def reserve_role(state, ledger, route_id, call_id, brief, phase):
@@ -179,6 +218,12 @@ def summarize(state):
         if entry and entry.get("result"):
             verify_refs([entry["intent"]["input"], entry["result"]])
             verify_refs(read(entry["result"]["path"])["evidence"])
+        preflights = [p for p in state["validation"].get("preflights", {}).values() if p["unit"] == unit["id"]]
+        if preflights:
+            verify_refs([preflights[-1]["input"], preflights[-1]["record"]])
+            verify_refs(read(preflights[-1]["record"]["path"])["evidence"])
+            if preflights[-1]["status"] == "blocked":
+                status = "blocked"
         units[unit["id"]] = {"status": status, "required": unit["required"]}
     required = [v["status"] for v in units.values() if v["required"]]
     calls = state["call_ledger"]["calls"].values()
@@ -210,6 +255,10 @@ def main():
     for name in ("unit", "attempt", "input"):
         start.add_argument("--" + name, required=True)
     start.add_argument("--reason", default="")
+    start.add_argument("--kind", choices=("validation", "test_repair", "evidence_repair", "product_repair"), default="validation")
+    preflight = sub.add_parser("preflight", help="record driver or service readiness without consuming a business attempt")
+    for name in ("unit", "id", "input", "result"):
+        preflight.add_argument("--" + name, required=True)
     end = sub.add_parser("finish"); end.add_argument("--attempt", required=True); end.add_argument("--result", required=True)
     role = sub.add_parser("reserve-role")
     for name in ("route", "call", "brief", "phase"):
@@ -222,7 +271,9 @@ def main():
         if args.action == "init":
             initialize(state, args.plan, ledger)
         elif args.action == "reserve":
-            return reserve(state, args.unit, args.attempt, args.input, args.reason)
+            return reserve(state, args.unit, args.attempt, args.input, args.reason, args.kind)
+        elif args.action == "preflight":
+            return record_preflight(state, args.unit, args.id, args.input, args.result)
         elif args.action == "reserve-role":
             return reserve_role(state, ledger, args.route, args.call, args.brief, args.phase)
         elif args.action == "finish":

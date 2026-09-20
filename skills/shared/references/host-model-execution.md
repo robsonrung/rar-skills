@@ -47,7 +47,9 @@ control remain legacy records; they are not proof of native capability checks.
 
 ## Keep role contexts through iterations
 
-Start one isolated context per task and role. Keep that context for later turns
+Start one isolated context per task and role, with no parent conversation history. Use the host's
+supported empty-history option and supply the bounded task packet. For a host with `fork_turns`,
+select `none`; do not inherit the coordinator's conversation. Keep that context for later turns
 of the same role: interview rounds, debate rounds, gap repair, implementation
 fixes, reviewer rechecks, or integration reconciliation. Create a new context for
 a different task, independent role, blind opening, or approved model change.
@@ -137,3 +139,17 @@ capture is not a launcher approval receipt. Keep it immutable and bind the
 launcher's required route and serving-model evidence separately. Missing serving
 identity remains unverified; never copy the configured model into an observed
 model field. Other host transports retain their raw completion format.
+
+## Environment and context preparation
+
+Before dispatch, bind the actual worktree, required write paths, service ports, and artifact
+root to the role brief. Check the host permission surface for that worktree. Operating-system
+write access alone does not establish sandbox authority. Use the supported task workspace or
+existing approval for required paths; do not remove permission checks or grant broad access.
+Use stable commands with explicit working directories and bounded effects.
+
+Resolve the shared library and selected skills once with `skill_paths.py --start <loaded-skill>
+--names <skill> ...`. Save the returned paths and hashes in the run packet. Reuse instructions
+while they remain available and unchanged. After context loss, load the compact ledger and
+only missing instructions, changed evidence, and current decisions. Do not reconstruct progress
+from complete transcripts when a receipt exists.

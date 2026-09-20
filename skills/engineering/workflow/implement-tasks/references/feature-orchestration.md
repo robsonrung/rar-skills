@@ -11,18 +11,18 @@ Task: <stable T-ID and task file path>
 Skill: implement-and-review
 Scope: <allowed paths, interfaces, and exclusions>
 Base: <current integration revision, or sequential working tree>
-Inputs: <PRD, task, decisions, and relevant evidence paths>
+Inputs: <task acceptance contract, settled decisions, relevant file and evidence locators>
 Models: <approved implementation/review models, native or runner transport, effort, and receipt policy>
 Role session: <route id, context or runner-session reference when resumed, and manifest path>
 Approval: <routing-plan.json, model-plan.md, and approval entry>
 Authorization: <permitted local changes and authorized git/publication actions>
 Acceptance: <exact commands and observable behaviors from the task>
 Report: <unique task report and envelope paths>
-Ceilings: three review/fix cycles; one evidence recovery
+Ceilings: <remaining review cycles, evidence recoveries, total calls, deadline, and context budget>
 Return: complete, failed, ceiling_hit, or awaiting_human; evidence paths and remaining blockers
 ```
 
-The acceptance contract is a completion condition, not a host `/goal` command. Do not use a user-owned task as a subagent unless requested. Do not fork unrelated conversation history into a worker.
+The acceptance contract is a completion condition, not a host `/goal` command. Do not use a user-owned task as a subagent unless requested. Start the worker with no parent conversation history. Send only the bound task packet. Use the host's explicit empty-history option; for a `fork_turns` host, use `none`. This does not authorize additional workers.
 
 Workers load selected lenses and practices when their task needs them. They cannot select new models or add panels outside the approved plan. Reuse the task worker for a bounded correction; use a fresh context for the next task.
 
@@ -32,8 +32,8 @@ Read `shared/references/host-model-execution.md` before dispatch. Use its native
 
 1. Before the first task call, write the brief and create the recorded implementer context. Create the reviewer context separately before its first review. Both are fresh for this task and track; neither receives another task's history.
 2. Before dispatch, record the route ID, host, transport, task ID, role, input revision, pending call, and pending context entry in the feature ledger and task manifest. When the call returns, add its context or runner-session reference and receipt. Native task contexts live in `native_contexts[route_id]`; after polling, runner results supply `runner_session_id` and the manifest records it in `runner_contexts[route_id]`.
-3. After a review finding, send the correction only to the same task's approved implementer context. Send the changed paths, evidence, and review report paths, not a copied transcript. Send the recheck to the same approved reviewer context. The three-cycle limit applies across these turns.
-4. Route the one allowed evidence recovery to the same task role that can recover the missing proof. It must not reimplement unrelated work, add a model, or reset the review cycle. Record the attempt before dispatch.
+3. After a review finding, send the correction only to the same task's approved implementer context. Send the changed paths, evidence, and review report paths, not a copied transcript. Send the recheck to the same approved reviewer context. The approved cycle limit applies across these turns; it defaults to three.
+4. Route an approved evidence recovery to the same task role that can recover the missing proof. It must not reimplement unrelated work, add a model, or reset the review cycle. Record the attempt before dispatch.
 5. Keep a separate persistent integration context owned by the conductor for integration checks and seam review. It receives the current integration revision and task envelopes. It does not become a task implementer or reviewer, and task contexts do not become the integration context.
 6. On resume, inspect a pending call before resending it. Resume the recorded native context through the engine's documented native continuation, or the recorded runner session through that runner's documented resume path. If the context is lost, reconstruct it only from the same role's artifacts and under the unchanged approved route. Record the loss and replacement reference. Never use a global latest-session selector.
 
@@ -45,7 +45,7 @@ Keep each context available until its role is complete and all required evidence
 2. A task is ready when every blocker is `done` and its changes passed acceptance on the integration state.
 3. Separate product blockers from write conflicts. Use the queue's named shared-contract owners and release conditions. Honor the queue's parallelization constraints. Serialize shared files, migrations, interfaces, and security-sensitive paths unless there is an explicit merge plan.
 4. Start at most the approved number of tasks. Each new worktree starts at the current integration revision. A running independent task can finish on its recorded base; after integration, check interactions and rerun acceptance affected by the combined state.
-5. Record task role context IDs, runner-session IDs, pending calls, and task states before dispatch. Use the shared call-ledger helper to reserve and reconcile calls. Read compact status and result envelopes. Prefer cursor-based host waits or bounded runner waits with backoff. Open report bodies for failures, changed results, and final synthesis, not repeated polling.
+5. Record task role context IDs, runner-session IDs, pending calls, and task states before dispatch. Use the shared call-ledger helper to reserve and reconcile calls. Read compact status and result envelopes. Use cursor-based host waits or `runner_jobs.py wait-many` for explicit runner jobs. One bounded wait replaces alternating status and sleep calls. Do not load unchanged report bodies. Open report bodies for failures, changed results, and final synthesis, not repeated polling.
 
 ## Integration
 
@@ -70,8 +70,10 @@ Capture combined acceptance and the approved seam review using [completion.md](c
 ## Context packet before dispatch
 
 Use `shared/scripts/context_packet.py` to bind the derived brief to current decisions
-and selected evidence. Its default brief limit is 24,000 bytes. Link source sections
-instead of embedding complete reports; a larger limit needs a task-specific reason.
+and selected evidence. The launcher checks the complete final input against a 24,000-byte
+UTF-8 limit, including the full task contract and appended review instructions. Link source
+sections instead of embedding reports. A larger limit needs `context_budget` and a reason in
+the approved route; a packet's derived-note limit cannot override it.
 The packet must identify current decisions, evidence, and superseded material.
 Save it beside the brief as `<brief-name>.md.packet.json`; the launcher verifies it
 before dispatch. Missing packets remain compatible with older runs, but new runs
@@ -80,3 +82,11 @@ use them. See `shared/references/context-packets.md` for the input contract.
 A changed decision invalidates affected derived notes and prototypes. Rebuild the
 brief from current decisions before dispatch; do not ask the worker to choose
 between conflicting instructions. Keep the original sources available for inspection.
+
+## Completion and compact recovery
+
+For new ledger-managed reviews, bind `--review-snapshot` during reservation and use the shared
+`complete` command with the actual receipt. Keep the task launcher's route checks where it owns
+the task manifest. Do not reconstruct a successful receipt by scanning transcripts or editing
+metadata. A source or evidence mismatch blocks acceptance before another model is needed.
+Save the exact failed field, current contract, and prepared packet for any authorized recovery.

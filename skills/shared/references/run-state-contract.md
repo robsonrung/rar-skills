@@ -186,3 +186,14 @@ per accepted result, not only the final successful call. Report unknown measurem
 and missed defects. Offline protocol tests prove mechanics, not model quality or a
 percentage saving. Obtain approval for any new paid comparison routes and bounds;
 reuse existing approval when it already covers that exact comparison.
+
+## Completion without transcript reconstruction
+
+For new reviewer calls, reserve with `--review-snapshot <snapshot.json>`. The ledger binds the
+snapshot before dispatch. The host adapter or runner supplies the actual execution receipt.
+Use `run_state.py --state <state.json> complete --call <call-id> --receipt <receipt.json>`.
+This validates route, context, input revision, snapshot, and evidence, then records the call and review reference.
+It returns execution status separately from review readiness. An open finding remains `needs-work`.
+An identical retry is idempotent. A changed receipt or missing snapshot binding is rejected.
+The command does not synthesize execution metadata or mark a task queue complete. Legacy calls
+can still use `reconcile` and their existing review recorder.

@@ -63,7 +63,7 @@ resumes that role, then records its actual receipt with `record-native`. A hando
 is not execution. Read [references/runner-invocations.md](references/runner-invocations.md)
 for native capabilities, receipt fields, `resume-native`, and runner continuation.
 
-When implementation finishes, read `shared/references/review-evidence.md`. Prepare the source snapshot and required check plan, then capture the selected checks. Prepare a focused review brief with the acceptance contract, snapshot, check result paths, and the task's named risk. Launch the exact reviewer recorded in the plan:
+When implementation finishes, read `shared/references/review-evidence.md`. Prepare the source snapshot and required check plan, then capture the selected checks and observations. Build the evidence packet with `prepare-packet`; correct missing captures or invalid references before dispatch. Prepare a focused review brief with the acceptance contract, snapshot, check result paths, and the task's named risk. Launch the exact reviewer recorded in the plan:
 
 ```bash
 SKILL_DIR="<absolute path of this skill directory>";
@@ -72,8 +72,14 @@ python3 "$SKILL_DIR/scripts/launch.py" review \
   --task-id <task-id> \
   --track <track-name> \
   --review-brief <review-brief.md> \
-  --review-snapshot <snapshot.json>
+  --review-snapshot <snapshot.json> \
+  --evidence-packet <packet.json>
 ```
+
+The launcher measures the complete rendered implementation, review, and native followup input.
+Its default limit is 24,000 UTF-8 bytes; larger limits need a reason in the approved route's
+`context_budget`. Read `shared/references/context-packets.md` for measurement and recovery.
+Native handoffs require `parent_history: none`; reuse the same role context for repairs.
 
 The review command reloads the approved plan, verifies the saved route still matches it, and uses a read-only reviewer. It does not accept a route from the mutable manifest alone. Rechecks reuse the recorded reviewer context. Keep native contexts in `native_contexts[route_id]` and runner sessions in `runner_contexts[route_id]`; do not use a global latest-session selector.
 
@@ -88,7 +94,7 @@ Only `ready` meets the review acceptance contract. A successful `poll` reports
 execution status only. Link the snapshot, review record, and verifier result
 from `report.md`. Legacy reviews without these records cannot establish readiness.
 
-1. Apply valid findings through the same approved implementer route and its recorded context. Persist each review/fix cycle before dispatch. The maximum is three cycles. If evidence is missing, reserve one evidence recovery before dispatching it. A second missing-evidence result or an exhausted cycle ceiling stops the task. Retain the implementer and reviewer until their fixes, rechecks, and evidence work are complete.
+1. Apply valid findings through the same approved implementer route and its recorded context. Persist each review/fix cycle before dispatch. The default is three cycles; use the reviewer route's approved `recovery.review_cycles` when present. If evidence is missing, reserve recovery within the approved allowance before dispatch. Exhaustion of the approved recovery or cycle allowance stops the task. Retain the implementer and reviewer until their fixes, rechecks, and evidence work are complete.
 2. Use `full-review` only when the user selected it in the reviewer plan. Recommend it when the change crosses a seam, carries high risk, or needs feature-level reconciliation. Its scope and routes must remain proportional to the task.
 3. Capture the required task acceptance results. Reuse earlier passing results only when the relevant code, dependencies, environment, and acceptance contract still match and the caller permits reuse. Run missing or affected checks after changes. **Only captured command results count as evidence.**
 4. Write a short report under `.ai-workflow/impl-review/<session-id>/<task-id>/report.md` when that directory is available. Include acceptance, implementation and reviewer receipts, role context references, any context loss or reconstruction, changed paths, and unresolved risks. Reconcile a pending call before retrying; context loss never resets counters or changes the approved model.

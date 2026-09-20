@@ -12,6 +12,7 @@ final wrapper envelope as result.json). This module is also the management CLI:
 """
 
 import argparse
+import hashlib
 import json
 import os
 import shlex
@@ -145,6 +146,8 @@ def resolve_job(root: Path, job_id: str | None) -> tuple[Path, dict[str, Any]]:
 
 
 def pid_alive(pid: int) -> bool:
+    if pid <= 0:
+        return False
     try:
         os.kill(pid, 0)
     except ProcessLookupError:
@@ -202,6 +205,53 @@ def status_payload(job_dir: Path, manifest: dict[str, Any]) -> dict[str, Any]:
         "log_file": manifest.get("log_file"),
         "log_tail": log_tail(manifest),
     }
+
+
+def wait_many(targets, cursor=None, timeout=50, interval=1):
+    """Wait once for a state transition. Do not return transcripts or result bodies."""
+    if not isinstance(targets, list) or not targets or len(targets) > 32 or not 0 <= timeout <= 60 or not 0 < interval <= 5:
+        raise ValueError("use 1..32 explicit targets, timeout 0..60, and interval 0..5 seconds")
+    if cursor is not None and (not isinstance(cursor, dict) or not all(isinstance(v, str) for v in cursor.values())):
+        raise ValueError("cursor must be the map returned by wait-many")
+    jobs = []
+    keys = set()
+    for target in targets:
+        if (not isinstance(target, dict) or set(target) != {"working_dir", "job_id"}
+                or not isinstance(target["working_dir"], str) or not target["working_dir"]
+                or not isinstance(target["job_id"], str) or target["job_id"] in {"", ".", ".."}
+                or Path(target["job_id"]).name != target["job_id"]):
+            raise ValueError("each target needs a working_dir and a plain job_id")
+        root = jobs_root(target["working_dir"]).resolve()
+        key = str(root / target["job_id"])
+        if key in keys:
+            raise ValueError("duplicate wait target")
+        keys.add(key)
+        jobs.append((key, root, target["job_id"]))
+    if cursor is not None and set(cursor) != keys:
+        raise ValueError("cursor targets differ")
+    deadline = time.monotonic() + timeout
+    baseline = cursor
+    while True:
+        states, revisions = [], {}
+        for key, root, job_id in jobs:
+            manifest = load_manifest(root / job_id)
+            if manifest is None:
+                row = {"job_id": job_id, "status": "missing", "result_file": str(root / job_id / "result.json")}
+            else:
+                row = {"job_id": job_id, "status": job_status(root / job_id, manifest),
+                       "result_file": manifest.get("result_file", str(root / job_id / "result.json"))}
+            revisions[key] = hashlib.sha256(json.dumps(row, sort_keys=True).encode()).hexdigest()
+            states.append({"target": key, **row})
+        changed = [row for row in states if baseline is None and row["status"] != "running"
+                   or baseline is not None and baseline[row["target"]] != revisions[row["target"]]]
+        if changed:
+            return {"reason": "changed", "changed": changed, "cursor": revisions, "targets": states}
+        if all(row["status"] != "running" for row in states):
+            return {"reason": "complete", "changed": [], "cursor": revisions, "targets": states}
+        if time.monotonic() >= deadline:
+            return {"reason": "timeout", "changed": [], "cursor": revisions, "targets": states}
+        baseline = revisions
+        time.sleep(min(interval, max(0, deadline - time.monotonic())))
 
 
 def cmd_list(root: Path, as_json: bool, runner: str | None) -> int:
@@ -303,7 +353,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Manage background runner jobs")
     parser.add_argument(
         "command",
-        choices=("list", "status", "result", "cancel"),
+        choices=("list", "status", "result", "cancel", "wait-many"),
         help="Job operation to perform",
     )
     parser.add_argument(
@@ -328,8 +378,22 @@ def main() -> int:
     parser.add_argument(
         "--json", "-j", action="store_true", help="Return output in JSON format"
     )
+    parser.add_argument("--targets", help="JSON file with explicit working_dir/job_id targets for wait-many")
+    parser.add_argument("--cursor", help="JSON file with the previous wait-many cursor map")
+    parser.add_argument("--timeout", type=float, default=50, help="wait-many observation timeout, at most 60 seconds")
     args = parser.parse_args()
 
+    if args.command == "wait-many":
+        try:
+            if not args.targets:
+                raise ValueError("wait-many requires --targets")
+            targets = json.loads(Path(args.targets).read_text())
+            cursor = json.loads(Path(args.cursor).read_text()) if args.cursor else None
+            print(json.dumps(wait_many(targets, cursor, args.timeout)))
+            return 0
+        except (ValueError, OSError, TypeError, KeyError) as error:
+            print(json.dumps({"status": "blocked", "error": str(error)}), file=sys.stderr)
+            return 2
     root = jobs_root(args.working_dir)
     if args.command == "list":
         return cmd_list(root, args.json, args.runner)

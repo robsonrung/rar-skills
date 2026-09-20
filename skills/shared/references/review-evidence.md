@@ -135,10 +135,46 @@ python3 <shared-dir>/scripts/review_evidence.py transfer-check \
   --check <original-check/result.json> --assessment <transfer-assessment.json>
 ```
 
-The helper rejects changed content, contract, context, command definitions,
+The helper rejects changed required inputs, contract, environment identity, command definitions,
 failed checks, altered logs, and nested transfers. It writes a target check with
 links to the original snapshot, result, and assessment. Use that path in the new
 review. Transfer directly from the original check, not from a prior transfer.
-Keep final combined acceptance and review of changed interactions. Check-specific
-input subsets are not supported; use a fresh check when whole-content equality
-cannot be established.
+Keep final combined acceptance and review of changed interactions. Check-specific input subsets require an unchanged explicit `inputs` declaration
+from the original check. Otherwise use a fresh check when whole-content equality cannot be established.
+
+## Evidence packet before dispatch
+
+Run `response-contract --snapshot <snapshot.json>` before building the reviewer brief. It
+returns the required checks, observations, fresh observation IDs, prior findings, and coverage paths.
+Prepare a JSON observation list from actual driver captures. Each entry contains `id`, an observed
+`result`, and absolute evidence paths. Existing `{path, sha256}` links are accepted only when correct.
+Use `prepare-packet --snapshot <snapshot.json> --observations <observations.json> --output <packet.json>`.
+An optional `--checks <checks.json>` maps check IDs to captured result files. Otherwise the helper
+uses the snapshot's check directory. Preparation rejects missing entries and invalid hashes.
+For the task launcher, pass `review --evidence-packet <packet.json>` to validate the packet before
+reserving a review cycle. The launcher adds required response coverage to the bound review brief.
+
+The reviewer can replace its `checks` and `observations` fields with the returned
+`evidence_packet: {path, sha256}` reference. All judgment fields remain required. The helper
+expands the exact packet, preserves the original response, and checks every referenced file again.
+A packet does not prove that an observation passed. Preserve the observed result and require the
+reviewer to assess it. Never edit a reviewer response to repair a hash or close a finding.
+
+## Structured context and scoped inputs
+
+New requirements can use `context: {"version": 2, "identity": {"runtime": "...", "dependencies": "...",
+"fixtures": "...", "services": "..."}, "notes": "Review explanation"}`. Identity values must represent
+observed relevant state. Notes remain bound to their snapshot but do not change environment identity.
+Legacy contexts keep their full comparison. An identity change requires fresh observations.
+
+A check definition can include `inputs`, a nonempty list of relative captured file paths.
+Declare the complete dependency set, including tests, scripts, lockfiles, configuration, and schema,
+before the original check. Directories, symbolic links, and existing ignored files are rejected.
+Use explicit captured files; deleted files can be tracked as absent. A transfer requires the same declaration and unchanged file identities,
+command, contract, and environment identity, plus the existing transfer assessment. Without inputs,
+whole-content equality remains required. A declaration is a scope decision, not an inferred proof
+that omitted callers are independent. Unknown dependencies require the full scope.
+
+Optional `observation_inputs` maps observation IDs to relative captured file paths. A change to a
+listed file or the declaration requires a fresh observation. The reviewer still assesses semantic
+effects on unlisted callers. This does not authorize reuse after a behavior change.

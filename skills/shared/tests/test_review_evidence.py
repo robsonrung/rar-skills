@@ -7,6 +7,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest import mock
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
@@ -425,6 +426,145 @@ class ReviewEvidenceTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "passing"):
             evidence.transfer_check(old, target, check, self.transfer_assessment(old, target))
 
+    def test_packet_hashes_observations_and_preserves_reviewer_response(self):
+        self.command("print('pass')")
+        self.plan["observations"] = ["save"]
+        snapshot = self.prepare()
+        evidence.run_check(snapshot, "check")
+        capture = self.artifacts / "browser.json"
+        capture.write_text('{"saved": true}')
+        packet = evidence.prepare_packet(snapshot, self.artifacts / "packet.json", observations=[
+            {"id": "save", "result": "pass", "evidence": [str(capture)]}])
+        response = self.response(snapshot)
+        del response["checks"], response["observations"]
+        response["evidence_packet"] = evidence.evidence_link(packet)
+        review = self.record(snapshot, response)
+        self.assertEqual(evidence.assess(snapshot, self.base)["status"], "ready")
+        self.assertEqual(json.loads(evidence.load_record(review)["execution"]["agent_message"]), response)
+        capture.write_text('{"saved": false}')
+        with self.assertRaisesRegex(ValueError, "checksum mismatch"):
+            evidence.assess(snapshot, self.base)
+
+    def test_packet_rejects_missing_observations_before_dispatch(self):
+        self.plan["observations"] = ["save", "denied"]
+        snapshot = self.prepare()
+        with self.assertRaisesRegex(ValueError, "observations are missing"):
+            evidence.prepare_packet(snapshot, self.artifacts / "packet.json", observations=[])
+        self.assertFalse((self.artifacts / "packet.json").exists())
+        self.assertEqual(evidence.response_contract(snapshot)["fresh_observation_ids"], ["denied", "save"])
+
+    def test_packet_does_not_correct_a_supplied_bad_hash_or_infer_pass(self):
+        self.plan["observations"] = ["save"]
+        snapshot = self.prepare()
+        capture = self.artifacts / "browser.txt"
+        capture.write_text("No connection")
+        row = {"id": "save", "result": "skipped", "evidence": [{"path": str(capture), "sha256": "wrong"}]}
+        with self.assertRaisesRegex(ValueError, "checksum differs"):
+            evidence.prepare_packet(snapshot, self.artifacts / "packet.json", observations=[row])
+        row["evidence"] = [str(capture)]
+        packet = evidence.prepare_packet(snapshot, self.artifacts / "packet.json", observations=[row])
+        response = self.response(snapshot)
+        del response["checks"], response["observations"]
+        response["evidence_packet"] = evidence.evidence_link(packet)
+        self.record(snapshot, response)
+        self.assertEqual(evidence.assess(snapshot, self.base)["failed_observations"], ["save"])
+
+    def test_context_notes_do_not_invalidate_observations_but_identity_does(self):
+        self.plan["context"] = {"version": 2, "identity": {"runtime": "one"}, "notes": "First review"}
+        self.plan["observations"] = ["save"]
+        original = self.prepare()
+        first = self.response(original)
+        capture = self.artifacts / "browser.txt"
+        capture.write_text("Saved and reloaded")
+        first["observations"] = [{"id": "save", "result": "pass", "evidence": [evidence.evidence_link(capture)]}]
+        prior = self.record(original, first)
+        for name, identity in [("notes", "one"), ("runtime", "two")]:
+            plan = copy.deepcopy(self.plan)
+            plan["context"].update(identity={"runtime": identity}, notes="Correction explained")
+            requirements = self.artifacts / (name + ".json")
+            requirements.write_text(json.dumps(plan))
+            current = evidence.prepare(self.root, self.base, self.contract, requirements, self.artifacts / name, previous_reviews=[prior])
+            delta = {"mode": "recheck", "snapshot_sha256": evidence.file_hash(current), "previous_review": evidence.evidence_link(prior),
+                     "reuse_assessment": "Environment and unchanged behavior inspected.", "affected_paths": [], "coverage": [],
+                     "findings": [], "checks": {}, "observations": [], "summary": "No new defect."}
+            if identity == "one":
+                self.record(current, delta)
+                self.assertEqual(evidence.assess(current, self.base)["status"], "ready")
+                self.assertEqual(evidence.response_contract(current)["fresh_observation_ids"], [])
+            else:
+                with self.assertRaisesRegex(ValueError, "fresh observations"):
+                    self.record(current, delta)
+                self.assertEqual(evidence.response_contract(current)["fresh_observation_ids"], ["save"])
+
+    def test_scoped_check_transfer_reuses_only_declared_unchanged_inputs(self):
+        self.command("print('pass')")
+        self.plan["checks"][0]["inputs"] = ["app.txt"]
+        original = self.prepare()
+        check = evidence.run_check(original, "check")
+        (self.root / "unrelated.txt").write_text("new")
+        target = evidence.prepare(self.root, self.base, self.contract, self.requirements, self.artifacts / "target")
+        moved = evidence.transfer_check(original, target, check, self.transfer_assessment(original, target))
+        self.assertTrue(evidence.validate_check(moved, evidence.load_record(target), self.plan["checks"][0]))
+        (self.root / "app.txt").write_text("changed dependency")
+        changed = evidence.prepare(self.root, self.base, self.contract, self.requirements, self.artifacts / "changed")
+        with self.assertRaisesRegex(ValueError, "inputs differ"):
+            evidence.transfer_check(original, changed, check, self.transfer_assessment(original, changed))
+
+    def test_observation_dependencies_require_fresh_evidence(self):
+        self.plan["observations"] = ["save"]
+        self.plan["observation_inputs"] = {"save": ["app.txt"]}
+        original = self.prepare()
+        before = evidence.load_record(original)
+        (self.root / "app.txt").write_text("changed behavior")
+        target = evidence.prepare(self.root, self.base, self.contract, self.requirements, self.artifacts / "target")
+        self.assertEqual(evidence.fresh_observations(before, evidence.load_record(target)), {"save"})
+
+    def test_input_scopes_reject_empty_directory_and_traversal(self):
+        self.command("print('pass')")
+        for inputs in ([], ["."], ["../outside"], ["app.txt", "app.txt"]):
+            self.plan["checks"][0]["inputs"] = inputs
+            with self.assertRaises(ValueError):
+                self.prepare()
+
+    def test_completion_preserves_review_verdict_and_is_idempotent(self):
+        import run_state
+        snapshot = self.prepare()
+        response = self.response(snapshot)
+        response["findings"] = [{"id": "F1", "path": "app.txt", "severity": "P2", "status": "open", "evidence": "Observed defect."}]
+        route = {"id": "reviewer", "task_id": "T1", "role": "reviewer", "model": "fixture", "effort": "high", "input_path": "../records/task.md"}
+        plan = self.artifacts / "route-plan.json"
+        plan.write_text(json.dumps({"approval": {"status": "approved"}, "routes": [route]}))
+        state = {}
+        run_state.initialize(state, plan, "run", {"total_role_calls": 1, "reviewer": 1})
+        run_state.reserve(state, "reviewer", "call-1", self.contract, "review", review_snapshot=snapshot)
+        receipt = self.artifacts / "receipt.json"
+        receipt.write_text(json.dumps({"success": True, "call_id": "call-1", "input_revision": run_state.sha(self.contract),
+            "configured_model": "fixture", "configured_effort": "high", "context_id": "review-context", "agent_message": json.dumps(response)}))
+        with mock.patch.object(evidence, "assess", side_effect=OSError("interrupted after writing review")):
+            with self.assertRaises(OSError):
+                run_state.complete(state, "call-1", receipt)
+        self.assertEqual(state["call_ledger"]["calls"]["call-1"]["status"], "pending")
+        self.assertEqual(state["steps"], [])
+        self.assertTrue((snapshot.parent / "review.json").exists())
+        result = run_state.complete(state, "call-1", receipt)
+        self.assertEqual(state["call_ledger"]["calls"]["call-1"]["review"], result["review"])
+        self.assertEqual(result["review_status"], "needs-work")
+        self.assertEqual(result, run_state.complete(state, "call-1", receipt))
+        self.assertEqual(len(state["steps"]), 1)
+        receipt.write_text('{}')
+        with self.assertRaisesRegex(ValueError, "different receipt"):
+            run_state.complete(state, "call-1", receipt)
+
+
+    def test_scoped_inputs_reject_ignored_files_and_symbolic_links(self):
+        self.command("print('pass')")
+        (self.root / ".gitignore").write_text("ignored.txt\n")
+        (self.root / "ignored.txt").write_text("not captured")
+        (self.root / "link.txt").symlink_to("app.txt")
+        for name in ("ignored.txt", "link.txt", "./app.txt"):
+            self.plan["checks"][0]["inputs"] = [name]
+            with self.assertRaises(ValueError):
+                self.prepare()
 
 
 if __name__ == "__main__":

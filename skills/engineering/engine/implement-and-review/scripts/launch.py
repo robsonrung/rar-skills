@@ -68,6 +68,7 @@ _SHARED_SCRIPTS = str(SKILLS_DIR / "shared" / "scripts")
 if _SHARED_SCRIPTS not in sys.path:
     sys.path.insert(0, _SHARED_SCRIPTS)
 from model_routing import load_config, model_efforts, runner_efforts, validate_selection
+from context_packet import DEFAULT_MAX_BYTES, measure_rendered, validate_budget
 
 ROUTING_CONFIG = load_config()
 EFFORT_FLAGS = {name: value["effort_flag"] for name, value in ROUTING_CONFIG["runners"].items() if value["effort_flag"]}
@@ -277,6 +278,11 @@ def validate_route(route: Any) -> dict[str, Any]:
             raise ValueError("source_sharing needs provider, scope, follow_ups, exclusions and approval reference")
         for key in fields:
             require_string(sharing[key], "source_sharing." + key)
+    if "recovery" in route:
+        recovery = route["recovery"]
+        if not isinstance(recovery, dict) or set(recovery) != {"review_cycles", "evidence_recoveries"} or any(type(v) is not int or v < 1 for v in recovery.values()):
+            raise ValueError("route.recovery needs positive review_cycles and evidence_recoveries")
+    validate_budget(route.get("context_budget"))
     effort_control = route["effort_control"]
     effort = route.get("effort")
     native = validate_native_spec(route)
@@ -434,7 +440,7 @@ def route_arguments(
         "--metadata-json", json.dumps(metadata),
     ]
     if route["runner"] == "claude":
-        arguments.extend(["--output-format", "json"])
+        arguments.extend(["--output-format", "stream-json"])
     if route["runner"] in {"pi", "cline"}:
         arguments.extend(["--seat", route["seat"]])
     if route["effort_control"] == "runner":
@@ -490,6 +496,15 @@ def dispatch_route(
     resume_context: dict[str, Any] | None = None,
     use_approved_fallback: bool = True,
 ) -> dict[str, Any]:
+    measurement = metadata.get("input_measurement")
+    if not dry_run or (measurement is None and brief.is_file()):
+        with brief.open(encoding="utf-8", newline="") as stream:
+            actual = measure_rendered(stream.read(), route.get("context_budget"))
+        if measurement is not None and measurement != actual:
+            raise ValueError("rendered input changed after budget preflight")
+        measurement = actual
+    if measurement is not None:
+        metadata = {**metadata, "input_measurement": measurement}
     if route["mode"] == "native":
         native = validate_native_spec(route) or {}
         context_id = resume_context.get("context_id") if isinstance(resume_context, dict) else None
@@ -507,6 +522,9 @@ def dispatch_route(
                 "transport": native.get("transport"),
                 "capability_source": native.get("capability_source"),
                 "context_action": context_action,
+                "parent_history": "none",
+                "input_path": str(brief),
+                "input_measurement": measurement,
                 "context_id": context_id,
                 "context_recovery_reason": metadata.get("context_recovery_reason"),
                 "call_id": metadata.get("call_id"),
@@ -534,6 +552,8 @@ def dispatch_route(
             "selected_route": route,
             "effective_route": route,
             "resume_context_id": resume_context.get("context_id") if isinstance(resume_context, dict) else None,
+            "input_measurement": measurement,
+            "parent_history": "none",
             "input_revision": metadata.get("input_revision"),
             "tool_policy": "read-only" if read_only else "write",
             **result,
@@ -609,7 +629,7 @@ def render_bound_brief(
     source: Path,
     boundary: str,
     note_label: str,
-) -> tuple[str, dict[str, str]]:
+) -> tuple[str, dict[str, Any]]:
     """Bind derived worker notes to the approved task contract they cannot replace."""
     contract_path = contract["path"]
     contract_text = contract_path.read_text(encoding="utf-8")
@@ -618,8 +638,8 @@ def render_bound_brief(
     if packet_path.exists():
         from context_packet import verify
         verify(packet_path, source)
-    elif len(note_text.encode("utf-8")) > 24000:
-        raise ValueError("derived brief exceeds 24000 bytes; link evidence or supply a bounded context packet")
+    elif len(note_text.encode("utf-8")) > DEFAULT_MAX_BYTES:
+        raise ValueError(f"derived brief exceeds {DEFAULT_MAX_BYTES} bytes; link evidence or supply a bounded context packet")
     rendered = f"""Approved task contract
 Source: {contract_path}
 Canonical content SHA-256: {contract['content_sha256']}
@@ -774,13 +794,14 @@ def cmd_launch(args: argparse.Namespace) -> int:
             route = routing["routes"][track]["implementer"]
             contract = routing["scope_inputs"][route["input_path"]]
             rendered, binding = render_bound_brief(contract, source, WRITE_BOUNDARY, "Derived implementation notes")
+            binding["input_measurement"] = measure_rendered(rendered, route.get("context_budget"))
             prepared[track] = {
                 "rendered": rendered,
                 "binding": binding,
                 "source": source,
                 "input_revision": text_digest(rendered),
             }
-    except (OSError, UnicodeError) as error:
+    except (ValueError, OSError, UnicodeError) as error:
         fail(f"could not prepare a bound implementation brief: {error}")
     if args.isolation == "working-tree" and len(tracks) > 1:
         fail("multiple implementation tracks require explicit worktree isolation")
@@ -822,6 +843,7 @@ def cmd_launch(args: argparse.Namespace) -> int:
             "phase": "implement",
             "routing_plan": routing["path"],
             "input_revision": prepared[track]["input_revision"],
+            "input_measurement": prepared[track]["binding"]["input_measurement"],
             "call_id": native_call_id(routes["implementer"], "implementation", 0, 1),
         }
         manifest["tracks"][track] = {
@@ -855,7 +877,7 @@ def cmd_launch(args: argparse.Namespace) -> int:
             launch = dispatch_route(
                 routes["implementer"], brief, working_dir, "implementer", args.timeout, metadata, False, args.dry_run
             )
-        except (RunnerLaunchError, OSError, UnicodeError) as error:
+        except (RunnerLaunchError, ValueError, OSError, UnicodeError) as error:
             fail_track_launch(manifest, manifest_path_value, track, str(error), args.dry_run)
         manifest["tracks"][track]["implementation"] = {"status": "running", **launch}
         manifest["tracks"][track]["status"] = "implementation_running"
@@ -1051,7 +1073,7 @@ def native_execution_error(
     if native is not None and (execution["host"] != native["host"] or execution["transport"] != native["transport"]):
         return "native receipt host or transport does not match the approved route"
     if expected_dispatch is not None:
-        for field in ("call_id", "input_revision", "tool_policy"):
+        for field in ("call_id", "input_revision", "tool_policy", "parent_history"):
             expected = expected_dispatch.get(field)
             if expected is not None and execution.get(field) != expected:
                 return f"native receipt {field} does not match the dispatched route call"
@@ -1411,17 +1433,28 @@ def implementation_ready(track: dict[str, Any], working_dir: Path) -> None:
         fail(f"implementation is not eligible for review: {reason}")
 
 
+def recovery_limits(manifest, track):
+    defaults = {"review_cycles": MAX_REVIEW_CYCLES, "evidence_recoveries": MAX_EVIDENCE_RECOVERIES}
+    if "routing_plan" not in manifest:
+        return defaults
+    routing = load_routing_plan(manifest["routing_plan"]["path"], manifest["task_id"], {track}, True, Path(manifest["working_root"]))
+    if routing["approval"] != manifest["routing_plan"]["approval"]:
+        raise ValueError("recovery plan approval changed")
+    return routing["routes"][track]["reviewer"].get("recovery", defaults)
+
+
 def next_review_cycle(manifest: dict[str, Any], track_name: str, requested_cycle: int | None, dry_run: bool, path: Path) -> int:
     attempts = manifest.setdefault("attempts", {}).setdefault("review_cycles", {})
     previous = attempts.get(track_name, 0)
     if not isinstance(previous, int) or previous < 0:
         fail(f"manifest has an invalid review cycle count for {track_name}")
-    if previous >= MAX_REVIEW_CYCLES:
+    ceiling = recovery_limits(manifest, track_name)["review_cycles"]
+    if previous >= ceiling:
         manifest["status"] = "ceiling_hit"
         manifest["phase"] = f"{track_name}_review"
         if not dry_run:
             save_manifest(manifest, path)
-        fail(f"review/fix cycle ceiling reached for {track_name}: {MAX_REVIEW_CYCLES}")
+        fail(f"review/fix cycle ceiling reached for {track_name}: {ceiling}")
     cycle = previous + 1
     if requested_cycle is not None and requested_cycle != cycle:
         fail(f"next review cycle for {track_name} is {cycle}, not {requested_cycle}")
@@ -1503,7 +1536,7 @@ def cmd_review(args: argparse.Namespace) -> int:
         rendered, binding = render_bound_brief(
             routing["scope_inputs"][route["input_path"]], brief, REVIEW_BOUNDARY, "Derived review notes"
         )
-    except (OSError, UnicodeError) as error:
+    except (ValueError, OSError, UnicodeError) as error:
         fail(f"could not prepare a bound review brief: {error}")
     try:
         prior_records = [r for r in manifest.get("reviews", []) if r.get("track") == args.track and r.get("review_evidence")]
@@ -1515,8 +1548,15 @@ def cmd_review(args: argparse.Namespace) -> int:
         )
     except (ValueError, OSError, KeyError, TypeError) as error:
         fail(f"review evidence cannot be bound: {error}")
-    cycle = next_review_cycle(manifest, args.track, args.cycle, args.dry_run, path)
-    bound_brief = Path(manifest["artifact_dir"]) / f"{args.track}-review-{cycle}-brief.md"
+    try:
+        evidence = evidence_module()
+        contract = evidence.response_contract(source_binding["path"])
+        packet_path = getattr(args, "evidence_packet", None)
+        packet_link = evidence.evidence_link(packet_path) if packet_path else None
+        if packet_link:
+            evidence.load_packet(packet_link, evidence.current_snapshot(source_binding["path"]), source_binding["path"])
+    except (ValueError, OSError, KeyError, TypeError) as error:
+        fail(f"review evidence preflight failed: {error}")
     rendered += (
         "\nStructured review evidence\n"
         f"Snapshot: {source_binding['path']}\n"
@@ -1526,8 +1566,19 @@ def cmd_review(args: argparse.Namespace) -> int:
         "changed path and use only captured check results. Do not write evidence files; "
         "the coordinator records your response.\n"
     )
+    rendered += "Required response coverage: " + json.dumps(contract, sort_keys=True) + "\n"
+    if packet_link:
+        rendered += "Captured evidence packet: " + json.dumps(packet_link, sort_keys=True) + "\n"
+        rendered += "After inspecting the captures, use this evidence_packet reference instead of checks and observations.\n"
+    try:
+        binding["input_measurement"] = measure_rendered(rendered, route.get("context_budget"))
+    except ValueError as error:
+        fail(str(error))
+    cycle = next_review_cycle(manifest, args.track, args.cycle, args.dry_run, path)
+    bound_brief = Path(manifest["artifact_dir"]) / f"{args.track}-review-{cycle}-brief.md"
     input_revision = text_digest(rendered)
     metadata = {
+        "input_measurement": binding["input_measurement"],
         "session": manifest.get("session_id"),
         "task_id": manifest.get("task_id"),
         "track": args.track,
@@ -1576,7 +1627,7 @@ def cmd_review(args: argparse.Namespace) -> int:
             args.dry_run,
             resume_context=resume_context,
         )
-    except (RunnerLaunchError, OSError, UnicodeError) as error:
+    except (RunnerLaunchError, ValueError, OSError, UnicodeError) as error:
         if context_before_launch is not None and resume_context is not None:
             resume_context.clear()
             resume_context.update(context_before_launch)
@@ -1814,7 +1865,8 @@ def cmd_resume_native(args: argparse.Namespace) -> int:
             WRITE_BOUNDARY,
             "Derived implementation follow-up",
         )
-    except (OSError, UnicodeError) as error:
+        binding["input_measurement"] = measure_rendered(rendered, effective_route.get("context_budget"))
+    except (ValueError, OSError, UnicodeError) as error:
         fail(f"could not prepare a bound implementation follow-up: {error}")
     previous_attempts = entry.get("resume_attempts", 0)
     if not isinstance(previous_attempts, int) or previous_attempts < 0:
@@ -1831,6 +1883,7 @@ def cmd_resume_native(args: argparse.Namespace) -> int:
     bound_brief = Path(manifest["artifact_dir"]) / f"{args.track}-implementation-resume-{attempt}-brief.md"
     input_revision = text_digest(rendered)
     metadata = {
+        "input_measurement": binding["input_measurement"],
         "session": manifest["session_id"],
         "task_id": task_id,
         "track": args.track,
@@ -1854,7 +1907,7 @@ def cmd_resume_native(args: argparse.Namespace) -> int:
             False,
             resume_context=None if recovery_reason else context,
         )
-    except (RunnerLaunchError, OSError, UnicodeError) as error:
+    except (RunnerLaunchError, ValueError, OSError, UnicodeError) as error:
         fail(str(error))
     previous_dispatch = entry.get("native_dispatch")
     if isinstance(previous_dispatch, dict):
@@ -1904,11 +1957,12 @@ def cmd_evidence_recovery(args: argparse.Namespace) -> int:
     previous = attempts.get(args.track, 0)
     if not isinstance(previous, int) or previous < 0:
         fail(f"manifest has an invalid evidence recovery count for {args.track}")
-    if previous >= MAX_EVIDENCE_RECOVERIES:
+    ceiling = recovery_limits(manifest, args.track)["evidence_recoveries"]
+    if previous >= ceiling:
         manifest["status"] = "ceiling_hit"
         manifest["phase"] = f"{args.track}_evidence_recovery"
         save_manifest(manifest, path)
-        fail(f"evidence recovery ceiling reached for {args.track}: {MAX_EVIDENCE_RECOVERIES}")
+        fail(f"evidence recovery ceiling reached for {args.track}: {ceiling}")
     attempt = previous + 1
     attempts[args.track] = attempt
     record = {
@@ -2092,6 +2146,7 @@ def build_parser() -> argparse.ArgumentParser:
     review.add_argument("--track", required=True)
     review.add_argument("--review-brief", required=True)
     review.add_argument("--review-snapshot", required=True, help="prepared source and required-evidence snapshot")
+    review.add_argument("--evidence-packet", help="captured evidence packet to validate before spending a review cycle")
     review.add_argument("--cycle", type=int, help="must equal the next persisted review cycle")
     review.add_argument("--timeout", type=int, default=1800)
     review.add_argument("--dry-run", action="store_true")
@@ -2130,7 +2185,7 @@ def build_parser() -> argparse.ArgumentParser:
         help="record why the same approved role must reconstruct a lost native context",
     )
     resume_native.set_defaults(handler=cmd_resume_native)
-    evidence = commands.add_parser("evidence-recovery", help="reserve the one allowed evidence recovery before dispatch")
+    evidence = commands.add_parser("evidence-recovery", help="reserve an approved evidence recovery before dispatch")
     add_manifest_arguments(evidence)
     evidence.add_argument("--track", required=True)
     evidence.add_argument("--reason", required=True)
