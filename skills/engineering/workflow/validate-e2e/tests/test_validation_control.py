@@ -4,6 +4,7 @@
 import copy
 import importlib.util
 import json
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -21,6 +22,42 @@ import model_routing
 spec = importlib.util.spec_from_file_location("validation_control", SKILL / "scripts/validation_control.py")
 control = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(control)
+
+
+class ModelPreviewTests(unittest.TestCase):
+    def preview(self, *args):
+        return subprocess.run([sys.executable, str(SKILL / "scripts/validation_control.py"),
+                               "--shared-dir", str(SHARED), "preview-models", *args],
+                              capture_output=True, text=True)
+
+    def test_default_preview_shows_central_routes_without_state_or_runner_probe(self):
+        result = self.preview("--route", "validation-unit", "--route", "validation-browser")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        preview = json.loads(result.stdout)
+        self.assertEqual(preview["profile"], "economy")
+        self.assertEqual(preview["config_path"], str((SHARED / "model-routing.json").resolve()))
+        self.assertEqual(preview["config_digest"], model_routing.config_digest(model_routing.load_config()))
+        unit, browser = preview["routes"]
+        self.assertEqual((unit["roles"]["implementer"]["seat"], unit["roles"]["implementer"]["effort"]), ("glm", "high"))
+        self.assertEqual((unit["roles"]["reviewer"]["seat"], unit["roles"]["reviewer"]["effort"]), ("luna", "high"))
+        self.assertEqual((browser["roles"]["worker"]["seat"], browser["roles"]["worker"]["effort"]), ("glm", "high"))
+        self.assertFalse(preview["availability_checked"])
+
+    def test_explicit_profile_overrides_local_preference(self):
+        result = self.preview("--route", "validation-browser", "--profile", "economy", "--local-profile", "balanced")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(json.loads(result.stdout)["routes"][0]["selection_source"], "explicit")
+
+    def test_existing_test_execution_adds_no_worker(self):
+        result = self.preview("--route", "test-execution")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        route = json.loads(result.stdout)["routes"][0]
+        self.assertEqual(route["roles"], {})
+        self.assertEqual(route["execution"], "repository-commands")
+
+    def test_unrelated_route_is_rejected(self):
+        result = self.preview("--route", "routine-implementation")
+        self.assertEqual(result.returncode, 2)
 
 
 class ValidationTests(unittest.TestCase):

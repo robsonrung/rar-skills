@@ -113,6 +113,10 @@ discoverable while leaving detailed instructions in each `SKILL.md`.
 
 ## Install
 
+See the [machine setup checklist](docs/machine-setup.md) for required tools,
+optional runners, browser setup, credentials and environment variables.
+Run `bash scripts/check-environment.sh` to check local prerequisites.
+
 ```bash
 npx skills@latest add robsonrung/rar-skills
 ```

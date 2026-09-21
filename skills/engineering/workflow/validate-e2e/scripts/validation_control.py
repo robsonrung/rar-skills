@@ -287,9 +287,14 @@ def summarize(state):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--shared-dir", required=True, type=Path)
-    parser.add_argument("--state", required=True, type=Path)
+    parser.add_argument("--state", type=Path)
     parser.add_argument("--dry-run", action="store_true", help="check without saving")
     sub = parser.add_subparsers(dest="action", required=True)
+    preview = sub.add_parser("preview-models", help="resolve recommendations before checking execution availability")
+    preview.add_argument("--route", action="append", required=True)
+    preview.add_argument("--profile", default="default")
+    preview.add_argument("--local-profile")
+    preview.add_argument("--risk", choices=("normal", "high"), default="normal")
     init = sub.add_parser("init"); init.add_argument("--plan", required=True)
     start = sub.add_parser("reserve")
     for name in ("unit", "attempt", "input"):
@@ -306,6 +311,26 @@ def main():
     sub.add_parser("summary")
     args = parser.parse_args()
     sys.path.insert(0, str(args.shared_dir / "scripts"))
+    if args.action == "preview-models":
+        try:
+            routing = importlib.import_module("model_routing")
+            config_path = (args.shared_dir / "model-routing.json").resolve()
+            config = routing.load_config(config_path)
+            names = list(dict.fromkeys(args.route))
+            require(all(name.startswith("validation-") or name == "test-execution" for name in names),
+                    "preview requires validation routes or test-execution")
+            routes = [routing.resolve_profile(name, None if args.profile == "default" else args.profile, local_profile=args.local_profile,
+                                              risk=args.risk, config=config) for name in names]
+            print(json.dumps({"status": "resolved", "profile": routes[0]["profile"],
+                              "config_path": str(config_path), "config_digest": routing.config_digest(config),
+                              "skill_path": str(Path(__file__).resolve().parents[1]),
+                              "availability_checked": False, "routes": routes}))
+            return 0
+        except (ValueError, OSError, KeyError, TypeError, ImportError) as exc:
+            print(json.dumps({"status": "blocked", "error": str(exc)}), file=sys.stderr)
+            return 2
+    if args.state is None:
+        parser.error("--state is required except for preview-models")
     ledger = importlib.import_module("run_state")
     def apply(state):
         if args.action == "init":

@@ -13,11 +13,22 @@ Load `shared/references/host-model-execution.md` when selecting transport and `s
 | Independent assessment of evidence and missing cases | `validation-review` | Distinct context; use a different configured model if it authored the assertions |
 | Build, lint, types, existing unit/integration/load tests | No model route | Run the repository command directly; use a model only for a decision or failure |
 
-Resolve the selected route without dispatch:
+Resolve the applicable routes before proposing worker choices. This command
+requires neither a saved state nor installed model runners and makes no provider
+call. Set `SKILL_DIR` to the loaded validate-e2e directory and `SHARED_DIR` to its
+shared library. Include only routes needed by the requested work:
 
 ```bash
-python3 "$SHARED_DIR/scripts/model_routing.py" resolve validation-unit --profile default
+python3 "$SKILL_DIR/scripts/validation_control.py" --shared-dir "$SHARED_DIR" preview-models --route validation-unit --route validation-browser
 ```
+
+The output identifies the loaded skill, configuration path, digest, profile,
+selection source and exact recommended roles. Present the role values as returned.
+Then check execution availability and mark each route available, unverified or
+blocked. Do not remove an unavailable recommendation from the preview. A host's
+current model or reasoning setting is not a worker preference. Choosing the
+coordinator for all work or increasing effort requires an explicit selection.
+For command-only work, use `--route test-execution`; it creates no worker.
 
 Add `--local-profile <name>` for the validated local preference or name an explicit
 user profile. The central default is `economy`; `balanced` and explicit
