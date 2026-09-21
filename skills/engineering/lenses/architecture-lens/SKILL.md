@@ -5,6 +5,8 @@ description: "Review code-level coupling, cohesion, dependency direction, and mo
 
 # Architecture Lens
 
+For a direct invocation, first use `shared/references/model-preview.md`. Nested calls reuse the parent's selected snapshot without another prompt or unlisted workers.
+
 Review code-level structure using Richards and Ford's _Fundamentals of Software Architecture_ and _Practical Model-Driven Enterprise Architecture_. Judge **ease of change** through coupling, placement, cohesion, dependency direction, and scope. A real choice has a tradeoff; state its cost without manufacturing alternatives to settled decisions.
 
 Use `macro-architecture` for system style, `domain-driven-design` for domain modeling, and `full-review` for a correctness or security review.

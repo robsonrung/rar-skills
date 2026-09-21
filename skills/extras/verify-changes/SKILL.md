@@ -5,6 +5,8 @@ description: "Run a repository's deterministic checks from its own command surfa
 
 # Verify Changes
 
+For a direct invocation, first use `shared/references/model-preview.md`. Nested calls reuse the parent's selected snapshot without another prompt or unlisted workers.
+
 Produce captured evidence for the repository's required gates and the requested change. Discover commands, select the relevant checks, run their actual prerequisites, and report results. This skill does not repair code.
 
 ## Modes

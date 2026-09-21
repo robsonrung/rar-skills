@@ -6,6 +6,8 @@ disable-model-invocation: true
 
 # Agent Instruction Files
 
+For a direct invocation, first use `shared/references/model-preview.md`. Nested calls reuse the parent's selected snapshot without another prompt or unlisted workers.
+
 Treat the root instruction file as cached context. Keep only rules that apply to most work. Move conditional detail to focused files and point to them from the root.
 
 ## Outcome

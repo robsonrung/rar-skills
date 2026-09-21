@@ -10,6 +10,9 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 
+BROWSER_MECHANISMS = {"playwright-test", "playwright-cli", "agent-browser", "playwright-mcp", "native"}
+
+
 def require(value, message):
     if not value:
         raise ValueError(message)
@@ -73,11 +76,28 @@ def validate_plan(plan):
                 and all(positive(v) for v in recovery.values()), "invalid recovery allowance")
         require("product_repair" not in recovery or plan["mode"] == "repair", "product repair requires repair authority")
         require(type(unit.get("preflight_required", False)) is bool, "invalid preflight requirement")
+        if "browser_mechanism" in unit:
+            require(unit["browser_mechanism"] in BROWSER_MECHANISMS, "unknown browser mechanism")
+            require(unit.get("preflight_required") is True, "browser units require a driver preflight")
+            require(isinstance(plan.get("working_dir"), str) and Path(plan["working_dir"]).is_absolute(),
+                    "browser plan requires an absolute working_dir")
         if unit["required"]:
             covered.update(unit["requirements"])
     require(covered == set(reqs), "every requirement needs a required validation unit")
     routes = plan.get("routes", [])
     require(len({r["id"] for r in routes}) == len(routes), "duplicate route IDs")
+    for route in routes:
+        if "provider_routing" in route:
+            from provider_routing import validate_provider_routing
+            require(route.get("runner") == "pi" and route.get("mode", "runner") == "runner", "provider policy requires a Pi runner route")
+            validate_provider_routing(route["provider_routing"])
+        if "runner" in route and "model" in route:
+            from model_routing import validate_selection
+            validate_selection(route["runner"], route["model"], route.get("effort"))
+        if "browser" in route:
+            from browser_preflight import validate_browser_route
+            require(route.get("runner") == "pi", "external browser route requires Pi")
+            validate_browser_route(route["browser"])
     limits = plan.get("call_limits", {})
     require(positive(limits.get("total_role_calls")) and all(positive(limits.get(r["id"])) for r in routes), "positive role call ceilings required")
     refs = plan.get("inputs", [])
@@ -141,6 +161,8 @@ def reserve(state, unit_id, attempt_id, input_path, reason, kind="validation"):
         verify_refs(read(latest["record"]["path"])["evidence"])
         require(latest["input"] == intent["input"], "preflight input changed")
         require(latest["status"] == "ready", "preflight is blocked; no business attempt reserved")
+        if "browser_mechanism" in unit:
+            check_browser_preflight(plan, unit, read(latest["record"]["path"]))
     require(len(attempts) < plan["budgets"]["total_attempts"], "total attempt ceiling reached")
     require(sum(a["status"] == "pending" for a in attempts.values()) < plan["budgets"]["max_parallel"], "parallel ceiling reached")
     if prior:
@@ -160,6 +182,9 @@ def record_preflight(state, unit_id, preflight_id, input_path, result_path):
     require(result.get("status") in {"ready", "blocked"} and result.get("evidence"), "preflight needs status and evidence")
     require(result.get("reason"), "preflight needs a reason")
     verify_refs(result["evidence"])
+    unit = next(u for u in plan["units"] if u["id"] == unit_id)
+    if "browser_mechanism" in unit:
+        check_browser_preflight(plan, unit, result)
     entry = {"unit": unit_id, "status": result["status"],
              "input": {"path": str(Path(input_path).resolve()), "sha256": digest(input_path)},
              "record": {"path": str(Path(result_path).resolve()), "sha256": digest(result_path)}}
@@ -173,6 +198,14 @@ def record_preflight(state, unit_id, preflight_id, input_path, result_path):
     return {"reservation": "new", **entry}
 
 
+def check_browser_preflight(plan, unit, result):
+    require(result.get("mechanism") == unit["browser_mechanism"], "preflight browser mechanism differs from the approved unit")
+    require(result.get("working_dir") == str(Path(plan["working_dir"]).resolve()), "preflight browser workspace differs")
+    if result["status"] == "ready" and unit["browser_mechanism"] in {"playwright-cli", "agent-browser"}:
+        from browser_preflight import validate_preflight
+        validate_preflight(result, unit["browser_mechanism"], plan["working_dir"])
+
+
 def reserve_role(state, ledger, route_id, call_id, brief, phase):
     plan = load_plan(state)
     calls = state["call_ledger"]["calls"]
@@ -180,6 +213,11 @@ def reserve_role(state, ledger, route_id, call_id, brief, phase):
     if not existed:
         require(utc() < deadline(plan), "deadline reached")
         require(sum(c["status"] == "pending" for c in calls.values()) < plan["budgets"]["max_parallel"], "parallel role ceiling reached")
+        route = next(r for r in plan["routes"] if r["id"] == route_id)
+        if "browser" in route:
+            from browser_preflight import load_bound_preflight
+            require(plan.get("working_dir"), "browser route requires working_dir")
+            load_bound_preflight(route["browser"], plan["working_dir"])
     ledger.reserve(state, route_id, call_id, brief, phase)
     return {"reservation": "existing" if existed else "new", "call_id": call_id}
 
@@ -195,6 +233,8 @@ def finish(state, attempt_id, path):
     require(result["attempt_id"] == attempt_id, "result belongs to another attempt")
     require(result["input_sha256"] == attempt["intent"]["input"]["sha256"], "result input does not match reserved snapshot")
     unit = next(u for u in plan["units"] if u["id"] == attempt["intent"]["unit"])
+    if "browser_mechanism" in unit:
+        require(result.get("browser_mechanism") == unit["browser_mechanism"], "result browser mechanism differs from the approved unit")
     checks = result["checks"]
     require(isinstance(checks, dict) and set(checks) == set(unit["checks"]), "result must account for every planned check")
     require(all(v in ("passed", "failed", "blocked", "skipped") for v in checks.values()), "invalid check status")

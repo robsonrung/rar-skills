@@ -1,13 +1,15 @@
 # Host model execution
 
-Use this contract whenever a skill delegates to more than one model or resumes
-a role. Select the model from `model-roster.md` and `task-shaped-model-routing.md`;
+Use this contract whenever a skill delegates a worker or resumes a role. Use
+[model-preview.md](model-preview.md) once on direct invocation; nested skills
+reuse the selected snapshot without another prompt or unlisted workers. Select the model from `model-roster.md` and `task-shaped-model-routing.md`;
 then select the native host tool or external runner. Preserve **seat fidelity**:
 "This route keeps the selected model and reuses its own role context."
 
 ## Choose the execution path
 
-1. Inspect the current host's exposed tools, model catalog, and restrictions.
+1. Inspect the current host's exposed tools, model catalog, and restrictions. A profile changes worker selection, not the
+   current coordinator model.
    Confirm exact model selection, supported effort, role isolation, tool policy,
    result collection, and follow-up or resume support. Do not infer capabilities
    from the app name or the model running the coordinator.
@@ -96,6 +98,24 @@ not native resumption. Record the break and recreate only the same authorized
 role from its checkpoint. Preserve call counts, write ownership, input revision,
 and approval. A changed model or transport follows the workflow's route-change
 rule. If the last call's outcome is uncertain, reconcile it before retrying.
+
+## Browser and provider capabilities
+
+An external runner does not inherit the host's browser tools or authenticated
+session. Preflight the selected browser mechanism inside its worker environment:
+commands, driver instructions, current state, interaction, assertions, diagnostics,
+and artifact output. For visual work, prove the model accepts images and that a
+synthetic screenshot becomes typed image content through the adapter. A file path
+in a text prompt does not meet that requirement. Record the capability evidence
+and required tool policy in the selected route; shell access is not a sandbox.
+
+For Pi gateway routes, carry the immutable `provider_routing` policy into every
+request, including repairs and resume. Prove serialized model, reasoning, privacy
+fields, provider restrictions, tool schemas, and image payloads locally before
+sending repository material. Retain a sanitized policy receipt and its digest.
+Separate model author, gateway, and observed inference provider; never infer the
+inference host from a model prefix. A client model event does not independently
+prove an inference provider. Missing required controls block the route.
 
 ## Evidence and authority
 

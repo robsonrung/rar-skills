@@ -14,6 +14,7 @@ AGENTS.md/CLAUDE.md context-file discovery are always disabled, so the prompt
 """
 
 import argparse
+import hashlib
 import json
 import os
 import shlex
@@ -51,7 +52,13 @@ if str(_SHARED_SCRIPTS) not in sys.path:
     sys.path.insert(0, str(_SHARED_SCRIPTS))
 
 from model_receipt import attach_model_receipt
-from model_routing import default_model, load_config, runner_efforts, seat_models
+from model_routing import default_model, load_config, runner_efforts, seat_models, validate_selection
+from provider_routing import validate_provider_routing
+
+_LOCAL_SCRIPTS = str(Path(__file__).resolve().parent)
+if _LOCAL_SCRIPTS not in sys.path:
+    sys.path.insert(0, _LOCAL_SCRIPTS)
+from provider_runtime import image_content, run_controlled
 
 ROUTING_CONFIG = load_config()
 DEFAULT_EFFORT = ROUTING_CONFIG["runners"]["pi"]["default_effort"]
@@ -135,6 +142,11 @@ def normalize_envelope(
         or result.get("native_provider")
         or effective_runner
     )
+    result["model_author"] = infer_provider_from_model(result.get("model"))
+    result["gateway"] = result.get("provider")
+    # Pi labels its configured model and gateway in native events. Those
+    # labels do not identify the inference host behind a gateway.
+    result["inference_provider"] = None
 
     if result.get("return_code") == -2 and not result.get("status"):
         result["status"] = "seat_unavailable"
@@ -192,6 +204,43 @@ def normalize_prompt_files(prompt_files: list[str] | None, working_dir: str | No
 TOOL_MODE_ACT = "act"
 TOOL_MODE_RESTRICTED = "restricted"
 TOOL_MODE_NO_TOOLS = "no_tools"
+TOOL_MODE_BROWSER = "browser"
+
+
+def browser_preflight(mechanism: str | None, evidence_file: str | None, cwd: str) -> dict:
+    if mechanism not in {"agent-browser", "playwright-cli"}:
+        raise ValueError("Browser mode requires a supported browser mechanism")
+    if not shutil.which(mechanism):
+        raise ValueError("Selected browser command is not available in the worker environment")
+    if not evidence_file:
+        raise ValueError("Browser mode requires a preflight evidence file")
+    evidence = json.loads(Path(evidence_file).read_text(encoding="utf-8"))
+    checks = ("navigation", "state_inspection", "interaction", "assertions", "evidence_capture")
+    if (not isinstance(evidence, dict) or evidence.get("ready") is not True
+            or evidence.get("status") != "ready"
+            or evidence.get("mechanism") != mechanism
+            or evidence.get("working_dir") != str(Path(cwd).resolve())
+            or not isinstance(evidence.get("checks"), dict)
+            or any(evidence["checks"].get(name) is not True for name in checks)):
+        raise ValueError("Browser preflight evidence does not match the selected environment")
+    artifacts = evidence.get("evidence")
+    if not isinstance(artifacts, list) or not artifacts:
+        raise ValueError("Browser preflight requires captured evidence artifacts")
+    for artifact in artifacts:
+        if not isinstance(artifact, dict) or not isinstance(artifact.get("path"), str):
+            raise ValueError("Invalid browser evidence artifact")
+        path = Path(artifact["path"])
+        if not path.is_absolute() or hashlib.sha256(path.read_bytes()).hexdigest() != artifact.get("sha256"):
+            raise ValueError("Browser evidence artifact is missing or changed")
+    driver = evidence.get("driver")
+    if not isinstance(driver, dict) or not isinstance(driver.get("path"), str) or not driver.get("version"):
+        raise ValueError("Browser preflight requires a driver identity")
+    driver_path = Path(driver["path"])
+    if (not driver_path.is_absolute() or Path(shutil.which(mechanism)).resolve() != driver_path.resolve()
+            or hashlib.sha256(driver_path.read_bytes()).hexdigest() != driver.get("sha256")):
+        raise ValueError("Selected browser driver changed after preflight")
+    return {"mechanism": mechanism, "ready": True, "evidence_file": evidence_file,
+            "tools": ["read", "bash"], "sandbox_enforced": False}
 
 
 def resolve_tool_mode(
@@ -287,6 +336,33 @@ def compact_stream(stdout: str) -> str:
     return "\n".join(kept)
 
 
+def total_native_usage(stdout: str) -> dict:
+    """Count each completed assistant request once, including tool turns."""
+    totals: dict[str, Any] = {}
+    for line in stdout.splitlines():
+        try:
+            event = json.loads(line)
+        except ValueError:
+            continue
+        if not isinstance(event, dict) or event.get("type") != "message_end":
+            continue
+        message = event.get("message", {})
+        if not isinstance(message, dict) or message.get("role") != "assistant":
+            continue
+        usage = message.get("usage")
+        if not isinstance(usage, dict):
+            continue
+        for key in ("input", "output", "cacheRead", "cacheWrite", "totalTokens"):
+            if type(usage.get(key)) in (int, float):
+                totals[key] = totals.get(key, 0) + usage[key]
+        if isinstance(usage.get("cost"), dict):
+            costs = totals.setdefault("cost", {})
+            for key in ("input", "output", "cacheRead", "cacheWrite", "total"):
+                if type(usage["cost"].get(key)) in (int, float):
+                    costs[key] = costs.get(key, 0) + usage["cost"][key]
+    return totals
+
+
 def build_prompt(
     prompt: str,
     prompt_files: list[str],
@@ -317,6 +393,12 @@ def build_prompt(
             "No tools are available in this session, including file reads. Do not "
             "attempt any tool call or retry alternate tools. Answer using only the "
             "material already in this prompt."
+        )
+    elif tool_mode == TOOL_MODE_BROWSER:
+        sections.append(
+            "Browser task scope:\nThe read and bash tools are available. Use the selected browser "
+            "driver for the approved test journey. This tool selection is not a filesystem sandbox. "
+            "A browser test assignment does not authorize product repairs."
         )
 
     if metadata_json:
@@ -380,6 +462,11 @@ def _run_pi(
     safe: bool = False,
     bare: bool = False,
     runner_name: str = DEFAULT_RUNNER,
+    provider_routing: dict | str | None = None,
+    tool_policy: str | None = None,
+    browser_mechanism: str | None = None,
+    browser_preflight_file: str | None = None,
+    image_files: list[str] | None = None,
 ) -> dict[str, Any]:
     del disable_fallback  # Pi pins the provider per call; there is no fallback chain.
     del safe
@@ -392,6 +479,9 @@ def _run_pi(
     output_schema = resolve_input_path(output_schema, working_dir) if output_schema else output_schema
     cwd = working_dir or os.getcwd()
     tool_mode = resolve_tool_mode(role, restrict_tools, no_tools, allow_write)
+    image_files = normalize_prompt_files(image_files, working_dir)
+    browser_evidence = None
+    effort_control = "runner"
 
     def error(stderr: str, return_code: int) -> dict[str, Any]:
         return {
@@ -404,10 +494,47 @@ def _run_pi(
             "model": model,
             "runner": runner_name,
             "effective_runner": DEFAULT_RUNNER,
+            "provider": provider,
         }
 
     if working_dir and not Path(working_dir).is_dir():
         return error(f"Working directory does not exist: {working_dir}", -3)
+
+    try:
+        if isinstance(provider_routing, str):
+            from model_routing import unique_object
+            provider_routing = json.loads(provider_routing, object_pairs_hook=unique_object)
+        if provider_routing is not None:
+            validate_provider_routing(provider_routing)
+            if provider != provider_routing["gateway"] or not model:
+                raise ValueError("Strict routing requires the selected gateway and an exact model")
+        entry = next((v for v in ROUTING_CONFIG["models"].values() if v["runner"] == "pi" and v["model"] == model), None)
+        if entry:
+            effort_control = "runtime" if entry["effort_profile"] == "runtime" else entry.get("effort_control", "runner")
+            if thinking is None:
+                thinking = None if effort_control == "runtime" else entry.get("default_effort", DEFAULT_EFFORT)
+            if effort_control == "runtime" or thinking is not None:
+                validate_selection("pi", model, thinking, ROUTING_CONFIG)
+        if tool_policy is not None and tool_policy != "browser":
+            raise ValueError("Unsupported tool policy")
+        if tool_policy == "browser":
+            if restrict_tools or no_tools or allow_write:
+                raise ValueError("Browser tool policy conflicts with other tool flags")
+            tool_mode = TOOL_MODE_BROWSER
+            browser_evidence = browser_preflight(browser_mechanism,
+                resolve_input_path(browser_preflight_file, working_dir) if browser_preflight_file else None, cwd)
+        elif browser_mechanism or browser_preflight_file:
+            raise ValueError("Browser options require the browser tool policy")
+        for path in image_files:
+            image_content(path)
+    except (ValueError, OSError) as exc:
+        return {**error(str(exc), -3), "status": "invalid_input"}
+
+    controlled = (provider_routing is not None or tool_mode == TOOL_MODE_BROWSER or bool(image_files)
+                  or effort_control == "runtime" or thinking == "max"
+                  or bool(entry and entry.get("default_effort") is not None))
+    if controlled and (provider != "openrouter" or not model):
+        return {**error("Request controls require an exact OpenRouter model", -3), "status": "invalid_input"}
 
     for prompt_file in prompt_files:
         if not Path(prompt_file).is_file():
@@ -434,7 +561,6 @@ def _run_pi(
 
     command = [
         "pi",
-        "--print",
         # Hermetic run: no user extensions, skills, templates, themes, or
         # AGENTS.md/CLAUDE.md discovery — the prompt is the whole input.
         "--no-extensions",
@@ -443,15 +569,18 @@ def _run_pi(
         "--no-themes",
         "--no-context-files",
     ]
-
-    if output_format == "stream-json":
+    if controlled:
+        command.extend(["--mode", "rpc"])
+    else:
+        command.append("--print")
+    if not controlled and output_format == "stream-json":
         command.extend(["--mode", "json"])
 
     if provider:
         command.extend(["--provider", provider])
     if model:
         command.extend(["--model", model])
-    if thinking:
+    if thinking and thinking != "max" and effort_control != "runtime":
         command.extend(["--thinking", ROUTING_CONFIG["runners"]["pi"]["effort_aliases"].get(thinking, thinking)])
     if session_id:
         command.extend(["--session", session_id])
@@ -464,8 +593,11 @@ def _run_pi(
         command.extend(["--tools", "read"])
     elif tool_mode == TOOL_MODE_NO_TOOLS:
         command.append("--no-tools")
+    elif tool_mode == TOOL_MODE_BROWSER:
+        command.extend(["--tools", "read,bash"])
 
-    command.append(final_prompt)
+    if not controlled:
+        command.append(final_prompt)
 
     command_display = " ".join(shlex.quote(part) for part in command)
 
@@ -493,14 +625,21 @@ def _run_pi(
         "effective_runner": DEFAULT_RUNNER,
         "role": role,
         "session_file": session_file,
-        "restrict_tools": tool_mode != TOOL_MODE_ACT,
+        "restrict_tools": tool_mode in {TOOL_MODE_RESTRICTED, TOOL_MODE_NO_TOOLS},
         "tool_mode": tool_mode,
         "session_id": session_id,
         "agent_message": None,
+        "effort_control": effort_control,
+        "tool_policy": tool_policy,
+        "browser_mechanism": browser_mechanism,
     }
 
     if thinking:
         result["thinking"] = thinking
+    if browser_evidence:
+        result["browser_preflight"] = browser_evidence
+    if image_files:
+        result["image_files"] = image_files
 
     if len(prompt_files) == 1:
         result["prompt_file"] = prompt_files[0]
@@ -508,19 +647,31 @@ def _run_pi(
         result["prompt_files"] = prompt_files
 
     try:
-        process = subprocess.run(
-            command,
-            cwd=cwd,
-            capture_output=True,
-            text=True,
-            timeout=timeout if timeout > 0 else None,
-            check=False,
-            # Pi reads a piped stdin as prompt input and blocks until EOF;
-            # close it so headless runs never hang on an inherited pipe.
-            stdin=subprocess.DEVNULL,
-        )
-        result["stdout"] = compact_stream(process.stdout) if output_format == "stream-json" else process.stdout
-        result["stderr"] = process.stderr
+        if controlled:
+            tools = {TOOL_MODE_RESTRICTED: ["read"], TOOL_MODE_NO_TOOLS: [],
+                     TOOL_MODE_BROWSER: ["read", "bash"]}.get(tool_mode)
+            process, receipt = run_controlled(command, prompt=final_prompt, cwd=cwd, timeout=timeout,
+                config={"model": model, "gateway": provider, "policy": provider_routing,
+                        "effort": ROUTING_CONFIG["runners"]["pi"]["effort_aliases"].get(thinking, thinking),
+                        "effort_control": effort_control, "tools": tools,
+                        "initial_image_count": len(image_files),
+                        "image_input": bool(image_files) or tool_mode == TOOL_MODE_BROWSER}, image_files=image_files)
+            if receipt:
+                result["provider_policy_receipt"] = receipt
+        else:
+            process = subprocess.run(
+                command,
+                cwd=cwd,
+                capture_output=True,
+                text=True,
+                timeout=timeout if timeout > 0 else None,
+                check=False,
+                # Pi reads a piped stdin as prompt input and blocks until EOF;
+                # close it so headless runs never hang on an inherited pipe.
+                stdin=subprocess.DEVNULL,
+            )
+        result["stdout"] = "" if controlled else (compact_stream(process.stdout) if output_format == "stream-json" else process.stdout)
+        result["stderr"] = ("Provider process failed" if process.returncode else "") if controlled else process.stderr
         # Any nonzero native exit normalizes to -3; the raw code stays in
         # native_return_code so the wrapper's -1/-2/-3 codes are unambiguous.
         result["return_code"] = 0 if process.returncode == 0 else -3
@@ -528,7 +679,7 @@ def _run_pi(
 
         final_message, agent_message, native_model_id, native_provider, stop_reason = (
             inspect_native_stream(process.stdout)
-            if output_format == "stream-json"
+            if controlled or output_format == "stream-json"
             else (None, None, None, None, None)
         )
 
@@ -540,10 +691,12 @@ def _run_pi(
             result["native_provider"] = native_provider
         if isinstance(final_message, dict) and isinstance(final_message.get("usage"), dict):
             result["native_usage"] = final_message["usage"]
+        if controlled or output_format == "stream-json":
+            result["native_usage_total"] = total_native_usage(process.stdout)
 
         if agent_message:
             result["agent_message"] = agent_message
-        elif result["return_code"] == 0 and output_format == "text":
+        elif not controlled and result["return_code"] == 0 and output_format == "text":
             result["agent_message"] = process.stdout.strip() or None
 
         # Pi exits 0 with a bare "Use /login ..." hint (and no agent events)
@@ -559,7 +712,7 @@ def _run_pi(
                 "env var (OPENROUTER_API_KEY for openrouter) or run `pi` interactively "
                 "and use /login."
             )
-        elif process.returncode == 0 and output_format == "stream-json" and result["agent_message"] is None:
+        elif process.returncode == 0 and (controlled or output_format == "stream-json") and result["agent_message"] is None:
             # A clean exit with no terminal assistant message is a failed run,
             # whatever the exit code claims.
             result["success"] = False
@@ -567,10 +720,12 @@ def _run_pi(
             result["status"] = "empty_response"
         else:
             result["success"] = process.returncode == 0 and (
-                output_format != "stream-json" or result["agent_message"] is not None
+                (not controlled and output_format != "stream-json") or result["agent_message"] is not None
             )
             if result["success"]:
                 result["auth_ok"] = True
+        if stop_reason in {"error", "aborted"}:
+            result.update(success=False, return_code=-3, status="provider_error")
 
         # Pi has no native JSON-schema switch. A schema prompt alone is
         # advisory, so turn it into a hard postcondition before a council can
@@ -591,6 +746,9 @@ def _run_pi(
                 result["return_code"] = -3
                 result["status"] = "malformed_output"
                 result["output_contract_error"] = contract.error
+
+    except ValueError as exc:
+        result.update(success=False, return_code=-3, status="provider_policy_error", stderr=str(exc))
 
     except subprocess.TimeoutExpired as exc:
         result["stderr"] = f"Timeout expired after {timeout} seconds"
@@ -689,10 +847,15 @@ Examples:
     parser.add_argument(
         "--thinking",
         type=str,
-        choices=runner_efforts("pi", accepted=True, config=ROUTING_CONFIG),
+        choices=sorted(set(runner_efforts("pi", accepted=True, config=ROUTING_CONFIG)) | {"max"}),
         default=DEFAULT_EFFORT,
         help="Reasoning effort passed to native --thinking; `none` is accepted as an alias for `off` (default: provider default)",
     )
+    parser.add_argument("--provider-routing", help="JSON request policy for the selected OpenRouter route")
+    parser.add_argument("--tool-policy", choices=["browser"], help="Explicit browser tools: read and bash")
+    parser.add_argument("--browser-mechanism", choices=["agent-browser", "playwright-cli"])
+    parser.add_argument("--browser-preflight", dest="browser_preflight_file", help="Browser readiness evidence JSON file")
+    parser.add_argument("--image-file", action="append", default=[], help="Typed image input; repeat for more images")
     parser.add_argument(
         "--session",
         type=str,
@@ -857,6 +1020,11 @@ def main(
         safe=args.safe,
         bare=args.bare,
         runner_name=runner_name,
+        provider_routing=args.provider_routing,
+        tool_policy=args.tool_policy,
+        browser_mechanism=args.browser_mechanism,
+        browser_preflight_file=args.browser_preflight_file,
+        image_files=args.image_file,
     )
 
     output_file = None

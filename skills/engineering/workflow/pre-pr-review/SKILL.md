@@ -6,6 +6,8 @@ disable-model-invocation: true
 
 # Pre-PR Review
 
+For a direct invocation, first use `shared/references/model-preview.md`. Nested calls reuse the parent's selected snapshot without another prompt or unlisted workers.
+
 Check whether a completed implementation is ready for pull request review. Reuse valid task and integration evidence. Run only the work needed to close gaps. The **acceptance contract** is a scoped, verified local change with no confirmed P0, P1, or P2 finding left open. Approval from a reviewer alone does not meet this contract.
 
 ## Scope and authority

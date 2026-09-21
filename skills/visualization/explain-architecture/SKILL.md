@@ -6,6 +6,8 @@ disable-model-invocation: true
 
 # Explain Architecture
 
+For a direct invocation, first use `shared/references/model-preview.md`. Nested calls reuse the parent's selected snapshot without another prompt or unlisted workers.
+
 Build an accurate mental model of a codebase (or a chosen part of it) and deliver it as one self-contained HTML **orientation page**. The goal is **orientation**, not critique — a reader should finish knowing what the pieces are, how they fit, where data flows, and where to look next.
 
 Borrowed from _Practical Model-Driven Enterprise Architecture_: an explanation is a **view** that answers a defined question for a defined **audience**, split into **structure** (what the parts are and how they connect) and **behavior** (what happens, in what order). Pick the scope and audience first, then explain only what serves them — "a single view tells a single idea."

@@ -96,6 +96,43 @@ class ValidationTests(unittest.TestCase):
         self.init(); self.reserve(); self.finish()
         self.assertEqual(control.summarize(self.state)["status"], "blocked")
 
+    def test_browser_preflight_and_result_must_use_selected_mechanism(self):
+        self.plan["working_dir"] = str(self.root.resolve())
+        self.plan["units"][0].update(browser_mechanism="playwright-test", preflight_required=True)
+        self.init()
+        preflight = self.root / "browser-preflight.json"
+        observation = {"status": "ready", "reason": "fixture driver exercised", "mechanism": "agent-browser",
+                       "working_dir": str(self.root.resolve()), "evidence": [{"path": str(self.raw), "sha256": control.digest(self.raw)}]}
+        preflight.write_text(json.dumps(observation))
+        with self.assertRaisesRegex(ValueError, "mechanism"):
+            control.record_preflight(self.state, "U1", "P1", self.input, preflight)
+        self.assertFalse(self.state["validation"]["attempts"])
+        observation["mechanism"] = "playwright-test"
+        preflight.write_text(json.dumps(observation))
+        control.record_preflight(self.state, "U1", "P1", self.input, preflight)
+        self.reserve()
+        with self.assertRaisesRegex(ValueError, "mechanism"):
+            self.finish()
+        path = self.root / "A1-result.json"
+        result = control.read(path)
+        result["browser_mechanism"] = "playwright-test"
+        path.write_text(json.dumps(result))
+        control.finish(self.state, "A1", path)
+        self.assertEqual(control.summarize(self.state)["status"], "passed")
+
+    def test_browser_units_cannot_omit_driver_preflight(self):
+        self.plan["units"][0]["browser_mechanism"] = "playwright-test"
+        with self.assertRaisesRegex(ValueError, "preflight"):
+            control.validate_plan(self.plan)
+
+    def test_provider_policy_is_checked_before_any_role_reservation(self):
+        selection = model_routing.resolve_profile("validation-unit")["roles"]["implementer"]
+        self.plan["routes"] = [{"id": "author", "task_id": "U1", **selection}]
+        self.plan["call_limits"]["author"] = 1
+        self.plan["routes"][0]["provider_routing"]["zdr"] = False
+        with self.assertRaises(ValueError):
+            self.init()
+
     def test_retry_limit_and_init_do_not_reset_consumption(self):
         self.reserve(); self.finish("failed")
         self.reserve("A2", "different discriminating probe"); self.finish("failed", "A2")

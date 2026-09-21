@@ -5,6 +5,8 @@ description: "Reduce design complexity through deep modules, information hiding,
 
 # A Philosophy of Software Design
 
+For a direct invocation, first use `shared/references/model-preview.md`. Nested calls reuse the parent's selected snapshot without another prompt or unlisted workers.
+
 Use Ousterhout's _A Philosophy of Software Design_, 2nd edition, to reduce the cost of understanding and changing software. Brooks' **conceptual integrity** is the second anchor. Return a named design or fix, its reason, and the next move.
 
 ## Select the route

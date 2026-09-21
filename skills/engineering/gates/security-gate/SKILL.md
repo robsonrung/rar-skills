@@ -5,6 +5,8 @@ description: Identify security decisions during an interview and classify slices
 
 # Security Gate
 
+For a direct invocation, first use `shared/references/model-preview.md`. Nested calls reuse the parent's selected snapshot without another prompt or unlisted workers.
+
 Two small jobs: (1) run the **threat-model-lite** while the user is still choosing the feature, so later phases do not guess security decisions; (2) apply the **deep-pass trigger list** to each slice, then verify deep slices against those decisions. This skill never performs the review — `full-review` does.
 
 The two leitwörter below are what you name as you work: a **threat-model-lite** question is something you ask the human now; a **deep-pass trigger** is a property of the change that forces a deeper review later.

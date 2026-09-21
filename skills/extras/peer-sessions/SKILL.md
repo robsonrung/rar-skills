@@ -5,6 +5,8 @@ description: Coordinate peer sessions through native delegation or a durable mai
 
 # Peer Sessions
 
+For a direct invocation, first use `shared/references/model-preview.md`. Nested calls reuse the parent's selected snapshot without another prompt or unlisted workers.
+
 Run a peer fleet as a ledger, not the transcript: every peer receives a brief by path and returns one structured reply by path. The ledger, not the transcript, is the delivery record; native messages may wake a coordinator.
 
 ## 1. Establish the fleet record

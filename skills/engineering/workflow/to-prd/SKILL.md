@@ -6,6 +6,8 @@ disable-model-invocation: true
 
 # To PRD
 
+For a direct invocation, first use `shared/references/model-preview.md`. Nested calls reuse the parent's selected snapshot without another prompt or unlisted workers.
+
 Turn settled choices into one reviewable PRD. The result is an approved specification that `to-tasks` can translate into executable slices.
 
 ## Boundary

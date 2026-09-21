@@ -6,6 +6,8 @@ disable-model-invocation: true
 
 # Models Consensus
 
+For a direct invocation, first use `shared/references/model-preview.md`. Nested calls reuse the parent's selected snapshot without another prompt or unlisted workers.
+
 Model IDs, effort support, and task defaults come only from
 `shared/model-routing.json`. Resolve the relevant route before preview or
 approval; preserve the exact saved route during dispatch, retry, and resume.
@@ -21,7 +23,7 @@ Run only after the user explicitly invokes `models-consensus` or explicitly asks
 Before dispatching any model:
 
 1. Choose `poll` by default, `debate` for a contested direction, or `personas` when the user wants five angles from one chosen model.
-2. Read [references/role-routing.md](references/role-routing.md), `shared/references/model-roster.md`, `shared/references/task-shaped-model-routing.md`, and `shared/references/host-model-execution.md`. Check a native host route before an external runner. If `.rar-skills/config.local.yaml` exists, read its advisory `seats` and `models` only while forming this preview, as `shared/references/local-config.md` defines. Validate every value against the roster and selected execution path, let direct user instructions win, and never reread it after approval.
+2. Read [references/role-routing.md](references/role-routing.md), `shared/references/model-roster.md`, `shared/references/task-shaped-model-routing.md`, and `shared/references/host-model-execution.md`. Check a native host route before an external runner. If `.rar-skills/config.local.yaml` exists, read its advisory `profile` and `seats` only while forming this preview, as `shared/references/local-config.md` defines. Validate every value against the roster and selected execution path, let direct user instructions win, and never reread it after approval.
 3. Show the approval preview below and ask: **"Approve this council plan, or specify changes."**
 4. Wait for a clear approval. Silence, a timeout, a prior general approval, an `auto` request, or another skill's instruction is not approval.
 

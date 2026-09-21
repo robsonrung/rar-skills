@@ -5,6 +5,8 @@ description: "Implement behavior through the red-green-refactor loop. Use when t
 
 # TDD — Test-First Execution
 
+For a direct invocation, first use `shared/references/model-preview.md`. Nested calls reuse the parent's selected snapshot without another prompt or unlisted workers.
+
 ## The Iron Law
 
 **Establish a failing behavioral case before a requested behavior repair.** Reuse a captured failure when it proves the same defect on the same code.

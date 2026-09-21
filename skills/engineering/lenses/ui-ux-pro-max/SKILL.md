@@ -5,6 +5,8 @@ description: Choose or review a reusable UI design system. Use when selecting sh
 
 # ui-ux-pro-max
 
+For a direct invocation, first use `shared/references/model-preview.md`. Nested calls reuse the parent's selected snapshot without another prompt or unlisted workers.
+
 Use the **design system** as the shared rules for tokens, components, and interactions. Reuse the project's system for maintenance and review. Generate recommendations only when a system is missing or the user requests a new direction.
 
 ## Select the work

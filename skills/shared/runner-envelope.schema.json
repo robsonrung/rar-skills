@@ -85,6 +85,30 @@
       "type": "string",
       "description": "Provider backing the effective runner (anthropic, openai, google, xai, qwen, z-ai, moonshot, minimax, ...)."
     },
+    "model_author": {
+      "type": ["string", "null"],
+      "description": "Model publisher inferred from the selected model id. This is not the inference host."
+    },
+    "gateway": {
+      "type": ["string", "null"],
+      "description": "Configured request gateway, such as openrouter."
+    },
+    "inference_provider": {
+      "type": ["string", "null"],
+      "description": "Inference host identified by upstream evidence. Null when not observed."
+    },
+    "provider_policy_receipt": {
+      "type": "object",
+      "required": ["status", "gateway", "policy_sha256", "request_count"],
+      "properties": {
+        "status": {"const": "enforced"},
+        "gateway": {"const": "openrouter"},
+        "policy_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+        "request_count": {"type": "integer", "minimum": 1}
+      },
+      "additionalProperties": false,
+      "description": "Policy applied at the adapter request boundary. This does not identify an upstream inference host or attest account settings."
+    },
     "auth_ok": {
       "type": [
         "boolean",
@@ -204,7 +228,12 @@
         "lane_unavailable",
         "malformed_output",
         "timeout",
-        "auth_failed"
+        "auth_failed",
+        "auth_missing",
+        "empty_response",
+        "invalid_input",
+        "provider_error",
+        "provider_policy_error"
       ]
     },
     "fallback_from": {

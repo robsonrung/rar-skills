@@ -163,6 +163,14 @@ def reconcile(state, call_id, receipt_path):
     require(execution.get("configured_model") == route["model"] and execution.get("configured_effort") == route.get("effort"),
             "receipt route differs")
     require(type(receipt.get("success")) is bool, "receipt needs explicit execution outcome")
+    if receipt["success"] and "provider_routing" in route:
+        from provider_routing import provider_receipt_error
+        policy_error = provider_receipt_error(route["provider_routing"], receipt)
+        require(policy_error is None, policy_error)
+    if receipt["success"] and "browser" in route:
+        require(receipt.get("tool_policy") == "browser" and
+                receipt.get("browser_mechanism") == route["browser"]["mechanism"],
+                "receipt browser mechanism differs from the approved route")
     context = execution.get("context_id") or receipt.get("session_id")
     existing = ledger["contexts"].get(route["id"])
     require(not context or not existing or context == existing, "receipt does not resume the recorded role context")

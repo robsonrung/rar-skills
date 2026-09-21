@@ -5,6 +5,8 @@ description: Plan the implementation shape of one approved coding task. Use when
 
 # Coding Design Plan
 
+For a direct invocation, first use `shared/references/model-preview.md`. Nested calls reuse the parent's selected snapshot without another prompt or unlisted workers.
+
 Turn a scoped task into the **smallest coherent shape** an implementer can build without making a new product or architecture decision. The next consumer is `implement-and-review` or the engineer making the change. The plan is done when it names the changed behavior, owner, boundary, verification, and any unresolved blocker.
 
 Treat choices settled in the PRD or task as **already decided**. Do not reopen them through a new interview or option list.

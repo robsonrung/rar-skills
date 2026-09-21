@@ -6,6 +6,8 @@ disable-model-invocation: true
 
 # Knowledge Graph: Four Prompts, One Schema
 
+For a direct invocation, first use `shared/references/model-preview.md`. Nested calls reuse the parent's selected snapshot without another prompt or unlisted workers.
+
 Structured outputs replace four separate trained systems with four prompts that share one schema: **the schema is the only training data**. Adapting to a new domain means changing the schema and prompt, then evaluating the result.
 
 Say it while working:

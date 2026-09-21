@@ -13,12 +13,14 @@ Resolve `SHARED_DIR` from the loaded shared skill, as
 ```bash
 SHARED_DIR="<absolute shared skill directory>"
 python3 "$SHARED_DIR/scripts/model_routing.py" show
-python3 "$SHARED_DIR/scripts/model_routing.py" resolve isolated-implementation --family gpt
+python3 "$SHARED_DIR/scripts/model_routing.py" resolve isolated-implementation --profile economy
 python3 "$SHARED_DIR/scripts/model_routing.py" validate
 ```
 
-Use `routes.<task>.families` to select roles. `models` resolves seats to exact
-IDs and adapters. `effort_profiles` describes adapter capabilities; `runners`
+Use `profiles` and `routes.<task>.families` to select roles. Updated workflow
+callers explicitly select a profile; `--family gpt` and the legacy CLI default
+remain available. Apply [model-preview.md](model-preview.md) before dispatch.
+`models` resolves seats to exact IDs and adapters. `effort_profiles` describes adapter capabilities; `runners`
 defines direct-call defaults and accepted flags. `discovery` supplies probe
 metadata. None of these fields proves account access or serving identity.
 The native host can expose controls that differ from its external adapter;

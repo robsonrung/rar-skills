@@ -271,6 +271,25 @@ def validate_route(route: Any) -> dict[str, Any]:
         raise ValueError(f"route.mode must be runner or native, got {route['mode']!r}")
     if route["model_verification"] not in {"required", "allow_unverified"}:
         raise ValueError("route.model_verification must be required or allow_unverified")
+    if "provider_routing" in route:
+        from provider_routing import validate_provider_routing
+        if route["runner"] != "pi" or route["mode"] != "runner":
+            raise ValueError("provider_routing requires a Pi runner route")
+        validate_provider_routing(route["provider_routing"])
+    if "capabilities" in route or "required_capabilities" in route:
+        capabilities = route.get("capabilities", {})
+        required = route.get("required_capabilities", [])
+        if not isinstance(capabilities, dict) or set(capabilities) - {"tools", "images"} or any(type(v) is not bool for v in capabilities.values()):
+            raise ValueError("route.capabilities must contain tools or images booleans")
+        if not isinstance(required, list) or any(v not in {"tools", "images"} for v in required) or len(set(required)) != len(required):
+            raise ValueError("invalid route.required_capabilities")
+        if any(capabilities.get(v) is not True for v in required):
+            raise ValueError("route lacks a required model capability")
+    if "browser" in route:
+        from browser_preflight import validate_browser_route
+        if route["runner"] != "pi" or route["mode"] != "runner":
+            raise ValueError("browser command policy requires a Pi runner route")
+        validate_browser_route(route["browser"])
     if "source_sharing" in route:
         sharing = route["source_sharing"]
         fields = {"provider", "scope", "follow_ups", "exclusions", "reference"}
@@ -291,8 +310,11 @@ def validate_route(route: Any) -> dict[str, Any]:
             raise ValueError(f"route.runner {route['runner']!r} cannot enforce a selected effort")
         validate_selection(route["runner"], route["model"], effort, ROUTING_CONFIG)
     elif effort_control == "runtime":
-        if route["mode"] != "runner" or route["runner"] != "gemini":
-            raise ValueError("runtime controlled effort is only valid for a gemini runner route")
+        known = next((m for m in ROUTING_CONFIG["models"].values()
+                      if m["runner"] == route["runner"] and m["model"] == route["model"]), None)
+        runtime_pi = route["runner"] == "pi" and known and known.get("effort_profile") == "runtime"
+        if route["mode"] != "runner" or not (route["runner"] == "gemini" or runtime_pi):
+            raise ValueError("runtime controlled effort requires a verified runtime model route")
         if effort is not None:
             raise ValueError("route.effort must be null when effort_control is runtime")
     elif effort_control == "native":
@@ -308,8 +330,7 @@ def validate_route(route: Any) -> dict[str, Any]:
     if not isinstance(unavailable, dict) or unavailable.get("action") not in {"block", "use"}:
         raise ValueError("route.unavailable must be {action: block} or an explicit approved fallback")
     if unavailable["action"] == "use":
-        fallback = {**route, **unavailable}
-        fallback["unavailable"] = {"action": "block"}
+        fallback = merge_fallback(route, unavailable)
         for field in ("seat", "runner", "model", "model_verification", "effort", "mode", "effort_control"):
             if field not in unavailable:
                 raise ValueError(f"route.unavailable.{field} is required for an approved fallback")
@@ -407,8 +428,29 @@ def fallback_route(route: dict[str, Any]) -> dict[str, Any] | None:
     unavailable = route["unavailable"]
     if unavailable["action"] != "use":
         return None
-    fallback = {**route, **unavailable, "unavailable": {"action": "block"}}
+    fallback = merge_fallback(route, unavailable)
     validate_route(fallback)
+    return fallback
+
+
+def merge_fallback(route: dict[str, Any], alternate: dict[str, Any]) -> dict[str, Any]:
+    if "provider_routing" in route and alternate.get("runner") != route["runner"] and "provider_routing" not in alternate:
+        raise ValueError("a different fallback runner needs an explicit provider_routing decision")
+    fallback = {**route, **alternate, "unavailable": {"action": "block"}}
+    if route.get("provider_routing") and fallback.get("runner") == "pi":
+        from provider_routing import validate_provider_routing
+        parent_policy = route["provider_routing"]
+        policy = fallback.get("provider_routing")
+        if policy is None:
+            raise ValueError("Pi fallback cannot remove provider_routing")
+        validate_provider_routing(policy)
+        if "only" in parent_policy and ("only" not in policy or not set(policy["only"]) <= set(parent_policy["only"])):
+            raise ValueError("Pi fallback cannot expand the provider allowlist")
+        if parent_policy.get("allow_fallbacks") is False and policy.get("allow_fallbacks") is not False:
+            raise ValueError("Pi fallback cannot enable provider fallbacks")
+    for field in ("provider_routing", "browser", "capabilities", "required_capabilities"):
+        if field in fallback and fallback[field] is None:
+            del fallback[field]
     return fallback
 
 
@@ -443,6 +485,9 @@ def route_arguments(
         arguments.extend(["--output-format", "stream-json"])
     if route["runner"] in {"pi", "cline"}:
         arguments.extend(["--seat", route["seat"]])
+    if "provider_routing" in route:
+        arguments.extend(["--provider", route["provider_routing"]["gateway"],
+                          "--provider-routing", json.dumps(route["provider_routing"], sort_keys=True, separators=(",", ":"))])
     if route["effort_control"] == "runner":
         arguments.extend([EFFORT_FLAGS[route["runner"]], route["effort"]])
     if resume_context_id:
@@ -454,7 +499,14 @@ def route_arguments(
         arguments.extend([resume_flag, resume_context_id])
     elif route["runner"] == "pi":
         arguments.extend(["--session", persistent_pi_session_id(route, brief)])
-    arguments.append("--restrict-tools" if read_only else "--allow-write")
+    if "browser" in route:
+        from browser_preflight import load_bound_preflight
+        browser = route["browser"]
+        load_bound_preflight(browser, working_dir)
+        arguments.extend(["--tool-policy", "browser", "--browser-mechanism", browser["mechanism"],
+                          "--browser-preflight", browser["preflight"]["path"]])
+    else:
+        arguments.append("--restrict-tools" if read_only else "--allow-write")
     return arguments
 
 
@@ -533,7 +585,7 @@ def dispatch_route(
                 "configured_model": route["model"],
                 "configured_effort": route.get("effort"),
                 "effort_control": route["effort_control"],
-                "tool_policy": "read-only" if read_only else "write",
+                "tool_policy": "browser" if route.get("browser") else ("read-only" if read_only else "write"),
                 "input_revision": metadata.get("input_revision"),
             },
             "pending": "Dispatch this exact native route, preserve its role context, and record its receipt.",
@@ -555,7 +607,7 @@ def dispatch_route(
             "input_measurement": measurement,
             "parent_history": "none",
             "input_revision": metadata.get("input_revision"),
-            "tool_policy": "read-only" if read_only else "write",
+            "tool_policy": "browser" if route.get("browser") else ("read-only" if read_only else "write"),
             **result,
         }
     except RunnerLaunchError as primary_error:
@@ -1266,6 +1318,14 @@ def jobs_query(subcommand: str, job_id: str, working_dir: str) -> dict[str, Any]
 
 
 def receipt_error(route: dict[str, Any], result: dict[str, Any]) -> str | None:
+    if "provider_routing" in route:
+        from provider_routing import provider_receipt_error
+        policy_error = provider_receipt_error(route["provider_routing"], result)
+        if policy_error:
+            return policy_error
+    if "browser" in route:
+        if result.get("tool_policy") != "browser" or result.get("browser_mechanism") != route["browser"]["mechanism"]:
+            return "browser receipt does not match the approved mechanism and tool policy"
     if result.get("effective_runner") != route["runner"]:
         return f"effective runner {result.get('effective_runner')!r} does not match approved runner {route['runner']!r}"
     if result.get("configured_model") != route["model"]:
@@ -1304,6 +1364,9 @@ def receipt_error(route: dict[str, Any], result: dict[str, Any]) -> str | None:
             return f"configured native effort {result.get('configured_effort')!r} does not match approved effort {route['effort']!r}"
         if result.get("effective_effort") != route["effort"]:
             return f"effective native effort {result.get('effective_effort')!r} does not match approved effort {route['effort']!r}"
+    elif route["effort_control"] == "runtime" and route["runner"] == "pi":
+        if result.get("effective_effort", result.get("thinking")) is not None:
+            return "runtime model receipt must not claim a selected effort"
     return None
 
 

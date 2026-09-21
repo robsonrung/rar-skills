@@ -15,10 +15,22 @@ source for workflow behavior.
 | `interview-me` | `decision-record.md` | Use relevant repository facts, then ask at most five independent questions in one turn. With `--auto`, keep two isolated role contexts: resolve the product or technical interview roles from the central routing configuration. The respondent can provide evidence and alternatives, but cannot settle a material user decision. Record settled decisions and scope; the record becomes `ready-for-prd` when the interview closes. |
 | `to-prd` | `prd.md` | Turn a `ready-for-prd` decision record into a draft PRD. The user reviews it before it becomes approved. |
 | `to-tasks` | `tasks-draft.md`, then task slices | Create dependency-aware tasks with acceptance evidence and applicable engineering checks. The user approves the task breakdown before slices become `ready-for-agent`. |
-| `implement-tasks` | Verified local result | Show the proposed roles, exact implementation and review models, execution paths, reasoning effort, and model-verification policy before dispatch. Start work only after the user approves or changes that model plan. |
+| `implement-tasks` | Verified local result | Show the proposed roles, exact implementation and review models, execution paths, reasoning effort, and model-verification policy before dispatch. Use the shared preview decision, including an explicit request to use defaults and run for the unchanged setup. |
 
-Task approval and model-plan approval are separate. A task queue defines what
-will be built. The model plan defines who will implement and review it.
+Task approval and model selection are separate. A task queue defines what
+will be built. The model plan defines who will implement and review it. Every
+directly invoked skill uses the [shared preview](skills/shared/references/model-preview.md).
+It names the actual coordinator, exact worker routes, tools, privacy controls,
+fallbacks, and limits. A skill that runs only commands starts no additional worker.
+Nested skills reuse the selected snapshot without another prompt. A request to
+use defaults and run permits the unchanged resolved setup within existing source
+sharing authority and accepted receipt limits; silence cannot approve it.
+
+Updated workflow callers select the central `economy` profile by default.
+`balanced` and explicit legacy family routes remain selectable. Local preferences
+select a profile name, while model and effort defaults remain in
+`skills/shared/model-routing.json`. No local quality or savings comparison has
+been run for the new selection.
 
 `implement-tasks` checks native host capability before external runner
 availability, chooses the route for each task shape, and uses the approved

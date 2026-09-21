@@ -5,6 +5,8 @@ description: Break an approved PRD into reviewable vertical slices and publish t
 
 # To Tasks
 
+For a direct invocation, first use `shared/references/model-preview.md`. Nested calls reuse the parent's selected snapshot without another prompt or unlisted workers.
+
 Turn one approved PRD into an executable queue. Each slice is small enough for one focused implementation run and has a checkable acceptance contract.
 
 ## Boundary

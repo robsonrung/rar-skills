@@ -6,6 +6,8 @@ disable-model-invocation: true
 
 # Implement Tasks
 
+For a direct invocation, first use `shared/references/model-preview.md`. Nested calls reuse the parent's selected snapshot without another prompt or unlisted workers.
+
 Model IDs, effort support, and task defaults come only from
 `shared/model-routing.json`. Resolve the relevant route before preview or
 approval; preserve the exact saved route during dispatch, retry, and resume.
@@ -31,9 +33,9 @@ Before any worker or model job, show exact implementation, independent review, a
 
 Use `.rar-skills/config.local.yaml` only as advisory input while forming the preview; never reread it after approval. The approved plan is authoritative.
 
-Ask the user to approve the concrete model plan or specify changes, then wait for the answer. Task approval, `--auto`, a default, or silence is not model approval. Reuse an explicit approval for the exact scope and routes; do not ask again merely because a same-route role session is resumed or receives a newly recorded context ID. Save the actual response reference, timestamp, and scope/route digests in `routing-plan.json` as [the model-plan reference](references/model-plan.md) specifies.
+Follow the shared preview decision. A request to “use defaults and run” approves the unchanged resolved setup within existing source sharing authority and accepted receipt limits; show the concrete plan and proceed. Otherwise obtain the model plan decision. Task approval, `--auto`, a saved preference alone, or silence is not model approval. Reuse an explicit approval for the exact scope and routes; do not ask again merely because a same-route role session is resumed or receives a newly recorded context ID. Save the actual response reference, timestamp, and scope/route digests in `routing-plan.json` as [the model-plan reference](references/model-plan.md) specifies.
 
-A model, runner, role, mode, native transport, effort, or receipt-policy change requires approval of the affected rows unless that exact fallback was approved. An unavailable route blocks its own work. Never silently substitute the current model or a cheaper model. Treat configured labels and observed serving-model receipts separately; unverified execution needs the user's explicit approval of that limit.
+A model, runner, role, mode, native transport, effort, provider routing, capability, tool policy, budget, or receipt policy change requires selection of the affected rows unless that exact fallback was approved. An unavailable route blocks its own work. Never silently substitute the current model or a cheaper model. Treat configured labels and observed serving-model receipts separately; unverified execution needs the user's explicit approval of that limit.
 
 ## Execution rules
 

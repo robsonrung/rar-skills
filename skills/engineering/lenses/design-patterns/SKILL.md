@@ -5,6 +5,8 @@ description: "Choose or review a Gang-of-Four pattern when recurring code struct
 
 # Design Patterns
 
+For a direct invocation, first use `shared/references/model-preview.md`. Nested calls reuse the parent's selected snapshot without another prompt or unlisted workers.
+
 A pattern-recognition lens distilled from _Head First Design Patterns_ (Freeman & Robson, 2nd ed). The goal is not to apply patterns — it's to **see where a pattern naturally fits and where it doesn't**, then reach for the simplest thing that solves the real problem.
 
 ## The guardrail comes first

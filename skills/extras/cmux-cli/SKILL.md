@@ -6,6 +6,8 @@ disable-model-invocation: true
 
 # cmux CLI
 
+For a direct invocation, first use `shared/references/model-preview.md`. Nested calls reuse the parent's selected snapshot without another prompt or unlisted workers.
+
 Use the cmux CLI as the default interface. Treat every command as acting on a specific workspace, panel, or surface. **Observable behavior** is the anchor: state the intended target, run the command, then query the cmux state that can prove the result.
 
 ## Establish Context

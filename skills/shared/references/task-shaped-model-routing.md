@@ -8,13 +8,20 @@ and review procedure, not another table of model defaults.
 
 ## Select before approval
 
+Use [model-preview.md](model-preview.md) for the single direct invocation preview,
+user overrides, and inherited selections. This procedure resolves only the roles
+that preview needs.
+
 1. Match the work to a `routes` entry by its purpose and conditions. Use bounded
    exploration for evidence collection, isolated implementation for a small
    explicit function, and routine implementation for a feature with stable
    interfaces and meaningful checks. Use tools directly for deterministic work.
-2. Select a supported family. Resolve the route with `scripts/model_routing.py`
-   from the shared skill. The output names the exact model and effort for each
-   role and records a configuration digest. It starts no workers.
+2. Select the `economy` profile unless user instructions or local preview
+   preferences select another central profile. Resolve with
+   `scripts/model_routing.py resolve <route> --profile default` from the shared
+   skill, adding `--local-profile <name>` for a validated local preference.
+   Explicit profiles and legacy family routes remain selectable. The
+   output names the exact model and effort for each role and records a configuration digest. It starts no workers.
 3. Apply `policy.high_risk_triggers` before editing. Resolve with `--risk high`
    when a trigger applies. A strong lead must settle requirements, interfaces,
    invariants, and critical acceptance cases before routine parts are delegated.
@@ -23,7 +30,10 @@ and review procedure, not another table of model defaults.
    review is a separate planned role, not an implicit extra call.
 5. During execution, apply `policy.escalation_triggers`. Continue independent
    authorized work while the affected route follows the caller's change rules.
-   More thinking does not replace missing evidence or an unclear contract.
+   Allow one initial attempt and one evidence based repair before considering
+   a reasoning escalation. Use only a selected exact fallback within the original
+   total budget. More thinking does not replace missing evidence, services,
+   credentials, driver access, or an unclear contract.
 
 Use the selected route's conditions and the configuration's policy fields.
 Exceptional analysis routes require a recorded gap at the normal setting.
@@ -70,14 +80,17 @@ with `model_routing.py council <name>` only to prepare the approval preview.
 
 ## Approval and exact routes
 
-`implement-tasks` presents a model summary before any worker starts. The user
-can approve it or change any route. Save the approved machine form and validate
-it against `implementation-routing-plan.schema.json`. Consensus keeps its own
-explicit invocation and approval. Other workflows use their stated authority;
-this reference does not add a universal approval step.
+Every direct invocation follows [model-preview.md](model-preview.md). A request
+to use defaults and run, or existing approval for the unchanged concrete setup,
+permits the selected routes within authorized source sharing and receipt limits.
+Otherwise obtain the caller's model plan decision; silence cannot provide it.
+Nested skills reuse the selected snapshot. Save an implementation plan and
+validate it against `implementation-routing-plan.schema.json`. Consensus keeps
+its own explicit invocation and approval.
 
 Each route records task, track, role, seat, model, execution mode, transport,
-effort and control, receipt policy, unavailable action, and source artifact.
+effort and control, provider routing, capabilities and tool policy, receipt
+policy, exact fallback triggers, limits, unavailable action, and source artifact.
 Resolve native capabilities before probing external CLIs. Keep context IDs and
 iteration results in mutable run state rather than changing approved rows.
 
@@ -107,7 +120,8 @@ effort, or changed transport needs the calling workflow's change decision.
 Use scripts for status waits, hashes, evidence assembly, and receipt normalization. These jobs
 need no model route. Keep the coordinator brief limited to changed facts and unresolved decisions.
 Do not reduce an explicitly selected model or effort. Select a cheaper future route only through
-the approved plan, with a bounded comparison against the same acceptance cases. Measure input,
+the selected plan. A performance claim needs a bounded comparison against the same
+acceptance cases. Measure input,
 cached input, output, failed attempts, execution time, approval wait time, and accepted outcomes.
 Preserve independent security and transaction review. Missing usage remains unknown; fewer words
 or lower nominal pricing alone do not prove lower cost per accepted result.

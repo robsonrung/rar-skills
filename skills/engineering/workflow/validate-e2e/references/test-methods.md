@@ -19,6 +19,20 @@ For each check, record command or browser action, tested revision, dependency an
 
 Store reports and generated output outside fingerprint inputs. Bind relevant source, lockfiles, configuration, schema, test code, fixtures, and runtime facts; list per file hashes and explicit exclusions. Do not hash an entire workspace by habit. If a prior contract requires broad hashing, preserve it until a change is approved. An input change creates a new evidence revision and invalidates only dependent checks.
 
+Run an established Playwright Test suite directly for repeatable acceptance and CI.
+For interactive exploration, first consider Playwright CLI with its skill, then a
+ready agent-browser route. Select MCP for a required structured interface or page
+inspection and native tools for authenticated sessions or native capabilities.
+Reuse the project stack; `browser-smoke` cannot install one. Record mechanism,
+version, and readiness in the plan and use one driver per journey. Each parallel
+worker needs its own context and fixtures.
+
+An external worker needs actual command access and driver instructions; host
+browser tools are not inherited. Before visual checks, prove model image support
+and typed image delivery with a synthetic artifact through the selected adapter.
+Text containing a screenshot path is not image input. Missing privacy, tools, or
+image support blocks that route without weakening the selected controls.
+
 Resolve the actual browser URL, then check driver access before reserving a business attempt.
 Clear and read back the exact input before save. Capture the request and response before reload,
 then verify the saved result. Keep service, port, fixture, and process ownership in the environment manifest.

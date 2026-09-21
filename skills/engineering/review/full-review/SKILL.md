@@ -11,6 +11,8 @@ allowed-tools:
 
 # Full Review
 
+For a direct invocation, first use `shared/references/model-preview.md`. Nested calls reuse the parent's selected snapshot without another prompt or unlisted workers.
+
 Model IDs, effort support, and task defaults come only from
 `shared/model-routing.json`. Resolve the relevant route before preview or
 approval; preserve the exact saved route during dispatch, retry, and resume.

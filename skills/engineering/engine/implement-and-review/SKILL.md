@@ -5,13 +5,15 @@ description: Implement and review one approved coding task through exact model r
 
 # Implement And Review
 
+For a direct invocation, first use `shared/references/model-preview.md`. Nested calls reuse the parent's selected snapshot without another prompt or unlisted workers.
+
 Model IDs, effort support, and task defaults come only from
 `shared/model-routing.json`. Resolve the relevant route before preview or
 approval; preserve the exact saved route during dispatch, retry, and resume.
 
 Build one task to its **acceptance contract** with the exact approved implementation and review routes. The next consumer is `implement-tasks` or the user. A worker result is evidence for integration. It must not mark a task queue complete. The parent marks a task complete only after integration checks pass with no unresolved acceptance or blocking defect.
 
-The routing plan is a binding record, not a suggestion. It selects the implementation and independent review model, effort, native or runner execution, and any approved fallback. Read `shared/references/implementation-routing-plan.schema.json`, `shared/references/task-shaped-model-routing.md`, and `shared/references/host-model-execution.md` before dispatching work. Use the task defaults in the central configuration; do not infer model quality from the current host or an old implementation/review pair.
+The routing plan binds the implementation and independent review model, effort control, native or runner execution, provider routing, capabilities, allowed tools, limits, and exact approved fallback. Use its immutable route snapshot for dispatch and resume; do not reread local preferences or central defaults after selection. Read `shared/references/implementation-routing-plan.schema.json`, `shared/references/task-shaped-model-routing.md`, and `shared/references/host-model-execution.md` before dispatching work. Use the task defaults in the central configuration; do not infer model quality from the current host or an old implementation/review pair.
 
 ## Authority
 
@@ -21,7 +23,7 @@ The user request to implement authorizes edits inside the accepted task, its sta
 
 1. Read the task, acceptance contract, and active project conventions. Inspect the relevant code and tests.
 2. Confirm the task input files still match the routing plan hashes. The launcher enforces this before it writes files, creates worktrees, or starts a worker.
-3. If the task came from `implement-tasks`, use its approved plan. For a standalone task, prepare the same model summary, show it to the user, and wait for approval or changes before starting a worker. Reuse existing approval for the exact scope and routes. Include the host capability check, independent reviewer, session strategy, effort, receipt limits, and allowed fallbacks.
+3. If the task came from `implement-tasks`, use its approved plan. For a standalone task, use the shared preview and its decision rules. A request to use defaults and run or actual approval for the unchanged setup suffices within existing source sharing authority and accepted receipt limits. Otherwise obtain the model plan decision before workers start. Include host and driver capabilities, independent review, session strategy, effort, provider controls, tools, receipt limits, budgets, and exact fallback triggers.
 4. Start with one track. Add a second track only when their scopes and contracts are independent. Worktree isolation is reversible and needs no separate approval. Commit-based integration remains separately authorized.
 
 Never call `models-consensus` from this skill. A user who wants more opinions invokes that workflow separately.
@@ -80,6 +82,8 @@ The launcher measures the complete rendered implementation, review, and native f
 Its default limit is 24,000 UTF-8 bytes; larger limits need a reason in the approved route's
 `context_budget`. Read `shared/references/context-packets.md` for measurement and recovery.
 Native handoffs require `parent_history: none`; reuse the same role context for repairs.
+
+Every initial call, repair, review, and resume carries the selected provider request controls and required tools. Validate their request policy digest and receipt evidence. An external process does not inherit host browser tools. A missing required capability or privacy control blocks its route.
 
 The review command reloads the approved plan, verifies the saved route still matches it, and uses a read-only reviewer. It does not accept a route from the mutable manifest alone. Rechecks reuse the recorded reviewer context. Keep native contexts in `native_contexts[route_id]` and runner sessions in `runner_contexts[route_id]`; do not use a global latest-session selector.
 

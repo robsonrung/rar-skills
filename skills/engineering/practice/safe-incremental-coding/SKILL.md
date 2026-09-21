@@ -5,6 +5,8 @@ description: "Build characterization tests before a risky change to untested leg
 
 # Safe Incremental Coding
 
+For a direct invocation, first use `shared/references/model-preview.md`. Nested calls reuse the parent's selected snapshot without another prompt or unlisted workers.
+
 Protect the existing behavior needed for a requested change, using the legacy change method from Dave Farley's _The Software Developers' Guidebook_. The aim is **ease of change**: the affected code can be changed safely.
 
 Build a **characterization test** net before refactoring. Keep the work within the area needed for the requested change.

@@ -6,6 +6,8 @@ disable-model-invocation: true
 
 # Fable Mindset
 
+For a direct invocation, first use `shared/references/model-preview.md`. Nested calls reuse the parent's selected snapshot without another prompt or unlisted workers.
+
 This is a posture, not a workflow and not model routing. Apply only the moment that changes the current task.
 
 ## Intake

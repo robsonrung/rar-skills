@@ -5,6 +5,8 @@ description: "Find and prove the cause of a bug, failing test, or unexpected beh
 
 # Diagnose
 
+For a direct invocation, first use `shared/references/model-preview.md`. Nested calls reuse the parent's selected snapshot without another prompt or unlisted workers.
+
 Find the cause from observed failure evidence and the relevant code. **Pattern-match is not diagnosis**: a familiar symptom gives a hypothesis. An **artifact of proof** connects symptom → mechanism → cause.
 
 A diagnosis is complete when that chain is supported. If the investigation cannot establish it, report the remaining uncertainty and the evidence needed to resolve it. Apply a fix when the request authorizes it.

@@ -9,9 +9,10 @@ The plan contains:
 | `version`, `run_id`, `mode` | Version 1, unique run ID, `assess` or `repair` |
 | `approval` | `status: approved`, actual user decision `reference`; includes approved scope, routes, and budgets |
 | `inputs` | Nonempty array of acceptance source `{path, sha256}`; absolute paths, current hashes |
+| `working_dir` | Absolute project path, required when a unit declares `browser_mechanism` or a worker has a browser route |
 | `scope` | `requirements`: unique IDs; `discovery_closed`: boolean; also record base, revision, operation identities, exclusions and scope meaning |
-| `units` | Nonempty array: unique `id`, nonempty `requirements`, `required` boolean, nonempty unique `checks`, positive `max_attempts`; every requirement maps to a required unit |
-| `routes` | Exact selected route rows from model-selection.md; empty is valid when no worker is needed |
+| `units` | Nonempty array: unique `id`, nonempty `requirements`, `required` boolean, nonempty unique `checks`, positive `max_attempts`; every requirement maps to a required unit. Browser units declare `browser_mechanism` and `preflight_required: true`. |
+| `routes` | Exact selected route rows from model-selection.md, including required provider controls. Empty is valid when no worker is needed. External CLI browser workers bind `browser: {mechanism, preflight: {path, sha256}}`. |
 | `call_limits` | Positive `total_role_calls` plus every route ID and its positive ceiling; no worker calls are possible with an empty routes list |
 | `budgets` | Positive `total_attempts`, positive `max_parallel`, absolute UTC `deadline`; also record command timeouts and any host enforced spend or token ceiling |
 
@@ -48,7 +49,7 @@ Finish with a result file:
 }
 ```
 
-Check keys must equal the planned unit check IDs. Values are `passed`, `failed`, `blocked`, or `skipped`. Every result has captured evidence; every nonpass has a reason. A blocked preflight can use its actual failure log. Historical evidence can satisfy a unit only after current identity and environment checks; record `reused_from` and that assessment in its result, without rewriting the old evidence.
+Check keys must equal the planned unit check IDs. Values are `passed`, `failed`, `blocked`, or `skipped`. Every result has captured evidence; every nonpass has a reason. A browser unit result must include `browser_mechanism` with exactly the value selected in its plan. A blocked preflight can use its actual failure log. Historical evidence can satisfy a unit only after current identity and environment checks; record `reused_from` and that assessment in its result, without rewriting the old evidence.
 
 ```bash
 python3 "$SKILL_DIR/scripts/validation_control.py" --shared-dir "$SHARED_DIR" \
@@ -69,7 +70,7 @@ python3 "$SKILL_DIR/scripts/validation_control.py" --shared-dir "$SHARED_DIR" \
   --call unit-author-1 --brief "$RUN_DIR/unit-brief.md" --phase unit-tests
 ```
 
-Then use the approved native transport or runner. Save actual completion and receipt, verify route fidelity, and reconcile with `shared/scripts/run_state.py ... reconcile --call ... --receipt ...`. It checks call/input/model/effort/context bindings. Serving-model receipt policy remains an additional host/runner check. Keep an independent review context separate; never use a worker's completion text as that review.
+Then use the approved native transport or runner. Save actual completion and receipt, verify route fidelity, and reconcile with `shared/scripts/run_state.py ... reconcile --call ... --receipt ...`. It checks call/input/model/effort/context bindings. For a route with `provider_routing`, a successful call also needs an enforced provider policy receipt whose gateway, digest, and request count match the selected policy. A missing or mismatched receipt blocks reconciliation. This is adapter enforcement evidence, not independent proof of the inference provider. Serving-model receipt policy remains an additional host/runner check. Keep an independent review context separate; never use a worker's completion text as that review.
 
 The helpers enforce reservation counts and refuse new work after the deadline. They do not launch, cancel, sandbox, or meter an active provider call, and cannot prevent calls made outside the workflow. Host limits and command timeouts enforce active execution bounds. If a hard monetary or token cap is requested, require an actual provider/host mechanism; report missing capability instead of calling these counters a spend cap. An optional estimated cost warning is not a hard cap.
 
@@ -93,7 +94,23 @@ does not prove that validation passed. Category allowances are part of the appro
 role call limits, or the deadline. Missing categories grant no allowance. Legacy plans retain their limits.
 
 For a browser or service dependent unit, set `preflight_required: true`. Capture a JSON result
-with `status: ready|blocked`, a `reason`, and actual evidence `{path, sha256}` entries. Record it with:
+with `status: ready|blocked`, a `reason`, and actual evidence `{path, sha256}` entries.
+
+A browser unit selects one `browser_mechanism`: `playwright-test`,
+`playwright-cli`, `agent-browser`, `playwright-mcp`, or `native`. Its plan needs
+an absolute `working_dir`; its preflight records matching `mechanism` and
+`working_dir`. Its final result records the same `browser_mechanism`. A missing
+or changed mechanism or workspace blocks the affected step.
+
+For `playwright-cli` and `agent-browser`, record the observed capabilities and
+captured artifacts through `shared/scripts/browser_preflight.py` as
+`browser-smoke` describes. Readiness also binds driver identity. A version check
+alone is insufficient. A CLI worker's immutable `browser` route binds that
+preflight file and hash; the controller checks it before reserving worker dispatch.
+Other mechanisms retain their actual driver evidence under the same unit and
+workspace checks. Existing suites run directly without a model worker.
+
+Record the unit preflight with:
 
 ```bash
 python3 "$SKILL_DIR/scripts/validation_control.py" --shared-dir "$SHARED_DIR" \

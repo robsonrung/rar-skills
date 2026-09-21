@@ -128,6 +128,17 @@ or stale evidence. A fix requires a new snapshot and reviewer recheck. Preserve
 earlier records and cycle limits. Non-Git implementation can still run, but the
 source evidence gate requires Git.
 
+For every runner call, forward the approved `provider_routing`, model capabilities,
+effort control, and tool policy from its snapshot, including repairs and resume.
+Retain the captured request policy digest and separate model author, gateway, and
+observed inference provider. Reject a missing required request control or tool
+capability; never relax privacy to recover availability. External browser workers
+need their own checked driver and typed image path. A selected external Pi browser route
+binds `browser: {mechanism, preflight: {path, sha256}}`. Pi receives
+`--tool-policy browser`, `--browser-mechanism playwright-cli|agent-browser`, and
+`--browser-preflight <file>` from that snapshot, with explicit image attachments
+through `--image-file <path>` when needed. Shell scope is not a sandbox.
+
 For every runner result, the effective runner and configured model must match
 the approved route. A `required` route also needs a verified model receipt from
 a native or provider event with the approved observed model. An

@@ -6,6 +6,8 @@ license: Complete terms in LICENSE.txt
 
 # Frontend Design
 
+For a direct invocation, first use `shared/references/model-preview.md`. Nested calls reuse the parent's selected snapshot without another prompt or unlisted workers.
+
 This skill guides creation of distinctive, production-grade frontend interfaces: implement real working code with exceptional attention to aesthetic details and creative choices.
 
 The load-bearing idea is **conceptual integrity**: every interface commits to one coherent design idea, and every typographic, color, motion, and layout choice serves it. State that aesthetic out loud before coding and obey it throughout — a striking-but-incoherent screen fails this skill.

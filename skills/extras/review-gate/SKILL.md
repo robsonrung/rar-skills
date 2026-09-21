@@ -12,6 +12,8 @@ disable-model-invocation: true
 
 # Review Gate
 
+For a direct invocation, first use `shared/references/model-preview.md`. Nested calls reuse the parent's selected snapshot without another prompt or unlisted workers.
+
 Review a pull-request head end to end and return a verdict. You are the review **orchestrator**: you declare the review scope, delegate the close reading to isolated reviewer roles, verify with real command runs and the deployed preview when one exists, and return one structured result. Selected reviewers own the initial diff reading. The merge is mechanical; targeted candidate verification is separate and does not repeat the full review.
 
 Precision over volume: a wrong or unfalsifiable finding costs more than a missed nit. A `request-changes` verdict may feed an automated follow-up implementation run that consumes your findings verbatim — write each one so a competent agent can act without asking: what's wrong, where, why it matters, what done looks like.
@@ -58,9 +60,9 @@ risk-based scope, read
 [`task-shaped-model-routing.md`](../../shared/references/task-shaped-model-routing.md),
 [`model-roster.md`](../../shared/references/model-roster.md), and
 [`host-model-execution.md`](../../shared/references/host-model-execution.md),
-then present the exact selected routes for approval before dispatch. Probe only
-the selected capabilities without starting model jobs. Record the approved seat
-table; persona briefs cannot override it.
+then use the shared preview and its decision rules once before dispatch. Probe
+only the selected capabilities without starting model jobs. Record the selected
+seat table; nested skills and persona briefs cannot override it.
 
 Resolve `broad-review`, `independent-review`, `precision-review`, or
 `security-review` from `shared/model-routing.json` for the selected scope.

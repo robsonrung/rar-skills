@@ -88,8 +88,8 @@ def validate_selection(runner: str, model: str, effort: str | None, config: dict
     if supported is None:
         require(not adapter.get("known_model_required"), f"Model {model!r} has no known {runner} effort capability")
         supported = runner_efforts(runner, config=config)
-    if adapter["effort_flag"] is None:
-        require(effort is None, f"{runner} cannot enforce a selected effort")
+    if adapter["effort_flag"] is None or supported == ():
+        require(effort is None, f"{runner}/{model} cannot enforce a selected effort")
     else:
         require(effort in supported and effort in runner_efforts(runner, config=config), f"Effort {effort!r} is not supported by {runner}/{model}")
 
@@ -174,6 +174,14 @@ def validate_config(config: Any) -> None:
             resolve_reference(ref, config)
         models = [resolve_reference(ref, config)["model"] for ref in council["openings"]]
         require(len(models) >= 3 and len(models) == len(set(models)), f"Council {name} requires distinct opening models")
+    for seat, model in config["models"].items():
+        if "default_effort" in model:
+            validate_selection(model["runner"], model["model"], model["default_effort"], config)
+        if "capabilities" in model:
+            capabilities = model["capabilities"]
+            require(isinstance(capabilities, dict) and all(key in {"tools", "images"} and isinstance(value, bool) for key, value in capabilities.items()), f"Invalid capabilities for {seat}")
+    if any(key in config for key in ("profiles", "default_profile", "profile_policy")):
+        validate_profiles(config)
 
 
 def resolve_reference(reference: dict, config: dict) -> dict:
@@ -195,6 +203,149 @@ def resolve_route(name: str, family: str, *, risk: str = "normal", config: dict 
                 config_digest=config_digest(config), evidence=config["evidence"],
                 conditions=route.get("conditions", []),
                 roles={key: resolve_role(value, config) for key, value in route["families"][family].items()})
+
+
+def profile_family(name: str, profile: dict) -> str:
+    return profile.get("route_families", {}).get(name, profile["family"])
+
+
+def validate_profiles(config: dict) -> None:
+    profiles = config.get("profiles")
+    require(isinstance(profiles, dict) and bool(profiles), "Missing profiles")
+    require(config.get("default_profile") in profiles, "Invalid default profile")
+    policy = config.get("profile_policy")
+    require(isinstance(policy, dict), "Missing profile policy")
+    provider = policy.get("provider_routing")
+    require(isinstance(provider, dict), "Missing profile provider policy")
+    require(set(provider) <= {"gateway", "zdr", "data_collection", "require_parameters", "only", "allow_fallbacks"}, "Unknown profile provider control")
+    require(provider.get("gateway") == "openrouter" and provider.get("zdr") is True and provider.get("data_collection") == "deny" and provider.get("require_parameters") is True, "Profile provider policy must require strict privacy and parameter support")
+    if "only" in provider:
+        require(isinstance(provider["only"], list) and bool(provider["only"]) and all(isinstance(value, str) and value for value in provider["only"]), "Invalid provider allowlist")
+    if "allow_fallbacks" in provider:
+        require(isinstance(provider["allow_fallbacks"], bool), "Invalid provider fallback control")
+    direct = policy.get("direct_execution_routes")
+    require(isinstance(direct, list) and all(name in config["routes"] for name in direct), "Invalid direct execution routes")
+    for name, profile in profiles.items():
+        require(isinstance(profile, dict) and isinstance(profile.get("label"), str) and isinstance(profile.get("family"), str), f"Invalid profile: {name}")
+        for field in ("route_families", "role_requirements", "role_candidates", "route_conditions"):
+            mapping = profile.get(field, {})
+            require(isinstance(mapping, dict) and all(route in config["routes"] for route in mapping), f"Invalid {field} for profile {name}")
+        for route, conditions in profile.get("route_conditions", {}).items():
+            require(isinstance(conditions, list) and all(isinstance(value, str) and value for value in conditions), f"Invalid conditions for {name}/{route}")
+        for field in ("role_requirements", "role_candidates"):
+            for route, roles in profile.get(field, {}).items():
+                selections = config["routes"][route]["families"].get(profile_family(route, profile), {})
+                require(isinstance(roles, dict) and all(role in selections for role in roles), f"Unknown role in {name}/{route}/{field}")
+                for role, values in roles.items():
+                    require(isinstance(values, list) and bool(values) and all(isinstance(value, str) for value in values), f"Invalid {field} for {name}/{route}/{role}")
+                    allowed = {"tools", "images"} if field == "role_requirements" else config["models"]
+                    require(all(value in allowed for value in values), f"Unknown {field} for {name}/{route}/{role}")
+                    if field == "role_candidates":
+                        for seat in values:
+                            require("default_effort" in config["models"][seat], f"Missing candidate effort for {seat}")
+        for route in config["routes"]:
+            for risk in config["policy"]["risk_levels"]:
+                resolve_profile(route, name, risk=risk, config=config)
+
+
+def profile_role(selection: dict, provider_routing: dict, requirements: list[str], config: dict) -> dict:
+    result = resolve_role(selection, config)
+    entry = config["models"][result["seat"]]
+    required = list(dict.fromkeys([*requirements, *(["tools"] if result["runner"] == "pi" else [])]))
+    capabilities = entry.get("capabilities", {})
+    for capability in required:
+        require(capabilities.get(capability) is True, f"Seat {result['seat']} lacks recorded {capability} support")
+    if result["runner"] == "pi":
+        privacy = entry.get("privacy", {})
+        require(privacy.get("gateway") == provider_routing["gateway"] and privacy.get("zdr_available") is True, f"Seat {result['seat']} has no verified strict privacy route")
+        result["provider_routing"] = copy.deepcopy(provider_routing)
+    result["effort_control"] = "runtime" if result["effort"] is None else "runner"
+    if capabilities:
+        result["capabilities"] = copy.deepcopy(capabilities)
+    if required:
+        result["required_capabilities"] = required
+    return result
+
+
+def override_selection(base: dict, override: dict, config: dict) -> dict:
+    require(isinstance(override, dict) and bool(override) and set(override) <= {"seat", "effort"}, "Role overrides accept only seat and effort")
+    selection = {key: base[key] for key in ("seat", "effort")}
+    if "seat" in override and override["seat"] != base["seat"]:
+        seat = override["seat"]
+        require(isinstance(seat, str) and seat in config["models"], f"Unknown seat: {seat}")
+        entry = config["models"][seat]
+        require("effort" in override or "default_effort" in entry, f"Select an explicit effort for {seat}")
+        selection = {"seat": seat, "effort": entry.get("default_effort")}
+    selection.update(override)
+    return selection
+
+
+def resolve_profile(name: str, profile: str | None = None, *, local_profile: str | None = None,
+                    role_overrides: dict | None = None, risk: str = "normal", config: dict | None = None) -> dict:
+    """Build a preview before approval. Saved route snapshots bypass this function."""
+    config = load_config() if config is None else config
+    selected_profile = profile if profile is not None else local_profile if local_profile is not None else config.get("default_profile")
+    require(isinstance(selected_profile, str) and selected_profile in config.get("profiles", {}), f"Unknown profile: {selected_profile}")
+    entry = config["profiles"][selected_profile]
+    policy = config["profile_policy"]
+    require(name in config["routes"], f"Unknown task route: {name}")
+    require(risk in config["policy"]["risk_levels"], f"Unknown risk level: {risk}")
+    direct = name in policy["direct_execution_routes"]
+    if direct:
+        result = dict(requested_route=name, route=name, family=profile_family(name, entry),
+                      config_digest=config_digest(config), evidence=config["evidence"],
+                      conditions=copy.deepcopy(config["routes"][name].get("conditions", [])))
+    else:
+        result = resolve_route(name, profile_family(name, entry), risk=risk, config=config)
+    result.update(profile=selected_profile, profile_label=entry["label"], risk=risk,
+                  selection_source="explicit" if profile is not None else "local" if local_profile is not None else "central",
+                  execution="repository-commands" if direct else "model-roles")
+    overrides = {} if role_overrides is None else role_overrides
+    require(isinstance(overrides, dict), "Role overrides must be an object")
+    if direct:
+        require(not overrides, f"{name} runs repository commands and accepts no model overrides")
+        result.update(roles={}, alternatives={})
+        return result
+    require(set(overrides) <= set(result["roles"]), f"Unknown role override for {result['route']}")
+    requirements = entry.get("role_requirements", {}).get(result["route"], {})
+    result["roles"] = {
+        role: profile_role(override_selection(selection, overrides[role], config) if role in overrides else selection,
+                           policy["provider_routing"], requirements.get(role, []), config)
+        for role, selection in result["roles"].items()
+    }
+    for left, right in (("implementer", "reviewer"), ("interviewer", "respondent")):
+        if left in result["roles"] and right in result["roles"]:
+            require(result["roles"][left]["model"] != result["roles"][right]["model"], "Independent roles must use distinct models")
+    result["conditions"] = [*result["conditions"], *entry.get("route_conditions", {}).get(result["route"], [])]
+    result["alternatives"] = {}
+    for role, seats in entry.get("role_candidates", {}).get(result["route"], {}).items():
+        eligible = []
+        for seat in seats:
+            selection = {"seat": seat, "effort": config["models"][seat]["default_effort"]}
+            try:
+                candidate = profile_role(selection, policy["provider_routing"], requirements.get(role, []), config)
+            except ValueError:
+                continue
+            other_models = {value["model"] for other, value in result["roles"].items() if other != role}
+            if candidate["model"] not in other_models:
+                eligible.append(candidate)
+        result["alternatives"][role] = eligible
+    return result
+
+
+def parse_role_overrides(values: list[str]) -> dict:
+    result = {}
+    for value in values:
+        role, separator, choice = value.partition("=")
+        seat, effort_separator, effort = choice.partition(":")
+        require(bool(separator and role and seat), "Use --role ROLE=SEAT[:EFFORT]")
+        require(role not in result, f"Duplicate role override: {role}")
+        selection = {"seat": seat}
+        if effort_separator:
+            require(bool(effort), f"Missing effort for {role}")
+            selection["effort"] = None if effort == "runtime" else effort
+        result[role] = selection
+    return result
 
 
 def resolve_panel_providers(panel: dict, config: dict | None = None) -> dict:
@@ -233,7 +384,11 @@ def main() -> int:
     commands.add_parser("show", help="Print the full configuration")
     resolve = commands.add_parser("resolve", help="Resolve a task into exact role selections")
     resolve.add_argument("route")
-    resolve.add_argument("--family", default="gpt")
+    selection = resolve.add_mutually_exclusive_group()
+    selection.add_argument("--family", help="Legacy family; defaults to gpt without a profile")
+    selection.add_argument("--profile", help="Preview profile; use default for the configured preference")
+    resolve.add_argument("--local-profile", help="Local preview preference, below an explicit profile")
+    resolve.add_argument("--role", action="append", default=[], metavar="ROLE=SEAT[:EFFORT]", help="Change one preview role; use runtime for a model without effort control")
     resolve.add_argument("--risk", default="normal")
     council = commands.add_parser("council", help="Resolve a council preview without starting any calls")
     council.add_argument("name")
@@ -243,7 +398,15 @@ def main() -> int:
         if args.command == "validate":
             output = dict(valid=True, models=len(config["models"]), routes=len(config["routes"]), config_digest=config_digest(config))
         elif args.command == "resolve":
-            output = resolve_route(args.route, args.family, risk=args.risk, config=config)
+            use_profile = args.profile is not None or args.local_profile is not None
+            require(not (args.family is not None and use_profile), "Select either a family or a profile")
+            require(use_profile or not args.role, "Role overrides require a profile")
+            if use_profile:
+                output = resolve_profile(args.route, None if args.profile == "default" else args.profile,
+                                         local_profile=args.local_profile, role_overrides=parse_role_overrides(args.role),
+                                         risk=args.risk, config=config)
+            else:
+                output = resolve_route(args.route, args.family or "gpt", risk=args.risk, config=config)
         elif args.command == "council":
             require(args.name in config["councils"], f"Unknown council: {args.name}")
             output = {key: [resolve_reference(ref, config) for ref in value] if isinstance(value, list) else resolve_reference(value, config) for key, value in config["councils"][args.name].items()}

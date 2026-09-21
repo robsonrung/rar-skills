@@ -56,7 +56,27 @@
       "high",
       "xhigh"
     ],
-    "runtime": []
+    "runtime": [],
+    "pi_adapter": [
+      "none",
+      "off",
+      "minimal",
+      "low",
+      "medium",
+      "high",
+      "xhigh",
+      "max"
+    ],
+    "glm": [
+      "low",
+      "high",
+      "max"
+    ],
+    "deepseek": [
+      "low",
+      "high",
+      "max"
+    ]
   },
   "runners": {
     "codex": {
@@ -123,7 +143,7 @@
     "pi": {
       "provider": "openrouter",
       "effort_flag": "--thinking",
-      "effort_profile": "pi",
+      "effort_profile": "pi_adapter",
       "default_seat": null,
       "default_effort": null,
       "effort_aliases": {
@@ -245,8 +265,28 @@
       "model": "z-ai/glm-5.3-flash",
       "runner": "pi",
       "family": "glm",
-      "effort_profile": "pi",
-      "aliases": []
+      "effort_profile": "glm",
+      "aliases": [],
+      "default_effort": "high",
+      "capabilities": {
+        "tools": true,
+        "images": true
+      },
+      "capability_evidence": {
+        "checked_at": "2026-09-20",
+        "source": "https://openrouter.ai/api/v1/models"
+      },
+      "privacy": {
+        "gateway": "openrouter",
+        "zdr_available": true,
+        "checked_at": "2026-09-20",
+        "source": "https://openrouter.ai/api/v1/endpoints/zdr",
+        "preflight_required": true
+      },
+      "reasoning_evidence": {
+        "checked_at": "2026-09-20",
+        "source": "https://huggingface.co/zai-org/GLM-5.3-Flash"
+      }
     },
     "qwen": {
       "model": "qwen/qwen3.8-max",
@@ -299,6 +339,125 @@
       "effort_profile": "legacy",
       "aliases": [],
       "legacy": true
+    },
+    "deepseek-flash": {
+      "model": "deepseek/deepseek-v4.1-flash",
+      "runner": "pi",
+      "family": "deepseek",
+      "effort_profile": "deepseek",
+      "aliases": [],
+      "default_effort": "high",
+      "capabilities": {
+        "tools": true,
+        "images": true
+      },
+      "capability_evidence": {
+        "checked_at": "2026-09-20",
+        "source": "https://openrouter.ai/api/v1/models"
+      },
+      "privacy": {
+        "gateway": "openrouter",
+        "zdr_available": true,
+        "checked_at": "2026-09-20",
+        "source": "https://openrouter.ai/api/v1/endpoints/zdr",
+        "preflight_required": true
+      },
+      "reasoning_evidence": {
+        "checked_at": "2026-09-20",
+        "source": "https://huggingface.co/deepseek-ai/DeepSeek-V4.1-Flash/blob/main/encoding/README.md"
+      }
+    },
+    "qwen-flash": {
+      "model": "qwen/qwen3.8-flash",
+      "runner": "pi",
+      "family": "qwen",
+      "effort_profile": "runtime",
+      "aliases": [],
+      "default_effort": null,
+      "capabilities": {
+        "tools": true,
+        "images": true
+      },
+      "capability_evidence": {
+        "checked_at": "2026-09-20",
+        "source": "https://openrouter.ai/api/v1/models"
+      },
+      "privacy": {
+        "gateway": "openrouter",
+        "zdr_available": false,
+        "checked_at": "2026-09-20",
+        "source": "https://openrouter.ai/api/v1/endpoints/zdr",
+        "preflight_required": true
+      }
+    },
+    "mimo": {
+      "model": "xiaomi/mimo-v2.5",
+      "runner": "pi",
+      "family": "mimo",
+      "effort_profile": "runtime",
+      "aliases": [],
+      "default_effort": null,
+      "capabilities": {
+        "tools": true,
+        "images": true
+      },
+      "capability_evidence": {
+        "checked_at": "2026-09-20",
+        "source": "https://openrouter.ai/api/v1/models"
+      },
+      "privacy": {
+        "gateway": "openrouter",
+        "zdr_available": true,
+        "checked_at": "2026-09-20",
+        "source": "https://openrouter.ai/api/v1/endpoints/zdr",
+        "preflight_required": true
+      }
+    },
+    "qwen-plus": {
+      "model": "qwen/qwen3.6-plus",
+      "runner": "pi",
+      "family": "qwen",
+      "effort_profile": "runtime",
+      "aliases": [],
+      "default_effort": null,
+      "capabilities": {
+        "tools": true,
+        "images": true
+      },
+      "capability_evidence": {
+        "checked_at": "2026-09-20",
+        "source": "https://openrouter.ai/api/v1/models"
+      },
+      "privacy": {
+        "gateway": "openrouter",
+        "zdr_available": false,
+        "checked_at": "2026-09-20",
+        "source": "https://openrouter.ai/api/v1/endpoints/zdr",
+        "preflight_required": true
+      }
+    },
+    "kimi-code": {
+      "model": "moonshotai/kimi-k2.7-code",
+      "runner": "pi",
+      "family": "kimi",
+      "effort_profile": "runtime",
+      "aliases": [],
+      "default_effort": null,
+      "capabilities": {
+        "tools": true,
+        "images": true
+      },
+      "capability_evidence": {
+        "checked_at": "2026-09-20",
+        "source": "https://openrouter.ai/api/v1/models"
+      },
+      "privacy": {
+        "gateway": "openrouter",
+        "zdr_available": true,
+        "checked_at": "2026-09-20",
+        "source": "https://openrouter.ai/api/v1/endpoints/zdr",
+        "preflight_required": true
+      }
     }
   },
   "discovery": [
@@ -425,6 +584,51 @@
         "cline"
       ],
       "tier": "backup"
+    },
+    {
+      "seat": "deepseek-flash",
+      "execution_path": "pi_runner_seat",
+      "probe_cli": "pi",
+      "depends_on": [
+        "pi"
+      ],
+      "tier": "candidate"
+    },
+    {
+      "seat": "qwen-flash",
+      "execution_path": "pi_runner_seat",
+      "probe_cli": "pi",
+      "depends_on": [
+        "pi"
+      ],
+      "tier": "candidate"
+    },
+    {
+      "seat": "mimo",
+      "execution_path": "pi_runner_seat",
+      "probe_cli": "pi",
+      "depends_on": [
+        "pi"
+      ],
+      "tier": "candidate"
+    },
+    {
+      "seat": "qwen-plus",
+      "execution_path": "pi_runner_seat",
+      "probe_cli": "pi",
+      "depends_on": [
+        "pi"
+      ],
+      "tier": "candidate"
+    },
+    {
+      "seat": "kimi-code",
+      "execution_path": "pi_runner_seat",
+      "probe_cli": "pi",
+      "depends_on": [
+        "pi"
+      ],
+      "tier": "candidate"
     }
   ],
   "policy": {
@@ -484,6 +688,12 @@
             "seat": "sonnet",
             "effort": "low"
           }
+        },
+        "economy": {
+          "worker": {
+            "seat": "luna",
+            "effort": "low"
+          }
         }
       }
     },
@@ -503,6 +713,12 @@
         "claude": {
           "worker": {
             "seat": "sonnet",
+            "effort": "medium"
+          }
+        },
+        "economy": {
+          "worker": {
+            "seat": "luna",
             "effort": "medium"
           }
         }
@@ -534,6 +750,16 @@
             "seat": "fable",
             "effort": "high"
           }
+        },
+        "economy": {
+          "implementer": {
+            "seat": "luna",
+            "effort": "medium"
+          },
+          "reviewer": {
+            "seat": "astra",
+            "effort": "high"
+          }
         }
       }
     },
@@ -563,6 +789,16 @@
             "seat": "fable",
             "effort": "high"
           }
+        },
+        "economy": {
+          "implementer": {
+            "seat": "glm",
+            "effort": "high"
+          },
+          "reviewer": {
+            "seat": "luna",
+            "effort": "high"
+          }
         }
       }
     },
@@ -588,6 +824,16 @@
           },
           "reviewer": {
             "seat": "fable",
+            "effort": "high"
+          }
+        },
+        "economy": {
+          "implementer": {
+            "seat": "glm",
+            "effort": "high"
+          },
+          "reviewer": {
+            "seat": "luna",
             "effort": "high"
           }
         }
@@ -619,6 +865,16 @@
             "seat": "fable",
             "effort": "high"
           }
+        },
+        "economy": {
+          "implementer": {
+            "seat": "glm",
+            "effort": "high"
+          },
+          "reviewer": {
+            "seat": "luna",
+            "effort": "high"
+          }
         }
       }
     },
@@ -644,6 +900,16 @@
           },
           "reviewer": {
             "seat": "fable",
+            "effort": "high"
+          }
+        },
+        "economy": {
+          "implementer": {
+            "seat": "sol",
+            "effort": "medium"
+          },
+          "reviewer": {
+            "seat": "astra",
             "effort": "high"
           }
         }
@@ -675,6 +941,16 @@
             "seat": "opus",
             "effort": "high"
           }
+        },
+        "economy": {
+          "implementer": {
+            "seat": "astra",
+            "effort": "medium"
+          },
+          "reviewer": {
+            "seat": "sol",
+            "effort": "high"
+          }
         }
       }
     },
@@ -702,6 +978,16 @@
           },
           "reviewer": {
             "seat": "fable",
+            "effort": "high"
+          }
+        },
+        "economy": {
+          "implementer": {
+            "seat": "glm",
+            "effort": "high"
+          },
+          "reviewer": {
+            "seat": "luna",
             "effort": "high"
           }
         }
@@ -733,6 +1019,16 @@
             "seat": "fable",
             "effort": "high"
           }
+        },
+        "economy": {
+          "implementer": {
+            "seat": "glm",
+            "effort": "high"
+          },
+          "reviewer": {
+            "seat": "luna",
+            "effort": "high"
+          }
         }
       }
     },
@@ -752,6 +1048,12 @@
         "claude": {
           "worker": {
             "seat": "sonnet",
+            "effort": "low"
+          }
+        },
+        "economy": {
+          "worker": {
+            "seat": "luna",
             "effort": "low"
           }
         }
@@ -775,6 +1077,12 @@
             "seat": "sonnet",
             "effort": "medium"
           }
+        },
+        "economy": {
+          "worker": {
+            "seat": "luna",
+            "effort": "medium"
+          }
         }
       }
     },
@@ -796,6 +1104,12 @@
             "seat": "fable",
             "effort": "high"
           }
+        },
+        "economy": {
+          "worker": {
+            "seat": "astra",
+            "effort": "high"
+          }
         }
       }
     },
@@ -813,6 +1127,12 @@
         "claude": {
           "worker": {
             "seat": "fable",
+            "effort": "high"
+          }
+        },
+        "economy": {
+          "worker": {
+            "seat": "astra",
             "effort": "high"
           }
         }
@@ -834,6 +1154,12 @@
             "seat": "fable",
             "effort": "high"
           }
+        },
+        "economy": {
+          "worker": {
+            "seat": "astra",
+            "effort": "high"
+          }
         }
       }
     },
@@ -851,6 +1177,12 @@
         "claude": {
           "worker": {
             "seat": "fable",
+            "effort": "high"
+          }
+        },
+        "economy": {
+          "worker": {
+            "seat": "astra",
             "effort": "high"
           }
         }
@@ -872,6 +1204,12 @@
             "seat": "fable",
             "effort": "high"
           }
+        },
+        "economy": {
+          "worker": {
+            "seat": "astra",
+            "effort": "high"
+          }
         }
       }
     },
@@ -891,6 +1229,12 @@
             "seat": "fable",
             "effort": "high"
           }
+        },
+        "economy": {
+          "worker": {
+            "seat": "astra",
+            "effort": "high"
+          }
         }
       }
     },
@@ -908,6 +1252,12 @@
         "claude": {
           "worker": {
             "seat": "fable",
+            "effort": "xhigh"
+          }
+        },
+        "economy": {
+          "worker": {
+            "seat": "astra",
             "effort": "xhigh"
           }
         }
@@ -935,6 +1285,16 @@
           },
           "reviewer": {
             "seat": "opus",
+            "effort": "high"
+          }
+        },
+        "economy": {
+          "implementer": {
+            "seat": "astra",
+            "effort": "high"
+          },
+          "reviewer": {
+            "seat": "sol",
             "effort": "high"
           }
         }
@@ -966,6 +1326,16 @@
             "seat": "opus",
             "effort": "high"
           }
+        },
+        "economy": {
+          "implementer": {
+            "seat": "astra",
+            "effort": "high"
+          },
+          "reviewer": {
+            "seat": "sol",
+            "effort": "high"
+          }
         }
       }
     },
@@ -993,6 +1363,16 @@
             "seat": "opus",
             "effort": "high"
           }
+        },
+        "economy": {
+          "implementer": {
+            "seat": "astra",
+            "effort": "high"
+          },
+          "reviewer": {
+            "seat": "sol",
+            "effort": "high"
+          }
         }
       }
     },
@@ -1018,6 +1398,16 @@
           },
           "reviewer": {
             "seat": "opus",
+            "effort": "high"
+          }
+        },
+        "economy": {
+          "implementer": {
+            "seat": "astra",
+            "effort": "xhigh"
+          },
+          "reviewer": {
+            "seat": "sol",
             "effort": "high"
           }
         }
@@ -1049,6 +1439,16 @@
             "seat": "fable",
             "effort": "high"
           }
+        },
+        "economy": {
+          "implementer": {
+            "seat": "luna",
+            "effort": "xhigh"
+          },
+          "reviewer": {
+            "seat": "astra",
+            "effort": "high"
+          }
         }
       }
     },
@@ -1066,6 +1466,12 @@
         "claude": {
           "reviewer": {
             "seat": "fable",
+            "effort": "high"
+          }
+        },
+        "economy": {
+          "reviewer": {
+            "seat": "astra",
             "effort": "high"
           }
         }
@@ -1087,6 +1493,12 @@
             "seat": "opus",
             "effort": "high"
           }
+        },
+        "economy": {
+          "reviewer": {
+            "seat": "sol",
+            "effort": "high"
+          }
         }
       }
     },
@@ -1106,6 +1518,12 @@
             "seat": "opus",
             "effort": "high"
           }
+        },
+        "economy": {
+          "reviewer": {
+            "seat": "astra",
+            "effort": "high"
+          }
         }
       }
     },
@@ -1123,6 +1541,12 @@
         "claude": {
           "reviewer": {
             "seat": "fable",
+            "effort": "xhigh"
+          }
+        },
+        "economy": {
+          "reviewer": {
+            "seat": "astra",
             "effort": "xhigh"
           }
         }
@@ -1146,6 +1570,12 @@
             "seat": "fable",
             "effort": "high"
           }
+        },
+        "economy": {
+          "reviewer": {
+            "seat": "astra",
+            "effort": "high"
+          }
         }
       }
     },
@@ -1167,6 +1597,12 @@
             "seat": "fable",
             "effort": "xhigh"
           }
+        },
+        "economy": {
+          "reviewer": {
+            "seat": "astra",
+            "effort": "xhigh"
+          }
         }
       }
     },
@@ -1186,6 +1622,12 @@
         "claude": {
           "worker": {
             "seat": "fable",
+            "effort": "max"
+          }
+        },
+        "economy": {
+          "worker": {
+            "seat": "astra",
             "effort": "max"
           }
         }
@@ -1225,6 +1667,16 @@
             "seat": "opus",
             "effort": "medium"
           }
+        },
+        "economy": {
+          "interviewer": {
+            "seat": "astra",
+            "effort": "high"
+          },
+          "respondent": {
+            "seat": "sol",
+            "effort": "medium"
+          }
         }
       }
     },
@@ -1262,6 +1714,16 @@
             "seat": "opus",
             "effort": "medium"
           }
+        },
+        "economy": {
+          "interviewer": {
+            "seat": "astra",
+            "effort": "high"
+          },
+          "respondent": {
+            "seat": "sol",
+            "effort": "medium"
+          }
         }
       }
     },
@@ -1273,6 +1735,12 @@
       "risk_route": "validation-risk",
       "families": {
         "balanced": {
+          "worker": {
+            "seat": "sol",
+            "effort": "medium"
+          }
+        },
+        "economy": {
           "worker": {
             "seat": "sol",
             "effort": "medium"
@@ -1297,6 +1765,16 @@
             "seat": "sol",
             "effort": "high"
           }
+        },
+        "economy": {
+          "implementer": {
+            "seat": "glm",
+            "effort": "high"
+          },
+          "reviewer": {
+            "seat": "luna",
+            "effort": "high"
+          }
         }
       },
       "evidence": "validate-e2e/references/model-research.md, checked 2026-09-19; task-fit judgment, not local measured equivalence."
@@ -1309,6 +1787,16 @@
       "risk_route": "validation-risk",
       "families": {
         "balanced": {
+          "implementer": {
+            "seat": "sol",
+            "effort": "high"
+          },
+          "reviewer": {
+            "seat": "astra",
+            "effort": "high"
+          }
+        },
+        "economy": {
           "implementer": {
             "seat": "sol",
             "effort": "high"
@@ -1333,6 +1821,12 @@
             "seat": "sonnet",
             "effort": "medium"
           }
+        },
+        "economy": {
+          "worker": {
+            "seat": "glm",
+            "effort": "high"
+          }
         }
       },
       "evidence": "validate-e2e/references/model-research.md, checked 2026-09-19; task-fit judgment, not local measured equivalence."
@@ -1345,6 +1839,16 @@
       "risk_route": "validation-risk",
       "families": {
         "balanced": {
+          "implementer": {
+            "seat": "astra",
+            "effort": "high"
+          },
+          "reviewer": {
+            "seat": "sol",
+            "effort": "high"
+          }
+        },
+        "economy": {
           "implementer": {
             "seat": "astra",
             "effort": "high"
@@ -1373,6 +1877,16 @@
             "seat": "astra",
             "effort": "high"
           }
+        },
+        "economy": {
+          "implementer": {
+            "seat": "glm",
+            "effort": "high"
+          },
+          "reviewer": {
+            "seat": "luna",
+            "effort": "high"
+          }
         }
       },
       "evidence": "validate-e2e/references/model-research.md, checked 2026-09-19; task-fit judgment, not local measured equivalence."
@@ -1389,6 +1903,12 @@
             "seat": "sol",
             "effort": "high"
           }
+        },
+        "economy": {
+          "reviewer": {
+            "seat": "luna",
+            "effort": "high"
+          }
         }
       },
       "evidence": "validate-e2e/references/model-research.md, checked 2026-09-19; task-fit judgment, not local measured equivalence."
@@ -1401,6 +1921,12 @@
       "risk_route": "validation-review-risk",
       "families": {
         "balanced": {
+          "reviewer": {
+            "seat": "astra",
+            "effort": "high"
+          }
+        },
+        "economy": {
           "reviewer": {
             "seat": "astra",
             "effort": "high"
@@ -1622,6 +2148,124 @@
         "title": "Provider model page",
         "url": "https://developers.openai.com/api/docs/models/gpt-6-astra",
         "accessed": "2026-09-19"
+      },
+      "V7": {
+        "title": "GLM gateway pricing and provider page",
+        "url": "https://openrouter.ai/z-ai/glm-5.3-flash",
+        "accessed": "2026-09-20"
+      }
+    }
+  },
+  "default_profile": "economy",
+  "profile_policy": {
+    "direct_execution_routes": [
+      "test-execution"
+    ],
+    "provider_routing": {
+      "gateway": "openrouter",
+      "zdr": true,
+      "data_collection": "deny",
+      "require_parameters": true
+    }
+  },
+  "profiles": {
+    "economy": {
+      "label": "Economy",
+      "family": "economy",
+      "role_candidates": {
+        "routine-function": {
+          "implementer": [
+            "glm",
+            "deepseek-flash",
+            "qwen-plus",
+            "kimi-code"
+          ]
+        },
+        "isolated-implementation": {
+          "implementer": [
+            "glm",
+            "deepseek-flash",
+            "qwen-plus",
+            "kimi-code"
+          ]
+        },
+        "routine-implementation": {
+          "implementer": [
+            "glm",
+            "deepseek-flash",
+            "qwen-plus",
+            "kimi-code"
+          ]
+        },
+        "test-implementation": {
+          "implementer": [
+            "glm",
+            "deepseek-flash",
+            "qwen-plus",
+            "kimi-code"
+          ]
+        },
+        "known-cause-fix": {
+          "implementer": [
+            "glm",
+            "deepseek-flash",
+            "qwen-plus",
+            "kimi-code"
+          ]
+        },
+        "validation-unit": {
+          "implementer": [
+            "glm",
+            "deepseek-flash",
+            "qwen-plus",
+            "kimi-code"
+          ]
+        },
+        "validation-diagnosis": {
+          "implementer": [
+            "glm",
+            "deepseek-flash",
+            "qwen-plus",
+            "kimi-code"
+          ]
+        },
+        "validation-browser": {
+          "worker": [
+            "glm",
+            "mimo",
+            "qwen-flash"
+          ]
+        }
+      },
+      "role_requirements": {
+        "validation-browser": {
+          "worker": [
+            "tools",
+            "images"
+          ]
+        }
+      },
+      "route_conditions": {
+        "validation-diagnosis": [
+          "The cause is proven and the correction is bounded by approved acceptance cases. Use diagnosis for an unexplained failure."
+        ],
+        "validation-browser": [
+          "The external worker must pass browser tool and image preflight before dispatch."
+        ]
+      }
+    },
+    "balanced": {
+      "label": "Balanced",
+      "family": "gpt",
+      "route_families": {
+        "validation-scope": "balanced",
+        "validation-unit": "balanced",
+        "validation-integration": "balanced",
+        "validation-browser": "balanced",
+        "validation-risk": "balanced",
+        "validation-diagnosis": "balanced",
+        "validation-review": "balanced",
+        "validation-review-risk": "balanced"
       }
     }
   }

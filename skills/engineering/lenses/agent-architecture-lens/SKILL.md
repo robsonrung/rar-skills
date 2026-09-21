@@ -5,6 +5,8 @@ description: "Review agent control flow, durable state, retries, and recovery. U
 
 # Agent Architecture Lens
 
+For a direct invocation, first use `shared/references/model-preview.md`. Nested calls reuse the parent's selected snapshot without another prompt or unlisted workers.
+
 Use this skill to review how an agent's control flow, state, and failure handling are structured. The ReAct loop — reason, act, observe, repeat — is the atom of every agent, and it is correct. It is also incomplete: as runs get longer and messier it does not break in one dramatic failure, it quietly stops being enough.
 
 A loop is a graph with one node and one edge pointing back at itself. The governing principle is **architecture follows the shape and duration of the task** — never the elegance of the diagram.

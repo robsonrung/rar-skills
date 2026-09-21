@@ -5,6 +5,8 @@ description: "Judge test value and choose what to test or mock. Use for brittle 
 
 # Test Lens — Valuable Unit Testing
 
+For a direct invocation, first use `shared/references/model-preview.md`. Nested calls reuse the parent's selected snapshot without another prompt or unlisted workers.
+
 Judge or write tests through the framework in _Unit Testing: Principles, Practices, and Patterns_ (Vladimir Khorikov). This is **not** the red-green loop (use `tdd` for cadence) and **not** a bug hunt (that belongs in a code-review pass). It answers one question: **is this test worth its maintenance cost, and does it test the right thing the right way?**
 
 The goal of a test suite is **sustainable project growth** — letting you add features and refactor without fear. A small number of highly valuable tests beats a large number of mediocre ones. **Test code is a liability too.** Set a high bar; delete tests that don't clear it.

@@ -6,6 +6,8 @@ disable-model-invocation: true
 
 # OpenCode Runner
 
+For a direct invocation, first use `shared/references/model-preview.md`. Nested calls reuse the parent's selected snapshot without another prompt or unlisted workers.
+
 Use this skill as a safe OpenCode handoff guide. This package intentionally does not ship an executable OpenCode wrapper.
 
 ## Native routing

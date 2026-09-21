@@ -5,6 +5,8 @@ description: Select relevant design lenses for a planned slice and return a proc
 
 # Design Gate
 
+For a direct invocation, first use `shared/references/model-preview.md`. Nested calls reuse the parent's selected snapshot without another prompt or unlisted workers.
+
 Turn "which design lens applies here?" into a small, evidence-based routing decision, then run only the selected lenses and merge their findings into one verdict. This skill is the routing authority. It does not invent a second review method or call a council.
 
 For the workflow stage boundaries and the practical skills that follow this gate, read `shared/references/workflow-stage-routing.md`.

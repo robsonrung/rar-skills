@@ -6,6 +6,8 @@ disable-model-invocation: true
 
 # HTML Explainer
 
+For a direct invocation, first use `shared/references/model-preview.md`. Nested calls reuse the parent's selected snapshot without another prompt or unlisted workers.
+
 Produce one self-contained HTML file that teaches a reader how a real system works, grounded in the repo's actual code.
 
 **Outcome spine**

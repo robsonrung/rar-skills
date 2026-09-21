@@ -12,6 +12,8 @@ allowed-tools:
 
 # Coding Review Simplify
 
+For a direct invocation, first use `shared/references/model-preview.md`. Nested calls reuse the parent's selected snapshot without another prompt or unlisted workers.
+
 Tighten a completed diff while the implementation context is fresh. The result is a smaller coherent shape, or a focused concern with proof. The next consumer is the approved review plan.
 
 This is a behavior-preserving pass. It does not automatically call `full-review`. The approved routing plan decides whether a later focused, seam, or deep review is needed.

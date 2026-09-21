@@ -5,6 +5,8 @@ description: Build a throwaway experiment to answer a design question that readi
 
 # Prototype
 
+For a direct invocation, first use `shared/references/model-preview.md`. Nested calls reuse the parent's selected snapshot without another prompt or unlisted workers.
+
 Answer one decision-changing question with throwaway code. **Prototype code never graduates**: the next production task rebuilds the selected behavior under its acceptance contract. A prototype produces evidence and a decision, not a finished feature.
 
 ## 1. State the question

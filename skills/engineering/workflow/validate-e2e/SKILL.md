@@ -6,6 +6,8 @@ disable-model-invocation: true
 
 # Validate E2E
 
+For a direct invocation, first use `shared/references/model-preview.md`. Nested calls reuse the parent's selected snapshot without another prompt or unlisted workers.
+
 Return evidence that the requested feature meets its **acceptance contract**: the finite requirements, observable behavior, failure cases, and required runtime gates agreed for this run. Say which contract changed a decision, for example: “The acceptance contract requires a saved result after reload, so a successful HTTP response is insufficient.”
 
 Keep progress in **the ledger, not the transcript**. Use the collection's `shared/` library: in a source checkout it is `skills/shared/`; in a flat installation it is a sibling skill. Resolve all script paths from the loaded skill directories. A missing shared library blocks dependent work.
@@ -22,11 +24,11 @@ Invocation permits local test preparation, execution, and disposable fixtures wi
 
 ## 2. Let the user select the routes
 
-Read [references/model-selection.md](references/model-selection.md). Resolve only applicable `validation-*` routes from `shared/model-routing.json`. It is the only maintained source of model and effort defaults. Deterministic tests run through repository tools without a separate model worker. Distinguish test design and diagnosis from test execution.
+Read [references/model-selection.md](references/model-selection.md). Resolve only applicable `validation-*` routes from `shared/model-routing.json` with `--profile default` and any validated `--local-profile`, unless the user selects an explicit profile or legacy family. It is the only maintained source of model and effort defaults. Deterministic tests run through repository tools without a separate model worker. Distinguish test design and diagnosis from test execution.
 
-Before starting model workers or feature execution, show the concrete scope, test classes, exact models, efforts, native or runner paths, receipt limits, and ceilings. Offer “Use defaults” or edits to any row, including a named runner. A request such as “use defaults and run” already approves unchanged resolved defaults; show them and proceed. Otherwise obtain one decision after the plan is reviewable. Keep useful read-only planning moving. Silence is not approval.
+Use the shared preview for scope, test classes, actual coordinator, exact worker models, efforts, native or runner paths, browser driver access, privacy controls, receipt limits, and ceilings. A request to “use defaults and run” permits the unchanged resolved setup within existing source sharing authority and accepted receipt limits; show it and proceed. Otherwise obtain the existing plan decision after the plan is reviewable. Nested skills reuse the selected snapshot. Keep useful read-only planning moving. Silence is not approval.
 
-Save the exact approved routes and user decision reference. Reuse them on resume. An unavailable route blocks only its work; never silently substitute a model, effort, transport, or verification policy. Model changes or increases beyond the approved total budget need a new decision. Use approved recovery categories within their existing allowance without another question. No model research or availability probe loop is required during normal validation; use the dated research only when selecting or updating routes.
+Save the exact selected routes, provider controls, capabilities, tool policy, fallback triggers, limits, and user decision reference. Reuse this snapshot on resume; do not reread local preferences. An explicit override before dispatch creates a replacement snapshot for unresolved work only. An unavailable route blocks only its work; never silently substitute a model, effort, transport, or verification policy. Model changes or increases beyond the approved total budget need a new decision. Use approved recovery categories within their existing allowance without another question. No model research or availability probe loop is required during normal validation; use the dated research only when selecting or updating routes.
 
 ## 3. Run the smallest sufficient checks
 

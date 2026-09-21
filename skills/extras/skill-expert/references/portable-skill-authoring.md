@@ -42,7 +42,7 @@ When moving text, retain reachable source knowledge and correct paths. Do not cr
 
 An explicit change request authorizes its necessary reversible work. An audit request does not authorize edits. Reuse prior approval for the same scope and action; silence is not new approval.
 
-Preserve user-requested model previews and genuine security boundaries. Carry bounded authority through dependent work without widening it. Continue independent work when one action needs a decision.
+Use `shared/references/model-preview.md` for each direct invocation; nested skills reuse the selected snapshot without another prompt or unlisted workers. Preserve user-requested model previews and genuine security boundaries. Carry bounded authority through dependent work without widening it. Continue independent work when one action needs a decision.
 
 Keep skill invocation separate from delegation. The presence of a multi-agent tool is not itself a reason or authorization to use it. When delegation is authorized, each worker needs a scope, output contract, and owner for integration.
 

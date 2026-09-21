@@ -5,6 +5,8 @@ description: "Choose or review distributed topology and event-stream patterns. U
 
 # Distributed Systems Patterns
 
+For a direct invocation, first use `shared/references/model-preview.md`. Nested calls reuse the parent's selected snapshot without another prompt or unlisted workers.
+
 Read-only pattern skill. Do not implement unless the user asks after the brief.
 
 Two bodies of knowledge, one skill. The **topology routes** are grounded in Burns, _Designing Distributed Systems_: containers plus an orchestrator give a shared language for reusable distributed pieces — name the pattern, then reuse or compose it. The **event-driven route** is grounded in Bellemare: a durable, replayable **data communication layer** of schematized event streams, not point-to-point messages that vanish after consume. Do not invent a one-off topology the catalog already names, and do not call a delete-after-consume queue an event architecture.

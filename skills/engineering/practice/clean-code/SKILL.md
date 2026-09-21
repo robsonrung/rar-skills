@@ -5,6 +5,8 @@ description: Refactor existing code with behavior-preserving Clean Code practice
 
 # Clean Code
 
+For a direct invocation, first use `shared/references/model-preview.md`. Nested calls reuse the parent's selected snapshot without another prompt or unlisted workers.
+
 Improve existing code so it is easier to read, safer to change, and simpler to test while preserving behavior by default.
 
 ## Operating Rules

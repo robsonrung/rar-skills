@@ -71,6 +71,11 @@ native host capability, then external runner availability, and presents an
 implementation plan. The plan names, for every task or task group, the role,
 exact model, execution path, reasoning effort, model-verification policy, and
 any unavailable seat. The user can approve the plan or change it.
+The shared [model preview](../skills/shared/references/model-preview.md) selects
+Economy by default, respects local preferences and explicit role changes, and
+reuses the selected snapshot in child skills. A request to use defaults and run
+authorizes the unchanged concrete plan within existing source sharing authority.
+Existing tests run as repository commands without another model worker.
 Handle an unavailable route under the shared
 [approval and exact route rules](../skills/shared/references/task-shaped-model-routing.md#approval-and-exact-routes):
 block the affected route and continue independent authorized work.

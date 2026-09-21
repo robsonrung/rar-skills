@@ -6,6 +6,8 @@ disable-model-invocation: true
 
 # Diverse Plan
 
+For a direct invocation, first use `shared/references/model-preview.md`. Nested calls reuse the parent's selected snapshot without another prompt or unlisted workers.
+
 Use this only when alternative designs can change the implementation decision. It is separate from `models-consensus`: the user chose a planning exercise, not a council. Never invoke the council from this skill.
 
 ## Outcome
@@ -43,9 +45,10 @@ prerequisites and the single-model `to-prd` path instead.
 
 Before branch dispatch, present the exact route table: branch or lens, seat,
 current model, effort, role, execution path, call count, and unavailable
-action. Ask the user to approve the table or name changes. Do not launch a
-branch or critique before that approval. Record the approved table with the
-plan artifacts and use only those routes.
+action. Use this table as the shared preview and apply its decision rules once.
+Reuse the selected snapshot inside nested skills; do not add a second prompt.
+Do not launch an unselected branch or critique. Record the actual selection
+with the plan artifacts and use only those routes.
 
 ## Workflow
 

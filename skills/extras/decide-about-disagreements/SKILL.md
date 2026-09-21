@@ -6,6 +6,8 @@ disable-model-invocation: true
 
 # Decide About Disagreements
 
+For a direct invocation, first use `shared/references/model-preview.md`. Nested calls reuse the parent's selected snapshot without another prompt or unlisted workers.
+
 Use this skill after `models-consensus` returns at least one topic without a shared position. The result is a decision aid, not a second council. The skill does not edit the council artifacts or implement the user's choice.
 
 ## Outcome spine

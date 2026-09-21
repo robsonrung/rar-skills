@@ -222,6 +222,46 @@
             },
             "native": {
               "$ref": "#/definitions/native"
+            },
+            "provider_routing": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/provider_routing"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "browser": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/browser"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "capabilities": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/capabilities"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "required_capabilities": {
+              "anyOf": [
+                {
+                  "$ref": "#/definitions/required_capabilities"
+                },
+                {
+                  "type": "null"
+                }
+              ]
             }
           }
         }
@@ -401,6 +441,18 @@
             }
           ],
           "description": "Maximum UTF-8 bytes of the complete launcher-rendered worker input. Default 24000. Larger limits need a recorded reason and are bound by the route approval digest. Host-added context and retained role history remain unmeasured."
+        },
+        "provider_routing": {
+          "$ref": "#/definitions/provider_routing"
+        },
+        "browser": {
+          "$ref": "#/definitions/browser"
+        },
+        "capabilities": {
+          "$ref": "#/definitions/capabilities"
+        },
+        "required_capabilities": {
+          "$ref": "#/definitions/required_capabilities"
         }
       },
       "allOf": [
@@ -457,8 +509,137 @@
               }
             }
           }
+        },
+        {
+          "if": {
+            "required": [
+              "provider_routing"
+            ]
+          },
+          "then": {
+            "properties": {
+              "runner": {
+                "const": "pi"
+              },
+              "mode": {
+                "const": "runner"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "browser"
+            ]
+          },
+          "then": {
+            "properties": {
+              "runner": {
+                "const": "pi"
+              },
+              "mode": {
+                "const": "runner"
+              }
+            }
+          }
         }
       ]
+    },
+    "provider_routing": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "gateway",
+        "zdr",
+        "data_collection",
+        "require_parameters"
+      ],
+      "properties": {
+        "gateway": {
+          "const": "openrouter"
+        },
+        "zdr": {
+          "const": true
+        },
+        "data_collection": {
+          "const": "deny"
+        },
+        "require_parameters": {
+          "const": true
+        },
+        "only": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "allow_fallbacks": {
+          "type": "boolean"
+        }
+      }
+    },
+    "file_reference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "sha256"
+      ],
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      }
+    },
+    "browser": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mechanism",
+        "preflight"
+      ],
+      "properties": {
+        "mechanism": {
+          "enum": [
+            "playwright-cli",
+            "agent-browser"
+          ]
+        },
+        "preflight": {
+          "$ref": "#/definitions/file_reference"
+        }
+      }
+    },
+    "capabilities": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "tools": {
+          "type": "boolean"
+        },
+        "images": {
+          "type": "boolean"
+        }
+      }
+    },
+    "required_capabilities": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "tools",
+          "images"
+        ]
+      }
     }
   }
 }

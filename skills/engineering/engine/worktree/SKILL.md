@@ -5,6 +5,8 @@ description: Set up an isolated git worktree for new work or an existing ref. Us
 
 # Worktree Isolation
 
+For a direct invocation, first use `shared/references/model-preview.md`. Nested calls reuse the parent's selected snapshot without another prompt or unlisted workers.
+
 Ensure the current work happens in an isolated workspace without disturbing the user's main checkout. Most coding harnesses now create a worktree by default at session start, so first detect whether **isolation already exists**.
 
 The common caller is a user asking for isolation. An implementation workflow may request it after its plan identifies independent tracks. Creating a reversible worktree is within an implementation request. Commit-based integration remains separately authorized. `implement-and-review` otherwise uses one sequential working-tree track.

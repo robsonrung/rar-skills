@@ -5,6 +5,8 @@ description: "Review domain boundaries, business language, aggregates, and domai
 
 # Domain-Driven Design
 
+For a direct invocation, first use `shared/references/model-preview.md`. Nested calls reuse the parent's selected snapshot without another prompt or unlisted workers.
+
 Review the domain shape of a change through the lenses from _Learning Domain-Driven Design_ (Vlad Khononov, O'Reilly). DDD works at two altitudes that compose:
 
 - **Strategic** (Parts I, III–IV) — _where the boundaries are_: bounded contexts, ubiquitous language, and how contexts integrate.

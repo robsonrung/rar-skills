@@ -5,6 +5,8 @@ description: "Review implementation risks in persistent state and asynchronous d
 
 # Data Systems Coding Lens
 
+For a direct invocation, first use `shared/references/model-preview.md`. Nested calls reuse the parent's selected snapshot without another prompt or unlisted workers.
+
 Use this skill to add a practical data systems review pass to coding work. The goal is not to explain theory. The goal is to catch failure modes before they become production bugs.
 
 Two leitwörter anchor every pass and recur in the checks below. **Source of truth**: name the one place that durably owns each fact, so derived copies (caches, indexes, read models) can always be rebuilt from it. **Idempotent**: every write that can be retried or replayed must produce the same result the second time — no duplicate money, emails, jobs, or records. State both by name as you review.

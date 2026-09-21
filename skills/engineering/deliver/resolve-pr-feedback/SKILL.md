@@ -12,6 +12,8 @@ disable-model-invocation: true
 
 # Resolve Pull Request Feedback
 
+For a direct invocation, first use `shared/references/model-preview.md`. Nested calls reuse the parent's selected snapshot without another prompt or unlisted workers.
+
 Resolve feedback that holds against the current code. The next consumer is the pull request reviewer. Done means each addressed item has evidence, any valid fix is verified, and only intentionally open threads remain.
 
 ## Mandate

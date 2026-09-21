@@ -5,6 +5,8 @@ description: "Choose a system architecture style or assess service decomposition
 
 # Macro Architecture
 
+For a direct invocation, first use `shared/references/model-preview.md`. Nested calls reuse the parent's selected snapshot without another prompt or unlisted workers.
+
 Two complementary system-level tools that work at the same altitude — **what shape should this system take?**
 
 - **Style selection** — given a system/service/feature and its driving requirements, which macro architecture style (or hybrid) fits, and what does the book warn about if you pick it? (from _Software Architecture Patterns, 2nd ed._, Mark Richards.)

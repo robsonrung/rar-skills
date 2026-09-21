@@ -6,6 +6,8 @@ disable-model-invocation: true
 
 # Brainstorm
 
+For a direct invocation, first use `shared/references/model-preview.md`. Nested calls reuse the parent's selected snapshot without another prompt or unlisted workers.
+
 Decide whether to build and which direction to explore. Keep **the why before the how**: identify the problem before choosing a mechanism. **Expand the solution space** with alternatives supported by the user's needs and the project. Do not write production code or implementation tasks.
 
 ## 1. Understand the problem

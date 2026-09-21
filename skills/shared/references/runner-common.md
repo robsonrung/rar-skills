@@ -14,8 +14,9 @@ the runner's continuation reference before its first call so persistence is
 enabled and the returned session ID is captured. Use that exact ID for follow-up
 calls, never a shared last-session selector in a concurrent run. Pi needs an
 explicit unique session path from the first call. Preserve approved model,
-effort, tool policy, and counters on resume. A transcript handoff is a disclosed
-reconstruction, not native resumption. See the host execution contract for
+effort control, provider routing, model capabilities, tool policy, and counters
+on resume. Copy them from the selected snapshot, not local preferences.
+A transcript handoff is a disclosed reconstruction, not native resumption. See the host execution contract for
 adapter limits, pending-call recovery, and role isolation.
 
 ## Seat fidelity
@@ -45,8 +46,11 @@ An implementation or council route selected by a user-approved routing plan is
 stricter than an ad hoc runner call. It passes `--disable-fallback`, names its
 model and effort explicitly, and accepts output only when the envelope's
 `effective_runner` and `configured_model` match the approved route. It also
-uses the route's `model_verification` policy. `required` needs a matching
-verified serving-model receipt. `allow_unverified` is valid only when the user
+uses the route's `model_verification` policy. Carry selected provider routing and
+required tool capabilities through initial calls, repairs, and resume. A privacy
+or capability failure blocks the route; source sharing metadata alone does not
+enforce request controls. The request policy digest does not prove serving identity.
+`required` needs a matching verified serving-model receipt. `allow_unverified` is valid only when the user
 approved it and the report labels the serving model unverified. A verified
 receipt for a different model always blocks, including on an
 `allow_unverified` route.
@@ -73,10 +77,11 @@ model access.
 
 ## Effort control
 
-Codex, Claude, Grok, Pi, and Cline can enforce a selected effort and use
-`effort_control: "runner"`. Gemini uses `effort_control: "runtime"` with a
-null effort. Dcode is not eligible for approved implementation or review
-routes because it cannot forward an exact model. Grok accepts at most `high`;
+Adapters with a supported model specific effort use `effort_control: "runner"`.
+Pi candidates without selectable effort use `effort_control: "runtime"` with a
+null effort; preserve their observed runtime reasoning without inventing a level.
+Gemini also uses runtime effort. Dcode is not eligible for approved implementation
+or review routes because it cannot forward an exact model. Grok accepts at most `high`;
 an approved route must select a supported effort rather than rely on a
 direct-call clamp.
 

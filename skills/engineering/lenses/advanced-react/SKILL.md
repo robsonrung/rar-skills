@@ -5,6 +5,8 @@ description: "Plan, implement, or review React component structure, state placem
 
 # Advanced React
 
+For a direct invocation, first use `shared/references/model-preview.md`. Nested calls reuse the parent's selected snapshot without another prompt or unlisted workers.
+
 Apply _Advanced React_ (Nadia Makarevich, 2023) to a React change. The result is a named composition shape, code that matches it, or a review that cites book rules — not a generic React style pass and not a React 19 Compiler setup.
 
 **Next consumer:** the implementer of the plan, the reviewer of the diff, or the user reading findings.
