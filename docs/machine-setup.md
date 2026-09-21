@@ -13,7 +13,7 @@ skill. This checklist does not install software or change credentials.
 | Python 3.11 or newer | Workflow controllers, runner wrappers and validators | `python3 --version`. Use 3.11+ for the standard TOML parser used by artifact validation. |
 | Node.js 24.x with npm/npx | Pi and npm-distributed browser tools | `node --version`; `npm --version`. The verified Pi package requires Node >=22.19.0; Node 24.x is the setup baseline. |
 | Bash and standard Unix tools | Installation, command guards and shell helpers | `bash --version`. Use macOS, Linux or a compatible WSL environment; native Windows execution is not verified here. |
-| ripgrep | Fast repository searches | `rg --version`. |
+| ripgrep (optional) | Faster repository searches | `rg --version`. Use `grep` and `find` if it is absent. |
 | Repository runtime and package manager | Building and testing the target application | Follow the target repository's lockfile and setup instructions. Node, Python, Java, databases or containers depend on that application. |
 | Skill collection, including `shared/` | All collection workflows | Install the skill directories and shared scripts together. Keep copied installations updated. |
 
@@ -38,7 +38,7 @@ preserve any local edits before running it.
 
 | Item | Required setup |
 | --- | --- |
-| Pi CLI | Install exactly `@earendil-works/pi-coding-agent@0.85.1`. The strict wrapper currently rejects other versions until their request hook is verified. |
+| Pi CLI | Install `@earendil-works/pi-coding-agent` version 0.85.1 or newer. The checker and runner use the same minimum. |
 | OpenRouter account | Configure a valid key and sufficient account access or credit for the selected models. |
 | Provider credential | Export `OPENROUTER_API_KEY` into the process that starts the host and workers, or authenticate the gateway in Pi through `/login`. |
 | Review and planning models | Make the selected central routes available through native host delegation or their authenticated runner. Economy still uses independent review and stronger planning/risk roles. Pi alone does not provide every default role. |
@@ -50,8 +50,9 @@ npm install -g @earendil-works/pi-coding-agent@0.85.1
 pi --version
 ```
 
-The expected Pi version is `0.85.1`. Do not replace it with `latest` without
-validating the strict adapter. Model IDs and effort defaults remain in
+The minimum Pi version is `0.85.1`. Newer stable releases are accepted.
+Prerelease versions are not accepted. The runner still requires the request hook
+to confirm readiness before sending task content. Model IDs and effort defaults remain in
 [`model-routing.json`](../skills/shared/model-routing.json).
 
 The strict route passes ZDR, denied data collection and required parameter
@@ -179,7 +180,20 @@ bash scripts/check-environment.sh --project /absolute/path/to/project --json
 
 The shell entry point checks for Python 3.11+ before starting the Python
 checker. It reports `OK`, `MISSING` and `WARN`, with required and optional checks shown
-separately. It checks the Economy prerequisites by default. Use `--native-models`
+separately. The text report lists required next steps in order, with install
+commands, login instructions and checks. Optional steps apply only to tools your
+task needs. The final command repeats the check with your project, browser,
+model access and timeout options. Run it from the host environment after setup.
+If Python is missing or too old, the shell entry point shows how to install it
+and repeat the check. The JSON format retains its existing fields and includes the
+setup instructions in each check's `action` field. Checks that require manual
+verification have `manual: true` and appear in a separate text section. Repeating
+the checker does not verify login or browser behavior. A writable Pi state
+directory passes its local permission check without repeated repair steps.
+In automatic browser mode, one working driver is enough; instructions use that
+driver. Version probe warnings distinguish a timeout from an execution failure.
+
+It checks the Economy prerequisites by default. Use `--native-models`
 when the host supplies review and planning models instead of the external CLI.
 Use `--browser agent-browser` or `--browser playwright-cli` to require a specific
 driver, or `--browser none` for work without browser checks. Set `--timeout 5`
@@ -193,7 +207,7 @@ describes the current process environment, including its sandbox permissions.
 
 The script does not install software, launch browsers, read credential values
 from files, perform logins or call a provider. It runs version commands, which
-may use the tool's own caches. Optional CLI checks inspect PATH only. Environment
+may use the tool's own caches. Optional runner checks inspect PATH only. Environment
 keys are checked for presence without displaying their values. Authentication,
 account access and actual browser behavior require separate checks.
 

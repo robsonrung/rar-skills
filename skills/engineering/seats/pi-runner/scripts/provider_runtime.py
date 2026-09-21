@@ -4,6 +4,7 @@ import base64
 import hashlib
 import json
 import os
+import re
 import signal
 import subprocess
 import tempfile
@@ -13,9 +14,14 @@ from pathlib import Path
 from provider_routing import validate_provider_policy_receipt
 
 EXTENSION_PATH = Path(__file__).with_name("provider_policy.mjs")
-SUPPORTED_PI_VERSIONS = {"0.85.1"}
+MINIMUM_PI_VERSION = (0, 85, 1)
 READINESS_TIMEOUT = 15
 GATEWAY_BASE_URL = "https://openrouter.ai/api/v1"
+
+
+def supports_pi_version(value: str) -> bool:
+    match = re.fullmatch(r"(\d+)\.(\d+)\.(\d+)(?:\+[0-9A-Za-z.-]+)?", value.strip())
+    return bool(match and tuple(map(int, match.groups())) >= MINIMUM_PI_VERSION)
 
 
 def canonical_digest(value: dict) -> str:
@@ -51,8 +57,8 @@ def run_controlled(command: list[str], *, prompt: str, cwd: str, timeout: int,
     deadline = started + timeout if timeout > 0 else float("inf")
     version = subprocess.run([command[0], "--version"], capture_output=True, text=True,
                              timeout=min(timeout or 10, 10), check=False, stdin=subprocess.DEVNULL)
-    if version.returncode != 0 or version.stdout.strip() not in SUPPORTED_PI_VERSIONS:
-        raise ValueError("Pi runtime has no verified request hook support")
+    if version.returncode != 0 or not supports_pi_version(version.stdout):
+        raise ValueError("Pi runtime requires a stable version at or above " + ".".join(map(str, MINIMUM_PI_VERSION)))
     if not EXTENSION_PATH.is_file():
         raise ValueError("Packaged request hook is missing")
     images = [image_content(path) for path in image_files]

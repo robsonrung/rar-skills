@@ -7,30 +7,80 @@ import ast
 import json
 import os
 import re
+import shlex
 import shutil
 import subprocess
 import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+SETUP_GUIDE = ROOT / 'docs/machine-setup.md'
 
 
-def supported_pi_versions():
+def install_action(name, minimum=None):
+    """Return instructions only; the checker never runs setup commands."""
+    if name == 'pi':
+        version = '.'.join(map(str, minimum or minimum_pi_version()))
+        return (f'Run: npm install -g @earendil-works/pi-coding-agent@{version}\n'
+                f'Check: pi --version\nMinimum version: {version}. Newer stable releases are accepted.\n'
+                'The runner checks request hook readiness before sending task content.')
+    if name in ('node', 'npm'):
+        install = ('Run: brew install node@24\n'
+                   'Add this line to your shell startup file (~/.zshrc for zsh), then open a new terminal:\n'
+                   'export PATH="$(brew --prefix node@24)/bin:$PATH"'
+                   if sys.platform == 'darwin' else
+                   'Install Node.js 24.x with npm from https://nodejs.org/en/download')
+        return install + '\nCheck: node --version\nCheck: npm --version'
+    if name in ('python', 'git', 'bash', 'rg', 'gh', 'jq'):
+        package = {'python': 'python3', 'rg': 'ripgrep'}.get(name, name)
+        if sys.platform == 'darwin':
+            package = 'python' if name == 'python' else package
+            install = f'With Homebrew installed (https://brew.sh), run: brew install {package}'
+        elif sys.platform.startswith('linux'):
+            install = (f'On Debian/Ubuntu, run: sudo apt-get update && sudo apt-get install {package}\n'
+                       'On other Linux systems, use the system package manager.')
+        else:
+            install = f'Install {package} in a supported macOS, Linux or WSL environment.'
+        command = 'python3' if name == 'python' else name
+        action = f'{install}\nCheck: {command} --version'
+        if name == 'python':
+            action += '\nPython 3.11 or newer is required. See https://www.python.org/downloads/'
+        if name == 'gh':
+            action += '\nThen: gh auth login\nCheck: gh auth status'
+        return action
+    if name == 'agent-browser':
+        return ('Run: npm install -g agent-browser@0.36.0\n'
+                'Then: agent-browser install\nCheck: agent-browser --version')
+    if name == 'playwright-cli':
+        return ('Run: npm install -g @playwright/cli\n'
+                'Run: playwright-cli --help\nFollow its browser setup instructions.\n'
+                'Check: playwright-cli --version')
+    return (f'Follow the {name} setup instructions in {SETUP_GUIDE}, section 4.\n'
+            f'Check: command -v {name}\nRestart the host after changing PATH.')
+
+
+def minimum_pi_version():
     source = ROOT / 'skills/engineering/seats/pi-runner/scripts/provider_runtime.py'
     for node in ast.parse(source.read_text()).body:
-        if isinstance(node, ast.Assign) and any(isinstance(t, ast.Name) and t.id == 'SUPPORTED_PI_VERSIONS' for t in node.targets):
-            return set(ast.literal_eval(node.value))
-    raise ValueError('Cannot read supported Pi versions from the adapter')
+        if isinstance(node, ast.Assign) and any(isinstance(t, ast.Name) and t.id == 'MINIMUM_PI_VERSION' for t in node.targets):
+            return tuple(ast.literal_eval(node.value))
+    raise ValueError('Cannot read the minimum Pi version from the adapter')
+
+
+class VersionCheckError(RuntimeError):
+    pass
 
 
 def version_of(path, timeout):
     try:
         result = subprocess.run([path, '--version'], capture_output=True, text=True,
                                 timeout=timeout, stdin=subprocess.DEVNULL, check=False)
-    except (OSError, subprocess.TimeoutExpired):
-        return None
+    except subprocess.TimeoutExpired:
+        raise VersionCheckError(f'Version check timed out after {timeout:g} seconds.') from None
+    except OSError:
+        raise VersionCheckError('Version command could not start.') from None
     if result.returncode != 0:
-        return None
+        raise VersionCheckError(f'Version command exited with code {result.returncode}.')
     # Never return raw output: a misconfigured executable could print a secret.
     match = re.search(r'(?<![\d.])(\d+\.\d+(?:\.\d+)?(?:[-+][0-9A-Za-z.-]+)?)(?![\d.])', result.stdout or result.stderr)
     return match.group(1) if match else None
@@ -45,28 +95,34 @@ class Checker:
         self.timeout = timeout
         self.checks = []
 
-    def add(self, name, status, required, detail, action=''):
+    def add(self, name, status, required, detail, action='', manual=False):
         row = dict(name=name, status=status, required=required, detail=detail, action=action)
+        if manual:
+            row['manual'] = True
         self.checks.append(row)
         return row
 
-    def command(self, name, required=True, minimum=None, exact=None, probe=True):
+    def command(self, name, required=True, minimum=None, probe=True):
         path = shutil.which(name)
         if not path:
             return self.add(name, 'MISSING', required, 'Command not found on PATH.',
-                            f'Install {name} or expose it to the host process.')
+                            install_action(name, minimum))
         if not probe:
             return self.add(name, 'OK', required, 'Command found; authentication and execution were not tested.')
-        version = version_of(path, self.timeout)
+        failure = 'Version output did not contain a recognizable version.'
+        try:
+            version = version_of(path, self.timeout)
+        except VersionCheckError as error:
+            version = None
+            failure = str(error)
         if version is None:
-            return self.add(name, 'WARN', required, 'Command found; version check failed or timed out.',
-                            f'Check {name} --version in this host environment.')
-        if exact and version not in exact:
-            return self.add(name, 'MISSING', required, f'Unsupported version {version}.',
-                            'Install a verified version: ' + ', '.join(sorted(exact)))
-        if minimum and numeric(version) < minimum:
-            return self.add(name, 'MISSING', required, f'Version {version} is too old.',
-                            'Use version ' + '.'.join(map(str, minimum)) + ' or newer.')
+            return self.add(name, 'WARN', required, 'Command found. ' + failure,
+                            f'In the terminal used to start the host, run:\n{name} --version\n'
+                            'If this works, rerun the checker with --timeout 30.\n'
+                            'If it fails, resolve the reported error. Do not reinstall solely because this probe failed.')
+        if minimum and ('-' in version.split('+', 1)[0] or numeric(version) < minimum):
+            return self.add(name, 'MISSING', required, f'Version {version} does not meet the stable minimum ' + '.'.join(map(str, minimum)) + '.',
+                            install_action(name, minimum))
         return self.add(name, 'OK', required, f'Version {version}; runtime access still depends on host permissions.')
 
     def report(self):
@@ -85,21 +141,23 @@ def check_environment(project=None, browser='auto', native_models=False, timeout
     py = sys.version_info[:3]
     check.add('python', 'OK' if py >= (3, 11, 0) else 'MISSING', True,
               'Running interpreter: ' + '.'.join(map(str, py)),
-              '' if py >= (3, 11, 0) else 'Run this script with Python 3.11 or newer.')
-    for name in ('git', 'bash', 'rg'):
+              '' if py >= (3, 11, 0) else install_action('python'))
+    for name in ('git', 'bash'):
         check.command(name)
     check.command('node', minimum=(22, 19, 0))
     check.command('npm')
-    check.command('pi', exact=supported_pi_versions())
+    check.command('pi', minimum=minimum_pi_version())
     if native_models:
         check.add('review and planning models', 'WARN', True,
                   'Native model access declared by the caller; not observable from this script.',
-                  'Confirm each selected model and effort in the host preview.')
+                  'Open the host model selector. Confirm access to each selected review and planning model.\n'
+                  'Check the model and effort in the workflow preview before starting work.', manual=True)
     else:
         check.command('codex')
         check.add('review and planning authentication', 'WARN', True,
                   'CLI authentication and exact model access were not tested.',
-                  'Authenticate the selected runner and verify the model preview.')
+                  f'Follow the selected runner login instructions in {SETUP_GUIDE}, section 4.\n'
+                  'Confirm access to the selected model. If the host supplies these models, rerun with --native-models.', manual=True)
 
     key = os.environ.get('OPENROUTER_API_KEY', '').strip()
     placeholders = {'your-key', 'your_api_key', 'replace-me', '<your-key>', '<key>'}
@@ -109,18 +167,27 @@ def check_environment(project=None, browser='auto', native_models=False, timeout
         check.add('gateway credential', 'OK', True, 'OPENROUTER_API_KEY is present; its value was not displayed or validated.')
     elif auth.is_file():
         check.add('gateway credential', 'WARN', True, 'Pi credential store exists; gateway login was not inspected.',
-                  'Configure OPENROUTER_API_KEY or confirm the gateway login in Pi.')
+                  'Run pi, enter /login, and select OpenRouter. Complete the login instructions.\n'
+                  'Alternatively, supply OPENROUTER_API_KEY through the launcher or secret manager that starts the host.\n'
+                  'Restart the host so its workers receive the credential. Store presence alone does not confirm login.', manual=True)
     else:
         check.add('gateway credential', 'MISSING', True, 'No environment key or Pi credential store found.',
-                  'Export OPENROUTER_API_KEY to the host process or use Pi /login.')
+                  'Run pi, enter /login, and select OpenRouter. Complete the login instructions.\n'
+                  'Alternatively, supply OPENROUTER_API_KEY through the launcher or secret manager that starts the host.\n'
+                  'Restart the host so its workers receive the credential. Do not put the key in project files.')
     parent = state
     while not parent.exists() and parent != parent.parent:
         parent = parent.parent
     writable = parent.is_dir() and os.access(parent, os.W_OK | os.X_OK)
-    check.add('Pi state permissions', 'WARN' if writable else 'MISSING', True,
-              'Filesystem permission check passed; sandbox and credential locks remain untested.' if writable
+    state_exists = state.is_dir()
+    check.add('Pi state permissions', 'OK' if writable and state_exists else 'WARN' if writable else 'MISSING', True,
+              'Pi state directory is writable and searchable; credential locking was not tested.' if writable and state_exists
+              else 'Pi state directory does not exist; its parent is writable.' if writable
               else 'Pi state directory or nearest parent is not writable.',
-              'Allow the host to write Pi state and credential locks; do not change permissions on unrelated files.')
+              '' if writable and state_exists else
+              'In the host terminal, run: mkdir -p "${PI_CODING_AGENT_DIR:-$HOME/.pi/agent}"\n'
+              'Check: test -w "${PI_CODING_AGENT_DIR:-$HOME/.pi/agent}" && test -x "${PI_CODING_AGENT_DIR:-$HOME/.pi/agent}"\n'
+              'If this fails, grant the host access to that directory or set PI_CODING_AGENT_DIR to a writable directory.')
 
     if browser == 'none':
         check.add('browser', 'WARN', False, 'Browser checks skipped by request.')
@@ -130,22 +197,38 @@ def check_environment(project=None, browser='auto', native_models=False, timeout
         available = [row for row in rows if row['status'] != 'MISSING']
         if not available:
             check.add('browser driver', 'MISSING', True, 'No selected interactive browser driver found.',
-                      'Install playwright-cli or agent-browser; use --browser none for command-only work.')
+                      (('Choose one driver. For agent-browser:\n' + install_action('agent-browser') +
+                        '\nFor Playwright CLI:\n' + install_action('playwright-cli'))
+                       if browser == 'auto' else install_action(browser)) +
+                      '\nIf this task needs no browser, rerun with --browser none.')
         else:
             good = any(r['status'] == 'OK' for r in rows)
+            selected = next((row['name'] for row in rows if row['status'] == 'OK'), available[0]['name'])
+            if browser == 'auto' and good:
+                check.checks = [row for row in check.checks if row not in rows or row['name'] == selected]
             check.add('browser driver', 'OK' if good else 'WARN', True,
-                      'At least one selected driver passes its version check.' if good else 'Driver commands exist but version checks failed.')
+                      f'Using {selected}; one working driver is enough.' if good else 'Driver commands exist but version checks failed.',
+                      '' if good else 'Run the selected driver with --version. Resolve its error, then rerun this checker.')
+            browser_setup = ('If the browser binary is missing, run: agent-browser install\n'
+                             if selected == 'agent-browser' else
+                             'If the browser binary is missing, run: playwright-cli install-browser\n')
             check.add('browser readiness', 'WARN', True,
                       'Browser binary, application access, test account and evidence capture were not exercised.',
-                      'Run the selected driver preflight from the worker environment.')
+                      f'Use {selected}. Start the application and open its URL from the worker environment.\n' + browser_setup +
+                      'If the browser is already installed, proceed to the application checks.\n'
+                      'Use a test account. Verify navigation, page state, an interaction and a screenshot.\n'
+                      f'See {SETUP_GUIDE}, section 3, for session setup and evidence requirements.', manual=True)
 
+    check.command('rg', required=False)
     for name in ('gh', 'jq', 'claude', 'agy', 'cline', 'grok', 'dcode', 'opencode', 'cmux'):
         check.command(name, required=False, probe=False)
     for name in ('AGY_CLI_PATH', 'DCODE_CLI_PATH'):
         value = os.environ.get(name)
         if value:
             check.add(name, 'OK' if shutil.which(value) else 'MISSING', False,
-                      'Configured override resolves to an executable.' if shutil.which(value) else 'Configured override does not resolve to an executable.')
+                      'Configured override resolves to an executable.' if shutil.which(value) else 'Configured override does not resolve to an executable.',
+                      '' if shutil.which(value) else f'Set {name} to the installed executable path, or unset {name} to use PATH.\n'
+                      'Restart the host and rerun this checker.')
 
     if project is not None:
         project = Path(project).expanduser().resolve()
@@ -158,15 +241,84 @@ def check_environment(project=None, browser='auto', native_models=False, timeout
         check.add('project skills', 'OK' if installed else 'WARN', True,
                   'A project layout contains the core skills and shared files.' if installed
                   else 'No complete project layout found; global host skills were not inspected.',
-                  '' if installed else 'Install the collection in the project or confirm the global host installation.')
+                  '' if installed else 'Preserve local changes to existing skill entries; the installer replaces matching names.\n'
+                  'Run: ' + shlex.join(['bash', str(ROOT / 'scripts/install-skills.sh'), str(project), '--layout', 'agents']) +
+                  '\nUse --layout claude or --layout both if your host needs those layouts.\n'
+                  'Keep this source checkout in place for the installed links. If using global skills, confirm them in the host.')
         config = project / '.rar-skills/config.local.yaml'
         check.add('model preferences', 'OK', False,
                   'Local preference file exists; values were not read or validated.' if config.is_file()
                   else 'No local preferences; central workflow defaults apply.')
         check.add('application setup', 'WARN', True,
                   'Project dependencies, services, tests and application credentials require project-specific checks.',
-                  'Follow the project setup instructions and run its documented checks.')
+                  f'Open the README and setup guide in {project}.\n'
+                  'Install locked dependencies, configure local settings and start required services as documented.\n'
+                  'Run the documented build and tests. Set up test accounts before browser checks.', manual=True)
     return check.report()
+
+
+def rerun_command(args):
+    command = ['bash', str(ROOT / 'scripts/check-environment.sh')]
+    if args.project is not None:
+        command.extend(['--project', str(args.project.expanduser().resolve())])
+    command.extend(['--browser', args.browser, '--timeout', str(args.timeout)])
+    if args.native_models:
+        command.append('--native-models')
+    return shlex.join(command)
+
+
+def print_report(result, rerun):
+    print('Environment setup check')
+    print('Follow the required steps in order. Run setup commands in the terminal used to start the host.')
+    for required, title in ((True, 'Required checks'), (False, 'Optional checks')):
+        print(f'\n{title}:')
+        for row in result['checks']:
+            if row['required'] == required and not row.get('manual'):
+                print(f"  {row['status']:7} {row['name']}: {row['detail']}")
+    summary = result['summary']
+    print(f"\nResult: {summary['status']}. Missing required: {summary['missing_required']}. Required warnings: {summary['required_warnings']}.")
+    setup_order = {
+        'Pi state permissions': 1,
+        'gateway credential': 2,
+        'review and planning models': 3,
+        'review and planning authentication': 3,
+        'project skills': 4,
+        'application setup': 5,
+        'browser driver': 6,
+        'browser readiness': 7,
+    }
+    for required, title in ((True, 'Required next steps'), (False, 'Optional steps (only for tools your task needs)')):
+        rows = [row for row in result['checks']
+                if row['required'] == required and row['status'] != 'OK' and row['action'] and not row.get('manual')]
+        if required:
+            rows.sort(key=lambda row: setup_order.get(row['name'], 0))
+        else:
+            # The required browser step already covers installation and verification.
+            rows = [row for row in rows if row['name'] not in ('agent-browser', 'playwright-cli')]
+        if not rows:
+            continue
+        print(f'\n{title}:')
+        for index, row in enumerate(rows, 1):
+            print(f"  {index}. {row['name']}")
+            for line in row['action'].splitlines():
+                print(f'     {line}')
+    manual = [row for row in result['checks'] if row.get('manual')]
+    manual.sort(key=lambda row: setup_order.get(row['name'], 0))
+    if manual:
+        print('\nManual checks (not tested by this script):')
+        print('  These are not detected installation failures. Rerunning this script will not clear them.')
+        for index, row in enumerate(manual, 1):
+            print(f"  {index}. {row['name']}: {row['detail']}")
+            for line in row['action'].splitlines():
+                print(f'     {line}')
+    print('\nAfter setup:')
+    print('  Restart the host if PATH or credentials changed, then run this command in its environment:')
+    print(f'  {rerun}')
+    print('  Resolve all required MISSING results. Complete the manual checks for required WARN results.')
+    print('  Exit code 0 means no required item is known to be missing; warnings can still require action.')
+    print(f'\nSetup guide: {SETUP_GUIDE}')
+    for limit in result['limits']:
+        print(limit)
 
 
 def main():
@@ -188,15 +340,7 @@ def main():
     if args.json:
         print(json.dumps(result, indent=2))
     else:
-        for row in result['checks']:
-            level = 'required' if row['required'] else 'optional'
-            print(f"{row['status']:7} {row['name']} ({level}): {row['detail']}")
-            if row['action']:
-                print(f"        Action: {row['action']}")
-        summary = result['summary']
-        print(f"\nResult: {summary['status']}. Missing required: {summary['missing_required']}. Required warnings: {summary['required_warnings']}.")
-        for limit in result['limits']:
-            print(limit)
+        print_report(result, rerun_command(args))
     return 1 if result['summary']['missing_required'] else 0
 
 

@@ -55,7 +55,9 @@ on a mutable global model registry. Missing enforcement or a wrong gateway block
 the strict route before repository content is sent. Source sharing metadata alone
 is not an enforced request policy.
 
-Strict execution supports the verified Pi runtime version only. The installed
+Strict execution requires the minimum stable Pi version declared by the runtime
+adapter or a newer stable release. The request hook must confirm readiness
+before task content is sent. The installed
 runtime compacts sessions outside its request hook, so strict runs stop before
 compaction and wait for the settled event before accepting completion. A full
 context needs an approved fresh context packet; it cannot silently summarize
