@@ -92,7 +92,7 @@ Prices recorded on 19 September 2026, USD per million tokens, provide historical
 | Astra | 10.00 | 50.00 | Provider model page (source V6) |
 | Sonnet | 2.00 | 10.00 | Provider release and August pricing correction (source V2) |
 | Fable 5.1 | 10.00 | 50.00 | [Provider page](https://www.anthropic.com/claude/fable) |
-| Grok 4.6 | 2.00 | 6.00 | [Provider documentation](https://docs.x.ai/developers/grok-4-6) |
+| Grok 4.7 | 2.00 | 6.00 | [Provider documentation](https://docs.x.ai/developers/grok-4-7) |
 | Gemini 3.8 Flash | 0.75 | 3.75 | [Provider release](https://blog.google/innovation-and-ai/models-and-research/gemini-models/3-8-flash-and-3-8-flash-cyber/) |
 
 These prices exclude tool fees and special modes. Cache reads/writes, long context, provider routing, and subscriptions change actual cost. Fable's low cache read price can matter for repeated long prompts. That does not make a long context free. Compare all attempts per accepted result, not price per output token alone.

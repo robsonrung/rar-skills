@@ -241,7 +241,7 @@
       "aliases": []
     },
     "grok": {
-      "model": "grok-4.6",
+      "model": "grok-4.7",
       "runner": "grok",
       "family": "grok",
       "effort_profile": "grok",
