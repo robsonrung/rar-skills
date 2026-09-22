@@ -152,14 +152,18 @@
       "effort_profile": "extended",
       "aliases": [
         "codex"
-      ]
+      ],
+      "effort_scaling": "monotonic",
+      "effort_scaling_evidence": "AutomationBench and FrontierCode v1.1 effort curves, checked 2026-09-22: pass rate rises monotonically with effort."
     },
     "sol": {
       "model": "gpt-5.6-sol",
       "runner": "codex",
       "family": "gpt",
       "effort_profile": "extended",
-      "aliases": []
+      "aliases": [],
+      "effort_scaling": "monotonic",
+      "effort_scaling_evidence": "AutomationBench effort curve, checked 2026-09-22: smooth monotonic climb; weak below medium effort."
     },
     "terra": {
       "model": "gpt-5.6-terra",
@@ -182,14 +186,27 @@
       "runner": "claude",
       "family": "claude",
       "effort_profile": "standard",
-      "aliases": []
+      "aliases": [],
+      "effort_scaling": "flat-above-high",
+      "effort_scaling_evidence": "Artificial Analysis Intelligence Index v4.3.2 and FrontierCode v1.1, checked 2026-09-22: flat-to-declining returns above high effort."
     },
     "opus": {
       "model": "claude-opus-5",
       "runner": "claude",
       "family": "claude",
       "effort_profile": "standard",
-      "aliases": []
+      "aliases": [],
+      "effort_scaling": "flat",
+      "effort_scaling_evidence": "AutomationBench effort curve, checked 2026-09-22: near-flat, noisy returns across effort levels."
+    },
+    "opus-5-5": {
+      "model": "claude-opus-5-5",
+      "runner": "claude",
+      "family": "claude",
+      "effort_profile": "standard",
+      "aliases": [],
+      "effort_scaling": "non-monotonic",
+      "effort_scaling_evidence": "AutomationBench and FrontierCode v1.1 effort curves, checked 2026-09-22: scales strongly to medium, then non-monotonic with poor returns past medium; cap at high and never route max."
     },
     "sonnet": {
       "model": "claude-sonnet-5",
@@ -203,14 +220,16 @@
       "runner": "grok",
       "family": "grok",
       "effort_profile": "grok",
-      "aliases": []
+      "aliases": [],
+      "default_effort": "high"
     },
     "gemini": {
       "model": "gemini-3.8-flash",
       "runner": "gemini",
       "family": "gemini",
       "effort_profile": "runtime",
-      "aliases": []
+      "aliases": [],
+      "default_effort": null
     },
     "kimi": {
       "model": "moonshotai/kimi-k3",
@@ -464,6 +483,13 @@
       "tier": "default"
     },
     {
+      "seat": "opus-5-5",
+      "execution_path": "claude_runner",
+      "probe_cli": "claude",
+      "depends_on": [],
+      "tier": "default"
+    },
+    {
       "seat": "sonnet",
       "execution_path": "claude_runner",
       "probe_cli": "claude",
@@ -516,7 +542,7 @@
       "depends_on": [
         "pi"
       ],
-      "tier": "backup"
+      "tier": "candidate"
     },
     {
       "seat": "muse",
@@ -627,7 +653,18 @@
       "Retain cheaper routes only where observed quality holds",
       "A small trial does not prove universal equivalence"
     ],
-    "escalation_authority": "Resolve candidates before approval. Later changes require the calling workflow authority; never silently change an approved route."
+    "escalation_authority": "Resolve candidates before approval. Later changes require the calling workflow authority; never silently change an approved route.",
+    "seat_admission": {
+      "zdr_required": true,
+      "rule": "Admit a seat only when at least one serving provider offers a verified zero-data-retention policy. Benchmark position never overrides this rule.",
+      "decided_at": "2026-09-22",
+      "rejected": [
+        {
+          "model": "xiaomi/mimo-v2.6-pro",
+          "reason": "No ZDR-capable provider. Rejected 2026-09-22 despite a frontier cost position (Artificial Analysis Intelligence Index 46 at $0.13 per task)."
+        }
+      ]
+    }
   },
   "routes": {
     "lookup": {
@@ -650,6 +687,12 @@
           }
         },
         "economy": {
+          "worker": {
+            "seat": "glm",
+            "effort": "low"
+          }
+        },
+        "saver": {
           "worker": {
             "seat": "glm",
             "effort": "low"
@@ -677,6 +720,12 @@
           }
         },
         "economy": {
+          "worker": {
+            "seat": "glm",
+            "effort": "high"
+          }
+        },
+        "saver": {
           "worker": {
             "seat": "glm",
             "effort": "high"
@@ -720,6 +769,16 @@
             "seat": "deepseek-flash",
             "effort": "high"
           }
+        },
+        "saver": {
+          "implementer": {
+            "seat": "glm",
+            "effort": "high"
+          },
+          "reviewer": {
+            "seat": "astra",
+            "effort": "high"
+          }
         }
       }
     },
@@ -759,6 +818,16 @@
             "seat": "deepseek-flash",
             "effort": "high"
           }
+        },
+        "saver": {
+          "implementer": {
+            "seat": "glm",
+            "effort": "high"
+          },
+          "reviewer": {
+            "seat": "astra",
+            "effort": "high"
+          }
         }
       }
     },
@@ -794,6 +863,16 @@
           },
           "reviewer": {
             "seat": "deepseek-flash",
+            "effort": "high"
+          }
+        },
+        "saver": {
+          "implementer": {
+            "seat": "glm",
+            "effort": "high"
+          },
+          "reviewer": {
+            "seat": "astra",
             "effort": "high"
           }
         }
@@ -835,6 +914,16 @@
             "seat": "deepseek-flash",
             "effort": "high"
           }
+        },
+        "saver": {
+          "implementer": {
+            "seat": "glm",
+            "effort": "high"
+          },
+          "reviewer": {
+            "seat": "astra",
+            "effort": "high"
+          }
         }
       }
     },
@@ -855,7 +944,7 @@
         },
         "claude": {
           "implementer": {
-            "seat": "opus",
+            "seat": "opus-5-5",
             "effort": "medium"
           },
           "reviewer": {
@@ -867,6 +956,16 @@
           "implementer": {
             "seat": "sol",
             "effort": "medium"
+          },
+          "reviewer": {
+            "seat": "astra",
+            "effort": "high"
+          }
+        },
+        "saver": {
+          "implementer": {
+            "seat": "deepseek-flash",
+            "effort": "high"
           },
           "reviewer": {
             "seat": "astra",
@@ -894,11 +993,11 @@
         },
         "claude": {
           "implementer": {
-            "seat": "fable",
+            "seat": "opus-5-5",
             "effort": "medium"
           },
           "reviewer": {
-            "seat": "opus",
+            "seat": "fable",
             "effort": "high"
           }
         },
@@ -909,6 +1008,16 @@
           },
           "reviewer": {
             "seat": "sol",
+            "effort": "high"
+          }
+        },
+        "saver": {
+          "implementer": {
+            "seat": "deepseek-flash",
+            "effort": "high"
+          },
+          "reviewer": {
+            "seat": "astra",
             "effort": "high"
           }
         }
@@ -950,6 +1059,16 @@
             "seat": "deepseek-flash",
             "effort": "high"
           }
+        },
+        "saver": {
+          "implementer": {
+            "seat": "glm",
+            "effort": "high"
+          },
+          "reviewer": {
+            "seat": "astra",
+            "effort": "high"
+          }
         }
       }
     },
@@ -989,6 +1108,16 @@
             "seat": "deepseek-flash",
             "effort": "high"
           }
+        },
+        "saver": {
+          "implementer": {
+            "seat": "glm",
+            "effort": "high"
+          },
+          "reviewer": {
+            "seat": "astra",
+            "effort": "high"
+          }
         }
       }
     },
@@ -1016,6 +1145,12 @@
             "seat": "glm",
             "effort": "low"
           }
+        },
+        "saver": {
+          "worker": {
+            "seat": "glm",
+            "effort": "low"
+          }
         }
       }
     },
@@ -1039,6 +1174,12 @@
           }
         },
         "economy": {
+          "worker": {
+            "seat": "glm",
+            "effort": "high"
+          }
+        },
+        "saver": {
           "worker": {
             "seat": "glm",
             "effort": "high"
@@ -1091,6 +1232,12 @@
           }
         },
         "economy": {
+          "worker": {
+            "seat": "astra",
+            "effort": "high"
+          }
+        },
+        "saver": {
           "worker": {
             "seat": "astra",
             "effort": "high"
@@ -1195,6 +1342,12 @@
             "seat": "astra",
             "effort": "high"
           }
+        },
+        "saver": {
+          "worker": {
+            "seat": "glm",
+            "effort": "high"
+          }
         }
       }
     },
@@ -1212,7 +1365,7 @@
         "claude": {
           "worker": {
             "seat": "fable",
-            "effort": "xhigh"
+            "effort": "high"
           }
         },
         "economy": {
@@ -1244,7 +1397,7 @@
             "effort": "high"
           },
           "reviewer": {
-            "seat": "opus",
+            "seat": "opus-5-5",
             "effort": "high"
           }
         },
@@ -1255,6 +1408,16 @@
           },
           "reviewer": {
             "seat": "sol",
+            "effort": "high"
+          }
+        },
+        "saver": {
+          "implementer": {
+            "seat": "astra",
+            "effort": "high"
+          },
+          "reviewer": {
+            "seat": "opus-5-5",
             "effort": "high"
           }
         }
@@ -1283,7 +1446,7 @@
             "effort": "high"
           },
           "reviewer": {
-            "seat": "opus",
+            "seat": "opus-5-5",
             "effort": "high"
           }
         },
@@ -1294,6 +1457,16 @@
           },
           "reviewer": {
             "seat": "sol",
+            "effort": "high"
+          }
+        },
+        "saver": {
+          "implementer": {
+            "seat": "astra",
+            "effort": "high"
+          },
+          "reviewer": {
+            "seat": "opus-5-5",
             "effort": "high"
           }
         }
@@ -1320,7 +1493,7 @@
             "effort": "high"
           },
           "reviewer": {
-            "seat": "opus",
+            "seat": "opus-5-5",
             "effort": "high"
           }
         },
@@ -1331,6 +1504,16 @@
           },
           "reviewer": {
             "seat": "sol",
+            "effort": "high"
+          }
+        },
+        "saver": {
+          "implementer": {
+            "seat": "astra",
+            "effort": "high"
+          },
+          "reviewer": {
+            "seat": "opus-5-5",
             "effort": "high"
           }
         }
@@ -1357,7 +1540,7 @@
             "effort": "xhigh"
           },
           "reviewer": {
-            "seat": "opus",
+            "seat": "opus-5-5",
             "effort": "high"
           }
         },
@@ -1368,6 +1551,16 @@
           },
           "reviewer": {
             "seat": "sol",
+            "effort": "high"
+          }
+        },
+        "saver": {
+          "implementer": {
+            "seat": "astra",
+            "effort": "xhigh"
+          },
+          "reviewer": {
+            "seat": "opus-5-5",
             "effort": "high"
           }
         }
@@ -1404,6 +1597,16 @@
           "implementer": {
             "seat": "luna",
             "effort": "xhigh"
+          },
+          "reviewer": {
+            "seat": "astra",
+            "effort": "high"
+          }
+        },
+        "saver": {
+          "implementer": {
+            "seat": "deepseek-flash",
+            "effort": "high"
           },
           "reviewer": {
             "seat": "astra",
@@ -1450,13 +1653,19 @@
         },
         "claude": {
           "reviewer": {
-            "seat": "opus",
+            "seat": "opus-5-5",
             "effort": "high"
           }
         },
         "economy": {
           "reviewer": {
             "seat": "sol",
+            "effort": "high"
+          }
+        },
+        "saver": {
+          "reviewer": {
+            "seat": "opus-5-5",
             "effort": "high"
           }
         }
@@ -1475,13 +1684,19 @@
         },
         "claude": {
           "reviewer": {
-            "seat": "opus",
+            "seat": "opus-5-5",
             "effort": "high"
           }
         },
         "economy": {
           "reviewer": {
             "seat": "astra",
+            "effort": "high"
+          }
+        },
+        "saver": {
+          "reviewer": {
+            "seat": "opus-5-5",
             "effort": "high"
           }
         }
@@ -1505,6 +1720,12 @@
           }
         },
         "economy": {
+          "reviewer": {
+            "seat": "astra",
+            "effort": "xhigh"
+          }
+        },
+        "saver": {
           "reviewer": {
             "seat": "astra",
             "effort": "xhigh"
@@ -1555,7 +1776,7 @@
         "claude": {
           "reviewer": {
             "seat": "fable",
-            "effort": "xhigh"
+            "effort": "high"
           }
         },
         "economy": {
@@ -1582,7 +1803,7 @@
         "claude": {
           "worker": {
             "seat": "fable",
-            "effort": "max"
+            "effort": "high"
           }
         },
         "economy": {
@@ -1705,6 +1926,12 @@
             "seat": "sol",
             "effort": "medium"
           }
+        },
+        "saver": {
+          "worker": {
+            "seat": "glm",
+            "effort": "high"
+          }
         }
       },
       "evidence": "validate-e2e/references/model-research.md, checked 2026-09-19; task-fit judgment, not local measured equivalence."
@@ -1733,6 +1960,16 @@
           },
           "reviewer": {
             "seat": "deepseek-flash",
+            "effort": "high"
+          }
+        },
+        "saver": {
+          "implementer": {
+            "seat": "glm",
+            "effort": "high"
+          },
+          "reviewer": {
+            "seat": "astra",
             "effort": "high"
           }
         }
@@ -1765,6 +2002,16 @@
             "seat": "astra",
             "effort": "high"
           }
+        },
+        "saver": {
+          "implementer": {
+            "seat": "glm",
+            "effort": "high"
+          },
+          "reviewer": {
+            "seat": "astra",
+            "effort": "high"
+          }
         }
       },
       "evidence": "validate-e2e/references/model-research.md, checked 2026-09-19; task-fit judgment, not local measured equivalence."
@@ -1783,6 +2030,12 @@
           }
         },
         "economy": {
+          "worker": {
+            "seat": "glm",
+            "effort": "high"
+          }
+        },
+        "saver": {
           "worker": {
             "seat": "glm",
             "effort": "high"
@@ -1817,6 +2070,16 @@
             "seat": "sol",
             "effort": "high"
           }
+        },
+        "saver": {
+          "implementer": {
+            "seat": "astra",
+            "effort": "high"
+          },
+          "reviewer": {
+            "seat": "opus-5-5",
+            "effort": "high"
+          }
         }
       },
       "evidence": "validate-e2e/references/model-research.md, checked 2026-09-19; task-fit judgment, not local measured equivalence."
@@ -1847,6 +2110,16 @@
             "seat": "deepseek-flash",
             "effort": "high"
           }
+        },
+        "saver": {
+          "implementer": {
+            "seat": "glm",
+            "effort": "high"
+          },
+          "reviewer": {
+            "seat": "astra",
+            "effort": "high"
+          }
         }
       },
       "evidence": "validate-e2e/references/model-research.md, checked 2026-09-19; task-fit judgment, not local measured equivalence."
@@ -1869,6 +2142,12 @@
             "seat": "deepseek-flash",
             "effort": "high"
           }
+        },
+        "saver": {
+          "reviewer": {
+            "seat": "astra",
+            "effort": "high"
+          }
         }
       },
       "evidence": "validate-e2e/references/model-research.md, checked 2026-09-19; task-fit judgment, not local measured equivalence."
@@ -1887,6 +2166,12 @@
           }
         },
         "economy": {
+          "reviewer": {
+            "seat": "astra",
+            "effort": "high"
+          }
+        },
+        "saver": {
           "reviewer": {
             "seat": "astra",
             "effort": "high"
@@ -2077,7 +2362,7 @@
     ]
   },
   "validation_research": {
-    "checked_at": "2026-09-19",
+    "checked_at": "2026-09-22",
     "sources": {
       "V1": {
         "title": "Artificial Analysis, September 9",
@@ -2113,10 +2398,25 @@
         "title": "GLM gateway pricing and provider page",
         "url": "https://openrouter.ai/z-ai/glm-5.3-flash",
         "accessed": "2026-09-20"
+      },
+      "V8": {
+        "title": "Artificial Analysis Intelligence Index v4.3.2, intelligence-cost frontier chart",
+        "url": "https://artificialanalysis.ai/",
+        "accessed": "2026-09-22"
+      },
+      "V9": {
+        "title": "AutomationBench, business workflows by effort level",
+        "url": "https://artificialanalysis.ai/",
+        "accessed": "2026-09-22"
+      },
+      "V10": {
+        "title": "FrontierCode v1.1 main set, agentic coding by effort level",
+        "url": "https://artificialanalysis.ai/",
+        "accessed": "2026-09-22"
       }
     }
   },
-  "default_profile": "economy",
+  "default_profile": "saver",
   "profile_policy": {
     "direct_execution_routes": [
       "test-execution"
@@ -2211,6 +2511,117 @@
         "validation-diagnosis": "balanced",
         "validation-review": "balanced",
         "validation-review-risk": "balanced"
+      }
+    },
+    "saver": {
+      "label": "Subscription Saver",
+      "family": "saver",
+      "route_families": {
+        "research": "economy",
+        "architecture": "economy",
+        "ambiguous-problem": "economy",
+        "test-design": "economy",
+        "deep-analysis": "economy",
+        "exhaustive-analysis": "economy",
+        "broad-review": "economy",
+        "design-review": "economy",
+        "security-review": "economy",
+        "interview-product": "economy",
+        "interview-technical": "economy"
+      },
+      "role_candidates": {
+        "code-exploration": {
+          "worker": [
+            "gemini",
+            "grok"
+          ]
+        },
+        "mechanical-edit": {
+          "implementer": [
+            "deepseek-flash",
+            "grok",
+            "gemini"
+          ]
+        },
+        "isolated-implementation": {
+          "implementer": [
+            "deepseek-flash",
+            "grok",
+            "gemini"
+          ]
+        },
+        "routine-function": {
+          "implementer": [
+            "deepseek-flash",
+            "grok",
+            "gemini"
+          ]
+        },
+        "routine-implementation": {
+          "implementer": [
+            "deepseek-flash",
+            "grok",
+            "gemini"
+          ]
+        },
+        "test-implementation": {
+          "implementer": [
+            "deepseek-flash",
+            "grok",
+            "gemini"
+          ]
+        },
+        "known-cause-fix": {
+          "implementer": [
+            "deepseek-flash",
+            "grok",
+            "gemini"
+          ]
+        },
+        "diagnosis": {
+          "worker": [
+            "deepseek-flash",
+            "grok"
+          ]
+        },
+        "validation-unit": {
+          "implementer": [
+            "deepseek-flash",
+            "grok",
+            "gemini"
+          ]
+        },
+        "validation-diagnosis": {
+          "implementer": [
+            "deepseek-flash",
+            "grok",
+            "gemini"
+          ]
+        },
+        "validation-browser": {
+          "worker": [
+            "gemini"
+          ]
+        }
+      },
+      "role_requirements": {
+        "validation-browser": {
+          "worker": [
+            "tools",
+            "images"
+          ]
+        }
+      },
+      "route_conditions": {
+        "diagnosis": [
+          "Cheap first pass only. Escalate to deep-analysis or difficult-implementation when repeated repair adds no new evidence or the causal chain stays unknown."
+        ],
+        "validation-diagnosis": [
+          "The cause is proven and the correction is bounded by approved acceptance cases. Use diagnosis for an unexplained failure."
+        ],
+        "validation-browser": [
+          "The external worker must pass browser tool and image preflight before dispatch."
+        ]
       }
     }
   }

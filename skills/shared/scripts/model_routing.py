@@ -13,6 +13,8 @@ from typing import Any
 
 CONFIG_PATH = Path(__file__).resolve().parents[1] / "model-routing.json"
 
+EFFORT_SCALING_VALUES = ("monotonic", "flat", "flat-above-high", "non-monotonic")
+
 
 def require(condition: bool, message: str) -> None:
     if not condition:
@@ -180,6 +182,21 @@ def validate_config(config: Any) -> None:
         if "capabilities" in model:
             capabilities = model["capabilities"]
             require(isinstance(capabilities, dict) and all(key in {"tools", "images"} and isinstance(value, bool) for key, value in capabilities.items()), f"Invalid capabilities for {seat}")
+        if "effort_scaling" in model:
+            require(model["effort_scaling"] in EFFORT_SCALING_VALUES, f"Invalid effort scaling for {seat}")
+            evidence = model.get("effort_scaling_evidence")
+            require(isinstance(evidence, str) and bool(evidence), f"Missing effort scaling evidence for {seat}")
+    admission = config["policy"].get("seat_admission")
+    if admission is not None:
+        require(isinstance(admission, dict), "Invalid seat admission policy")
+        require(admission.get("zdr_required") is True, "Seat admission must require zero data retention")
+        require(isinstance(admission.get("rule"), str) and bool(admission["rule"]), "Missing seat admission rule")
+        rejected = admission.get("rejected", [])
+        require(isinstance(rejected, list), "Invalid seat admission rejections")
+        for entry in rejected:
+            require(isinstance(entry, dict) and isinstance(entry.get("model"), str) and bool(entry["model"]), "Invalid rejected seat entry")
+            require(isinstance(entry.get("reason"), str) and bool(entry["reason"]), "Missing rejected seat reason")
+            require(entry["model"] not in aliases, f"Rejected seat is still registered: {entry['model']}")
     if any(key in config for key in ("profiles", "default_profile", "profile_policy")):
         validate_profiles(config)
 

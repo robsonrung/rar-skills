@@ -33,7 +33,7 @@ class ModelProfileTests(unittest.TestCase):
         central = self.resolve("routine-function")
         local = self.resolve("routine-function", local_profile="balanced")
         explicit = self.resolve("routine-function", "economy", local_profile="balanced")
-        self.assertEqual((central["profile"], central["selection_source"]), ("economy", "central"))
+        self.assertEqual((central["profile"], central["selection_source"]), ("saver", "central"))
         self.assertEqual((local["profile"], local["selection_source"]), ("balanced", "local"))
         self.assertEqual((explicit["profile"], explicit["selection_source"]), ("economy", "explicit"))
         legacy = self.cli("routine-function")
@@ -44,38 +44,45 @@ class ModelProfileTests(unittest.TestCase):
         self.assertEqual(legacy["roles"]["implementer"]["seat"], "terra")
         default = self.cli("routine-function", "--profile", "default")
         self.assertEqual(default.returncode, 0, default.stderr)
-        self.assertEqual(json.loads(default.stdout)["profile"], "economy")
+        self.assertEqual(json.loads(default.stdout)["profile"], "saver")
 
     def test_economy_bounded_roles_and_independent_review(self):
         for route in ("routine-function", "isolated-implementation", "routine-implementation",
                       "test-implementation", "known-cause-fix", "validation-unit", "validation-diagnosis"):
             with self.subTest(route=route):
-                roles = self.resolve(route)["roles"]
+                roles = self.resolve(route, "economy")["roles"]
                 self.assertEqual((roles["implementer"]["seat"], roles["implementer"]["effort"]), ("glm", "high"))
                 self.assertEqual((roles["reviewer"]["seat"], roles["reviewer"]["effort"]), ("deepseek-flash", "high"))
                 self.assertNotEqual(roles["implementer"]["model"], roles["reviewer"]["model"])
 
     def test_risk_routes_remain_complete_and_strong(self):
+        saver = self.config["profiles"]["saver"]
         for name, route in self.config["routes"].items():
             with self.subTest(route=name):
                 target = self.config["routes"][route["risk_route"]]
-                self.assertIn("economy", target["families"])
+                family = routing.profile_family(name, saver)
+                self.assertIn(family, target["families"])
                 if name == "test-execution":
                     continue
                 result = self.resolve(name, risk="high")
                 self.assertEqual(result["route"], route["risk_route"])
-                expected = target["families"].get("gpt", target["families"].get("balanced"))
+                expected = target["families"][family]
                 self.assertEqual({role: (value["seat"], value["effort"]) for role, value in result["roles"].items()},
                                  {role: (value["seat"], value["effort"]) for role, value in expected.items()})
-                self.assertNotIn("glm", [value["seat"] for value in result["roles"].values()])
+                if name == "diagnosis":
+                    # Deliberate cheap first pass with recorded escalation
+                    # conditions; editing routes never delegate high risk.
+                    self.assertEqual(result["roles"]["worker"]["seat"], "glm")
+                else:
+                    self.assertNotIn("glm", [value["seat"] for value in result["roles"].values()])
 
     def test_validation_preserves_scope_and_integration_design(self):
-        self.assertEqual(self.resolve("validation-scope")["roles"]["worker"]["seat"], "sol")
+        self.assertEqual(self.resolve("validation-scope")["roles"]["worker"]["seat"], "glm")
         integration = self.resolve("validation-integration")["roles"]
-        self.assertEqual(integration["implementer"]["seat"], "sol")
+        self.assertEqual(integration["implementer"]["seat"], "glm")
         self.assertEqual(integration["reviewer"]["seat"], "astra")
         self.assertEqual(self.resolve("validation-browser")["roles"]["worker"]["seat"], "glm")
-        self.assertEqual(self.resolve("validation-review")["roles"]["reviewer"]["seat"], "deepseek-flash")
+        self.assertEqual(self.resolve("validation-review")["roles"]["reviewer"]["seat"], "astra")
         self.assertIn("The cause is proven", " ".join(self.resolve("validation-diagnosis")["conditions"]))
 
     def test_balanced_uses_existing_family_for_each_route(self):
@@ -95,7 +102,9 @@ class ModelProfileTests(unittest.TestCase):
         result = self.resolve("routine-implementation")
         policy = {"gateway": "openrouter", "zdr": True, "data_collection": "deny", "require_parameters": True}
         self.assertEqual(result["roles"]["implementer"]["provider_routing"], policy)
-        self.assertEqual(result["roles"]["reviewer"]["provider_routing"], policy)
+        self.assertNotIn("provider_routing", result["roles"]["reviewer"])
+        economy = self.resolve("routine-implementation", "economy")
+        self.assertEqual(economy["roles"]["reviewer"]["provider_routing"], policy)
         for family in ("gpt", "claude", "economy"):
             legacy = routing.resolve_route("routine-implementation", family, config=self.config)
             for role in legacy["roles"].values():
@@ -108,7 +117,7 @@ class ModelProfileTests(unittest.TestCase):
         routing.validate_config(changed)
         resolved = routing.resolve_profile("routine-implementation", config=changed)
         self.assertEqual(resolved["roles"]["implementer"]["provider_routing"], policy)
-        self.assertEqual(resolved["roles"]["reviewer"]["provider_routing"], policy)
+        self.assertNotIn("provider_routing", resolved["roles"]["reviewer"])
 
     def test_deterministic_execution_never_resolves_a_model_worker(self):
         with mock.patch.object(routing, "resolve_role", side_effect=AssertionError("Unexpected model selection")):
@@ -173,10 +182,11 @@ class ModelProfileTests(unittest.TestCase):
             self.assertNotIn("provider_routing", direct)
         implementation = self.resolve("routine-implementation")["alternatives"]["implementer"]
         browser = self.resolve("validation-browser")["alternatives"]["worker"]
-        # deepseek-flash reviews routine-implementation, so it cannot also
-        # alternate as implementer; single-role routes list both candidates.
-        self.assertEqual([entry["seat"] for entry in implementation], ["glm"])
-        self.assertEqual([entry["seat"] for entry in browser], ["glm", "deepseek-flash"])
+        # Saver candidates alternate as implementer; the gemini browser
+        # candidate stays ineligible until tool and image capabilities are
+        # recorded for its adapter.
+        self.assertEqual([entry["seat"] for entry in implementation], ["deepseek-flash", "grok", "gemini"])
+        self.assertEqual([entry["seat"] for entry in browser], [])
 
     def test_override_uses_central_effort_and_keeps_other_roles(self):
         before = self.resolve("routine-implementation")
@@ -186,7 +196,7 @@ class ModelProfileTests(unittest.TestCase):
         unchanged = self.resolve("routine-implementation", role_overrides={"implementer": {"seat": "glm", "effort": "max"}})
         self.assertEqual(unchanged["roles"]["reviewer"], before["roles"]["reviewer"])
         with self.assertRaisesRegex(ValueError, "distinct models"):
-            self.resolve("routine-implementation", role_overrides={"implementer": {"seat": "deepseek-flash", "effort": "high"}})
+            self.resolve("routine-implementation", role_overrides={"implementer": {"seat": "astra", "effort": "high"}})
         with self.assertRaisesRegex(ValueError, "explicit effort"):
             self.resolve("routine-implementation", role_overrides={"implementer": {"seat": "sol"}})
 
@@ -198,6 +208,7 @@ class ModelProfileTests(unittest.TestCase):
                 routing.resolve_profile("validation-browser", role_overrides={"worker": {"seat": "deepseek-flash"}}, config=changed)
             alternatives = routing.resolve_profile("validation-browser", config=changed)["alternatives"]["worker"]
             self.assertNotIn("deepseek-flash", [entry["seat"] for entry in alternatives])
+            self.assertNotIn("gemini", [entry["seat"] for entry in alternatives])
 
     def test_preview_output_is_deterministic_and_does_not_mutate_config(self):
         before = copy.deepcopy(self.config)

@@ -18,14 +18,19 @@ council gate in `models-consensus`.
    [local preview preferences](local-config.md), then central defaults.
    [`model-routing.json`](../model-routing.json) is the only maintained source
    of exact model and effort defaults. Updated workflow callers select the
-   `economy` profile unless the user or local preference selects another.
-   `balanced` is selectable; existing explicit family routes remain valid.
+   `saver` profile unless the user or local preference selects another.
+   `economy` and `balanced` are selectable; existing explicit family routes
+   remain valid.
    Resolve applicable routes with `model_routing.py resolve <route> --profile
    default`. Add `--local-profile <name>` for a validated local preference.
-   An explicit `--profile economy` or `--profile balanced` wins over that
-   preference. Use `--role ROLE=SEAT[:EFFORT]` for explicit role changes;
+   An explicit `--profile saver`, `--profile economy`, or `--profile balanced`
+   wins over that preference. Use `--role ROLE=SEAT[:EFFORT]` for explicit
+   role changes;
    `runtime` selects null effort when supported. Without profile options,
    the CLI retains legacy family behavior, not the workflow default.
+   A validated local `route_overrides` entry applies its per-route seat and
+   effort changes here, at preview time only; it never changes an approved
+   route.
 4. Apply the route's risk conditions. Preserve strong planning, invariant,
    integration design, and risk review roles. A routine author implements
    settled cases; it cannot decide unresolved product policy. Resolve exact
@@ -55,6 +60,17 @@ provider. For OpenRouter routes, show the selected `provider_routing` policy:
 `require_parameters: true`, plus `only` and `allow_fallbacks` when selected.
 An inference provider preference is not an allowlist. Unknown account guardrails
 stay unknown. These controls do not establish a browser service's privacy policy.
+
+On the first direct skill invocation of a session, show the full routing
+table before the scoped preview: one row per task kind (exploration,
+implementation, test authorship, e2e browser work, debugging, analysis,
+review, interviews) with its resolved seat, effort, execution path, and
+privacy or receipt policy under the selected profile. This is the user's
+chance to redirect a whole task kind, not just today's roles. Persist
+requested per-route changes to `.rar-skills/config.local.yaml` as
+`route_overrides` (see [local-config.md](local-config.md)); they apply to
+future previews, never retroactively to approved routes. Later invocations in
+the session show only the scoped preview.
 
 Offer **Keep defaults**, **Change selected roles**, or **Use another profile**.
 A direct request to “use defaults and run” permits the unchanged resolved setup

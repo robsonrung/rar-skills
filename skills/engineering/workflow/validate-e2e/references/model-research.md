@@ -1,15 +1,25 @@
 # Selection evidence
 
-Updated 20 September 2026. The prior research below was checked 19 September 2026. Source IDs V1 and later resolve to exact URLs in `shared/model-routing.json`, under `validation_research.sources`. The collection keeps model identifiers in that central file, including identifiers in source URLs. This is a dated research record, not a second model configuration. Exact defaults and efforts live only in `shared/model-routing.json`. Recheck changed prices and capabilities when maintaining that configuration; do not browse before every validation run.
+Updated 22 September 2026. The prior research below was checked 19-20 September 2026. Source IDs V1 and later resolve to exact URLs in `shared/model-routing.json`, under `validation_research.sources`. The collection keeps model identifiers in that central file, including identifiers in source URLs. This is a dated research record, not a second model configuration. Exact defaults and efforts live only in `shared/model-routing.json`. Recheck changed prices and capabilities when maintaining that configuration; do not browse before every validation run.
 
 ## Current selection policy
 
-The central `economy` profile replaces the prior validation default. It selects a
-routine executor for settled implementation, test authorship, and interactive
-browser work, with independent routine review and strong planning and risk roles.
-The `balanced` profile retains the earlier selection as an option. Resolve exact
+The central `saver` profile replaces `economy` as the default. It routes
+settled implementation, test authorship, exploration, first-pass diagnosis,
+and interactive browser work to cheap seats (GLM 5.3 Flash, DeepSeek V4.1
+Flash, with Grok and Gemini as approved alternates) while every reviewer
+stays on a frontier seat (Astra or Opus 5.5), preserving OpenAI and Claude
+subscription quota for planning, risk, and review. The `economy` profile (cheap reviewers included) and `balanced` remain explicit options. Resolve exact
 models and effort only from the central configuration; this record adds no second
 default table. Existing tests run directly without a separate model worker.
+
+Seat admission now requires a verified zero-data-retention provider
+(`policy.seat_admission`, decided 22 September 2026); `xiaomi/mimo-v2.6-pro`
+was rejected under this rule despite its frontier cost position. Effort curves
+from the Artificial Analysis Intelligence Index v4.3.2, AutomationBench, and
+FrontierCode v1.1 (V8-V10, checked 22 September 2026) inform per-seat
+`effort_scaling` metadata: Astra scales monotonically, Fable is flat above
+high, Opus 5 is flat, and Opus 5.5 is non-monotonic past medium.
 
 The selection considers task completion, latency, token use, adapter controls,
 and price. No local comparison has established quality or savings for the new

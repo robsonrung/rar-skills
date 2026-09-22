@@ -52,7 +52,15 @@ The opt-in multi-model path inside a pipeline skill (`brainstorm`, `to-prd`, `to
 
 ### Seat tier
 
-Whether a seat joins a default fan-out (`default`) or is probed only when named explicitly (`backup`, currently qwen / muse / gemma / minimax). Declared in `discover_runners.py`; adding a backup seat never silently enlarges or re-prices an existing council.
+Whether a seat joins a default fan-out (`default`) or is probed only when named explicitly (`frontier`, `backup`, `candidate`, `legacy`). Backup (muse / gemma / minimax) and candidate (qwen, the Pi gateway candidates) seats never join a fan-out uninvited. Declared in `discovery` inside `shared/model-routing.json`; adding a non-default seat never silently enlarges or re-prices an existing council.
+
+### ZDR seat admission
+
+The rule that a seat enters `shared/model-routing.json` only when at least one serving provider offers a verified zero-data-retention policy. Benchmark position never overrides it; `policy.seat_admission` records the rule and a dated rejection list (first rejection: `xiaomi/mimo-v2.6-pro`, 2026-09-22). Field contract in `shared/references/model-roster.md`.
+
+### Effort scaling
+
+A per-seat `effort_scaling` field in the routing configuration recording how observed quality changes with reasoning effort — `monotonic`, `flat`, `flat-above-high`, or `non-monotonic` — with dated external evidence. It exists so route design stops assuming more effort always helps: flat seats waste money above their routed level, non-monotonic seats can regress.
 
 ### Leitwort (pl. leitwörter)
 
@@ -89,6 +97,10 @@ An orchestrator that owns routing, gates, integration, and the final report — 
 ### Ceiling
 
 A bound on a run counted outside the model's judgment — cycles, dispatched agents, spend, or a deadline — recorded in the run state's `ceilings`. Distinct from a stop condition, which depends on the work converging. Every run ends through one of **three exits**: success, retries exhausted, or ceiling hit.
+
+### Mode prompt
+
+The rule that invoking a skill with selectable modes (safe mode, panel mode, council modes, `--auto`, a browser mechanism) requires asking the user which mode, unless the user already named it. Silence never selects a mode; a default applies only after confirmation. Normative text in `shared/references/engineering-rules.md` (mode selection).
 
 ### Local config
 

@@ -117,6 +117,20 @@ Separate model author, gateway, and observed inference provider; never infer the
 inference host from a model prefix. A client model event does not independently
 prove an inference provider. Missing required controls block the route.
 
+## Preflight result cache
+
+Capability probes (CLI presence and version, model availability, supported
+efforts, tool or image support, ZDR endpoint checks, browser mechanism
+readiness) are expensive to repeat on every invocation. Store their results
+with `shared/scripts/preflight_cache.py`, keyed by seat and a fingerprint of
+the probe target (CLI version plus configuration digest), at
+`~/.rar-skills/preflight-cache.json`. A fresh entry (under 24 hours, matching
+fingerprint) is the source of truth and skips the probe; an expired,
+mismatched, or corrupt entry means re-probe, never guess. The cache covers
+capability probes only: serving-model receipts, per-request privacy controls,
+and quota availability are per-run facts and are never cached. A cached
+"seat available" never upgrades an unverified receipt.
+
 ## Evidence and authority
 
 Configured identity, serving-model evidence, and completion are separate facts.

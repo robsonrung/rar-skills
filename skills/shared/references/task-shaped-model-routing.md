@@ -16,12 +16,22 @@ that preview needs.
    exploration for evidence collection, isolated implementation for a small
    explicit function, and routine implementation for a feature with stable
    interfaces and meaningful checks. Use tools directly for deterministic work.
-2. Select the `economy` profile unless user instructions or local preview
+2. Select the `saver` profile unless user instructions or local preview
    preferences select another central profile. Resolve with
    `scripts/model_routing.py resolve <route> --profile default` from the shared
    skill, adding `--local-profile <name>` for a validated local preference.
    Explicit profiles and legacy family routes remain selectable. The
    output names the exact model and effort for each role and records a configuration digest. It starts no workers.
+   The `saver` profile routes exploration, implementation, test authorship,
+   e2e browser work, and first-pass diagnosis to cheap seats (GLM 5.3 Flash,
+   DeepSeek V4.1 Flash, with Grok and Gemini as approved alternates) while
+   every reviewer stays on a frontier seat (Astra or Opus 5.5). It exists to
+   preserve OpenAI and Claude subscription quota for planning, risk, and
+   review work. The `economy` profile, which also reviews on cheap seats,
+   remains an explicit opt-in; `balanced` and legacy families stay selectable.
+   First-pass `diagnosis` on a cheap seat is a bounded attempt: escalate to
+   `deep-analysis` or `difficult-implementation` when repeated repair adds no
+   new evidence or the causal chain stays unknown.
 3. Apply `policy.high_risk_triggers` before editing. Resolve with `--risk high`
    when a trigger applies. A strong lead must settle requirements, interfaces,
    invariants, and critical acceptance cases before routine parts are delegated.
@@ -38,6 +48,10 @@ that preview needs.
 Use the selected route's conditions and the configuration's policy fields.
 Exceptional analysis routes require a recorded gap at the normal setting.
 Effort labels do not imply parallel workers or equivalent reasoning across models.
+Check a seat's `effort_scaling` field before raising effort: `flat` and
+`flat-above-high` seats gain little above their routed level, and
+`non-monotonic` seats can regress; only `monotonic` seats justify routine
+escalation, and only with a recorded gap.
 
 ## Review and verification
 

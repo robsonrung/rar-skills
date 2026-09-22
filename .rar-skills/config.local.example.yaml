@@ -5,8 +5,16 @@
 # Use known seat ids from shared/model-routing.json.
 # Do not put credentials, runner paths, command flags, or effort overrides here.
 
-profile: economy  # Select a central profile, such as economy or balanced.
+profile: saver  # Select a central profile, such as saver, economy, or balanced.
 
 seats:
   preferred: []  # Example: [astra, fable, gemini]
   excluded: []   # Example: [glm]
+
+# Per-route role changes applied while forming a preview, never after approval.
+# Shape: route id -> role -> SEAT[:EFFORT] (use runtime for null effort).
+# route_overrides:
+#   diagnosis:
+#     worker: "grok:high"
+#   code-exploration:
+#     worker: "gemini:runtime"

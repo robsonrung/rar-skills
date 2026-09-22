@@ -255,6 +255,14 @@
         "the user's time is the bottleneck"
       ],
       "must_not_contain": []
+    },
+    {
+      "file": "skills/extras/environment-check/SKILL.md",
+      "concept": "green only from a fresh run",
+      "must_contain": [
+        "green only from a fresh run"
+      ],
+      "must_not_contain": []
     }
   ],
   "canon": [

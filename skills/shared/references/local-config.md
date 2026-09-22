@@ -14,8 +14,9 @@ Per-checkout, user-local preferences for model previews. Committed example:
 
 | Key | Consumed by | Meaning |
 | --- | --- | --- |
-| `profile` | Direct invocation previews | Central profile name, such as `economy` or `balanced`. A missing or invalid value uses the central default. This is a preference, not a duplicate model mapping. |
+| `profile` | Direct invocation previews | Central profile name, such as `saver`, `economy`, or `balanced`. A missing or invalid value uses the central default. This is a preference, not a duplicate model mapping. |
 | `seats.preferred` / `seats.excluded` | Direct invocation previews, including models-consensus | Seat ids to propose or exclude before approval. Resolve them from `shared/model-routing.json`; use native capability checks or external CLI discovery for the selected execution path. |
+| `route_overrides` | Direct invocation previews | Per-route role changes, keyed by route id then role: `route_overrides: {diagnosis: {worker: "grok:high"}}`. Validate every seat and effort against `shared/model-routing.json` exactly as `--role ROLE=SEAT[:EFFORT]` does; `runtime` selects null effort where supported. Invalid entries are ignored and reported once. Applied at preview time only; never changes an approved route. |
 
 ## Migration
 
@@ -28,10 +29,12 @@ in the proposed run snapshot, never a second default roster.
 
 Use `model_routing.py resolve <route> --profile default`. Add
 `--local-profile <name>` for a validated local `profile`; otherwise the configured
-central default applies. An explicit user `--profile economy` or `balanced`
+central default applies. An explicit user `--profile saver`, `economy`, or `balanced`
 wins over the local preference. Pass per role changes through
 `--role ROLE=SEAT[:EFFORT]`; `runtime` selects null effort where supported.
 A bare legacy resolver call does not select the new workflow profile.
+`route_overrides` entries translate to the same `--role` arguments while
+forming the preview; a direct user instruction in chat wins over both.
 
 Skills should treat parsing failures as "no config" and report the ignored file
 once. State when a preference changes the proposed seat. After approval,

@@ -30,6 +30,12 @@ Test driven development
 4. Refactor only with tests green.
 5. Record commands and evidence.
 
+Mode selection
+
+1. When invoking any skill that offers selectable modes (safe mode, panel mode, council modes, an `--auto` variant, a browser mechanism, or similar), ask the user which mode to use unless the user explicitly stated the mode in their request.
+2. Silence never selects a mode. A skill's default mode applies only after the user confirms it, or when the skill's own contract explicitly grants the mode (such as a documented `--auto` invocation).
+3. Ask once: name the available modes and their consequences in a single question, not a chain of prompts.
+
 Contract integrity
 
 1. Never delete, skip, weaken, narrow, or mock-away tests — and never loosen acceptance checks — to make a contract pass.

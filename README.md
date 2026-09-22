@@ -26,8 +26,11 @@ Nested skills reuse the selected snapshot without another prompt. A request to
 use defaults and run permits the unchanged resolved setup within existing source
 sharing authority and accepted receipt limits; silence cannot approve it.
 
-Updated workflow callers select the central `economy` profile by default.
-`balanced` and explicit legacy family routes remain selectable. Local preferences
+Updated workflow callers select the central `saver` profile by default: cheap
+seats (GLM 5.3 Flash, DeepSeek V4.1 Flash, with Grok and Gemini alternates)
+implement and explore, while frontier seats (Astra, Opus 5.5) keep every
+reviewer role. `economy` (cheap reviewers too), `balanced`, and explicit
+legacy family routes remain selectable. Local preferences
 select a profile name, while model and effort defaults remain in
 `skills/shared/model-routing.json`. No local quality or savings comparison has
 been run for the new selection.

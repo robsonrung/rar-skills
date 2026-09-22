@@ -31,7 +31,7 @@ coordinator for all work or increasing effort requires an explicit selection.
 For command-only work, use `--route test-execution`; it creates no worker.
 
 Add `--local-profile <name>` for the validated local preference or name an explicit
-user profile. The central default is `economy`; `balanced` and explicit
+user profile. The central default is `saver`; `economy`, `balanced`, and explicit
 legacy families remain selectable. Use `--risk high` for a risk trigger. The normal configuration is a recommendation, not evidence that a route is available on this host. Do not instantiate every role merely because it appears in the table. Reuse completed independent review. If a role is absent from a requested family, offer an exact custom route; do not infer an alternate.
 
 Use `shared/references/model-preview.md` once. The preview has one row per required role: unit IDs, route ID, role, exact model, effort and control, runner/gateway, execution mode, host/transport, model and driver capabilities, tool access, provider privacy controls, receipt policy, exact fallback triggers, and per role call ceiling. Show total calls, command timeout, deadline, and maximum concurrency. Users can keep defaults, change selected rows, require one provider, select a CLI, or supply exact model IDs. These overrides belong to this run, not the global defaults.

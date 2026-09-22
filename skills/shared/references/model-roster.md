@@ -13,7 +13,7 @@ Resolve `SHARED_DIR` from the loaded shared skill, as
 ```bash
 SHARED_DIR="<absolute shared skill directory>"
 python3 "$SHARED_DIR/scripts/model_routing.py" show
-python3 "$SHARED_DIR/scripts/model_routing.py" resolve isolated-implementation --profile economy
+python3 "$SHARED_DIR/scripts/model_routing.py" resolve isolated-implementation --profile saver
 python3 "$SHARED_DIR/scripts/model_routing.py" validate
 ```
 
@@ -25,6 +25,26 @@ defines direct-call defaults and accepted flags. `discovery` supplies probe
 metadata. None of these fields proves account access or serving identity.
 The native host can expose controls that differ from its external adapter;
 verify the exact route with [host-model-execution.md](host-model-execution.md).
+
+## Seat admission
+
+A seat is admitted to the roster only when at least one serving provider
+offers a verified zero-data-retention (ZDR) policy. Benchmark position never
+overrides this rule. `policy.seat_admission` in the configuration records the
+rule and the dated rejection list; a rejected model stays out of `models`
+regardless of its cost or quality position. Seats served through the Pi
+gateway carry their per-seat `privacy` evidence; natively served seats meet
+the rule through their provider's own data policy.
+
+## Effort scaling
+
+`effort_scaling` is an optional per-seat field recording how observed quality
+changes with reasoning effort: `monotonic`, `flat`, `flat-above-high`, or
+`non-monotonic`, with a dated `effort_scaling_evidence` pointer. It guides
+route design: do not pay for `xhigh` or `max` on a `flat` or
+`flat-above-high` seat without a recorded gap, and treat `non-monotonic`
+seats as capped below `max`. It is external benchmark evidence, not a local
+measurement; absent field means unknown, not flat.
 
 ## Policy and evidence
 

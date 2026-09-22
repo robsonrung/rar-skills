@@ -213,6 +213,64 @@ class ModelRoutingContractTests(unittest.TestCase):
         self.assertIn("exact model", workflow)
         self.assertIn("persistent native", workflow)
 
+    def test_saver_profile_is_default_and_resolves_every_route(self):
+        config = model_routing.load_config()
+        self.assertEqual(config["default_profile"], "saver")
+        self.assertEqual(config["profiles"]["saver"]["label"], "Subscription Saver")
+        for route in config["routes"]:
+            for risk in config["policy"]["risk_levels"]:
+                with self.subTest(route=route, risk=risk):
+                    resolved = model_routing.resolve_profile(route, "saver", risk=risk, config=config)
+                    self.assertEqual(resolved["profile"], "saver")
+
+    def test_saver_pairs_cheap_implementers_with_frontier_reviewers(self):
+        config = model_routing.load_config()
+        cheap = {"glm", "deepseek-flash"}
+        frontier_reviewers = {"astra", "opus-5-5"}
+        reviewed = 0
+        for route in config["routes"].values():
+            family = route["families"].get("saver")
+            if not family or "implementer" not in family:
+                continue
+            with self.subTest(route=route):
+                self.assertIn(family["implementer"]["seat"], cheap | frontier_reviewers)
+                self.assertIn(family["reviewer"]["seat"], frontier_reviewers)
+                self.assertNotEqual(family["implementer"]["seat"], family["reviewer"]["seat"])
+                reviewed += 1
+        self.assertGreaterEqual(reviewed, 10)
+        roles = model_routing.resolve_profile("routine-implementation", "saver", config=config)["roles"]
+        self.assertEqual((roles["implementer"]["seat"], roles["implementer"]["effort"]), ("glm", "high"))
+        self.assertEqual((roles["reviewer"]["seat"], roles["reviewer"]["effort"]), ("astra", "high"))
+
+    def test_opus_5_5_seat_and_effort_scaling_metadata(self):
+        config = model_routing.load_config()
+        seat = config["models"]["opus-5-5"]
+        self.assertEqual(seat["model"], "claude-opus-5-5")
+        self.assertEqual(seat["runner"], "claude")
+        self.assertEqual(seat["effort_scaling"], "non-monotonic")
+        for name, entry in config["models"].items():
+            if "effort_scaling" in entry:
+                with self.subTest(seat=name):
+                    self.assertIn(entry["effort_scaling"], model_routing.EFFORT_SCALING_VALUES)
+                    self.assertTrue(entry["effort_scaling_evidence"])
+        self.assertEqual(config["models"]["fable"]["effort_scaling"], "flat-above-high")
+        self.assertEqual(config["models"]["astra"]["effort_scaling"], "monotonic")
+        roles = model_routing.resolve_route("sensitive-implementation", "claude")["roles"]
+        self.assertEqual((roles["reviewer"]["seat"], roles["reviewer"]["effort"]), ("opus-5-5", "high"))
+        roles = model_routing.resolve_route("deep-analysis", "claude")["roles"]
+        self.assertEqual((roles["worker"]["seat"], roles["worker"]["effort"]), ("fable", "high"))
+
+    def test_seat_admission_requires_zdr_and_records_rejections(self):
+        config = model_routing.load_config()
+        admission = config["policy"]["seat_admission"]
+        self.assertTrue(admission["zdr_required"])
+        rejected = {entry["model"] for entry in admission["rejected"]}
+        self.assertIn("xiaomi/mimo-v2.6-pro", rejected)
+        registered = {entry["model"] for entry in config["models"].values()}
+        self.assertFalse(rejected & registered)
+        roster = self.read("shared/references/model-roster.md")
+        self.assertIn("zero-data-retention", roster)
+
     def test_local_preferences_are_preview_only(self):
         example = (REPO_ROOT.parent / ".rar-skills" / "config.local.example.yaml").read_text(
             encoding="utf-8"

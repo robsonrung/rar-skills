@@ -155,7 +155,7 @@ Optional model preferences, in the target project:
 
 ```yaml
 # .rar-skills/config.local.yaml
-profile: economy
+profile: saver
 seats:
   preferred: []
   excluded: []

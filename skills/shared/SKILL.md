@@ -21,6 +21,6 @@ Before a shell command, set `SHARED_DIR` to that resolved absolute directory in 
 ## Contents
 
 1. `model-routing.json`: the single source for model identities, reasoning settings, and role routes. Use `scripts/model_routing.py` to inspect, resolve, or validate it.
-2. `references/`: workflow stages, model routing, runner behavior, evidence, handoffs, and run state. Every executable skill starts with `references/model-preview.md` on direct invocation; nested calls reuse the parent selection.
+2. `references/`: workflow stages, model routing, runner behavior, evidence, handoffs, and run state. Every executable skill starts with `references/model-preview.md` on direct invocation; nested calls reuse the parent selection. When a skill offers selectable modes, `references/engineering-rules.md` (mode selection) requires asking the user unless they already named the mode.
 3. `scripts/`: runner discovery, jobs, output handling, and validation.
 4. `tests/`, schemas, and hooks: executable checks and shared formats.

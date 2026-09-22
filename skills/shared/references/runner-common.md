@@ -7,6 +7,17 @@ This reference applies once a runner path is selected. Model identifiers live in
 [model-roster.md](model-roster.md); `shared/scripts/discover_runners.py` checks
 external transport presence and does not prove native capabilities or access.
 
+## Preflight result cache
+
+Cache capability probe results (transport presence, versions, effort support,
+capabilities, ZDR endpoint checks) with `shared/scripts/preflight_cache.py`
+instead of re-probing every invocation. Entries live at
+`~/.rar-skills/preflight-cache.json`, are trusted for 24 hours, and are keyed
+by seat and a fingerprint of the probed CLI and configuration. A miss,
+expiry, or fingerprint mismatch always means re-probe. Cache only capability
+probes — never serving-model receipts, per-request privacy controls, or quota
+state. See [host-model-execution.md](host-model-execution.md).
+
 ## Iterative roles
 
 Keep one explicit session per task and role when later turns are expected. Read
