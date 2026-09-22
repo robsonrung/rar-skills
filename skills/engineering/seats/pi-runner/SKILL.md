@@ -48,6 +48,13 @@ privacy controls to recover availability. Strict calls bind the gateway URL
 independently of the model registry. A provider label pointed at another URL is
 rejected before task content is released.
 
+A seat whose model entry has a verified privacy block (`zdr_available: true`
+for the selected gateway in `shared/model-routing.json`) defaults to the
+central `profile_policy.provider_routing` when `--provider-routing` is
+omitted; an explicit policy still wins per call. The central policy pins the
+privacy controls only — the gateway selects among its zero-retention
+endpoints, no inference provider is fixed.
+
 Use the packaged request enforcement path with configuration scoped to the run.
 It must preserve the exact selected policy through every initial, tool, repair,
 and resumed request. Unrelated extension discovery stays disabled; do not depend
@@ -68,7 +75,8 @@ Retain `provider_policy_receipt` with `status: enforced`, `gateway`,
 observed. Capture synthetic local requests to verify the exact model, reasoning,
 provider controls, tools, and image payloads without logging source or secrets.
 A missing receipt cannot establish strict route acceptance. Omitted policy keeps
-legacy behavior and cannot be reported as strict privacy.
+legacy behavior only for models without a verified privacy block and cannot be
+reported as strict privacy.
 
 ## Prerequisites
 
@@ -113,7 +121,8 @@ python3 "$SKILL_DIR/scripts/run_pi.py" --prompt-file <role-brief.md> \
 
 For runtime controlled effort, use the selected model's supported runtime path;
 do not invent a `high` value. Omit `--provider-routing` only when the selected
-route has no provider policy. Use `--no-tools` for a brief-only role or the
+route has no provider policy; seats with a verified privacy block apply the
+central strict policy by default. Use `--no-tools` for a brief-only role or the
 explicitly selected tool policy for file or browser work.
 
 ## Gotchas

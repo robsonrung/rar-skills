@@ -504,11 +504,20 @@ def _run_pi(
         if isinstance(provider_routing, str):
             from model_routing import unique_object
             provider_routing = json.loads(provider_routing, object_pairs_hook=unique_object)
+        entry = next((v for v in ROUTING_CONFIG["models"].values() if v["runner"] == "pi" and v["model"] == model), None)
+        if provider_routing is None and entry is not None:
+            # Seats with a verified strict privacy route default to the central
+            # provider policy (ZDR, denied collection) without pinning an
+            # inference provider; an explicit policy still wins per call.
+            privacy = entry.get("privacy", {})
+            central_policy = ROUTING_CONFIG.get("profile_policy", {}).get("provider_routing")
+            if (isinstance(central_policy, dict) and privacy.get("zdr_available") is True
+                    and privacy.get("gateway") == central_policy.get("gateway") == provider):
+                provider_routing = dict(central_policy)
         if provider_routing is not None:
             validate_provider_routing(provider_routing)
             if provider != provider_routing["gateway"] or not model:
                 raise ValueError("Strict routing requires the selected gateway and an exact model")
-        entry = next((v for v in ROUTING_CONFIG["models"].values() if v["runner"] == "pi" and v["model"] == model), None)
         if entry:
             effort_control = "runtime" if entry["effort_profile"] == "runtime" else entry.get("effort_control", "runner")
             if thinking is None:

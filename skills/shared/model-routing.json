@@ -237,7 +237,7 @@
       "privacy": {
         "gateway": "openrouter",
         "zdr_available": true,
-        "checked_at": "2026-09-20",
+        "checked_at": "2026-09-22",
         "source": "https://openrouter.ai/api/v1/endpoints/zdr",
         "preflight_required": true
       },
@@ -318,7 +318,7 @@
       "privacy": {
         "gateway": "openrouter",
         "zdr_available": true,
-        "checked_at": "2026-09-20",
+        "checked_at": "2026-09-22",
         "source": "https://openrouter.ai/api/v1/endpoints/zdr",
         "preflight_required": true
       },
@@ -651,7 +651,7 @@
         },
         "economy": {
           "worker": {
-            "seat": "luna",
+            "seat": "glm",
             "effort": "low"
           }
         }
@@ -678,8 +678,8 @@
         },
         "economy": {
           "worker": {
-            "seat": "luna",
-            "effort": "medium"
+            "seat": "glm",
+            "effort": "high"
           }
         }
       }
@@ -713,11 +713,11 @@
         },
         "economy": {
           "implementer": {
-            "seat": "luna",
-            "effort": "medium"
+            "seat": "glm",
+            "effort": "high"
           },
           "reviewer": {
-            "seat": "astra",
+            "seat": "deepseek-flash",
             "effort": "high"
           }
         }
@@ -756,7 +756,7 @@
             "effort": "high"
           },
           "reviewer": {
-            "seat": "luna",
+            "seat": "deepseek-flash",
             "effort": "high"
           }
         }
@@ -793,7 +793,7 @@
             "effort": "high"
           },
           "reviewer": {
-            "seat": "luna",
+            "seat": "deepseek-flash",
             "effort": "high"
           }
         }
@@ -832,7 +832,7 @@
             "effort": "high"
           },
           "reviewer": {
-            "seat": "luna",
+            "seat": "deepseek-flash",
             "effort": "high"
           }
         }
@@ -947,7 +947,7 @@
             "effort": "high"
           },
           "reviewer": {
-            "seat": "luna",
+            "seat": "deepseek-flash",
             "effort": "high"
           }
         }
@@ -986,7 +986,7 @@
             "effort": "high"
           },
           "reviewer": {
-            "seat": "luna",
+            "seat": "deepseek-flash",
             "effort": "high"
           }
         }
@@ -1013,7 +1013,7 @@
         },
         "economy": {
           "worker": {
-            "seat": "luna",
+            "seat": "glm",
             "effort": "low"
           }
         }
@@ -1040,8 +1040,8 @@
         },
         "economy": {
           "worker": {
-            "seat": "luna",
-            "effort": "medium"
+            "seat": "glm",
+            "effort": "high"
           }
         }
       }
@@ -1732,7 +1732,7 @@
             "effort": "high"
           },
           "reviewer": {
-            "seat": "luna",
+            "seat": "deepseek-flash",
             "effort": "high"
           }
         }
@@ -1844,7 +1844,7 @@
             "effort": "high"
           },
           "reviewer": {
-            "seat": "luna",
+            "seat": "deepseek-flash",
             "effort": "high"
           }
         }
@@ -1866,7 +1866,7 @@
         },
         "economy": {
           "reviewer": {
-            "seat": "luna",
+            "seat": "deepseek-flash",
             "effort": "high"
           }
         }
@@ -2136,64 +2136,49 @@
         "routine-function": {
           "implementer": [
             "glm",
-            "deepseek-flash",
-            "qwen-plus",
-            "kimi-code"
+            "deepseek-flash"
           ]
         },
         "isolated-implementation": {
           "implementer": [
             "glm",
-            "deepseek-flash",
-            "qwen-plus",
-            "kimi-code"
+            "deepseek-flash"
           ]
         },
         "routine-implementation": {
           "implementer": [
             "glm",
-            "deepseek-flash",
-            "qwen-plus",
-            "kimi-code"
+            "deepseek-flash"
           ]
         },
         "test-implementation": {
           "implementer": [
             "glm",
-            "deepseek-flash",
-            "qwen-plus",
-            "kimi-code"
+            "deepseek-flash"
           ]
         },
         "known-cause-fix": {
           "implementer": [
             "glm",
-            "deepseek-flash",
-            "qwen-plus",
-            "kimi-code"
+            "deepseek-flash"
           ]
         },
         "validation-unit": {
           "implementer": [
             "glm",
-            "deepseek-flash",
-            "qwen-plus",
-            "kimi-code"
+            "deepseek-flash"
           ]
         },
         "validation-diagnosis": {
           "implementer": [
             "glm",
-            "deepseek-flash",
-            "qwen-plus",
-            "kimi-code"
+            "deepseek-flash"
           ]
         },
         "validation-browser": {
           "worker": [
             "glm",
-            "mistral-small",
-            "qwen-flash"
+            "deepseek-flash"
           ]
         }
       },

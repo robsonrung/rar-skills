@@ -83,6 +83,32 @@ await handlers.session_start({}, {
         self.assertEqual(result["status"], "provider_policy_error")
         self.assertNotIn("private task", result["command"])
 
+    def test_verified_privacy_seat_defaults_to_central_strict_policy(self):
+        captured = {}
+
+        def fake_run_controlled(command, **kwargs):
+            captured.update(kwargs.get("config") or {})
+            raise ValueError("Missing or mismatched provider policy receipt")
+
+        with patch.object(run_pi.shutil, "which", return_value="/fixture/pi"), \
+                patch.object(run_pi, "run_controlled", side_effect=fake_run_controlled):
+            result = run_pi.run_pi("private task", model="z-ai/glm-5.3-flash")
+        self.assertFalse(result["success"])
+        self.assertEqual(result["status"], "provider_policy_error")
+        self.assertEqual(captured.get("policy"), POLICY)
+        self.assertNotIn("private task", result["command"])
+
+    def test_seat_without_privacy_block_keeps_legacy_path(self):
+        with patch.object(run_pi.shutil, "which", return_value="/fixture/pi"), \
+                patch.object(run_pi, "run_controlled") as controlled, \
+                patch.object(run_pi.subprocess, "run") as process:
+            process.return_value.returncode = 0
+            process.return_value.stdout = ""
+            process.return_value.stderr = ""
+            run_pi.run_pi("task", model="moonshotai/kimi-k3")
+        controlled.assert_not_called()
+        process.assert_called_once()
+
     def test_model_author_is_not_inference_host(self):
         result = run_pi.normalize_envelope({"model": "vendor/model", "provider": "openrouter", "return_code": -3}, "pi")
         self.assertEqual(result["effective_provider"], "vendor")

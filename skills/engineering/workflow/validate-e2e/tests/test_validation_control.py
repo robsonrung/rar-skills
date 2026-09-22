@@ -39,7 +39,7 @@ class ModelPreviewTests(unittest.TestCase):
         self.assertEqual(preview["config_digest"], model_routing.config_digest(model_routing.load_config()))
         unit, browser = preview["routes"]
         self.assertEqual((unit["roles"]["implementer"]["seat"], unit["roles"]["implementer"]["effort"]), ("glm", "high"))
-        self.assertEqual((unit["roles"]["reviewer"]["seat"], unit["roles"]["reviewer"]["effort"]), ("luna", "high"))
+        self.assertEqual((unit["roles"]["reviewer"]["seat"], unit["roles"]["reviewer"]["effort"]), ("deepseek-flash", "high"))
         self.assertEqual((browser["roles"]["worker"]["seat"], browser["roles"]["worker"]["effort"]), ("glm", "high"))
         self.assertFalse(preview["availability_checked"])
 
