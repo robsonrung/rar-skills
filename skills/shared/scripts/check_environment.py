@@ -13,17 +13,40 @@ import subprocess
 import sys
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
-SETUP_GUIDE = ROOT / 'docs/machine-setup.md'
+SCRIPT_PATH = Path(__file__).resolve()
+# This file lives at <skills-root>/shared/scripts/check_environment.py in both
+# supported layouts (source checkout and flat install), so parents[2] is the
+# skills root on either one.
+SKILLS_ROOT = SCRIPT_PATH.parents[2]
+try:
+    from skill_paths import skill_dir
+except ImportError:
+    sys.path.insert(0, str(SCRIPT_PATH.parent))
+    from skill_paths import skill_dir
+
+
+def _source_root():
+    """The rar-skills source checkout, when this script runs inside one."""
+    candidate = SKILLS_ROOT.parent
+    return candidate if (candidate / 'docs/machine-setup.md').is_file() else None
+
+
+SOURCE_ROOT = _source_root()
+SETUP_GUIDE = (str(SOURCE_ROOT / 'docs/machine-setup.md') if SOURCE_ROOT
+               else 'docs/machine-setup.md in the rar-skills source repository')
 
 
 def install_action(name, minimum=None):
     """Return instructions only; the checker never runs setup commands."""
     if name == 'pi':
-        version = '.'.join(map(str, minimum or minimum_pi_version()))
-        return (f'Run: npm install -g @earendil-works/pi-coding-agent@{version}\n'
-                f'Check: pi --version\nMinimum version: {version}. Newer stable releases are accepted.\n'
-                'The runner checks request hook readiness before sending task content.')
+        floor = minimum or minimum_pi_version()
+        action = 'Run: npm install -g @earendil-works/pi-coding-agent'
+        if floor:
+            version = '.'.join(map(str, floor))
+            action += f'@{version}\nCheck: pi --version\nMinimum version: {version}. Newer stable releases are accepted.'
+        else:
+            action += '\nCheck: pi --version'
+        return action + '\nThe runner checks request hook readiness before sending task content.'
     if name in ('node', 'npm'):
         install = ('Run: brew install node@24\n'
                    'Add this line to your shell startup file (~/.zshrc for zsh), then open a new terminal:\n'
@@ -60,7 +83,10 @@ def install_action(name, minimum=None):
 
 
 def minimum_pi_version():
-    source = ROOT / 'skills/engineering/seats/pi-runner/scripts/provider_runtime.py'
+    """Stable Pi floor from the installed adapter, or None when it is absent."""
+    source = skill_dir('pi-runner', root=SKILLS_ROOT) / 'scripts/provider_runtime.py'
+    if not source.is_file():
+        return None
     for node in ast.parse(source.read_text()).body:
         if isinstance(node, ast.Assign) and any(isinstance(t, ast.Name) and t.id == 'MINIMUM_PI_VERSION' for t in node.targets):
             return tuple(ast.literal_eval(node.value))
@@ -242,7 +268,7 @@ def check_environment(project=None, browser='auto', native_models=False, timeout
                   'A project layout contains the core skills and shared files.' if installed
                   else 'No complete project layout found; global host skills were not inspected.',
                   '' if installed else 'Preserve local changes to existing skill entries; the installer replaces matching names.\n'
-                  'Run: ' + shlex.join(['bash', str(ROOT / 'scripts/install-skills.sh'), str(project), '--layout', 'agents']) +
+                  + _install_action(project) +
                   '\nUse --layout claude or --layout both if your host needs those layouts.\n'
                   'Keep this source checkout in place for the installed links. If using global skills, confirm them in the host.')
         config = project / '.rar-skills/config.local.yaml'
@@ -257,8 +283,21 @@ def check_environment(project=None, browser='auto', native_models=False, timeout
     return check.report()
 
 
+def _install_action(project):
+    """How the user installs the skills: source checkout wrapper or npx."""
+    installer = SOURCE_ROOT / 'scripts/install-skills.sh' if SOURCE_ROOT else None
+    if installer and installer.is_file():
+        return 'Run: ' + shlex.join(['bash', str(installer), str(project), '--layout', 'agents'])
+    return ("Run from the project root: npx skills@latest add robsonrung/rar-skills --skill '*'\n"
+            'Alternatively, clone the repository and run its scripts/install-skills.sh against the project.')
+
+
 def rerun_command(args):
-    command = ['bash', str(ROOT / 'scripts/check-environment.sh')]
+    wrapper = SOURCE_ROOT / 'scripts/check-environment.sh' if SOURCE_ROOT else None
+    if wrapper and wrapper.is_file():
+        command = ['bash', str(wrapper)]
+    else:
+        command = ['python3', str(SCRIPT_PATH)]
     if args.project is not None:
         command.extend(['--project', str(args.project.expanduser().resolve())])
     command.extend(['--browser', args.browser, '--timeout', str(args.timeout)])
@@ -322,7 +361,8 @@ def print_report(result, rerun):
 
 
 def main():
-    parser = argparse.ArgumentParser(prog="check-environment.sh", description=__doc__)
+    prog = 'check-environment.sh' if SOURCE_ROOT else 'check_environment.py'
+    parser = argparse.ArgumentParser(prog=prog, description=__doc__)
     parser.add_argument('--project', type=Path, help='Optional target repository to inspect')
     parser.add_argument('--browser', choices=('auto', 'playwright-cli', 'agent-browser', 'none'), default='auto')
     parser.add_argument('--native-models', action='store_true', help='Use host model access instead of requiring the external review/planning CLI')

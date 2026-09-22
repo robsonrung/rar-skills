@@ -11,12 +11,22 @@ to **No additional model worker** and adds no approval gate.
 
 ## Run
 
-From the rar-skills checkout (resolve the actual path; in a target project
-using installed skills, use the checkout recorded at install time):
+The checker ships in the shared library, so it is present wherever the skills
+are installed. Resolve `SHARED_DIR` exactly as the shared library contract
+describes (the loaded `shared` skill's directory; `skills/shared/` in a source
+checkout; `shared/` beside the installed skills), then run:
 
 ```bash
-bash scripts/check-environment.sh --json
+SHARED_DIR="<absolute shared skill directory>"
+python3 "$SHARED_DIR/scripts/check_environment.py" --json
 ```
+
+In a rar-skills source checkout, `bash scripts/check-environment.sh` is an
+equivalent wrapper and stays the documented form for setup guides.
+
+If `python3` itself is missing or below 3.11, the script cannot start. Present
+the Python setup instructions from `docs/machine-setup.md` (section 1) and
+stop; no other check ran.
 
 Add flags only when the user's context calls for them:
 
@@ -26,9 +36,6 @@ Add flags only when the user's context calls for them:
   the user already named one.
 - `--native-models` when the user relies on host model access instead of
   external CLIs.
-
-If the script reports that Python is missing, present its printed
-instructions verbatim and stop; the remaining checks did not run.
 
 ## Present
 
@@ -51,7 +58,7 @@ Parse the JSON and show:
    not a valid one).
 
 Keep the report to the verdict, the table, the actions, and the limits. Point
-to `docs/machine-setup.md` for setup detail.
+to `docs/machine-setup.md` in the rar-skills repository for setup detail.
 
 The load-bearing rule is **green only from a fresh run**: a check is OK only
 because this invocation's output says so. Never carry a green forward from

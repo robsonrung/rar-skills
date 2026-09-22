@@ -5,20 +5,27 @@ import json
 import os
 import shlex
 import subprocess
+import sys
 import tempfile
 import unittest
 from contextlib import redirect_stdout
 from pathlib import Path
 from unittest.mock import patch
 
-spec = importlib.util.spec_from_file_location('environment_check', Path(__file__).resolve().parents[1] / 'check-environment.py')
+SHARED = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(SHARED / 'scripts'))
+REPO_ROOT = SHARED.parents[1]
+
+spec = importlib.util.spec_from_file_location('environment_check', SHARED / 'scripts/check_environment.py')
 check = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(check)
+
+SHELL_WRAPPER = REPO_ROOT / 'scripts/check-environment.sh'
 
 
 class EnvironmentTests(unittest.TestCase):
     def test_shell_reports_missing_python_as_json(self):
-        shell = Path(__file__).resolve().parents[1] / 'check-environment.sh'
+        shell = SHELL_WRAPPER
         with tempfile.TemporaryDirectory() as temp:
             result = subprocess.run(['/bin/bash', str(shell), '--json'],
                                     env={'PATH': temp}, capture_output=True, text=True)
@@ -30,7 +37,7 @@ class EnvironmentTests(unittest.TestCase):
         self.assertIn('python3 --version', report['checks'][0]['action'])
 
     def test_shell_python_setup_preserves_rerun_arguments(self):
-        shell = Path(__file__).resolve().parents[1] / 'check-environment.sh'
+        shell = SHELL_WRAPPER
         for args in ([], ['--project', "/tmp/project's folder", '--browser', 'none', '--native-models']):
             with self.subTest(args=args), tempfile.TemporaryDirectory() as temp:
                 result = subprocess.run(['/bin/bash', str(shell), *args],
@@ -43,7 +50,7 @@ class EnvironmentTests(unittest.TestCase):
             self.assertEqual(shlex.split(rerun), ['bash', str(shell), *args])
 
     def test_shell_unsupported_python_also_reports_setup(self):
-        shell = Path(__file__).resolve().parents[1] / 'check-environment.sh'
+        shell = SHELL_WRAPPER
         with tempfile.TemporaryDirectory() as temp:
             python = Path(temp) / 'python3'
             python.write_text('#!/bin/sh\nexit 1\n')
@@ -54,7 +61,7 @@ class EnvironmentTests(unittest.TestCase):
         self.assertIn('3.11', json.loads(result.stdout)['checks'][0]['action'])
 
     def test_shell_forwards_arguments_and_exit_status(self):
-        shell = Path(__file__).resolve().parents[1] / 'check-environment.sh'
+        shell = SHELL_WRAPPER
         result = subprocess.run(['/bin/bash', str(shell), '--timeout', '0'],
                                 capture_output=True, text=True)
         self.assertEqual(result.returncode, 2)
@@ -172,15 +179,31 @@ class EnvironmentTests(unittest.TestCase):
             project.mkdir()
             args = argparse.Namespace(project=project, browser='playwright-cli', timeout=10.0, native_models=True)
             command = shlex.split(check.rerun_command(args))
-            self.assertEqual(command, ['bash', str(check.ROOT / 'scripts/check-environment.sh'),
+            self.assertEqual(command, ['bash', str(SHELL_WRAPPER),
                                       '--project', str(project.resolve()), '--browser', 'playwright-cli',
                                       '--timeout', '10.0', '--native-models'])
             with patch.object(check.shutil, 'which', return_value=None):
                 report = check.check_environment(project=project, browser='none', native_models=True)
             action = next(row['action'] for row in report['checks'] if row['name'] == 'project skills')
             install = next(line.removeprefix('Run: ') for line in action.splitlines() if line.startswith('Run: '))
-            self.assertEqual(shlex.split(install), ['bash', str(check.ROOT / 'scripts/install-skills.sh'),
+            self.assertEqual(shlex.split(install), ['bash', str(REPO_ROOT / 'scripts/install-skills.sh'),
                                                    str(project.resolve()), '--layout', 'agents'])
+
+    def test_installed_layout_uses_script_path_and_npx_guidance(self):
+        # Outside a source checkout there is no repo wrapper or installer:
+        # the rerun command targets the shared script and the install action
+        # points at the npx installer.
+        with tempfile.TemporaryDirectory() as temp, patch.object(check, 'SOURCE_ROOT', None):
+            project = Path(temp) / 'project'
+            project.mkdir()
+            args = argparse.Namespace(project=project, browser='none', timeout=5.0, native_models=True)
+            command = shlex.split(check.rerun_command(args))
+            self.assertEqual(command[:2], ['python3', str(check.SCRIPT_PATH)])
+            with patch.object(check.shutil, 'which', return_value=None):
+                report = check.check_environment(project=project, browser='none', native_models=True)
+            action = next(row['action'] for row in report['checks'] if row['name'] == 'project skills')
+            self.assertIn('npx skills@latest add robsonrung/rar-skills', action)
+            self.assertNotIn('install-skills.sh', action.splitlines()[1])
 
     def test_required_steps_follow_prerequisite_order(self):
         checker = check.Checker()

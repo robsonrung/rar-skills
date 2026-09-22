@@ -34,4 +34,4 @@ if ! command -v python3 >/dev/null 2>&1 ||
   exit 1
 fi
 
-exec python3 "$SCRIPT_DIR/check-environment.py" "$@"
+exec python3 "$SCRIPT_DIR/../skills/shared/scripts/check_environment.py" "$@"
