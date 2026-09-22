@@ -1,6 +1,6 @@
 ---
 name: pi-runner
-description: Execute an external Pi CLI prompt with a provider and model pinned per call. Use only for an explicit Pi CLI request, a selected Pi provider route unavailable as native host delegation, or an approved external fallback, including Kimi, GLM, Qwen, Gemma, Muse, Minimax, and MiMo seats.
+description: Execute an external Pi CLI prompt with a provider and model pinned per call. Use only for an explicit Pi CLI request, a selected Pi provider route unavailable as native host delegation, or an approved external fallback, including Kimi, GLM, Qwen, Gemma, Muse, Minimax, and Mistral seats.
 ---
 
 # Pi Runner

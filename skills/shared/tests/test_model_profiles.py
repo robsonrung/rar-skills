@@ -126,7 +126,7 @@ class ModelProfileTests(unittest.TestCase):
         expected = {
             "deepseek-flash": "deepseek/deepseek-v4.1-flash",
             "qwen-flash": "qwen/qwen3.8-flash",
-            "mimo-pro": "xiaomi/mimo-v2.6-pro",
+            "mistral-small": "mistralai/mistral-small-3.2",
             "qwen-plus": "qwen/qwen3.6-plus",
             "kimi-code": "moonshotai/kimi-k2.7-code",
         }
@@ -151,7 +151,7 @@ class ModelProfileTests(unittest.TestCase):
         self.assertNotIn("max", routing.model_efforts("pi", self.config)[self.config["models"]["qwen"]["model"]])
 
     def test_runtime_effort_is_explicit_and_only_for_known_models(self):
-        for seat in ("qwen-flash", "mimo-pro", "qwen-plus", "kimi-code"):
+        for seat in ("qwen-flash", "mistral-small", "qwen-plus", "kimi-code"):
             model = self.config["models"][seat]["model"]
             routing.validate_selection("pi", model, None, self.config)
             for effort in ("off", "high", "max"):
@@ -160,7 +160,7 @@ class ModelProfileTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             routing.validate_selection("pi", "vendor/custom-model", None, self.config)
         routing.validate_selection("pi", "vendor/custom-model", "high", self.config)
-        worker = self.resolve("validation-browser", role_overrides={"worker": {"seat": "mimo-pro"}})["roles"]["worker"]
+        worker = self.resolve("validation-browser", role_overrides={"worker": {"seat": "mistral-small"}})["roles"]["worker"]
         self.assertIsNone(worker["effort"])
         self.assertEqual(worker["effort_control"], "runtime")
 
@@ -173,7 +173,7 @@ class ModelProfileTests(unittest.TestCase):
         implementation = self.resolve("routine-implementation")["alternatives"]["implementer"]
         browser = self.resolve("validation-browser")["alternatives"]["worker"]
         self.assertEqual([entry["seat"] for entry in implementation], ["glm", "deepseek-flash", "kimi-code"])
-        self.assertEqual([entry["seat"] for entry in browser], ["glm", "mimo-pro"])
+        self.assertEqual([entry["seat"] for entry in browser], ["glm", "mistral-small"])
 
     def test_override_uses_central_effort_and_keeps_other_roles(self):
         before = self.resolve("routine-implementation")
@@ -189,11 +189,11 @@ class ModelProfileTests(unittest.TestCase):
     def test_missing_tools_or_images_blocks_browser_selection(self):
         for capability in ("tools", "images"):
             changed = copy.deepcopy(self.config)
-            changed["models"]["mimo-pro"]["capabilities"][capability] = False
+            changed["models"]["mistral-small"]["capabilities"][capability] = False
             with self.subTest(capability=capability), self.assertRaisesRegex(ValueError, capability):
-                routing.resolve_profile("validation-browser", role_overrides={"worker": {"seat": "mimo-pro"}}, config=changed)
+                routing.resolve_profile("validation-browser", role_overrides={"worker": {"seat": "mistral-small"}}, config=changed)
             alternatives = routing.resolve_profile("validation-browser", config=changed)["alternatives"]["worker"]
-            self.assertNotIn("mimo-pro", [entry["seat"] for entry in alternatives])
+            self.assertNotIn("mistral-small", [entry["seat"] for entry in alternatives])
 
     def test_preview_output_is_deterministic_and_does_not_mutate_config(self):
         before = copy.deepcopy(self.config)
@@ -243,13 +243,13 @@ class ModelProfileTests(unittest.TestCase):
                 self.resolve("routine-implementation", **kwargs)
 
     def test_cli_overrides_runtime_effort_and_rejects_ambiguous_choices(self):
-        result = self.cli("validation-browser", "--profile", "economy", "--role", "worker=mimo-pro:runtime")
+        result = self.cli("validation-browser", "--profile", "economy", "--role", "worker=mistral-small:runtime")
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIsNone(json.loads(result.stdout)["roles"]["worker"]["effort"])
         for args in (
             ("--profile", "economy", "--role", "worker=qwen-flash"),
             ("--profile", "economy", "--role", "worker=glm:medium"),
-            ("--profile", "economy", "--role", "worker=glm", "--role", "worker=mimo-pro"),
+            ("--profile", "economy", "--role", "worker=glm", "--role", "worker=mistral-small"),
             ("--profile", "economy", "--family", "gpt"),
             ("--local-profile", "economy", "--family", "gpt"),
             ("--role", "worker=glm"),

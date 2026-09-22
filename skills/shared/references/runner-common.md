@@ -35,7 +35,7 @@ This is the one place the fallback split is defined; nothing else restates it.
 | `claude` | falls back → `codex` |
 | `codex` | falls back → `claude` |
 | `gemini` | falls back → `qwen`, `kimi`, `codex`, `claude` (in that order) |
-| `grok`, `pi`, `kimi`, `glm`, `qwen`, `gemma`, `muse`, `minimax`, `mimo-pro` | **block-and-report** — never substitutes |
+| `grok`, `pi`, `kimi`, `glm`, `qwen`, `gemma`, `muse`, `minimax`, `mistral-small` | **block-and-report** — never substitutes |
 
 A fallback is always labeled (`fallback_from`, `fallback_reason`), and every fallback chain passes `--disable-fallback` to the runner it delegates to so chains cannot loop. Either way the seat's identity is never faked.
 
@@ -138,7 +138,7 @@ Runner skills launch CLI seats headless with auto-approve flags — the guard pu
 
 - **Claude Code** — `~/.claude/settings.json`, `PreToolUse` hook with matcher `Bash` running the script (exit 2 blocks). Merge into any existing `hooks` object, never overwrite.
 - **Codex CLI** — `~/.codex/hooks.json`, same `PreToolUse`/`Bash` shape. Gotcha: Codex pins hook-entry trust by hash — after editing the hook ENTRY (not the patterns file), re-trust via `/hooks` in Codex or it silently skips the guard.
-- **Pi-backed seats (pi, kimi, glm, qwen, gemma, muse, minimax, mimo-pro)** — no PreToolUse hook system; their floor is the wrapper's tool modes (`--restrict-tools` enables only the file-reading tool; `--no-tools` disables all tools natively). Note the gap rather than pretending coverage.
+- **Pi-backed seats (pi, kimi, glm, qwen, gemma, muse, minimax, mistral-small)** — no PreToolUse hook system; their floor is the wrapper's tool modes (`--restrict-tools` enables only the file-reading tool; `--no-tools` disables all tools natively). Note the gap rather than pretending coverage.
 
 Use absolute paths in configs (`~` expansion is inconsistent across hosts). After ANY pattern change run `test-guard.sh` (must end `failed: 0`). Known false-positive class: a harmless command whose argument text contains a dangerous-looking string can be blocked — put the text in a file and reference it.
 

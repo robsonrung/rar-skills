@@ -69,7 +69,7 @@ class ExecutionPolicyTests(unittest.TestCase):
             launch.validate_route(self.route)
 
     def test_model_with_runtime_reasoning_omits_effort_flag(self):
-        candidate = model_routing.resolve_profile("validation-browser", role_overrides={"worker": {"seat": "mimo-pro"}})["roles"]["worker"]
+        candidate = model_routing.resolve_profile("validation-browser", role_overrides={"worker": {"seat": "mistral-small"}})["roles"]["worker"]
         self.route.update(candidate)
         launch.validate_route(self.route)
         argv = launch.route_arguments(self.route, self.brief, self.root, "implementer", 30, {}, False)

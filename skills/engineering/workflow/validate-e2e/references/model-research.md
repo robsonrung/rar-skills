@@ -38,6 +38,12 @@ serialized reasoning value. Candidates without selectable effort, including the
 listed MiMo, Qwen, and Kimi Code routes, need runtime controlled effort, not an
 invented common level. Read each model's capability record before dispatch.
 
+Addendum, 20 September 2026: the MiMo routes were later removed from the
+roster — no provider endpoint met the ZDR privacy gate — and the MiMo
+candidate was replaced by Mistral Small through the same Pi seat path. This
+record keeps the original inspection facts; the central configuration holds
+the current seat.
+
 [Provider routing](https://openrouter.ai/docs/guides/routing/provider-selection)
 documents `zdr`, `data_collection`, `require_parameters`, provider allowlists, and
 fallback controls. Carry the selected policy into actual requests and retain its

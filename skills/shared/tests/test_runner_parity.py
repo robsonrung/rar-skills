@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Cross-runner parity tests for the wrapper scripts (claude, codex, gemini,
 grok, pi) and the named seats they serve (pi: kimi, glm, qwen, gemma, muse,
-minimax, mimo-pro) via `--seat`.
+minimax, mistral-small) via `--seat`.
 
 Locks in the family-wide contract so the per-script copies cannot drift:
 
@@ -58,7 +58,7 @@ RUNNER_SCRIPTS = {
     "gemma": (_PI, ("--seat", "gemma")),
     "muse": (_PI, ("--seat", "muse")),
     "minimax": (_PI, ("--seat", "minimax")),
-    "mimo-pro": (_PI, ("--seat", "mimo-pro")),
+    "mistral-small": (_PI, ("--seat", "mistral-small")),
 }
 
 REQUIRED_KEYS = (
@@ -174,10 +174,10 @@ class MissingCliEnvelopeParityTests(unittest.TestCase):
                     self.assertEqual(env["effective_runner"], "pi")
                     self.assertEqual(env["configured_model"], "minimax/minimax-m2.7")
                     self.assertEqual(env["effective_provider"], "minimax")
-                if name == "mimo-pro":
+                if name == "mistral-small":
                     self.assertEqual(env["effective_runner"], "pi")
-                    self.assertEqual(env["configured_model"], "xiaomi/mimo-v2.6-pro")
-                    self.assertEqual(env["effective_provider"], "xiaomi")
+                    self.assertEqual(env["configured_model"], "mistralai/mistral-small-3.2")
+                    self.assertEqual(env["effective_provider"], "mistralai")
 
 
 class OutputFilePointerParityTests(unittest.TestCase):

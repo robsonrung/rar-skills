@@ -396,10 +396,10 @@
         "preflight_required": true
       }
     },
-    "mimo-pro": {
-      "model": "xiaomi/mimo-v2.6-pro",
+    "mistral-small": {
+      "model": "mistralai/mistral-small-3.2",
       "runner": "pi",
-      "family": "mimo",
+      "family": "mistral",
       "effort_profile": "runtime",
       "aliases": [],
       "default_effort": null,
@@ -582,7 +582,7 @@
       "tier": "candidate"
     },
     {
-      "seat": "mimo-pro",
+      "seat": "mistral-small",
       "execution_path": "pi_runner_seat",
       "probe_cli": "pi",
       "depends_on": [
@@ -2192,7 +2192,7 @@
         "validation-browser": {
           "worker": [
             "glm",
-            "mimo-pro",
+            "mistral-small",
             "qwen-flash"
           ]
         }
