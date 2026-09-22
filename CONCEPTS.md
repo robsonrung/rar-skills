@@ -14,7 +14,7 @@ A native seat runs through the host's own agent-spawning tool (e.g. `Agent` in C
 
 ### Runner skill / runner shim
 
-A skill (`claude-runner`, `codex-runner`, `gemini-runner`, `grok-runner`, `pi-runner`, `cline-runner`, …) whose script wraps one CLI and emits the shared envelope. One runner can serve several named seats (`pi-runner --seat kimi`), each with its own pinned model and seat label.
+A skill (`claude-runner`, `codex-runner`, `gemini-runner`, `grok-runner`, `pi-runner`, …) whose script wraps one CLI and emits the shared envelope. One runner can serve several named seats (`pi-runner --seat kimi`), each with its own pinned model and seat label.
 
 ### Envelope
 

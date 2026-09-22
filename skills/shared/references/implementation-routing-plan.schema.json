@@ -99,8 +99,7 @@
         "claude",
         "pi",
         "grok",
-        "gemini",
-        "cline"
+        "gemini"
       ]
     },
     "effort": {

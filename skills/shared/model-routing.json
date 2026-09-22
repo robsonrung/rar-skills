@@ -49,13 +49,6 @@
       "high",
       "xhigh"
     ],
-    "cline": [
-      "none",
-      "low",
-      "medium",
-      "high",
-      "xhigh"
-    ],
     "runtime": [],
     "pi_adapter": [
       "none",
@@ -149,41 +142,6 @@
       "effort_aliases": {
         "none": "off"
       }
-    },
-    "cline": {
-      "provider": "cline",
-      "effort_flag": "--thinking",
-      "effort_profile": "cline",
-      "default_seat": null,
-      "default_effort": null
-    },
-    "dcode": {
-      "provider": "dcode",
-      "effort_flag": null,
-      "effort_profile": "runtime",
-      "default_seat": null,
-      "metadata_model": "dcode-configured-model",
-      "default_effort": null,
-      "model_control": "runtime",
-      "approved_dispatch": false,
-      "fallbacks": [
-        {
-          "runner": "claude",
-          "seat": null
-        },
-        {
-          "runner": "codex",
-          "seat": null
-        },
-        {
-          "runner": "pi",
-          "seat": "qwen"
-        },
-        {
-          "runner": "pi",
-          "seat": "kimi"
-        }
-      ]
     }
   },
   "models": {
@@ -304,17 +262,19 @@
     },
     "muse": {
       "model": "meta/muse-spark-1.3",
-      "runner": "cline",
+      "runner": "pi",
       "family": "muse",
-      "effort_profile": "cline",
-      "aliases": []
+      "effort_profile": "runtime",
+      "aliases": [],
+      "default_effort": null
     },
     "minimax": {
       "model": "minimax/minimax-m2.7",
-      "runner": "cline",
+      "runner": "pi",
       "family": "minimax",
-      "effort_profile": "cline",
-      "aliases": []
+      "effort_profile": "runtime",
+      "aliases": [],
+      "default_effort": null
     },
     "gpt-legacy": {
       "model": "gpt-5.5",
@@ -390,29 +350,6 @@
         "preflight_required": true
       }
     },
-    "mimo": {
-      "model": "xiaomi/mimo-v2.5",
-      "runner": "pi",
-      "family": "mimo",
-      "effort_profile": "runtime",
-      "aliases": [],
-      "default_effort": null,
-      "capabilities": {
-        "tools": true,
-        "images": true
-      },
-      "capability_evidence": {
-        "checked_at": "2026-09-20",
-        "source": "https://openrouter.ai/api/v1/models"
-      },
-      "privacy": {
-        "gateway": "openrouter",
-        "zdr_available": true,
-        "checked_at": "2026-09-20",
-        "source": "https://openrouter.ai/api/v1/endpoints/zdr",
-        "preflight_required": true
-      }
-    },
     "qwen-plus": {
       "model": "qwen/qwen3.6-plus",
       "runner": "pi",
@@ -440,6 +377,29 @@
       "model": "moonshotai/kimi-k2.7-code",
       "runner": "pi",
       "family": "kimi",
+      "effort_profile": "runtime",
+      "aliases": [],
+      "default_effort": null,
+      "capabilities": {
+        "tools": true,
+        "images": true
+      },
+      "capability_evidence": {
+        "checked_at": "2026-09-20",
+        "source": "https://openrouter.ai/api/v1/models"
+      },
+      "privacy": {
+        "gateway": "openrouter",
+        "zdr_available": true,
+        "checked_at": "2026-09-20",
+        "source": "https://openrouter.ai/api/v1/endpoints/zdr",
+        "preflight_required": true
+      }
+    },
+    "mimo-pro": {
+      "model": "xiaomi/mimo-v2.6-pro",
+      "runner": "pi",
+      "family": "mimo",
       "effort_profile": "runtime",
       "aliases": [],
       "default_effort": null,
@@ -560,10 +520,10 @@
     },
     {
       "seat": "muse",
-      "execution_path": "cline_runner_seat",
-      "probe_cli": "cline",
+      "execution_path": "pi_runner_seat",
+      "probe_cli": "pi",
       "depends_on": [
-        "cline"
+        "pi"
       ],
       "tier": "backup"
     },
@@ -578,10 +538,10 @@
     },
     {
       "seat": "minimax",
-      "execution_path": "cline_runner_seat",
-      "probe_cli": "cline",
+      "execution_path": "pi_runner_seat",
+      "probe_cli": "pi",
       "depends_on": [
-        "cline"
+        "pi"
       ],
       "tier": "backup"
     },
@@ -604,15 +564,6 @@
       "tier": "candidate"
     },
     {
-      "seat": "mimo",
-      "execution_path": "pi_runner_seat",
-      "probe_cli": "pi",
-      "depends_on": [
-        "pi"
-      ],
-      "tier": "candidate"
-    },
-    {
       "seat": "qwen-plus",
       "execution_path": "pi_runner_seat",
       "probe_cli": "pi",
@@ -623,6 +574,15 @@
     },
     {
       "seat": "kimi-code",
+      "execution_path": "pi_runner_seat",
+      "probe_cli": "pi",
+      "depends_on": [
+        "pi"
+      ],
+      "tier": "candidate"
+    },
+    {
+      "seat": "mimo-pro",
       "execution_path": "pi_runner_seat",
       "probe_cli": "pi",
       "depends_on": [
@@ -2232,7 +2192,7 @@
         "validation-browser": {
           "worker": [
             "glm",
-            "mimo",
+            "mimo-pro",
             "qwen-flash"
           ]
         }

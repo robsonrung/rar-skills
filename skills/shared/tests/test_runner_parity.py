@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Cross-runner parity tests for the wrapper scripts (claude, codex, gemini,
-grok, cline, pi) and the named seats they serve (pi: kimi, glm, qwen, gemma;
-cline: muse, minimax) via `--seat`.
+grok, pi) and the named seats they serve (pi: kimi, glm, qwen, gemma, muse,
+minimax, mimo-pro) via `--seat`.
 
 Locks in the family-wide contract so the per-script copies cannot drift:
 
@@ -43,7 +43,6 @@ def P(rel: str):
     return skill_dir(name, root=REPO_ROOT) / rest if rest else skill_dir(name, root=REPO_ROOT)
 
 _PI = runner_script("pi", root=REPO_ROOT)
-_CLINE = runner_script("cline", root=REPO_ROOT)
 DISCOVER_RUNNERS = REPO_ROOT / "shared" / "scripts" / "discover_runners.py"
 
 # runner label -> (script, extra args that select the seat)
@@ -52,14 +51,14 @@ RUNNER_SCRIPTS = {
     "codex": (runner_script("codex", root=REPO_ROOT), ()),
     "gemini": (runner_script("gemini", root=REPO_ROOT), ()),
     "grok": (runner_script("grok", root=REPO_ROOT), ()),
-    "cline": (_CLINE, ()),
-    "muse": (_CLINE, ("--seat", "muse")),
-    "minimax": (_CLINE, ("--seat", "minimax")),
     "pi": (_PI, ()),
     "kimi": (_PI, ("--seat", "kimi")),
     "glm": (_PI, ("--seat", "glm")),
     "qwen": (_PI, ("--seat", "qwen")),
     "gemma": (_PI, ("--seat", "gemma")),
+    "muse": (_PI, ("--seat", "muse")),
+    "minimax": (_PI, ("--seat", "minimax")),
+    "mimo-pro": (_PI, ("--seat", "mimo-pro")),
 }
 
 REQUIRED_KEYS = (
@@ -168,13 +167,17 @@ class MissingCliEnvelopeParityTests(unittest.TestCase):
                     self.assertEqual(env["configured_model"], "google/gemma-4-31b-it")
                     self.assertEqual(env["effective_provider"], "google")
                 if name == "muse":
-                    self.assertEqual(env["effective_runner"], "cline")
+                    self.assertEqual(env["effective_runner"], "pi")
                     self.assertEqual(env["configured_model"], "meta/muse-spark-1.3")
                     self.assertEqual(env["effective_provider"], "meta")
                 if name == "minimax":
-                    self.assertEqual(env["effective_runner"], "cline")
+                    self.assertEqual(env["effective_runner"], "pi")
                     self.assertEqual(env["configured_model"], "minimax/minimax-m2.7")
                     self.assertEqual(env["effective_provider"], "minimax")
+                if name == "mimo-pro":
+                    self.assertEqual(env["effective_runner"], "pi")
+                    self.assertEqual(env["configured_model"], "xiaomi/mimo-v2.6-pro")
+                    self.assertEqual(env["effective_provider"], "xiaomi")
 
 
 class OutputFilePointerParityTests(unittest.TestCase):

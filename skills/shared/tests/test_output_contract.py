@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Offline contract tests for schema-bearing Cline and Grok runner results."""
+"""Offline contract tests for schema-bearing Pi and Grok runner results."""
 
 import json
 import os
@@ -34,29 +34,41 @@ def run_runner(name: str, text: str) -> tuple[subprocess.CompletedProcess, dict]
         bin_dir = root / "bin"
         bin_dir.mkdir()
         command = bin_dir / name
-        command.write_text(
-            "#!/bin/sh\n"
-            "if [ \"$1\" = \"history\" ]; then printf '[]'; "
-            "else printf '%s\\n' \"$RUNNER_FAKE_OUTPUT\"; fi\n",
-            encoding="utf-8",
-        )
-        command.chmod(0o755)
-        if name == "cline":
-            native = {
-                "type": "run_result",
-                "text": text,
-                "finishReason": "completed",
-                "model": {"id": "moonshotai/kimi-k3", "provider": "moonshotai"},
-            }
+        if name == "pi":
+            # Fake the Pi CLI: emit one native --mode json message_end event.
+            native = json.dumps({
+                "type": "message_end",
+                "message": {
+                    "role": "assistant",
+                    "content": [{"type": "text", "text": text}],
+                    "model": "moonshotai/kimi-k3",
+                    "provider": "openrouter",
+                    "stopReason": "stop",
+                    "usage": {"input": 1, "output": 1},
+                },
+            })
+            command.write_text(
+                "#!/bin/sh\n"
+                f"printf '%s\\n' {json.dumps(native)}\n",
+                encoding="utf-8",
+            )
         else:
-            native = {
+            command.write_text(
+                "#!/bin/sh\n"
+                "if [ \"$1\" = \"history\" ]; then printf '[]'; "
+                "else printf '%s\\n' \"$RUNNER_FAKE_OUTPUT\"; fi\n",
+                encoding="utf-8",
+            )
+            native = json.dumps({
                 "text": text,
                 "sessionId": "test-session",
                 "modelUsage": {"grok-test": {}},
-            }
+            })
+            command.chmod(0o755)
+        command.chmod(0o755)
         env = os.environ.copy()
         env["PATH"] = f"{bin_dir}:/usr/bin:/bin"
-        env["RUNNER_FAKE_OUTPUT"] = json.dumps(native)
+        env["RUNNER_FAKE_OUTPUT"] = native
         proc = subprocess.run(
             [sys.executable, str(script), "answer", "--json", "--output-schema", str(OPENING_SCHEMA)],
             capture_output=True,
@@ -93,9 +105,9 @@ class OutputContractUnitTests(unittest.TestCase):
 
 
 class RunnerOutputContractTests(unittest.TestCase):
-    def test_cline_and_grok_accept_only_schema_valid_final_answers(self):
+    def test_pi_and_grok_accept_only_schema_valid_final_answers(self):
         valid = json.dumps(opening_answer())
-        for name in ("cline", "grok"):
+        for name in ("pi", "grok"):
             with self.subTest(runner=name, case="valid"):
                 proc, envelope = run_runner(name, valid)
                 self.assertEqual(proc.returncode, 0, proc.stderr)

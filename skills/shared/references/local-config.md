@@ -24,10 +24,6 @@ Remove them from local files. Legacy `models` entries are ignored and reported. 
 effort settings to `shared/model-routing.json`. Explicit user selections belong
 in the proposed run snapshot, never a second default roster.
 
-## Cline lanes
-
-Concurrent Cline lanes deliberately do **not** live in this YAML. The built-in `kimi` and `glm` lane names remain provisionable for direct `cline-runner` use (authenticate isolated state under `~/.cline/lanes/<name>`, then pass `--lane <name>`), though the Kimi and GLM seat shims themselves now route through `pi-runner` on OpenRouter and need no lanes. For a custom lane, pass its JSON directly with `--lane-file`; it contains absolute local state paths and pool limits but never credentials. Use `cline-runner/references/cline-lanes.example.json` as the schema.
-
 ## Reading it
 
 Use `model_routing.py resolve <route> --profile default`. Add

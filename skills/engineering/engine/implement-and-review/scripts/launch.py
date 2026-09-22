@@ -23,14 +23,13 @@ from typing import Any, NoReturn
 
 SKILL_ROOT = Path(__file__).resolve().parents[1]
 JOB_ID_RE = re.compile(r"\b([a-z]+-[0-9a-f]{8})\b")
-RUNNERS = {"codex", "claude", "pi", "grok", "gemini", "cline"}
+RUNNERS = {"codex", "claude", "pi", "grok", "gemini"}
 NATIVE_TRANSPORTS = {"subagent", "thread"}
 RUNNER_RESUME_FLAGS = {
     "codex": "--resume",
     "claude": "--resume",
     "grok": "--resume",
     "pi": "--session",
-    "cline": "--session",
 }
 TERMINAL_JOB_STATUSES = {"completed", "failed", "died", "cancelled", "missing"}
 ACTIVE_REVIEW_STATUSES = {"starting", "running", "awaiting_native_dispatch", "orchestrator-managed"}
@@ -483,7 +482,7 @@ def route_arguments(
     ]
     if route["runner"] == "claude":
         arguments.extend(["--output-format", "stream-json"])
-    if route["runner"] in {"pi", "cline"}:
+    if route["runner"] == "pi":
         arguments.extend(["--seat", route["seat"]])
     if "provider_routing" in route:
         arguments.extend(["--provider", route["provider_routing"]["gateway"],

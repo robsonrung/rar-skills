@@ -48,7 +48,6 @@ Load only the selected runner's skill and command reference:
 | `codex-runner` | Exact model/effort, session ID, scoped tools, provider receipt policy. Use only when the exact native path is unavailable or the CLI was requested. |
 | `grok-runner` | Model receipt and effective effort. The adapter can clamp unsupported efforts; reject a changed effort in an approved run. |
 | `pi-runner` | Pin gateway, model, serialized reasoning and provider privacy controls per call; use a unique persistent session file per role. Preflight browser commands, tool schemas, and typed image input in that external process. Host tools are not inherited. |
-| `cline-runner` | Isolate provider state in a data directory or authenticated lane before selecting a model. |
 | `gemini-runner` | Current runtime does not enforce exact model or effort. Accept only an explicitly approved runtime controlled route, or select another verified transport. Do not claim exact control. |
 | Other installed runners | Inspect their actual skill and adapter. Availability alone does not prove exact routing, persistence, tools, or receipts. |
 

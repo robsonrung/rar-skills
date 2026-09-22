@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://rar-skills/runner-envelope.schema.json",
   "title": "Runner Envelope",
-  "description": "Wrapper envelope emitted by every runner skill in this repo (claude, codex, gemini, grok, qwen, cline, and the cline-backed kimi/glm and qwen-backed gemma/minimax shims). All --json responses carry the required keys below on every exit path; individual runners add the documented extension keys and may add further diagnostic keys (additionalProperties is intentionally open).",
+  "description": "Wrapper envelope emitted by every runner skill in this repo (claude, codex, gemini, grok, pi, and the pi-backed named seats). All --json responses carry the required keys below on every exit path; individual runners add the documented extension keys and may add further diagnostic keys (additionalProperties is intentionally open).",
   "type": "object",
   "required": [
     "runner",
@@ -20,7 +20,7 @@
   "properties": {
     "runner": {
       "type": "string",
-      "description": "Requested runner identity (claude, codex, gemini, grok, qwen, cline, kimi, glm, gemma, minimax, ...)."
+      "description": "Requested runner identity (claude, codex, gemini, grok, pi, or a named seat label such as kimi, glm, qwen, gemma, muse, minimax, ...)."
     },
     "effective_runner": {
       "type": "string",
@@ -215,7 +215,7 @@
         "string",
         "null"
       ],
-      "description": "Session id reported by the native CLI (or recovered from history for cline-backed runners), when available."
+      "description": "Session id reported by the native CLI, when available."
     },
     "native_result": {
       "description": "Raw result payload from the native result event. May be a string, object, or array; presence indicates the CLI emitted a result event. For --output-schema runs this is the structured object (agent_message is its JSON serialization)."
@@ -264,30 +264,30 @@
         "string",
         "null"
       ],
-      "description": "cline-backed runners: Cline's native finishReason (completed, error, ...) from the terminal run_result event."
+      "description": "Stream-backed runners (pi): the native stopReason (stop, error, ...) from the terminal message event."
     },
     "native_model_id": {
       "type": "string",
-      "description": "cline-backed runners: the model that actually answered, read back from the native stream."
+      "description": "Stream-backed runners (pi): the model that actually answered, read back from the native stream."
     },
     "native_provider": {
       "type": "string",
-      "description": "cline-backed runners: the provider that actually answered, read back from the native stream."
+      "description": "Stream-backed runners (pi): the provider that actually answered, read back from the native stream."
     },
     "native_return_code": {
       "type": "integer",
-      "description": "cline-backed runners: the raw process exit code before return-code normalization."
+      "description": "Stream-backed runners (pi): the raw process exit code before return-code normalization."
     },
     "thinking": {
       "type": [
         "string",
         "null"
       ],
-      "description": "cline-backed runners: the reasoning-effort level forwarded to cline --thinking, when set."
+      "description": "Stream-backed runners (pi): the reasoning-effort level forwarded to the CLI, when set."
     },
     "provider_config_mutated": {
       "type": "boolean",
-      "description": "cline-backed runners: true when --model was forwarded without an isolating --data-dir, meaning the user's persisted provider default in ~/.cline/data/settings/providers.json was rewritten as a side effect."
+      "description": "Stream-backed runners (pi): true when a forwarded --model rewrote a persisted provider default as a side effect."
     },
     "prompt_file": {
       "type": "string",

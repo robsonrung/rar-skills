@@ -198,8 +198,8 @@ def normalize_prompt_files(prompt_files: list[str] | None, working_dir: str | No
 
 # Tool modes, from most to least capable:
 # - "act": Pi's full built-in toolset (read, bash, edit, write).
-# - "restricted": `--tools read` — file reading only. Unlike Cline plan mode
-#   there is no search tool and no read-only shell in this mode.
+# - "restricted": `--tools read` — file reading only; no search tool and
+#   no read-only shell in this mode.
 # - "no_tools": native `--no-tools`; the seat answers from the prompt alone.
 TOOL_MODE_ACT = "act"
 TOOL_MODE_RESTRICTED = "restricted"

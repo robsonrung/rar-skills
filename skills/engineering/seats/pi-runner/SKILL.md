@@ -1,6 +1,6 @@
 ---
 name: pi-runner
-description: Execute an external Pi CLI prompt with a provider and model pinned per call. Use only for an explicit Pi CLI request, a selected Pi provider route unavailable as native host delegation, or an approved external fallback, including Kimi, GLM, Qwen, and Gemma seats.
+description: Execute an external Pi CLI prompt with a provider and model pinned per call. Use only for an explicit Pi CLI request, a selected Pi provider route unavailable as native host delegation, or an approved external fallback, including Kimi, GLM, Qwen, Gemma, Muse, Minimax, and MiMo seats.
 ---
 
 # Pi Runner
@@ -82,7 +82,7 @@ Every run disables unrelated extension, skill, prompt-template, theme, and proje
 ## Tool modes
 
 - **act** (write roles, `--allow-write`, or no role): Pi's full built-in toolset (read, bash, edit, write).
-- **restricted** (`--restrict-tools`, default for analysis roles): only the file-reading tool is enabled. Unlike Cline plan mode there is no search tool and no read-only shell in this mode.
+- **restricted** (`--restrict-tools`, default for analysis roles): only the file-reading tool is enabled. There is no search tool and no read-only shell in this mode.
 - **no_tools** (`--no-tools`): native tool disable; the seat answers from the supplied input. This is what poll-mode council seats use.
 - **browser** (`--tool-policy browser`): file/image reads and shell access for the selected driver. Pass `--browser-mechanism playwright-cli` or `agent-browser` and `--browser-preflight <file>` with captured readiness evidence. Shell access does not enforce a browser-only sandbox or authorize product repair.
 

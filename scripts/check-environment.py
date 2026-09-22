@@ -220,9 +220,9 @@ def check_environment(project=None, browser='auto', native_models=False, timeout
                       f'See {SETUP_GUIDE}, section 3, for session setup and evidence requirements.', manual=True)
 
     check.command('rg', required=False)
-    for name in ('gh', 'jq', 'claude', 'agy', 'cline', 'grok', 'dcode', 'opencode', 'cmux'):
+    for name in ('gh', 'jq', 'claude', 'agy', 'grok', 'cmux'):
         check.command(name, required=False, probe=False)
-    for name in ('AGY_CLI_PATH', 'DCODE_CLI_PATH'):
+    for name in ('AGY_CLI_PATH',):
         value = os.environ.get(name)
         if value:
             check.add(name, 'OK' if shutil.which(value) else 'MISSING', False,

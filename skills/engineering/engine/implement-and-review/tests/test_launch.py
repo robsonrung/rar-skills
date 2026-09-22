@@ -1119,12 +1119,12 @@ class LauncherTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "not supported"):
             launcher.validate_route(route)
 
-    def test_rejects_dcode_before_any_dispatch(self) -> None:
+    def test_rejects_unknown_runner_before_any_dispatch(self) -> None:
         route = self.route(
-            "impl-dcode",
+            "impl-phantom",
             "implementer",
-            "configured-by-dcode",
-            runner="dcode",
+            "configured-by-phantom",
+            runner="phantom",
             effort=None,
             effort_control="runtime",
             model_verification="allow_unverified",

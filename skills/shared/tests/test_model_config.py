@@ -115,7 +115,7 @@ class ModelConfigTests(unittest.TestCase):
         launcher = module(skill_dir("implement-and-review", root=SKILLS) / "scripts" / "launch.py", "config_launcher")
         self.assertEqual(worker.DEFAULT_MODEL, routing.default_model("codex"))
         self.assertEqual(worker.MODEL_EFFORT_LEVELS, {k: tuple(v) for k, v in launcher.CODEX_MODEL_EFFORTS.items()})
-        for name, constant in (("pi", "PI_SEATS"), ("cline", "CLINE_SEATS")):
+        for name, constant in (("pi", "PI_SEATS"),):
             runner = module(runner_script(name, root=SKILLS), f"config_{name}")
             self.assertEqual(getattr(runner, constant), routing.seat_models(name))
 
@@ -199,7 +199,7 @@ roles = ["reader"]
             for pin in pins:
                 if pin in text:
                     violations.append(f"{path.relative_to(SKILLS)}: {pin}")
-            if path.suffix == ".py" and re.search(r"^(?:MODEL_EFFORT_LEVELS|CODEX_MODEL_EFFORTS|EFFORT_LEVELS|PI_SEATS|CLINE_SEATS)\s*=\s*[({\[]", text, re.M):
+            if path.suffix == ".py" and re.search(r"^(?:MODEL_EFFORT_LEVELS|CODEX_MODEL_EFFORTS|EFFORT_LEVELS|PI_SEATS)\s*=\s*[({\[]", text, re.M):
                 violations.append(f"{path.relative_to(SKILLS)}: duplicated capability table")
         self.assertEqual(violations, [])
 

@@ -35,8 +35,7 @@ This is the one place the fallback split is defined; nothing else restates it.
 | `claude` | falls back → `codex` |
 | `codex` | falls back → `claude` |
 | `gemini` | falls back → `qwen`, `kimi`, `codex`, `claude` (in that order) |
-| `dcode` | falls back → `claude`, `codex`, `qwen`, `kimi` (in that order) |
-| `grok`, `cline`, `pi`, `kimi`, `glm`, `qwen`, `gemma`, `muse`, `minimax` | **block-and-report** — never substitutes |
+| `grok`, `pi`, `kimi`, `glm`, `qwen`, `gemma`, `muse`, `minimax`, `mimo-pro` | **block-and-report** — never substitutes |
 
 A fallback is always labeled (`fallback_from`, `fallback_reason`), and every fallback chain passes `--disable-fallback` to the runner it delegates to so chains cannot loop. Either way the seat's identity is never faked.
 
@@ -80,8 +79,7 @@ model access.
 Adapters with a supported model specific effort use `effort_control: "runner"`.
 Pi candidates without selectable effort use `effort_control: "runtime"` with a
 null effort; preserve their observed runtime reasoning without inventing a level.
-Gemini also uses runtime effort. Dcode is not eligible for approved implementation
-or review routes because it cannot forward an exact model. Grok accepts at most `high`;
+Gemini also uses runtime effort. Grok accepts at most `high`;
 an approved route must select a supported effort rather than rely on a
 direct-call clamp.
 
@@ -117,7 +115,7 @@ Supported roles:
 - `challenger`
 - `researcher`
 
-Every role except `implementer` is an analysis seat and defaults to read-only mode. The exact enforcement is runner specific: Claude planning mode, Codex read-only sandbox, Cline plan mode (read-only toolset with reads auto-approved; `--no-tools` forces a full tool block via `--auto-approve false`), Pi tool allowlisting (`--restrict-tools` enables only the file-reading tool; `--no-tools` disables all tools natively), or a prompt-level overlay. Pass `--allow-write` when an analysis role legitimately needs to write.
+Every role except `implementer` is an analysis seat and defaults to read-only mode. The exact enforcement is runner specific: Claude planning mode, Codex read-only sandbox, Pi tool allowlisting (`--restrict-tools` enables only the file-reading tool; `--no-tools` disables all tools natively), or a prompt-level overlay. Pass `--allow-write` when an analysis role legitimately needs to write.
 
 ## Presenting results
 
@@ -140,8 +138,7 @@ Runner skills launch CLI seats headless with auto-approve flags — the guard pu
 
 - **Claude Code** — `~/.claude/settings.json`, `PreToolUse` hook with matcher `Bash` running the script (exit 2 blocks). Merge into any existing `hooks` object, never overwrite.
 - **Codex CLI** — `~/.codex/hooks.json`, same `PreToolUse`/`Bash` shape. Gotcha: Codex pins hook-entry trust by hash — after editing the hook ENTRY (not the patterns file), re-trust via `/hooks` in Codex or it silently skips the guard.
-- **Cline-backed seats (cline, muse, minimax)** — no user-global PreToolUse hook system as of 2026-08; their floor is native plan mode (no file-editing tool, write actions policy-blocked) for restricted runs, or `--auto-approve false` under `--no-tools`. Note the gap rather than pretending coverage.
-- **Pi-backed seats (pi, kimi, glm, qwen, gemma)** — no PreToolUse hook system; their floor is the wrapper's tool modes (`--restrict-tools` enables only the file-reading tool; `--no-tools` disables all tools natively). Note the gap rather than pretending coverage.
+- **Pi-backed seats (pi, kimi, glm, qwen, gemma, muse, minimax, mimo-pro)** — no PreToolUse hook system; their floor is the wrapper's tool modes (`--restrict-tools` enables only the file-reading tool; `--no-tools` disables all tools natively). Note the gap rather than pretending coverage.
 
 Use absolute paths in configs (`~` expansion is inconsistent across hosts). After ANY pattern change run `test-guard.sh` (must end `failed: 0`). Known false-positive class: a harmless command whose argument text contains a dangerous-looking string can be blocked — put the text in a file and reference it.
 

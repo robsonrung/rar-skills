@@ -95,7 +95,7 @@ item. Those actions are never implied by task or model-plan approval.
 
 ## Library map
 
-There are 61 installable skills. The following map keeps every skill
+There are 58 installable skills. The following map keeps every skill
 discoverable while leaving detailed instructions in each `SKILL.md`.
 
 | Domain | Skills |
@@ -107,7 +107,7 @@ discoverable while leaving detailed instructions in each `SKILL.md`.
 | Practice | `clean-code`, `diagnose`, `frontend-design`, `safe-incremental-coding`, `tdd`, `test-lens` |
 | Review | `coding-review-simplify`, `full-review` |
 | Delivery | `capture-learning`, `open-pr`, `resolve-pr-feedback`, `session-handoff`, `summarize` |
-| Model seats | `claude-runner`, `cline-runner`, `codex-runner`, `dcode-runner`, `gemini-runner`, `grok-runner`, `opencode-runner`, `pi-runner` |
+| Model seats | `claude-runner`, `codex-runner`, `gemini-runner`, `grok-runner`, `pi-runner` |
 | Independent utilities | `agents-md-craft`, `browser-smoke`, `cmux-cli`, `collaborative-delivery`, `decide-about-disagreements`, `diverse-plan`, `dynamic-harness`, `fable-mindset`, `knowledge-graph`, `peer-sessions`, `review-gate`, `skill-expert`, `verify-changes` |
 | Visualizations | `consensus-summary-html`, `explain-architecture`, `html-explainer` |
 

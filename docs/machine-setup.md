@@ -110,10 +110,7 @@ there is no universal collection `BASE_URL` or test-password variable.
 | `codex` | Selected external review, planning or implementation routes that use this runner | Authenticate the CLI and confirm access to the exact selected model. A desktop login is not assumed to authenticate a separate CLI. |
 | `claude` | Selected routes using this runner | CLI login, or the supported credential variables below. |
 | `agy` | The `gemini-runner` route | Authenticate Antigravity CLI and select the model there. This adapter uses `agy`, not the `gemini` command; its `--model` argument does not change the serving model. |
-| `cline` | Explicit Cline routes | Run `cline auth`. Concurrent workers need separate lanes or data directories. Pi seats do not need Cline lanes. |
 | `grok` | Explicit Grok routes | Configure the CLI through `grok login`. |
-| `dcode` | Explicit DeepAgents routes | Configure credentials and model through `/auth`, `/model` or its supported configuration files. |
-| `opencode` | Explicit manual comparisons | Configure that CLI's provider. The collection has no executable wrapper or accepted model receipt for this route. |
 | `gh` | GitHub PR creation, PR feedback and remote review context | `gh auth login`, then `gh auth status`, or a suitable token. Git push authentication is a separate requirement. |
 | `cmux` | Visible peer sessions or direct cmux control | Install the app and CLI, start the app, and verify `cmux ping`. It is not required for ordinary native delegation. |
 | `jq` | The optional shell command guard | `jq --version`. Without it, the current guard exits without checking commands. Install and test it if enabling that guard. |
@@ -140,7 +137,6 @@ CLI's credential store. Do not put secrets in committed files, model plans or
 | `GH_TOKEN` / `GITHUB_TOKEN` | Optional alternative to GitHub CLI login | Token for GitHub operations; `GH_TOKEN` takes precedence. |
 | `GH_HOST` / `GH_ENTERPRISE_TOKEN` | Conditional | Enterprise hostname and token when using that service. |
 | `AGY_CLI_PATH` | Optional | Override the `agy` executable path. |
-| `DCODE_CLI_PATH` | Optional | Override the `dcode` executable path. |
 | `PLAYWRIGHT_CLI_SESSION` / `AGENT_BROWSER_SESSION` | Per browser worker | Separate browser sessions. Prefer explicit per-run names. |
 | `CMUX_WORKSPACE_ID` / `CMUX_SURFACE_ID` | Only inside applicable cmux sessions | Runtime context. Do not reuse another session's IDs as global defaults. |
 | `RAR_GUARD_PATTERNS` | Optional | Custom pattern file for the command guard. |

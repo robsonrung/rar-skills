@@ -63,13 +63,10 @@ Exact identifiers and transport limits belong in the [model roster](../skills/sh
 | [coding-review-simplify](../skills/engineering/review/coding-review-simplify/SKILL.md) | Updated | Simplify a finished change within its original scope. |
 | [full-review](../skills/engineering/review/full-review/SKILL.md) | Updated | Run focused independent review for final risks and task seams. |
 | [claude-runner](../skills/engineering/seats/claude-runner/SKILL.md) | Updated | Execute the selected model through the Claude CLI. |
-| [cline-runner](../skills/engineering/seats/cline-runner/SKILL.md) | Updated | Execute configured provider seats through Cline. |
 | [codex-runner](../skills/engineering/seats/codex-runner/SKILL.md) | Updated | Execute the selected model and supported effort through the coding CLI. |
-| [dcode-runner](../skills/engineering/seats/dcode-runner/SKILL.md) | Updated | Provide the documented dcode transport and its receipt limits. |
 | [gemini-runner](../skills/engineering/seats/gemini-runner/SKILL.md) | Updated | Provide the Gemini transport without inventing unsupported effort control. |
 | [grok-runner](../skills/engineering/seats/grok-runner/SKILL.md) | Updated | Provide the Grok transport and role/output contracts. |
-| [opencode-runner](../skills/engineering/seats/opencode-runner/SKILL.md) | Updated | Provide an optional OpenCode transport. |
-| [pi-runner](../skills/engineering/seats/pi-runner/SKILL.md) | Updated | Provide provider-specific seats through the shared Pi runner. |
+| [pi-runner](../skills/engineering/seats/pi-runner/SKILL.md) | Updated | Provide provider-specific seats through the shared Pi runner. cline-runner, dcode-runner, and opencode-runner were removed after this review; their routes fold into pi-runner. |
 | [brainstorm](../skills/engineering/workflow/brainstorm/SKILL.md) | Updated | Decide whether to build before a requirements interview. |
 | [implement-tasks](../skills/engineering/workflow/implement-tasks/SKILL.md) | Updated | Approve exact models and effort, schedule tasks, integrate, and verify. |
 | [interview-me](../skills/engineering/workflow/interview-me/SKILL.md) | Updated | Settle user decisions in independent rounds of five questions where possible. |

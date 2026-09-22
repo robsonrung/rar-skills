@@ -232,10 +232,17 @@ class ValidationTests(unittest.TestCase):
         for name in names:
             model_routing.resolve_route(name, "balanced")
             model_routing.resolve_route(name, "balanced", risk="high")
-        for seat in ("grok", "sonnet", "kimi", "muse"):
+        for seat in ("grok", "sonnet", "kimi", "qwen"):
             model_routing.resolve_role({"seat": seat, "effort": "medium"}, config)
         with self.assertRaises(ValueError):
             model_routing.resolve_role({"seat": "gemini", "effort": "high"}, config)
+        for seat in ("muse", "minimax", "mimo-pro"):
+            # Former cline seats now route through pi with runtime-controlled effort.
+            with self.assertRaises(ValueError):
+                model_routing.resolve_role({"seat": seat, "effort": "medium"}, config)
+            resolved = model_routing.resolve_role({"seat": seat, "effort": None}, config)
+            self.assertIsNone(resolved["effort"])
+            self.assertEqual(resolved["runner"], "pi")
 
     def test_approved_recovery_categories_preserve_total_limit(self):
         self.plan["units"][0].update(max_attempts=1, recovery_attempts={"test_repair": 2})
