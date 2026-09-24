@@ -30,6 +30,18 @@ class UserApprovalContractTests(unittest.TestCase):
         self.assertIn("maximum_calls", operations)
         self.assertIn("one possible retry for every planned or conditional call", operations)
 
+    def test_explicit_three_seat_request_has_only_scoped_preview(self):
+        skill = self.read("SKILL.md")
+        self.assertIn("explicit three-seat request", skill)
+        self.assertIn("Do not expand it into a routing table for unrelated task kinds", skill)
+
+    def test_generic_cli_is_required_for_durable_reservation(self):
+        operations = self.read("references/operations.md")
+        self.assertIn("council_state.py", operations)
+        self.assertIn("dispatch_allowed: false", operations)
+        self.assertIn("never infers or writes approval", operations)
+        self.assertIn("always reports this cap as advisory", operations)
+
     def test_no_automatic_dispatch_path_remains(self):
         documents = "\n".join(
             path.read_text(encoding="utf-8")

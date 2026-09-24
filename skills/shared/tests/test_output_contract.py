@@ -13,7 +13,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT / "shared" / "scripts"))
 from skill_paths import skill_dir, runner_script  # noqa: E402
 
-from output_contract import validate_output_contract, validate_value  # noqa: E402
+from output_contract import validate_output_contract, validate_value, validate_schema, validate_document  # noqa: E402
 
 OPENING_SCHEMA = skill_dir("models-consensus", root=REPO_ROOT) / "schemas" / "opening-answer.schema.json"
 
@@ -87,6 +87,48 @@ class OutputContractUnitTests(unittest.TestCase):
         self.assertTrue(direct.valid)
         self.assertTrue(fenced.valid)
 
+    def test_prose_fence_is_opt_in_and_ambiguous_values_are_rejected(self):
+        value = json.dumps(opening_answer())
+        message = "Result follows.\n```json\n" + value + "\n```\nEnd."
+        self.assertFalse(validate_output_contract(message, OPENING_SCHEMA).valid)
+        self.assertTrue(validate_output_contract(message, OPENING_SCHEMA, allow_prose_fence=True).valid)
+        for invalid in (message + " {}", "[] " + message, message + " true", message + " 12", message + ' "other"',
+                        message + " ```json\n{}\n```", "```json\n" + value + " {}\n```", "Result: " + value):
+            with self.subTest(message=invalid):
+                self.assertFalse(validate_output_contract(invalid, OPENING_SCHEMA, allow_prose_fence=True).valid)
+
+    def test_duplicate_keys_invalid_constants_and_overflow_fail(self):
+        value = json.dumps(opening_answer())
+        invalid = [value.replace('"confidence": 90', '"confidence": 90, "confidence": 91'),
+                   value.replace('"confidence": 90', '"confidence": NaN'),
+                   value.replace('"confidence": 90', '"confidence": Infinity'),
+                   value.replace('"confidence": 90', '"confidence": 1e9999')]
+        for message in invalid:
+            self.assertFalse(validate_output_contract(message, OPENING_SCHEMA).valid)
+
+    def test_schema_precheck_visits_absent_properties_empty_arrays_and_extra_rules(self):
+        for schema in ({"type": "object", "properties": {"absent": {"pattern": "x"}}},
+                       {"type": "array", "items": {"uniqueItems": True}},
+                       {"type": "object", "additionalProperties": {"format": "email"}},
+                       {"type": "string", "properties": {"absent": {"type": "invalid"}}},
+                       {"$schema": "https://json-schema.org/draft/2020-12/schema", "type": "object"}):
+            with self.subTest(schema=schema):
+                with self.assertRaises(ValueError):
+                    validate_schema(schema)
+                self.assertFalse(validate_document({}, schema).valid)
+
+    def test_schema_rule_types_and_json_numeric_semantics(self):
+        for schema in ({"required": "x"}, {"type": []}, {"type": ["integer", "integer"]},
+                       {"additionalProperties": "false"}, {"minItems": True}, {"maximum": "5"},
+                       {"items": []}, {"enum": []}, {"enum": [1, 1.0]}, {"required": ["x", "x"]}):
+            with self.assertRaises(ValueError):
+                validate_schema(schema)
+        self.assertFalse(validate_document(True, {"enum": [1]}).valid)
+        self.assertTrue(validate_document(1.0, {"type": "integer"}).valid)
+        self.assertTrue(validate_document(10 ** 400, {"type": "integer"}).valid)
+        self.assertFalse(validate_document(float("nan"), {"type": "number"}).valid)
+        self.assertFalse(validate_document({"a": True}, {"enum": [{"a": 1}]}).valid)
+
     def test_rejects_json_concatenation_and_schema_mismatch(self):
         concatenated = json.dumps(opening_answer()) + json.dumps(opening_answer())
         result = validate_output_contract(concatenated, OPENING_SCHEMA)
@@ -100,6 +142,7 @@ class OutputContractUnitTests(unittest.TestCase):
     def test_all_bundled_consensus_schemas_use_the_supported_subset(self):
         for schema in (skill_dir("models-consensus", root=REPO_ROOT) / "schemas").glob("*.json"):
             with self.subTest(schema=schema.name):
+                validate_schema(json.loads(schema.read_text()))
                 result = validate_value({}, schema)
                 self.assertNotIn("unsupported schema keyword", result.error or "")
 

@@ -27,10 +27,12 @@ An approved workflow supplies the exact model, effort, role, tool mode, and rece
 ## Runtime boundaries
 
 - Use the local authenticated `claude` CLI in print mode. Permission checks remain enabled.
-- Analysis roles default to read-only planning mode. `--restrict-tools` forces it; `--allow-write` opts out within the caller's authority.
+- Analysis roles default to `repo_read_only`: only Read, Glob, and Grep, with customizations disabled and an empty MCP configuration. `--restrict-tools` forces this profile; `--tool-profile no_tools` removes all tools. `--allow-write` or `--tool-profile write` keeps normal write permissions within the caller's authority.
 - Prompt and file context may be sent to the configured provider. Bare mode changes authentication behavior; read the runtime reference before using it.
-- The wrapper forwards model and effort. Current print output does not prove the serving model; a configured label alone gives an unverified receipt.
-- Direct calls can fall back once to codex-runner when the CLI is missing. Approved routes disable fallback; native session continuation must preserve the selected runner.
+- The wrapper forwards model and effort. Primary assistant events can prove the serving model. Requested labels, initialization labels, synthetic events, and usage labels cannot. Missing evidence stays unverified; conflicting primary IDs or an exact model mismatch fail the result.
+- Direct calls can fall back once when the CLI is missing and the fallback can preserve the constraints. Tool profiles and native budget limits block fallback. Approved routes disable fallback; native session continuation must preserve the selected runner.
+
+Use `--max-turns`, `--max-budget-usd`, and `--timeout` for native turn, reported cost, and elapsed time limits. All must be positive and finite. A requested response length is advisory.
 
 ## Load by need
 

@@ -6,7 +6,7 @@ disable-model-invocation: true
 
 # Models Consensus
 
-For a direct invocation, first use `shared/references/model-preview.md`. Nested calls reuse the parent's selected snapshot without another prompt or unlisted workers.
+For a direct invocation, use `shared/references/model-preview.md` for the selected council scope. An explicit three-seat request shows only those seats and the required organizer, judge, and synthesis calls. Do not expand it into a routing table for unrelated task kinds. Nested calls reuse the parent's selected snapshot without another prompt or unlisted workers.
 
 Model IDs, effort support, and task defaults come only from
 `shared/model-routing.json`. Resolve the relevant route before preview or
@@ -37,7 +37,7 @@ The preview must show every planned and conditional call:
 | Effort | Exact configured effort or runtime-controlled effort for every model call |
 | Host and session | Checked host or runner, per-role session policy, and whether the role can resume by its recorded id |
 | Serving receipt | `required` or `explicitly allowed unverified`, with status, source, and observed model for every seat |
-| Budget | Base call count, conditional calls, validation-retry ceiling, hard maximum, and output cap |
+| Budget | Base call count, conditional calls, validation-retry ceiling, maximum calls, advisory response cap, and any reported usage or elapsed-time limits |
 | Tools | The shared read-only tool profile |
 | Evidence | Which native or runner checks passed and that serving-model receipts are still pending |
 
@@ -81,7 +81,7 @@ For `poll` and `debate`, require three approved opening seats with distinct requ
 
 ## Execution
 
-After approval, create one isolated, persistent context per task and role. Give every opening seat the same neutral brief, read-only sources, tool profile, and output budget. An opening seat can resume only its own context for a schema retry or approved gap repair. The organizer, each judge, synthesizer, advisor, reviewer, and chairman has a separate context. Judges begin without opening-seat or organizer history and do not share a context with each other.
+After approval, initialize the generic council CLI from the exact preview and reserve each attempt before dispatch, as [references/operations.md](references/operations.md) defines. Create one isolated, persistent context per task and role. Give every opening seat the same neutral brief, read-only sources, tool profile, and output budget. An opening seat can resume only its own context for a schema retry or approved gap repair. The organizer, each judge, synthesizer, advisor, reviewer, and chairman has a separate context. Judges begin without opening-seat or organizer history and do not share a context with each other.
 
 In `poll`, run blind openings, organizer analysis, at most one gap-repair round, two judges, then synthesis. In `debate`, run the approved number of rounds, with the anonymized digest and fixed ceiling. In `personas`, run five lenses, anonymized peer review when the preview includes it, then the chairman.
 

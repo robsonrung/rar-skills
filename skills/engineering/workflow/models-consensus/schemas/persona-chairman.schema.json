@@ -1,0 +1,15 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Council persona chairman verdict",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["agreements", "conflicts", "blind_spots", "recommendation", "first_step", "reversal_trigger"],
+  "properties": {
+    "agreements": {"type": "array", "items": {"type": "string"}},
+    "conflicts": {"type": "array", "items": {"type": "string"}},
+    "blind_spots": {"type": "array", "items": {"type": "string"}},
+    "recommendation": {"type": "string"},
+    "first_step": {"type": "string"},
+    "reversal_trigger": {"type": "string"}
+  }
+}

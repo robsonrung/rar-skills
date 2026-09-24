@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "claude": {
+    "opus-5-5": {
+      "minimum_version": "2.1.280",
+      "evidence": "Reported CLI rejection: version 2.1.275 requires at least 2.1.280 for this model; incident reported 2026-09-24."
+    }
+  }
+}

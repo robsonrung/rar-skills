@@ -19,7 +19,9 @@ Use `--working-dir` when the prompt depends on package-local files or generated 
 
 | Flag | Description | Default |
 | --- | --- | --- |
-| `--timeout`, `-t` | Timeout in seconds | 3600 |
+| `--timeout`, `-t` | Positive elapsed time limit in seconds | 3600 |
+| `--max-turns` | Positive integer turn limit forwarded to the CLI | None |
+| `--max-budget-usd` | Positive finite reported USD cost cap forwarded to the CLI | None |
 | `--working-dir`, `-w` | Working directory | Current dir |
 | `--json`, `-j` | Wrap runner output in a JSON envelope | False |
 | `--prompt-file` | Read prompt content from a file; may be repeated | None |
@@ -28,8 +30,9 @@ Use `--working-dir` when the prompt depends on package-local files or generated 
 | `--safe` | Informational no-op; permission checks are always enabled whether or not the flag is passed | True |
 | `--bare` | Use Claude bare mode for faster startup and fewer implicit context sources | False |
 | `--no-session-persistence` | Do not persist Claude session files to disk | False |
-| `--restrict-tools` | Use Claude planning mode (read-only) | True for analysis roles |
-| `--allow-write` | Opt an analysis role out of the default planning mode | False |
+| `--restrict-tools` | Use `repo_read_only` with an explicit tool allowlist and empty MCP | True for analysis roles |
+| `--tool-profile` | `no_tools`, `repo_read_only`, or `write` | Role dependent |
+| `--allow-write` | Use normal write permissions for an analysis role | False |
 | `--effort`, `-e` | Reasoning selection from the central configuration; `--help` lists accepted values. Approved routes reject unsupported selections. | Configured adapter default |
 | `--role` | Apply a role overlay | None |
 | `--resume SESSION_ID` | Natively resume a Claude session by id | None |
@@ -57,10 +60,11 @@ python3 .agents/skills/claude-runner/scripts/run_claude.py "Investigate the flak
 
 ## Behavior
 
-1. Maps `--restrict-tools` to Claude `--permission-mode plan`; analysis roles get this by default.
+1. Restricted profiles pass `--safe-mode`, `--tools`, `--strict-mcp-config`, an empty `--mcp-config`, and `--permission-mode plan`. `repo_read_only` allows only Read, Glob, and Grep; `no_tools` passes an empty tool list. Write roles retain the normal tool set. Conflicting write and restriction options fail before launch.
 2. When `--output-format json` or `stream-json` is used, the native Claude payload stays in `stdout`; the wrapper does not re-shape it, but it extracts `agent_message` and `session_id` into the envelope.
 3. `--resume`/`--continue` map to the native Claude CLI flags; `--effort` maps to Claude `--effort`.
-4. Resolves relative `--prompt-file`/`--session-file` paths against `--working-dir` (not the process cwd), with `~` expanded.
+4. Forwards `--max-turns` and `--max-budget-usd`; the wrapper enforces `--timeout`. These limits do not constrain response length. A cost cap uses the CLI cost accounting and is not a billing guarantee. A CLI that rejects a flag fails the run; the wrapper never retries without the flag.
+5. Resolves relative `--prompt-file`/`--session-file` paths against `--working-dir` (not the process cwd), with `~` expanded.
 
 
 ## Return Codes

@@ -48,6 +48,13 @@ Review the anonymized council responses for this question.
 3. What did all responses miss?
 ```
 
+All responses use the stage schemas in [operations.md](operations.md):
+advisors return `opening-answer.schema.json`, reviewers return
+`persona-review.schema.json`, and the chairman returns
+`persona-chairman.schema.json`. Reserve and reconcile each attempt with the
+generic council CLI. Give each reviewer dependencies on the approved advisor
+steps, then make the chairman depend on all required advisor and reviewer steps.
+
 ## Verdict
 
 The chairman returns:

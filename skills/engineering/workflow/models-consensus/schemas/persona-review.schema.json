@@ -1,0 +1,13 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Council persona peer review",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["strongest_response", "rationale", "largest_blind_spot", "shared_omissions"],
+  "properties": {
+    "strongest_response": {"type": "string"},
+    "rationale": {"type": "string"},
+    "largest_blind_spot": {"type": "string"},
+    "shared_omissions": {"type": "array", "items": {"type": "string"}}
+  }
+}

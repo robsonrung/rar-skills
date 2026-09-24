@@ -4,10 +4,13 @@
 from __future__ import annotations
 
 import json
+import os
 import sys
 import tempfile
 import time
 import unittest
+import subprocess
+from unittest.mock import patch
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -36,7 +39,7 @@ class PreflightCacheTests(unittest.TestCase):
             "ttl_seconds": preflight_cache.TTL_SECONDS,
             "result": {"available": True},
         }
-        data = {"schema_version": 1, "entries": {seat: entry}}
+        data = {"schema_version": preflight_cache.SCHEMA_VERSION, "entries": {seat: entry}}
         self.cache.write_text(json.dumps(data), encoding="utf-8")
         return entry
 
@@ -122,6 +125,70 @@ class PreflightCacheTests(unittest.TestCase):
         second = preflight_cache.compute_fingerprint("definitely-missing-cli", "digest-b")
         self.assertNotEqual(first, second)
         self.assertEqual(first, preflight_cache.compute_fingerprint("definitely-missing-cli", "digest-a"))
+
+    def test_upgrade_changes_fingerprint_and_invalidates_entry(self):
+        with patch.object(preflight_cache, "resolve_cli", return_value="/mock/claude"), patch.object(preflight_cache.subprocess, "run") as run:
+            run.return_value = subprocess.CompletedProcess([], 0, "2.1.275", "")
+            old = preflight_cache.compute_fingerprint("claude")
+            self.store(fingerprint=old)
+            run.return_value = subprocess.CompletedProcess([], 0, "2.1.280", "")
+            upgraded = preflight_cache.compute_fingerprint("claude")
+            self.assertNotEqual(old, upgraded)
+            self.assertIsNone(preflight_cache.lookup(self.cache, "glm", upgraded)[0])
+            self.assertTrue(all(call.args[0] == ["/mock/claude", "--version"] for call in run.call_args_list))
+
+    def test_context_and_policy_changes_invalidate(self):
+        first = preflight_cache.compute_fingerprint("missing-cli", launch_context="restricted", policy_digest="one")
+        second = preflight_cache.compute_fingerprint("missing-cli", launch_context="host", policy_digest="one")
+        third = preflight_cache.compute_fingerprint("missing-cli", launch_context="restricted", policy_digest="two")
+        self.assertEqual(len({first, second, third}), 3)
+
+    def test_live_auth_receipts_and_entitlement_rejected(self):
+        for result in ({"auth_ok": True}, {"checks": {"auth_visibility": {"status": "true"}}},
+                       {"model_receipt": {"model": "example"}}, {"model_entitlement": True}):
+            self.assertEqual(self.run_cli("set", "--seat", "test", "--runner", "test", "--fingerprint", "fp", "--result", json.dumps(result)), 2)
+        self.assertFalse(self.cache.exists())
+
+    def test_old_schema_and_missing_fingerprint_are_misses(self):
+        self.store()
+        self.assertIsNone(preflight_cache.lookup(self.cache, "glm", None)[0])
+        data = json.loads(self.cache.read_text())
+        data["schema_version"] = 1
+        self.cache.write_text(json.dumps(data))
+        self.assertIsNone(preflight_cache.lookup(self.cache, "glm", "fp-1")[0])
+
+    def test_cli_file_change_invalidates_without_version_change(self):
+        cli = Path(self.tmp.name) / "cli"
+        cli.write_text("version one")
+        with patch.object(preflight_cache, "resolve_cli", return_value=str(cli)), patch.object(preflight_cache.subprocess, "run", return_value=subprocess.CompletedProcess([], 0, "1.0.0", "")):
+            before = preflight_cache.compute_fingerprint("cli")
+            cli.write_text("different binary contents")
+            after = preflight_cache.compute_fingerprint("cli")
+        self.assertNotEqual(before, after)
+
+    def test_relative_path_tracks_child_executable_when_version_is_unchanged(self):
+        parent = Path(self.tmp.name)
+        child = parent / "child"
+        for directory in (parent, child):
+            binary = directory / "bin" / "claude"
+            binary.parent.mkdir(parents=True)
+            binary.write_text("#!/bin/sh\nprintf '2.1.280\\n'\n")
+            binary.chmod(0o755)
+        original_cwd = Path.cwd()
+        try:
+            os.chdir(parent)
+            for command in ("claude", "bin/claude"):
+                with self.subTest(command=command):
+                    before = preflight_cache.compute_fingerprint(command, working_dir="child", env={"PATH": "bin"})
+                    self.store(fingerprint=before)
+                    binary = child / "bin" / "claude"
+                    binary.write_text(binary.read_text() + "# changed child executable\n")
+                    after = preflight_cache.compute_fingerprint(command, working_dir="child", env={"PATH": "bin"})
+                    self.assertNotEqual(before, after)
+                    self.assertIsNone(preflight_cache.lookup(self.cache, "glm", after)[0])
+            self.assertEqual((parent / "bin" / "claude").read_text(), "#!/bin/sh\nprintf '2.1.280\\n'\n")
+        finally:
+            os.chdir(original_cwd)
 
 
 if __name__ == "__main__":

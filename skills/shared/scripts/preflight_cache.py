@@ -2,12 +2,12 @@
 """Local cache for capability preflight results, trusted for 24 hours.
 
 Stores the outcome of environment capability probes (CLI presence and version,
-model availability, supported efforts, tool or image support, ZDR endpoint
+supported efforts, tool or image support, ZDR endpoint
 checks, browser mechanism readiness) on the user's machine so skills do not
 re-run them on every invocation.
 
 The cache covers capability probes only. Serving-model receipts, per-request
-privacy controls, and quota availability are per-run facts and are never
+privacy controls, live authentication, account entitlement, and quota availability are per-run facts and are never
 cached; a fresh cache entry never upgrades an unverified receipt.
 
 Default location: ~/.rar-skills/preflight-cache.json (override with --cache or
@@ -33,7 +33,6 @@ import argparse
 import hashlib
 import json
 import os
-import shutil
 import subprocess
 import sys
 import tempfile
@@ -41,7 +40,10 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 
-SCHEMA_VERSION = 1
+from model_routing import CONFIG_PATH
+from runner_preflight import COMPATIBILITY_PATH, cli_evidence, file_evidence, launch_identity, resolve_cli
+
+SCHEMA_VERSION = 2
 TTL_SECONDS = 24 * 60 * 60
 
 DEFAULT_CACHE_PATH = Path.home() / ".rar-skills" / "preflight-cache.json"
@@ -66,7 +68,30 @@ def read_cache(path: Path) -> dict:
         raise ValueError(f"corrupt cache file: {exc}") from exc
     if not isinstance(data, dict) or not isinstance(data.get("entries"), dict):
         raise ValueError("corrupt cache file: missing entries object")
+    if data.get("schema_version") != SCHEMA_VERSION:
+        raise ValueError("cache schema changed; re-probe capabilities")
     return data
+
+
+def validate_result(result: dict) -> None:
+    """Only stable capability fields belong in this cache."""
+    allowed = {"available", "transport", "version", "cli_path", "compatibility", "effort",
+               "tools", "images", "capabilities", "zdr_endpoint", "browser", "checks"}
+    if set(result) - allowed:
+        raise ValueError("result contains fields outside the capability cache contract")
+    forbidden = {"auth", "auth_ok", "auth_visibility", "loggedin", "logged_in", "authenticated",
+                 "model_entitlement", "entitlement", "model_receipt", "receipt", "serving_model",
+                 "observed_model", "effective_model", "quota", "quota_remaining", "privacy_controls"}
+    def visit(value):
+        if isinstance(value, dict):
+            for key, item in value.items():
+                if key.lower() in forbidden:
+                    raise ValueError("live auth, entitlement, receipts, and request state cannot be cached")
+                visit(item)
+        elif isinstance(value, list):
+            for item in value:
+                visit(item)
+    visit(result)
 
 
 def write_cache(path: Path, data: dict) -> None:
@@ -101,8 +126,18 @@ def lookup(path: Path, seat: str, fingerprint: str | None) -> tuple[dict | None,
     entry = data["entries"].get(seat)
     if entry is None:
         return None, "no cached entry"
-    if fingerprint is not None and entry.get("fingerprint") != fingerprint:
+    if not isinstance(entry, dict):
+        return None, "invalid entry"
+    if fingerprint is None:
+        return None, "current fingerprint required"
+    if entry.get("fingerprint") != fingerprint:
         return None, "fingerprint mismatch"
+    try:
+        if not isinstance(entry.get("result"), dict):
+            raise ValueError("invalid result")
+        validate_result(entry["result"])
+    except ValueError as exc:
+        return None, str(exc)
     age = entry_age_seconds(entry, time.time())
     if age is None:
         return None, "entry lacks a valid timestamp"
@@ -113,28 +148,29 @@ def lookup(path: Path, seat: str, fingerprint: str | None) -> tuple[dict | None,
     return entry, "fresh"
 
 
-def compute_fingerprint(probe_cli: str, config_digest: str | None) -> str:
-    """Fingerprint a probe target: resolved CLI path, its version output, config digest."""
-    material = [f"cli={probe_cli}"]
-    cli_path = shutil.which(probe_cli)
-    material.append(f"path={cli_path or 'missing'}")
-    version = "unavailable"
+def compute_fingerprint(probe_cli: str, config_digest: str | None = None, *,
+                        policy_digest: str | None = None,
+                        launch_context: dict | str | None = None,
+                        working_dir: str | None = None, env: dict | None = None) -> str:
+    """Recompute local CLI identity and context before every lookup; never probe inference."""
+    cli_path = resolve_cli(probe_cli, working_dir=working_dir, env=env)
+    identity = cli_evidence(cli_path) if cli_path else {"path": None}
+    version = None
     if cli_path:
-        for args in (("--version",), ("-V",), ("version",)):
-            try:
-                result = subprocess.run(
-                    [cli_path, *args], capture_output=True, text=True, timeout=10, check=False
-                )
-            except (OSError, subprocess.TimeoutExpired):
-                continue
+        try:
+            result = subprocess.run([cli_path, "--version"], capture_output=True,
+                                    text=True, timeout=10, check=False, cwd=working_dir, env=env)
             if result.returncode == 0:
-                output = (result.stdout or result.stderr or "").strip()
-                if output:
-                    version = output.splitlines()[0].strip()
-                    break
-    material.append(f"version={version}")
-    material.append(f"config={config_digest or 'unknown'}")
-    return hashlib.sha256("\n".join(material).encode()).hexdigest()
+                version = (result.stdout or result.stderr or "").strip()
+        except (OSError, subprocess.TimeoutExpired):
+            pass
+    material = {
+        "schema_version": SCHEMA_VERSION, "cli": probe_cli, "identity": identity,
+        "version": version, "config": file_evidence(CONFIG_PATH),
+        "policy": file_evidence(COMPATIBILITY_PATH), "config_digest": config_digest,
+        "policy_digest": policy_digest, "launch_context": launch_identity(launch_context, working_dir=working_dir, env=env),
+    }
+    return hashlib.sha256(json.dumps(material, sort_keys=True).encode()).hexdigest()
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -155,6 +191,8 @@ def main(argv: list[str] | None = None) -> int:
     fp_cmd = commands.add_parser("fingerprint", help="Compute a fingerprint for a probe CLI")
     fp_cmd.add_argument("--probe-cli", required=True)
     fp_cmd.add_argument("--config-digest", default=None)
+    fp_cmd.add_argument("--policy-digest", default=None)
+    fp_cmd.add_argument("--launch-context", default=None, help="Stable identifier for the actual launch context")
 
     commands.add_parser("status", help="List cached entries and their freshness")
 
@@ -165,7 +203,8 @@ def main(argv: list[str] | None = None) -> int:
     path = args.cache or default_cache_path()
 
     if args.command == "fingerprint":
-        print(compute_fingerprint(args.probe_cli, args.config_digest))
+        print(compute_fingerprint(args.probe_cli, args.config_digest,
+                                  policy_digest=args.policy_digest, launch_context=args.launch_context))
         return 0
 
     if args.command == "get":
@@ -184,6 +223,11 @@ def main(argv: list[str] | None = None) -> int:
             return 2
         if not isinstance(result, dict):
             print("Invalid --result JSON: expected an object", file=sys.stderr)
+            return 2
+        try:
+            validate_result(result)
+        except ValueError as exc:
+            print(f"Invalid --result: {exc}", file=sys.stderr)
             return 2
         try:
             data = read_cache(path)

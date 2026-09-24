@@ -69,6 +69,7 @@ for dest in "${dests[@]}"; do
     printf '%s\n' "$SOURCE_DIR/skills/shared"
     find "$SOURCE_DIR/skills/engineering" "$SOURCE_DIR/skills/visualization" "$SOURCE_DIR/skills/extras" -name SKILL.md -not -path '*/node_modules/*' -exec dirname {} \; | sort
   )
+  python3 "$SOURCE_DIR/skills/shared/scripts/install_drift.py" --source-root "$SOURCE_DIR" --installed-root "$dest" --write-manifest
   echo "  $dest — $count entries"
   installed=$((installed + count))
 done

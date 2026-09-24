@@ -3,11 +3,14 @@
 
 import copy
 import importlib.util
+import io
 import json
 import subprocess
 import sys
 import tempfile
 import unittest
+from contextlib import redirect_stdout
+from unittest.mock import patch
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -31,22 +34,50 @@ class ModelPreviewTests(unittest.TestCase):
                               capture_output=True, text=True)
 
     def test_default_preview_shows_central_routes_without_state_or_runner_probe(self):
-        result = self.preview("--route", "validation-unit", "--route", "validation-browser")
-        self.assertEqual(result.returncode, 0, result.stderr)
-        preview = json.loads(result.stdout)
-        self.assertEqual(preview["profile"], "economy")
+        config = model_routing.load_config(SHARED / "model-routing.json")
+        names = ("validation-unit", "validation-browser")
+        with tempfile.TemporaryDirectory() as directory:
+            state_path = Path(directory) / "state.json"
+            argv = [str(SKILL / "scripts/validation_control.py"), "--shared-dir", str(SHARED),
+                    "--state", str(state_path), "preview-models"]
+            for name in names:
+                argv.extend(["--route", name])
+            output = io.StringIO()
+            with patch.object(sys, "argv", argv), redirect_stdout(output), \
+                 patch.object(subprocess, "run", side_effect=AssertionError("Preview must not probe runners")) as run, \
+                 patch.object(subprocess, "Popen", side_effect=AssertionError("Preview must not launch processes")) as popen, \
+                 patch.object(ledger, "locked", side_effect=AssertionError("Preview must not open state")) as locked:
+                self.assertEqual(control.main(), 0)
+            run.assert_not_called()
+            popen.assert_not_called()
+            locked.assert_not_called()
+            self.assertEqual(list(Path(directory).iterdir()), [])
+        preview = json.loads(output.getvalue())
+        profile_name = config["default_profile"]
+        profile = config["profiles"][profile_name]
+        self.assertEqual(preview["profile"], profile_name)
         self.assertEqual(preview["config_path"], str((SHARED / "model-routing.json").resolve()))
-        self.assertEqual(preview["config_digest"], model_routing.config_digest(model_routing.load_config()))
-        unit, browser = preview["routes"]
-        self.assertEqual((unit["roles"]["implementer"]["seat"], unit["roles"]["implementer"]["effort"]), ("glm", "high"))
-        self.assertEqual((unit["roles"]["reviewer"]["seat"], unit["roles"]["reviewer"]["effort"]), ("deepseek-flash", "high"))
-        self.assertEqual((browser["roles"]["worker"]["seat"], browser["roles"]["worker"]["effort"]), ("glm", "high"))
+        self.assertEqual(preview["config_digest"], model_routing.config_digest(config))
+        self.assertEqual([route["route"] for route in preview["routes"]], list(names))
+        for route in preview["routes"]:
+            family = profile.get("route_families", {}).get(route["route"], profile["family"])
+            expected_roles = config["routes"][route["route"]]["families"][family]
+            self.assertEqual(route["family"], family)
+            self.assertEqual(route["selection_source"], "central")
+            self.assertEqual(set(route["roles"]), set(expected_roles))
+            for role, selection in expected_roles.items():
+                expected_model = config["models"][selection["seat"]]
+                actual = route["roles"][role]
+                self.assertEqual((actual["seat"], actual["model"], actual["runner"], actual["effort"]),
+                                 (selection["seat"], expected_model["model"], expected_model["runner"], selection["effort"]))
         self.assertFalse(preview["availability_checked"])
 
     def test_explicit_profile_overrides_local_preference(self):
         result = self.preview("--route", "validation-browser", "--profile", "economy", "--local-profile", "balanced")
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual(json.loads(result.stdout)["routes"][0]["selection_source"], "explicit")
+        preview = json.loads(result.stdout)
+        self.assertEqual(preview["profile"], "economy")
+        self.assertEqual(preview["routes"][0]["selection_source"], "explicit")
 
     def test_existing_test_execution_adds_no_worker(self):
         result = self.preview("--route", "test-execution")

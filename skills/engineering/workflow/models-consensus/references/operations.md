@@ -1,151 +1,124 @@
 # Council Operations
 
-Use this reference for state, approval, validation, artifacts, and recovery. Apply `shared/references/run-state-contract.md` and `shared/references/host-model-execution.md` as well. Mode protocols live in [poll-protocol.md](poll-protocol.md), [personas.md](personas.md), and [stance-rotation-schedule.md](stance-rotation-schedule.md).
+Use this reference for approval, state, artifacts, validation, and recovery. Apply `shared/references/run-state-contract.md` and `shared/references/host-model-execution.md`. Mode protocols remain in [poll-protocol.md](poll-protocol.md), [personas.md](personas.md), and [stance-rotation-schedule.md](stance-rotation-schedule.md).
 
-## Approval record
+## Approval and immutable state
 
-Create `.ai-workflow/consensus/{session_id}.json` when the workspace is writable. Before the first model call, store:
+For native and runner routes, use `scripts/council_state.py`. It records calls and validates results; it never launches models. The caller obtains approval and dispatches the exact recorded request. Keep the approval document separate from the generated runtime state.
 
-```json
-{
-  "session_id": "council-42",
-  "status": "awaiting_human",
-  "question": "...",
-  "mode": "poll",
-  "preview": {
-    "seats": [
-      {
-        "id": "seat-a",
-        "requested_model": "requested-model-id",
-        "provider": "provider",
-        "model_receipt": {
-          "status": "unverified",
-          "source": "configured_model",
-          "observed_model": null
-        }
-      }
-    ],
-    "roles": [
-      {
-        "call": "opening-seat-a",
-        "role": "opening",
-        "seat": "seat-a",
-        "requested_model": "requested-model-id",
-        "effort": "high",
-        "effort_control": "configured",
-        "continuity_key": "opening-seat-a"
-      }
-    ],
-    "effort": [
-      {
-        "call": "opening-seat-a",
-        "effort": "high",
-        "effort_control": "configured"
-      }
-    ],
-    "execution": [
-      {
-        "call": "opening-seat-a",
-        "host": "active-host",
-        "execution_path": "native_subagent",
-        "transport": "native",
-        "continuity_key": "opening-seat-a",
-        "session_policy": "persistent_same_role",
-        "resume_policy": "recorded_context_only"
-      }
-    ],
-    "transport": "per_call",
-    "serving_receipt": "explicitly_allowed_unverified",
-    "tool_profile": "no_tools",
-    "base_calls": 0,
-    "conditional_calls": 0,
-    "validation_retry_ceiling": 0,
-    "maximum_calls": 0,
-    "output_cap_tokens": 2000,
-    "scope_fingerprint": "sha256 of the preview scope"
-  },
-  "approval": {"status": "pending"},
-  "runtime": {
-    "sessions": [
-      {
-        "continuity_key": "opening-seat-a",
-        "context_id": null,
-        "status": "not_started",
-        "last_input_revision": null,
-        "pending_call": null
-      }
-    ]
-  }
-}
-```
+The approval document contains `session_id`, `question`, `mode`, `preview`, and `approval`. The preview contains:
 
-Use `serving_receipt: "required"` only when every seat has `model_receipt.status: "verified"` from a native or provider event. A configured wrapper label needs `serving_receipt: "explicitly_allowed_unverified"` and `model_receipt: {status: "unverified", source: "configured_model", observed_model: null}`. An echoed label does not prove the serving model. Record `requested_model`, `configured_model`, `effective_model`, and `model_receipt` in each result envelope. Every role call and matching `effort` entry state `effort_control`; every role call also has one matching execution entry and continuity key. Use `"configured"` with a named effort. Use `"runtime"` with `"effort": null` when the transport cannot set effort.
+| Field | Contract |
+| --- | --- |
+| `seats` | Seat `id`, `provider`, `requested_model`, and `model_receipt` with status, source, and observed model |
+| `roles` | Every planned step: `call`, `role`, `seat`, `requested_model`, `effort`, `effort_control`, `continuity_key`, `depends_on`, and optional `conditional` boolean |
+| `effort` | Exactly one matching `call`, `effort`, and `effort_control` entry per step |
+| `execution` | Exactly one matching `call`, `host`, `execution_path`, `transport`, `continuity_key`, `session_policy`, and `resume_policy` entry per step |
+| `transport` | `per_call`; each execution entry selects `native` or `runner` |
+| `serving_receipt` | `required` or `explicitly_allowed_unverified` |
+| `tool_profile` | `no_tools`, `repo_read_only`, or `research_read_only` |
+| Call budgets | `base_calls`, `conditional_calls`, `validation_retry_ceiling`, `maximum_calls` |
+| Response guidance | `output_cap_tokens` |
+| Optional measured budgets | `reported_limits`, keyed by shared execution metric names; `elapsed_seconds` for total elapsed time |
+| `scope_fingerprint` | Digest returned by the CLI before approval |
 
-The preview records the chosen host, execution path, and session policy, but never a returned context id. The mutable `runtime.sessions` record holds that id after a call. A generic plan uses `transport: "per_call"`; a cmux plan uses `transport: "cmux"` and `cmux_interactive` execution entries. A returned context id, runner session id, or terminal surface does not change the approved preview.
+Use `effort_control: configured` with a named effort, or `effort_control: runtime` with `effort: null`. Runner execution entries also name exact `runner` and read-only `runner_role` values. These differ from council stage identity: for example, council role `opening` can use runner role `researcher`. Non-`no_tools` runner profiles list exact `allowed_tools`; `allowed_mcp_servers` defaults to empty. An adapter effort alias can be pinned as `effort_value`; otherwise the actual forwarded effort must equal the approved effort. Each execution entry uses `session_policy: persistent_same_role` and `resume_policy: recorded_context_only`. Role names are the stage keys in the table below. The `call` identifies a planned step; each dispatch attempt gets a separate call ID at reservation.
 
-For a cmux plan, calculate `scope_fingerprint` before showing the preview:
+Each independent role has its own continuity key. Only an opening seat can reuse its key for that seat's `gap_repair` or `later_round` steps. The repeated key must retain the same model, effort, host, execution path, transport, and tools. List the opening before its continuation steps. Organizer, judges, synthesizer, advisors, reviewers, and chairman use separate keys.
+
+Opening and advisor steps have `depends_on: []`. Other stages declare their prerequisites by planned step ID. Encode the selected mode's order in these dependencies, including all blind openings before organizer analysis and independent judges before synthesis. Unknown dependencies and cycles fail initialization. The caller still supplies the correct neutral briefs, anonymized peer digests, and mode-specific quorum decision; the CLI cannot establish those from free text.
+
+The number of roles equals `base_calls + conditional_calls`. Exactly `conditional_calls` roles have `conditional: true`. `maximum_calls` equals the role count plus `validation_retry_ceiling`. Include one possible retry for every planned or conditional call when choosing the normal `maximum_calls`; a smaller explicit retry ceiling permits fewer repairs. Each step can have at most one retry, and every retry consumes the original global and role budgets.
 
 ```bash
-python3 <models-consensus-dir>/scripts/cmux_council.py fingerprint --approval-state <approval-state>
+python3 <models-consensus-dir>/scripts/council_state.py fingerprint --approval-state <preview.json>
 ```
 
-Copy the returned digest to `preview.scope_fingerprint`. Show the preview, then wait for the user's clear approval. After that approval, record:
+Copy the digest into `preview.scope_fingerprint`. Show only the selected council seats and planned roles, then wait for clear approval. The caller records:
 
 ```json
-"approval": {
-  "status": "approved",
-  "scope_fingerprint": "the same digest"
-}
+{"approval": {"status": "approved", "scope_fingerprint": "the exact preview digest"}}
 ```
 
-Only this exact approval record permits cmux adoption or sending. A changed question, model, receipt, provider, host, execution path, role, continuity key, effort, tool profile, transport, or budget changes the digest and needs a new preview and approval. Preserve the approved preview in the final report.
+The CLI never infers or writes approval. A changed question, mode, model, provider, receipt requirement, effort, role, dependency, tool profile, execution path, transport, or budget requires a new preview. Initialize only after approval:
 
-On resume, recheck that each planned route still resolves to the previewed model, effort, host, execution path, and transport. Reconcile each pending call before sending another prompt. If any approved route differs, set `status` to `awaiting_human` and show a revised preview. Never infer approval from a prior incomplete state.
+```bash
+python3 <models-consensus-dir>/scripts/council_state.py --state <run.json> init --approval-state <preview.json>
+```
 
-## Questions before the preview
+Initialization stores an immutable plan, stage schemas, and digest beside the runtime state. Repeating initialization verifies the approval and preserves existing attempts, contexts, failures, artifacts, and budgets. Resume uses these snapshots; it does not resolve new defaults or substitute current schemas after a CLI upgrade. An unknown state version blocks changes and preserves the file.
 
-Ask only questions that change the neutral question, mode, or plan. Batch related questions when the host supports it. Do not ask the user to select unavailable seats. If no host question tool exists, ask one concise plain-text question and wait.
+For a cmux plan, continue to use [cmux-transport.md](cmux-transport.md) and its `cmux_council.py fingerprint --approval-state <preview.json>` command. The generic state CLI does not adopt or launch terminal seats.
 
-## Read-only preflight
+## Reserve before dispatch
 
-Read the roster, task routing, and host execution contract. Check an exact native route first. Probe an external runner only when the native route cannot meet the approved model, effort, isolation, tool, or receipt policy. Record host or runner, execution path, availability, version when applicable, session-resume support, and blocker per seat. A capability check does not prove the serving model. A native or provider-observed receipt may prove it. A wrapper-echoed `effective_model` label does not.
+```bash
+python3 <models-consensus-dir>/scripts/council_state.py --state <run.json> reserve --step <planned-step> --call <unique-attempt-id> --brief <prompt.txt>
+```
 
-The default tool profile is `no_tools`. `repo_read_only` and `research_read_only` require explicit appearance in the approval preview. Do not provide write, shell, or permission-bypass tools to a council seat.
+Dispatch only when the successful command returns `reservation: new` and `dispatch_allowed: true`. The state lock reserves the attempt before returning. Concurrent repeats have one winner. A replay returns `dispatch_allowed: false`, including a replay of a pending call. A lost command response requires reconciliation; it is not permission to send again.
 
-The default output cap is 2,000 tokens per call. Use 1,200 for judge calls when the question is narrow. State any different cap in the preview.
+The returned dispatch artifact binds call ID, input digest, approved scope digest, model, effort, host, transport, role, tools, and current context. Use the saved prompt artifact under the call's `intent.input` for dispatch. The CLI retains exact prompt bytes, so a later source edit does not erase the original input.
 
-## Response validation
+After context creation, bind the actual context through a saved adapter event:
 
-Validate every response against its mode schema before it enters the next phase. Retry the same approved seat once with the matching key list and its recorded role context. A second malformed response remains failed; do not complete it from another seat. Include one possible retry for every planned or conditional call in `maximum_calls` before seeking approval. A session reattachment adds no model call; a retry or later substantive turn does.
+```bash
+python3 <models-consensus-dir>/scripts/council_state.py --state <run.json> bind --call <attempt-id> --event <context-event.json>
+```
 
-| Mode | Stage | Schema |
+The event contains `setup_reference: council:<attempt-id>`, `call_id`, `input_revision`, `context_id`, `host`, `transport`, and `evidence: {path, sha256}` for the raw creation result. A queued setup token is not a context ID. Runner events may also contain exact `job_id` and `working_dir` values. A context cannot belong to two roles, and a bound job cannot change.
+
+## Budgets
+
+`output_cap_tokens` is response guidance, default 2,000 tokens. Narrow judge calls may use 1,200 through an approved role-level `output_cap_tokens` override. The generic CLI always reports this cap as advisory. It makes no hard token cap claim for a transport. Native output length depends on the host.
+
+Call ceilings count reservations, including failures and malformed answers. `reported_limits` can bound measured `input_tokens`, `output_tokens`, `reported_cost_usd`, `duration_ms`, or other shared metric fields before the next dispatch. These are dispatch stop conditions, not provider spending guarantees. One in-flight call can exceed a measured limit.
+
+Missing usage remains unknown. When a reported limit is selected, any pending or completed call with unknown usage for that metric blocks another reservation. This serializes measured-budget runs until each result supplies the required usage. Without reported limits, independent ready seats can run concurrently within call ceilings. `elapsed_seconds` blocks new calls after the wall-clock limit; it does not cancel running work.
+
+## Receipt and response validation
+
+```bash
+python3 <models-consensus-dir>/scripts/council_state.py --state <run.json> reconcile --call <attempt-id> --receipt <saved-receipt.json>
+```
+
+Reconcile the actual runner envelope or the record produced by `shared/scripts/native_completion.py`. The CLI checks exact call, prompt revision, model, effort, host, transport, role, tools, and context. Native success also reuses `native_completion.capture` to verify the final message against intact raw host evidence and the reserved dispatch artifact. The supported wait response does not attest the serving model; it stays unverified. A consumed native turn ID cannot satisfy a new call, and its completed-turn counter must advance.
+
+The raw receipt is saved byte for byte with its digest. A separate normalized artifact contains the parsed response, stage schema digest, response status, error, model receipt, and raw receipt reference. Completed receipt replay verifies these artifacts and performs no new model call. A failed receipt retains its context and measured usage. For runners, actual `session_id` or top-level `context_id` supplies continuity evidence; metadata context is dispatch intent only. Successful runner receipts must report the expected actual configured model, effort, runner, runner role, and tool profile. Tool startup evidence must be verified and its profile, observed tools, and observed servers must match the approved inventory. Text-only or unsupported adapters without this evidence cannot complete a council step. Fallback, tool policy violation, missing required serving proof, or an observed model mismatch blocks acceptance.
+
+Accept either a raw JSON object or exactly one JSON fence with optional prose around it. Extra JSON values, multiple fences, duplicate keys, invalid constants, malformed JSON, and schema violations fail validation. Ambiguous structural or scalar JSON outside a fence is rejected. A configured label cannot establish model diversity.
+
+The CLI reuses `shared/scripts/output_contract.py`. It checks every branch of the schema, including absent properties and empty arrays, before validating the whole response. All bundled schemas use its supported Draft 7 vocabulary. Unsupported keywords, malformed schema rules, and other dialects fail closed; this is not a general Draft 7 implementation. No extra package is required.
+
+| Mode | Stage key | Schema |
 | --- | --- | --- |
-| `poll` | opening | `schemas/opening-answer.schema.json` |
-| `poll` | organizer | `schemas/organizer-analysis.schema.json` |
-| `poll` | gap repair | `schemas/disagreement-round.schema.json` |
-| `poll` | judge | `schemas/judge.schema.json` |
-| `poll` | synthesis | `schemas/synthesis.schema.json` |
-| `debate` | opening | `schemas/round1-response.schema.json` |
-| `debate` | later round | `schemas/later-round-response.schema.json` |
+| `poll` | `opening` | `opening-answer.schema.json` |
+| `poll` | `organizer` | `organizer-analysis.schema.json` |
+| `poll` | `gap_repair` | `disagreement-round.schema.json` |
+| `poll` | `judge` | `judge.schema.json` |
+| `poll`, `debate` | `synthesis` | `synthesis.schema.json` |
+| `debate` | `opening` | `round1-response.schema.json` |
+| `debate` | `later_round` | `later-round-response.schema.json` |
+| `personas` | `advisor` | `opening-answer.schema.json` |
+| `personas` | `reviewer` | `persona-review.schema.json` |
+| `personas` | `chairman` | `persona-chairman.schema.json` |
 
-## Artifacts and state
+A malformed response or failed execution can use one new attempt through the same recorded context if the original budget allows it. A completed valid step cannot run again. Missing context blocks retry except for a proven failure before the first model invocation. This exception requires every prior attempt for that role to have an intact failed receipt with `terminal_status: preflight_blocked`, `print_invocation_started: false`, blocked preflight evidence with `provider_calls: 0`, matching actual runner, model, effort, role, and tools, and no session, response, startup, serving, or nonzero model-usage evidence. The `provider_calls` preflight field alone proves nothing about a later invocation.
 
-When the workspace is writable, use:
+After correcting the CLI prerequisite, this proven case may spend the original retry allowance to create its first context. Keep the same approved plan and all failed receipts, reservation counts, and measured budgets. Do not refund an attempt or raise a ceiling. A required serving receipt is not expected for a proven prelaunch failure; that failure supplies no accepted vote. The successful retry must still meet the original serving-proof requirement. Existing, lost, and uncertain contexts retain the strict same-context rule; no global latest-session lookup or replacement context is allowed.
 
-- state: `.ai-workflow/consensus/{session_id}.json`
-- report: `.ai-workflow/consensus/{session_id}.md`
-- response: `.ai-workflow/consensus/{session_id}-{phase}-{seat}.json`
+## Progress and recovery
 
-Write the attempt, pending call, and phase state before dispatch. The state records phase, approved plan, seat table, execution entries, role contexts, prompts, outputs, failures, and effective-model receipts. This is **the ledger, not the transcript**. A role context records its host, execution path, context id or session path, configured model and effort, tool policy, receipt reference, last input revision, completed turn, and pending call id.
+```bash
+python3 <models-consensus-dir>/scripts/council_state.py --state <run.json> status
+python3 <models-consensus-dir>/scripts/council_state.py --state <run.json> observe
+python3 <models-consensus-dir>/scripts/council_state.py --state <run.json> skip --step <conditional-step> --reason <reason>
+```
 
-When the workspace is not writable, retain the same fields in memory and return `state_path: null` and `report_path: null`.
+`observe` uses `runner_jobs.observe_many` for explicitly bound pending jobs. It reads status without dispatch or automatic retry. A dead or missing job is unresolved until exact failure evidence is reconciled. Native pending calls use the host's recorded context and turn, then the shared completion capture.
 
-## Recovery and failure
+A planned conditional step can be skipped before any attempt, with a stored reason. An attempted or required step cannot be skipped. Dependent steps require valid or explicitly skipped prerequisites. State becomes completed when all approved steps are valid or skipped. `status` reports the stored attempts, step outcomes, measured usage, unknown counts, and advisory response cap.
 
-Resume only the next uncompleted phase. Do not repeat a completed call. Reconcile a recorded pending native call, runner job, or terminal artifact before resending it. Resume only through the matching role's recorded context id or session path; never use a global latest-session selector.
+Keep state at `.ai-workflow/consensus/{session_id}.json` and the report at `.ai-workflow/consensus/{session_id}.md`. The CLI stores immutable artifacts in `{state-path}.artifacts/`. If this location is not writable, report the blocker; durable reservation is required before dispatch.
 
-If a recorded context is unavailable, record the continuation break and the actual failure evidence. Recreate the same approved role from its checkpoint only when the preview declared that recovery policy; otherwise fail that route. If an approved seat fails, record its stderr or host-error summary and status. If the loss breaks quorum or changes the plan, end the run and present the collected evidence plus a revised-plan option. Never dispatch a replacement model, change effort, or use a different transport without new approval.
-
-## Result contract
-
-The report always includes the neutral question, approved plan, actual receipts, recommendation, dissent, evidence gaps, one next step, and separate answer and diversity confidence. It never starts implementation or hands work to an implementation workflow.
+The final report names the approved plan, actual receipts, failures, recommendation, dissent, evidence gaps, one next step, and separate answer and diversity confidence. A loss of quorum ends deliberation with the available evidence. The council never starts implementation.

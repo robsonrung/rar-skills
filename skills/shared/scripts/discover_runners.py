@@ -39,7 +39,8 @@ import sys
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 
-from model_routing import load_config
+from model_routing import CONFIG_PATH, config_digest, load_config
+from runner_preflight import COMPATIBILITY_PATH, check, claude_compatibility, file_evidence
 
 ROUTING_CONFIG = load_config()
 
@@ -92,6 +93,7 @@ class SeatProbe:
     depends_on: tuple[str, ...] = field(default_factory=tuple)
     notes: str = ""
     tier: str = "default"
+    checks: dict = field(default_factory=dict)
 
     def to_dict(self) -> dict:
         return {
@@ -105,7 +107,16 @@ class SeatProbe:
             "depends_on": list(self.depends_on),
             "notes": self.notes,
             "tier": self.tier,
+            "checks": self.checks or discovery_checks(self.available),
         }
+
+
+def discovery_checks(transport: bool) -> dict:
+    result = {name: check(None, "Discovery does not establish this capability.") for name in (
+        "compatibility", "auth_visibility", "model_entitlement", "effort", "tools",
+    )}
+    result["transport"] = check(transport, "Transport presence only; model access is untested.")
+    return result
 
 
 def _probe_version(cli_path: str, spec: SeatSpec, timeout: float) -> str | None:
@@ -165,11 +176,25 @@ def probe_seat(spec: SeatSpec, native_agent: str, version_timeout: float) -> Sea
         )
 
     version = _probe_version(cli_path, spec, version_timeout)
+    checks = discovery_checks(True)
+    reason = None
+    if spec.seat in CLAUDE_SEATS:
+        model = ROUTING_CONFIG["models"][SEAT_IDENTITIES[spec.seat]]["model"]
+        try:
+            checks["compatibility"] = claude_compatibility(model, version, config=ROUTING_CONFIG)
+            if checks["compatibility"]["status"] == "false":
+                reason = checks["compatibility"]["detail"]
+            elif checks["compatibility"]["status"] == "unknown" and "minimum_version" in checks["compatibility"]:
+                reason = "Cannot establish the required minimum CLI version."
+        except (OSError, ValueError, KeyError, TypeError):
+            reason = "Compatibility policy could not be loaded."
     return SeatProbe(
         seat=spec.seat,
         execution_path=spec.execution_path,
         probe_cli=spec.probe_cli,
-        available=True,
+        available=reason is None,
+        blocked_reason=reason,
+        checks=checks,
         cli_path=cli_path,
         version=version,
         depends_on=spec.depends_on,
@@ -235,7 +260,7 @@ def render_text(probes: list[SeatProbe], summary: dict, host: dict) -> str:
     lines.append(header)
     lines.append("-" * len(header))
     for p in probes:
-        status = "available" if p.available else "missing"
+        status = "available" if p.available else "blocked"
         path = p.cli_path or ("native" if p.execution_path == "agent_native" else "-")
         version = p.version or "-"
         reason = p.blocked_reason or p.notes or ""
@@ -257,7 +282,7 @@ def render_md(probes: list[SeatProbe], summary: dict, host: dict) -> str:
     lines.append("| Seat | Status | Path | Version | Reason / notes |")
     lines.append("|---|---|---|---|---|")
     for p in probes:
-        status = "available" if p.available else "**missing**"
+        status = "available" if p.available else "**blocked**"
         path = p.cli_path or ("native" if p.execution_path == "agent_native" else "—")
         version = p.version or "—"
         reason = (p.blocked_reason or p.notes or "").replace("|", "\\|")
@@ -338,6 +363,8 @@ def main(argv: list[str] | None = None) -> int:
         envelope = {
             "schema_version": SCHEMA_VERSION,
             "host": host,
+            "evidence": {"config": {**file_evidence(CONFIG_PATH), "config_digest": config_digest(ROUTING_CONFIG)},
+                         "policy": file_evidence(COMPATIBILITY_PATH)},
             "seats": [p.to_dict() for p in probes],
             "summary": summary,
         }

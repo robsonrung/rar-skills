@@ -15,7 +15,44 @@ VERIFIED_SOURCES = frozenset({"native_event", "provider_event"})
 
 def _model_id(value: object) -> str | None:
     """Return a nonempty model id or None."""
-    return value.strip() if isinstance(value, str) and value.strip() else None
+    return value.strip() if isinstance(value, str) and value.strip() and value.strip() != "<synthetic>" else None
+
+
+def attach_claude_model_receipt(
+    result: dict[str, Any], events: list[dict[str, Any]], requested_model: str | None,
+) -> dict[str, Any]:
+    """Use primary assistant events as serving evidence; keep usage labels separate."""
+    primary, auxiliary = set(), set()
+    usage = {}
+    for event in events:
+        message = event.get("message")
+        if event.get("type") == "assistant" and isinstance(message, dict):
+            model = _model_id(message.get("model"))
+            if model:
+                target = auxiliary if event.get("parent_tool_use_id") else primary
+                target.add(model)
+        if event.get("type") == "result" and isinstance(event.get("modelUsage"), dict):
+            usage = event["modelUsage"]
+    result["primary_model_ids"] = sorted(primary)
+    result["auxiliary_model_ids"] = sorted(auxiliary)
+    # This breakdown is already included in the terminal total, not an extra cost.
+    result["model_usage"] = usage
+    result["auxiliary_model_usage"] = {key: value for key, value in usage.items() if key not in primary}
+    result.pop("native_model_id", None)
+    result.pop("model_receipt", None)
+    if len(primary) == 1:
+        result["native_model_id"] = next(iter(primary))
+    requested = _model_id(requested_model)
+    # An alias does not identify an exact serving version.
+    exact_request = bool(requested and requested.startswith("claude-"))
+    result["model_matches_requested"] = (
+        next(iter(primary)) == requested if len(primary) == 1 and exact_request else None
+    )
+    result["model_identity_error"] = (
+        "Multiple primary serving models observed." if len(primary) > 1 else
+        "Serving model differs from the requested model." if result["model_matches_requested"] is False else None
+    )
+    return attach_model_receipt(result, requested_model, observed_source="native_event")
 
 
 def attach_model_receipt(
@@ -44,10 +81,12 @@ def attach_model_receipt(
 
     native_model = _model_id(result.get("native_model_id"))
     previous = result.get("model_receipt")
-    if native_model is None and isinstance(previous, dict):
+    if isinstance(previous, dict):
         if previous.get("status") == "verified" and previous.get("source") in VERIFIED_SOURCES:
-            native_model = _model_id(previous.get("observed_model"))
-            observed_source = str(previous["source"])
+            previous_model = _model_id(previous.get("observed_model"))
+            if previous_model is not None and native_model in (None, previous_model):
+                native_model = previous_model
+                observed_source = str(previous["source"])
 
     if native_model is not None and observed_source in VERIFIED_SOURCES:
         result["effective_model"] = native_model

@@ -9,14 +9,14 @@ external transport presence and does not prove native capabilities or access.
 
 ## Preflight result cache
 
-Cache capability probe results (transport presence, versions, effort support,
-capabilities, ZDR endpoint checks) with `shared/scripts/preflight_cache.py`
-instead of re-probing every invocation. Entries live at
-`~/.rar-skills/preflight-cache.json`, are trusted for 24 hours, and are keyed
-by seat and a fingerprint of the probed CLI and configuration. A miss,
-expiry, or fingerprint mismatch always means re-probe. Cache only capability
-probes — never serving-model receipts, per-request privacy controls, or quota
-state. See [host-model-execution.md](host-model-execution.md).
+Cache stable capability results with `shared/scripts/preflight_cache.py`.
+Entries live at `~/.rar-skills/preflight-cache.json` for at most 24 hours.
+Recompute the fingerprint from CLI identity, version, launch context,
+configuration, and policy before each lookup. A changed fingerprint, expired
+entry, old schema, or missing fingerprint requires a new probe. Never cache
+live authentication, entitlement, serving receipts, request privacy controls,
+or quota state. See [runner-preflight.md](runner-preflight.md) for the helper
+API, separate unknown checks, and installation drift checks.
 
 ## Iterative roles
 
@@ -126,7 +126,13 @@ Supported roles:
 - `challenger`
 - `researcher`
 
-Every role except `implementer` is an analysis seat and defaults to read-only mode. The exact enforcement is runner specific: Claude planning mode, Codex read-only sandbox, Pi tool allowlisting (`--restrict-tools` enables only the file-reading tool; `--no-tools` disables all tools natively), or a prompt-level overlay. Pass `--allow-write` when an analysis role legitimately needs to write.
+Every role except `implementer` is an analysis seat and defaults to read-only mode. The exact enforcement is runner specific: Claude `repo_read_only` profile (only Read, Glob, and Grep, customizations disabled, strict empty MCP configuration), Codex read-only sandbox, Pi tool allowlisting (`--restrict-tools` enables only the file-reading tool; `--no-tools` disables all tools natively), or a prompt-level overlay. Pass `--allow-write` when an analysis role legitimately needs to write.
+
+Claude also supports `no_tools` and `write` profiles. `--restrict-tools` selects `repo_read_only`; `--allow-write` selects normal write permissions. Conflicting profile options fail before launch. These profiles control tools, not operating system filesystem access. Startup evidence verifies the profile only when the reported tools and MCP servers satisfy it. Missing evidence remains unverified; a reported violation fails the result.
+
+Primary assistant events can identify the serving model. Requested labels, initialization labels, synthetic events, and usage labels cannot. An exact model mismatch or multiple primary IDs fails the result. Auxiliary usage remains separate and must not be added again to the terminal total cost.
+
+Claude accepts positive `--max-turns`, `--max-budget-usd`, and `--timeout` limits. The cost flag is a threshold for CLI reported spend, not a guaranteed invoice ceiling. Response length requests are advisory. Fallback is blocked when it cannot preserve the selected profile or native limits.
 
 ## Presenting results
 

@@ -81,6 +81,116 @@
       },
       "additionalProperties": false
     },
+    "primary_model_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true,
+      "description": "Serving IDs from primary assistant events."
+    },
+    "auxiliary_model_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true,
+      "description": "Serving IDs from child assistant events."
+    },
+    "model_matches_requested": {
+      "type": [
+        "boolean",
+        "null"
+      ],
+      "description": "Exact serving ID comparison; null for aliases or missing or ambiguous evidence."
+    },
+    "model_identity_error": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "model_usage": {
+      "type": "object",
+      "description": "Native per-model usage, already included in the terminal total cost."
+    },
+    "auxiliary_model_usage": {
+      "type": "object",
+      "description": "Usage labels outside the observed primary ID set, not serving proof or extra cost."
+    },
+    "tool_profile": {
+      "enum": [
+        "no_tools",
+        "repo_read_only",
+        "write"
+      ]
+    },
+    "tool_profile_receipt": {
+      "type": "object",
+      "required": [
+        "profile",
+        "status",
+        "observed_tools",
+        "observed_mcp_servers",
+        "errors"
+      ],
+      "properties": {
+        "profile": {
+          "enum": [
+            "no_tools",
+            "repo_read_only",
+            "write"
+          ]
+        },
+        "status": {
+          "enum": [
+            "verified",
+            "unverified",
+            "violated",
+            "not_restricted"
+          ]
+        },
+        "observed_tools": {
+          "description": "Raw startup tool evidence, null when absent."
+        },
+        "observed_mcp_servers": {
+          "description": "Raw startup MCP evidence, null when absent."
+        },
+        "errors": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "limits": {
+      "type": "object",
+      "properties": {
+        "timeout_seconds": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "max_turns": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 1
+        },
+        "max_budget_usd": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "exclusiveMinimum": 0
+        },
+        "response_length": {
+          "const": "advisory_only"
+        }
+      }
+    },
     "effective_provider": {
       "type": "string",
       "description": "Provider backing the effective runner (anthropic, openai, google, xai, qwen, z-ai, moonshot, minimax, ...)."
@@ -126,6 +236,10 @@
     "success": {
       "type": "boolean",
       "description": "Whether the run completed with return_code 0 and no native error."
+    },
+    "print_invocation_started": {
+      "type": "boolean",
+      "description": "Claude runner: false only before any print launch attempt. Set true immediately before the print subprocess or capture call; a launch error can retain true. This is distinct from the local preflight provider call count. Absence is unknown, including fallback runners without this field."
     },
     "return_code": {
       "type": "integer",

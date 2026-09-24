@@ -2,12 +2,14 @@
 
 import argparse
 import json
+import math
 import os
 import shlex
 import shutil
 import subprocess
 import sys
 import tempfile
+import time
 from pathlib import Path
 from typing import Any
 
@@ -38,8 +40,8 @@ _SHARED_SCRIPTS = _skills_root() / "shared" / "scripts"
 if str(_SHARED_SCRIPTS) not in sys.path:
     sys.path.insert(0, str(_SHARED_SCRIPTS))
 
-from model_receipt import attach_model_receipt
-from execution_metrics import normalize_metrics
+from model_receipt import attach_model_receipt, attach_claude_model_receipt
+from execution_metrics import FIELDS, normalize_metrics
 from model_routing import default_model, load_config, runner_efforts
 
 ROUTING_CONFIG = load_config()
@@ -56,8 +58,9 @@ ROLE_INSTRUCTIONS = {
     "researcher": "Act as a research specialist. Distinguish facts from inference, gather evidence, and cite sources or concrete artifacts when available.",
 }
 
-# Roles that modify the workspace; every other role defaults to restricted (plan) mode.
+# Roles that modify the workspace; every other role defaults to read tools only.
 WRITE_ROLES = {"implementer"}
+TOOL_PROFILES = {"no_tools": [], "repo_read_only": ["Read", "Glob", "Grep"], "write": None}
 
 EFFORT_LEVELS = runner_efforts("claude", accepted=True, config=ROUTING_CONFIG)
 
@@ -188,18 +191,59 @@ def load_runner_jobs():
 
 
 def structured_result(stdout: str, output_format: str) -> dict | None:
+    results = [event for event in structured_events(stdout, output_format) if event.get("type") == "result"]
+    return results[-1] if results else None
+
+
+def structured_events(stdout: str, output_format: str) -> list[dict]:
     try:
         if output_format == "json":
             payload = json.loads(stdout)
             events = payload if isinstance(payload, list) else [payload]
         elif output_format == "stream-json":
-            events = [json.loads(line) for line in stdout.splitlines() if line.strip()]
+            from stream_capture import parse_events
+            events = parse_events(stdout)
         else:
-            return None
+            return []
     except json.JSONDecodeError:
-        return None
-    results = [event for event in events if isinstance(event, dict) and event.get("type") == "result"]
-    return results[-1] if results else None
+        return []
+    return [event for event in events if isinstance(event, dict)]
+
+
+def tool_profile_receipt(events: list[dict], profile: str) -> dict:
+    allowed = TOOL_PROFILES[profile]
+    receipt = {"profile": profile, "status": "unverified", "observed_tools": None,
+               "observed_mcp_servers": None, "errors": []}
+    if allowed is None:
+        receipt["status"] = "not_restricted"
+        return receipt
+    for event in events:
+        if event.get("type") != "system" or event.get("subtype") != "init":
+            continue
+        if "tools" in event:
+            observed = event["tools"]
+            receipt["observed_tools"] = observed
+            if not isinstance(observed, list) or any(tool not in allowed for tool in observed):
+                receipt["errors"].append("Startup tools exceed the selected profile.")
+        if "mcp_servers" in event:
+            receipt["observed_mcp_servers"] = event["mcp_servers"]
+            if event["mcp_servers"] != []:
+                receipt["errors"].append("Startup MCP servers are not empty.")
+    if receipt["errors"]:
+        receipt["status"] = "violated"
+    elif receipt["observed_tools"] is not None and receipt["observed_mcp_servers"] is not None:
+        receipt["status"] = "verified"
+    return receipt
+
+
+def validate_limits(timeout: float, max_turns: int | None, max_budget_usd: float | None) -> None:
+    for name, value in (("timeout", timeout), ("max_budget_usd", max_budget_usd)):
+        if value is None and name != "timeout":
+            continue
+        if type(value) not in (int, float) or not math.isfinite(value) or value <= 0:
+            raise ValueError(f"{name} must be a positive finite number.")
+    if max_turns is not None and (type(max_turns) is not int or max_turns <= 0):
+        raise ValueError("max_turns must be a positive integer.")
 
 
 def infer_claude_success(return_code: int, stdout: str, output_format: str) -> bool:
@@ -361,7 +405,7 @@ def run_claude(*args: Any, **kwargs: Any) -> dict[str, Any]:
     """Public entry point: every exit path (including early validation errors
     and fallback results) returns a fully normalized envelope, whether invoked
     via the CLI or imported and called programmatically."""
-    requested_model = kwargs.get("model") if "model" in kwargs else (args[3] if len(args) > 3 else None)
+    requested_model = kwargs.get("model") if "model" in kwargs else (args[3] if len(args) > 3 else DEFAULT_MODEL)
     result = _run_claude(*args, **kwargs)
     metadata = kwargs.get("metadata_json") if "metadata_json" in kwargs else (args[8] if len(args) > 8 else None)
     if metadata:
@@ -394,15 +438,31 @@ def _run_claude(
     continue_last: bool = False,
     disable_fallback: bool = False,
     event_log: str | None = None,
+    tool_profile: str | None = None,
+    max_turns: int | None = None,
+    max_budget_usd: float | None = None,
 ) -> dict[str, Any]:
-    cwd = working_dir if working_dir else os.getcwd()
-    restrict_effective = resolve_restrict_tools(role, restrict_tools, allow_write)
-    restrict_tools = restrict_effective
+    cwd = str(Path(working_dir or os.getcwd()).expanduser().resolve())
+    try:
+        validate_limits(timeout, max_turns, max_budget_usd)
+        if tool_profile is not None and tool_profile not in TOOL_PROFILES:
+            raise ValueError("Unknown tool_profile.")
+        if allow_write and (restrict_tools or tool_profile in {"no_tools", "repo_read_only"}):
+            raise ValueError("allow_write conflicts with the restricted tool profile.")
+        if restrict_tools and tool_profile == "write":
+            raise ValueError("restrict_tools conflicts with the write profile.")
+    except ValueError as exc:
+        return {"success": False, "print_invocation_started": False, "return_code": -3, "status": "invalid_input",
+                "stdout": "", "stderr": str(exc), "model": model, "working_dir": cwd}
+    explicit_profile = tool_profile is not None
+    tool_profile = tool_profile or ("repo_read_only" if resolve_restrict_tools(role, restrict_tools, allow_write) else "write")
+    restrict_tools = tool_profile != "write"
+    fallback_preserves_constraints = not (restrict_tools or explicit_profile or allow_write or max_turns is not None or max_budget_usd is not None)
     cmd = ["claude"]
 
     if resume and continue_last:
         return {
-            "success": False,
+            "success": False, "print_invocation_started": False,
             "stdout": "",
             "stderr": "Use either --resume SESSION_ID or --continue, not both.",
             "return_code": -3,
@@ -424,7 +484,7 @@ def _run_claude(
     for pf in prompt_files or []:
         if not Path(pf).is_file():
             return {
-                "success": False,
+                "success": False, "print_invocation_started": False,
                 "stdout": "",
                 "stderr": f"Prompt file does not exist: {pf}",
                 "return_code": -3,
@@ -440,7 +500,7 @@ def _run_claude(
 
     if session_file and not Path(session_file).is_file():
         return {
-            "success": False,
+            "success": False, "print_invocation_started": False,
             "stdout": "",
             "stderr": f"Session file does not exist: {session_file}",
             "return_code": -3,
@@ -467,14 +527,20 @@ def _run_claude(
 
     if output_format and output_format != "text":
         cmd.extend(["--output-format", output_format])
-        if output_format == "stream-json":
-            cmd.append("--verbose")
+        cmd.append("--verbose")
 
     if no_session_persistence:
         cmd.append("--no-session-persistence")
 
     if restrict_tools:
-        cmd.extend(["--permission-mode", "plan"])
+        cmd.extend(["--safe-mode", "--tools", ",".join(TOOL_PROFILES[tool_profile]),
+                    "--strict-mcp-config", "--mcp-config", '{"mcpServers":{}}',
+                    "--permission-mode", "plan"])
+
+    if max_turns is not None:
+        cmd.extend(["--max-turns", str(max_turns)])
+    if max_budget_usd is not None:
+        cmd.extend(["--max-budget-usd", str(max_budget_usd)])
 
     if model:
         cmd.extend(["--model", model])
@@ -493,7 +559,7 @@ def _run_claude(
 
     if working_dir and not Path(working_dir).is_dir():
         return {
-            "success": False,
+            "success": False, "print_invocation_started": False,
             "stdout": "",
             "stderr": f"Working directory does not exist: {working_dir}",
             "return_code": -3,
@@ -507,8 +573,14 @@ def _run_claude(
             "restrict_tools": restrict_tools,
         }
 
-    if shutil.which("claude") is None:
-        if not disable_fallback:
+    # Resolve relative PATH entries in the same directory used by the child.
+    search_path = os.pathsep.join(
+        str(Path(cwd) / part) if not Path(part).is_absolute() else part
+        for part in os.environ.get("PATH", os.defpath).split(os.pathsep)
+    )
+    cli_path = shutil.which("claude", path=search_path)
+    if cli_path is None:
+        if not disable_fallback and fallback_preserves_constraints:
             fallback_runner = ROUTING_CONFIG["runners"]["claude"]["fallback_runner"]
             fallback_script = _skill_dir(f"{fallback_runner}-runner") / "scripts" / f"run_{fallback_runner}.py"
             if fallback_script.is_file():
@@ -529,9 +601,10 @@ def _run_claude(
                 fallback_result["fallback_model_forwarded"] = False
                 return fallback_result
         return {
-            "success": False,
+            "success": False, "print_invocation_started": False,
             "stdout": "",
-            "stderr": "Claude CLI not found. Please ensure 'claude' is installed and in PATH.",
+            "stderr": "Claude CLI not found. Please ensure 'claude' is installed and in PATH."
+                      + (" Fallback blocked because it cannot preserve the selected tool profile or limits." if not fallback_preserves_constraints else ""),
             "return_code": -2,
             "command": command_display,
             "working_dir": cwd,
@@ -543,8 +616,10 @@ def _run_claude(
             "restrict_tools": restrict_tools,
         }
 
+    cmd[0] = str(Path(cli_path).absolute())
+    command_display = " ".join(shlex.quote(part) for part in cmd)
     result = {
-        "success": False,
+        "success": False, "print_invocation_started": False,
         "stdout": "",
         "stderr": "",
         "return_code": 0,
@@ -565,6 +640,10 @@ def _run_claude(
         "resume": resume or ("--continue" if continue_last else None),
         "agent_message": None,
         "session_id": None,
+        "tool_profile": tool_profile,
+        "tool_profile_receipt": tool_profile_receipt([], tool_profile),
+        "limits": {"timeout_seconds": timeout, "max_turns": max_turns,
+                   "max_budget_usd": max_budget_usd, "response_length": "advisory_only"},
     }
 
     child_env = os.environ.copy()
@@ -581,12 +660,35 @@ def _run_claude(
         result["return_code"] = -4
         return result
 
+    preflight_started = time.monotonic()
+    try:
+        from runner_preflight import check_claude
+        result["preflight"] = check_claude(
+            model, effort, cli_path=cmd[0], working_dir=cwd, env=child_env,
+        )
+    except Exception as exc:  # noqa: BLE001
+        result["preflight"] = {
+            "blocked": True, "reasons": ["Local preflight could not complete."],
+            "evidence": {"error_type": type(exc).__name__},
+        }
+    if result["preflight"]["blocked"]:
+        result.update(return_code=-3, terminal_status="preflight_blocked",
+                      status="seat_unavailable", auth_ok=None,
+                      stderr="Preflight blocked: " + "; ".join(result["preflight"]["reasons"]))
+        if result["preflight"].get("evidence", {}).get("provider_calls") == 0:
+            result["metrics"] = {key: 0 for key in FIELDS}
+            result["metrics"]["duration_ms"] = (time.monotonic() - preflight_started) * 1000
+            result["metrics_complete"] = True
+        return result
+
     try:
         if event_log and output_format == "stream-json":
             from stream_capture import capture
+            result["print_invocation_started"] = True
             process = capture(cmd, cwd, child_env, timeout, event_log)
             result["event_log"] = str(Path(event_log).resolve())
         else:
+            result["print_invocation_started"] = True
             process = subprocess.run(
                 cmd, cwd=cwd, capture_output=True, text=True,
                 timeout=timeout, env=child_env, check=False,
@@ -639,6 +741,16 @@ def _run_claude(
         result["stderr"] = f"Unexpected error: {e!s}"
         result["return_code"] = -3
 
+    events = structured_events(result["stdout"], output_format)
+    attach_claude_model_receipt(result, events, model)
+    result["tool_profile_receipt"] = tool_profile_receipt(events, tool_profile)
+    receipt_error = result["model_identity_error"]
+    if result["tool_profile_receipt"]["status"] == "violated":
+        receipt_error = "; ".join(result["tool_profile_receipt"]["errors"])
+    if receipt_error:
+        result.update(success=False, error=receipt_error)
+        if result["return_code"] == 0:
+            result.update(return_code=1, terminal_status="invalid_receipt")
     return result
 
 
@@ -725,13 +837,16 @@ Examples:
     parser.add_argument(
         "--restrict-tools",
         action="store_true",
-        help="Use Claude planning mode (read-only; default for analysis roles)",
+        help="Use the repo_read_only tool profile (default for analysis roles)",
     )
     parser.add_argument(
         "--allow-write",
         action="store_true",
-        help="Opt an analysis role out of the default restricted planning mode",
+        help="Allow the normal write tool set for an analysis role",
     )
+    parser.add_argument("--tool-profile", choices=sorted(TOOL_PROFILES), help="Explicit tool authority; restricted profiles also disable customizations and MCP")
+    parser.add_argument("--max-turns", type=int, help="Positive maximum number of native turns")
+    parser.add_argument("--max-budget-usd", type=float, help="Positive reported USD cost cap enforced by the native CLI")
     parser.add_argument(
         "--effort",
         "-e",
@@ -791,6 +906,10 @@ Examples:
 
     parser.add_argument("--event-log", help="exclusive durable stream-json log; defaults beside --output-file")
     args = parser.parse_args()
+    try:
+        validate_limits(args.timeout, args.max_turns, args.max_budget_usd)
+    except ValueError as exc:
+        parser.error(str(exc))
 
     if (
         not args.prompt
@@ -848,6 +967,9 @@ Examples:
         continue_last=args.continue_last,
         disable_fallback=args.disable_fallback,
         event_log=args.event_log or (str(Path(args.output_file).with_suffix(".events.jsonl")) if args.output_file and args.output_format == "stream-json" else None),
+        tool_profile=args.tool_profile,
+        max_turns=args.max_turns,
+        max_budget_usd=args.max_budget_usd,
     )
 
     output_file = None

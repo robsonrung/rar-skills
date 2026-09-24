@@ -61,16 +61,17 @@ provider. For OpenRouter routes, show the selected `provider_routing` policy:
 An inference provider preference is not an allowlist. Unknown account guardrails
 stay unknown. These controls do not establish a browser service's privacy policy.
 
-On the first direct skill invocation of a session, show the full routing
-table before the scoped preview: one row per task kind (exploration,
-implementation, test authorship, e2e browser work, debugging, analysis,
-review, interviews) with its resolved seat, effort, execution path, and
-privacy or receipt policy under the selected profile. This is the user's
-chance to redirect a whole task kind, not just today's roles. Persist
-requested per-route changes to `.rar-skills/config.local.yaml` as
-`route_overrides` (see [local-config.md](local-config.md)); they apply to
-future previews, never retroactively to approved routes. Later invocations in
-the session show only the scoped preview.
+Show only the routes needed for the current request, including on the first
+invocation. If the user names exact models and efforts, resolve those choices
+and show their roles, transports, controls, and limits in this one preview.
+Do not add unrelated task categories or a second model selection step.
+
+Show the full routing table only when the user asks to inspect or change the
+profile across task kinds. Persist requested per-route changes to
+`.rar-skills/config.local.yaml` as `route_overrides` (see
+[local-config.md](local-config.md)) only when the user asks to save them for
+future work. A selection for the current task is not a request to change
+future defaults. Saved changes never alter approved routes.
 
 Offer **Keep defaults**, **Change selected roles**, or **Use another profile**.
 A direct request to “use defaults and run” permits the unchanged resolved setup
