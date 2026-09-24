@@ -157,7 +157,7 @@
       "effort_scaling_evidence": "AutomationBench and FrontierCode v1.1 effort curves, checked 2026-09-22: pass rate rises monotonically with effort."
     },
     "sol": {
-      "model": "gpt-5.6-sol",
+      "model": "gpt-6-sol",
       "runner": "codex",
       "family": "gpt",
       "effort_profile": "extended",
@@ -166,7 +166,7 @@
       "effort_scaling_evidence": "AutomationBench effort curve, checked 2026-09-22: smooth monotonic climb; weak below medium effort."
     },
     "terra": {
-      "model": "gpt-5.6-terra",
+      "model": "gpt-6-terra",
       "runner": "codex",
       "family": "gpt",
       "effort_profile": "extended",
@@ -175,7 +175,7 @@
       ]
     },
     "luna": {
-      "model": "gpt-5.6-luna",
+      "model": "gpt-6-luna",
       "runner": "codex",
       "family": "gpt",
       "effort_profile": "standard",
@@ -2376,17 +2376,17 @@
       },
       "V3": {
         "title": "Provider model page",
-        "url": "https://developers.openai.com/api/docs/models/gpt-5.6-luna",
+        "url": "https://developers.openai.com/api/docs/models/gpt-6-luna",
         "accessed": "2026-09-19"
       },
       "V4": {
         "title": "Provider model page",
-        "url": "https://developers.openai.com/api/docs/models/gpt-5.6-terra",
+        "url": "https://developers.openai.com/api/docs/models/gpt-6-terra",
         "accessed": "2026-09-19"
       },
       "V5": {
         "title": "Provider model page",
-        "url": "https://developers.openai.com/api/docs/models/gpt-5.6-sol",
+        "url": "https://developers.openai.com/api/docs/models/gpt-6-sol",
         "accessed": "2026-09-19"
       },
       "V6": {

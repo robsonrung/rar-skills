@@ -22,7 +22,7 @@ Put personal defaults in `~/.codex/config.toml`. Put repository specific limits 
 
 - The official guidance favors parallel agents for independent exploration, tests, triage, log analysis, research, and summarization. It warns that parallel write work creates merge conflicts and added coordination cost. Every child also uses model and tool tokens. [Subagents](https://learn.chatgpt.com/docs/agent-configuration/subagents)
 
-- `gpt-5.6` is the suggested starting point for demanding, ambiguous work. `gpt-5.6-terra` fits faster read heavy work. `gpt-5.6-luna` fits narrow, repeatable work. Use `high` for review and security analysis, `medium` for normal workers, and `low` only for simple speed sensitive tasks. Higher effort increases time and token use. [Subagents](https://learn.chatgpt.com/docs/agent-configuration/subagents)
+- `gpt-6` is the suggested starting point for demanding, ambiguous work. `gpt-6-terra` fits faster read heavy work. `gpt-6-luna` fits narrow, repeatable work. Use `high` for review and security analysis, `medium` for normal workers, and `low` only for simple speed sensitive tasks. Higher effort increases time and token use. [Subagents](https://learn.chatgpt.com/docs/agent-configuration/subagents)
 
 - At normal intelligence levels, delegation must be requested directly or be required by applicable project or skill instructions. Current local Codex clients enable the feature by default. ChatGPT Work can delegate proactively only with Ultra on eligible accounts and supported models. [Subagents](https://learn.chatgpt.com/docs/agent-configuration/subagents)
 
@@ -68,7 +68,7 @@ Use new names. Do not define a role named `explorer` or `worker`, because a cust
 
 Use for read only codebase mapping, preflight evidence, test discovery, and problem localization. It fits `ship` phase 1, `design-gate`, early `diagnose`, and browser investigation preparation.
 
-Set a fast read focused model such as `gpt-5.6-terra`, `model_reasoning_effort = "medium"`, and `sandbox_mode = "read-only"`. Require file and symbol references, a concise result, and no fix proposal unless the parent asks.
+Set a fast read focused model such as `gpt-6-terra`, `model_reasoning_effort = "medium"`, and `sandbox_mode = "read-only"`. Require file and symbol references, a concise result, and no fix proposal unless the parent asks.
 
 ### `risk_reviewer`
 
@@ -80,7 +80,7 @@ Set the strongest model available in the local catalog, with `model_reasoning_ef
 
 Use for version specific API checks and official documentation research. It fits `capture-learning`, external library checks during `full-review`, and research tasks that can return concise citations.
 
-Set `gpt-5.6-terra` with medium effort first. Require primary sources, direct links, and a clear distinction between verified facts and inferences. Keep it read only.
+Set `gpt-6-terra` with medium effort first. Require primary sources, direct links, and a clear distinction between verified facts and inferences. Keep it read only.
 
 ## Roles not worth adding now
 
@@ -99,7 +99,7 @@ Use a personal default that is inexpensive for common read heavy delegation. Kee
 [agents]
 enabled = true
 max_concurrent_threads_per_session = 10
-default_subagent_model = "gpt-5.6-terra"
+default_subagent_model = "gpt-6-terra"
 default_subagent_reasoning_effort = "medium"
 interrupt_message = true
 ```
@@ -127,7 +127,7 @@ Each user role file should contain a narrow assignment. This is the shape to use
 # ~/.codex/agents/code-mapper.toml
 name = "code_mapper"
 description = "Read only codebase mapper for evidence gathering before changes."
-model = "gpt-5.6-terra"
+model = "gpt-6-terra"
 model_reasoning_effort = "medium"
 sandbox_mode = "read-only"
 developer_instructions = """

@@ -84,7 +84,7 @@ class ExecutionPolicyTests(unittest.TestCase):
             launch.validate_route(self.route)
 
     def test_fallback_to_another_runner_requires_a_separate_policy_decision(self):
-        self.route["unavailable"] = {"action": "use", "seat": "luna", "runner": "codex", "model": "gpt-5.6-luna",
+        self.route["unavailable"] = {"action": "use", "seat": "luna", "runner": "codex", "model": "gpt-6-luna",
                                      "mode": "runner", "effort_control": "runner", "effort": "high", "model_verification": "required"}
         with self.assertRaisesRegex(ValueError, "provider_routing decision"):
             launch.validate_route(self.route)

@@ -420,7 +420,7 @@ class LauncherTests(unittest.TestCase):
         route = self.route(
             "pi-review",
             "reviewer",
-            "openai/gpt-5.6-terra",
+            "openai/gpt-6-terra",
             runner="pi",
             seat="pi",
         )
@@ -581,7 +581,7 @@ class LauncherTests(unittest.TestCase):
         reviewer = self.route(
             "review-api",
             "reviewer",
-            "gpt-5.6-terra",
+            "gpt-6-terra",
             mode="native",
             effort="medium",
             effort_control="native",
@@ -605,19 +605,19 @@ class LauncherTests(unittest.TestCase):
         launcher.persist_native_receipt(manifest, implementer, "implementation", None, implementation_receipt, None)
         review_receipt = {
             **implementation_receipt,
-            "configured_model": "gpt-5.6-terra",
-            "effective_model": "gpt-5.6-terra",
+            "configured_model": "gpt-6-terra",
+            "effective_model": "gpt-6-terra",
             "configured_effort": "medium",
             "effective_effort": "medium",
             "model_receipt": {
                 "status": "verified",
                 "source": "native_event",
-                "observed_model": "gpt-5.6-terra",
+                "observed_model": "gpt-6-terra",
             },
             "native_execution": {
                 **implementation_receipt["native_execution"],
                 "role": "reviewer",
-                "configured_model": "gpt-5.6-terra",
+                "configured_model": "gpt-6-terra",
                 "configured_effort": "medium",
                 "tool_policy": "read-only",
                 "call_id": "review-call",
