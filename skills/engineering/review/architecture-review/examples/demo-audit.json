@@ -1,0 +1,1807 @@
+{
+  "schema_version": "2.0",
+  "language": "en",
+  "meta": {
+    "system": "Atlas, fictional order system",
+    "date": "September 26, 2026",
+    "revision": "Illustrative scenario, no actual commit",
+    "mode": "read_only",
+    "is_demo": true,
+    "scope": "Demonstration of an architecture assessment for an order application. No user code or service was accessed.",
+    "coverage": "All 20 dimensions are shown. Synthetic evidence demonstrates traceability, not repository inspection.",
+    "exclusions": [
+      "Real infrastructure, user interface, and data.",
+      "Execution of product tests, queries, load, or migrations."
+    ],
+    "limitations": [
+      "Evidence E001 through E009 is fictional.",
+      "No claim is made about real capacity, security, savings, or agent success.",
+      "Canonical terms illustrate decisions; no user repository was inspected."
+    ]
+  },
+  "context": [
+    {
+      "label": "System type",
+      "value": "Order-management SaaS with ERP integration.",
+      "basis": "demo",
+      "evidence": [
+        "E001"
+      ]
+    },
+    {
+      "label": "Team",
+      "value": "Five engineers, an illustrative assumption.",
+      "basis": "demo",
+      "evidence": [
+        "E001"
+      ]
+    },
+    {
+      "label": "Concurrent access",
+      "value": "120 illustrative active sessions; requests per second are unknown.",
+      "basis": "demo",
+      "evidence": [
+        "E001"
+      ]
+    },
+    {
+      "label": "Data and growth",
+      "value": "Volume, distribution, retention, and growth projections are not defined.",
+      "basis": "unknown",
+      "evidence": [
+        "E007"
+      ]
+    },
+    {
+      "label": "Deployment",
+      "value": "One principal application and a relational database.",
+      "basis": "demo",
+      "evidence": [
+        "E008"
+      ]
+    },
+    {
+      "label": "Criticality",
+      "value": "Order integrity matters; availability and recovery targets are not agreed.",
+      "basis": "demo",
+      "evidence": [
+        "E001"
+      ]
+    }
+  ],
+  "questions": [
+    "Must the ERP confirm the order before the order is considered valid?",
+    "What workload and latency, error, and recovery targets represent the actual business need?",
+    "What growth horizon and budget could justify a topology change?"
+  ],
+  "verdict": {
+    "headline": "Preserve simplicity. Protect the boundaries.",
+    "summary": "In this example, the main risk is order confirmation and integration recovery, not the absence of microservices. The proposed evolution protects the business flow and establishes measurements before distributing the architecture.",
+    "current_fit": "The structure is plausible for the illustrative context. Integration has a material gap; capacity and operational requirements have not been demonstrated.",
+    "future_fit": "Start with explicit contracts, repeatable verification, and a baseline. Extract components only when scale, isolation, or autonomy justify the cost.",
+    "confidence": "medium",
+    "evidence": [
+      "E001",
+      "E002",
+      "E004",
+      "E007"
+    ]
+  },
+  "dimensions": [
+    {
+      "id": "D01",
+      "title": "Fitness for purpose and sufficiency",
+      "status": "attention",
+      "confidence": "medium",
+      "explanation": "The topology appears proportionate to the example product. Operational sufficiency still depends on requirements and measurements.",
+      "evidence": [
+        "E001",
+        "E007"
+      ]
+    },
+    {
+      "id": "D02",
+      "title": "Domain model and Bounded Contexts",
+      "status": "attention",
+      "confidence": "medium",
+      "explanation": "Orders and Billing appear to be distinct capabilities, but their interface does not protect internal implementation. This alone does not establish separate Bounded Contexts.",
+      "evidence": [
+        "E004"
+      ]
+    },
+    {
+      "id": "D03",
+      "title": "Component Cohesion and Component Coupling",
+      "status": "attention",
+      "confidence": "high",
+      "explanation": "An import of internal pricing code creates Component Coupling that can make a local pricing change affect Billing.",
+      "evidence": [
+        "E004"
+      ]
+    },
+    {
+      "id": "D04",
+      "title": "Code design and refactorability",
+      "status": "adequate",
+      "confidence": "medium",
+      "explanation": "The illustrative calculations have tests and explicit monetary representation. This is not an assessment of all source code.",
+      "evidence": [
+        "E003",
+        "E006"
+      ]
+    },
+    {
+      "id": "D05",
+      "title": "Deployment topology",
+      "status": "adequate",
+      "confidence": "medium",
+      "explanation": "One principal application keeps operation simple. No requirement demonstrates a need to distribute every module.",
+      "evidence": [
+        "E001",
+        "E008"
+      ]
+    },
+    {
+      "id": "D06",
+      "title": "APIs and integration",
+      "status": "attention",
+      "confidence": "high",
+      "explanation": "An error response may hide a committed order. The example does not demonstrate protection against repeated business effects.",
+      "evidence": [
+        "E002"
+      ]
+    },
+    {
+      "id": "D07",
+      "title": "Data modeling and integrity",
+      "status": "adequate",
+      "confidence": "high",
+      "explanation": "Foreign keys and explicit monetary types are concrete safeguards to preserve in the fictional schema.",
+      "evidence": [
+        "E003"
+      ]
+    },
+    {
+      "id": "D08",
+      "title": "Persistence, ORM, and concurrency",
+      "status": "unknown",
+      "confidence": "unknown",
+      "explanation": "There is no evidence of generated SQL, contention, or query cost from which to judge persistence adequacy or isolation behavior.",
+      "evidence": [
+        "E007"
+      ]
+    },
+    {
+      "id": "D09",
+      "title": "Events and distributed consistency",
+      "status": "attention",
+      "confidence": "high",
+      "explanation": "The local write and external integration do not share an atomic commit. A Transactional Outbox can close the local state/publication-intent gap, but external effects still need protection.",
+      "evidence": [
+        "E002"
+      ]
+    },
+    {
+      "id": "D10",
+      "title": "Capacity, performance, and scalability",
+      "status": "unknown",
+      "confidence": "unknown",
+      "explanation": "Active sessions do not establish throughput or capacity. Workload, percentiles, and resource utilization are missing.",
+      "evidence": [
+        "E001",
+        "E007"
+      ]
+    },
+    {
+      "id": "D11",
+      "title": "Reliability and recovery",
+      "status": "unknown",
+      "confidence": "unknown",
+      "explanation": "There is no evidence of successful restoration, failure tolerance, or agreed recovery objectives.",
+      "evidence": [
+        "E007"
+      ]
+    },
+    {
+      "id": "D12",
+      "title": "Security and privacy",
+      "status": "unknown",
+      "confidence": "unknown",
+      "explanation": "Authorization, tenant isolation, and secret management are not demonstrated in this scenario.",
+      "evidence": [
+        "E007"
+      ]
+    },
+    {
+      "id": "D13",
+      "title": "Testing and testability",
+      "status": "attention",
+      "confidence": "medium",
+      "explanation": "Calculation tests are useful, but the example does not cover the critical integration failure and duplicate-command behavior.",
+      "evidence": [
+        "E002",
+        "E006"
+      ]
+    },
+    {
+      "id": "D14",
+      "title": "Build, delivery, and dependencies",
+      "status": "adequate",
+      "confidence": "low",
+      "explanation": "A build recipe and lockfile are declared. Execution from a clean environment remains unverified.",
+      "evidence": [
+        "E008"
+      ]
+    },
+    {
+      "id": "D15",
+      "title": "Observability and operations",
+      "status": "attention",
+      "confidence": "medium",
+      "explanation": "The example lacks useful correlation between an ERP error and the associated order state.",
+      "evidence": [
+        "E009"
+      ]
+    },
+    {
+      "id": "D16",
+      "title": "Economics and total cost",
+      "status": "unknown",
+      "confidence": "unknown",
+      "explanation": "Without consumption, bills, or operating effort, there is no basis for quantifying savings.",
+      "evidence": [
+        "E007"
+      ]
+    },
+    {
+      "id": "D17",
+      "title": "User interface and experience",
+      "status": "unknown",
+      "confidence": "unknown",
+      "explanation": "The user interface was not inspected. Accessibility and experience cannot be assessed.",
+      "evidence": [
+        "E007"
+      ]
+    },
+    {
+      "id": "D18",
+      "title": "Team, documentation, and learning",
+      "status": "unknown",
+      "confidence": "unknown",
+      "explanation": "The stated team size does not demonstrate ownership, onboarding effectiveness, or knowledge distribution.",
+      "evidence": [
+        "E001"
+      ]
+    },
+    {
+      "id": "D19",
+      "title": "Agent legibility",
+      "status": "attention",
+      "confidence": "medium",
+      "explanation": "The entry map helps locate the process, but leaves setup and test state implicit.",
+      "evidence": [
+        "E005"
+      ]
+    },
+    {
+      "id": "D20",
+      "title": "Agent execution and verification",
+      "status": "unknown",
+      "confidence": "unknown",
+      "explanation": "Agent execution was not tested. Setup gaps suggest a risk, not a measured success or failure rate.",
+      "evidence": [
+        "E005",
+        "E007"
+      ]
+    }
+  ],
+  "strengths": [
+    {
+      "id": "S001",
+      "title": "Simple operations",
+      "explanation": "One principal application avoids multiplying deployments and network contracts without a demonstrated need.",
+      "evidence": [
+        "E008"
+      ]
+    },
+    {
+      "id": "S002",
+      "title": "Schema integrity",
+      "explanation": "Keys and monetary precision are explicit safeguards that must survive refactoring.",
+      "evidence": [
+        "E003"
+      ]
+    },
+    {
+      "id": "S003",
+      "title": "Tested rule examples",
+      "explanation": "Calculation tests provide a starting point for behavior-preserving changes to module boundaries.",
+      "evidence": [
+        "E006"
+      ]
+    }
+  ],
+  "findings": [
+    {
+      "id": "F001",
+      "dimension": "D09",
+      "title": "A committed order can appear to fail",
+      "priority": "P1",
+      "confidence": "high",
+      "observation": "In the fictional flow, the order write commits before the ERP call. An external timeout becomes an error response even though the order already exists.",
+      "impact": "The user may retry without knowing the order was committed. The risk is a duplicate business effect, not just a poor error message.",
+      "recommendation": "Protect end-to-end correctness by defining confirmation semantics. If deferred integration is allowed, persist the order and publication intent in one local transaction, then deliver with an explicit idempotency and recovery contract.",
+      "tradeoff": "Adds pending state, recovery processing, and queue visibility. It does not by itself require a broker or microservices.",
+      "alternatives": [
+        "Keep synchronous integration with explicit state and recovery semantics when external confirmation is mandatory.",
+        "Use an existing transactional job mechanism if it provides the required guarantees."
+      ],
+      "effort": "Medium, relative: touches the write path, response contract, and recovery. No calendar estimate is available.",
+      "why_now": "The ambiguity affects the main business flow and order integrity in the example.",
+      "when_not": "Do not introduce asynchronous confirmation when ERP approval is required for order validity; redesign the confirmation protocol instead.",
+      "validation": "Proposed isolated Integration Test: ERP timeout, duplicate input, and resumed delivery. Assert end-to-end correctness using final local and external state. Not run.",
+      "acceptance": "Under the agreed effect boundary: one business effect per command, explicit integration state, and observable recovery. This is a proposed criterion, not an achieved guarantee.",
+      "rollback": "Keep schema and read-path compatibility. Drain or reconcile pending intents before disabling the worker; do not delete already-used outbox records.",
+      "evidence": [
+        "E002",
+        "E003",
+        "E006"
+      ],
+      "sources": [
+        "B11",
+        "B14",
+        "B20",
+        "W13"
+      ],
+      "leitwort": "L06",
+      "decision_statement": "End-to-end correctness is not protected by the local commit alone, E002. Clarify confirmation semantics before selecting a recovery mechanism."
+    },
+    {
+      "id": "F002",
+      "dimension": "D03",
+      "title": "Billing depends on Order internals",
+      "priority": "P2",
+      "confidence": "high",
+      "observation": "Billing directly imports the internal pricing implementation from the Orders module.",
+      "impact": "An internal refactoring can require changes outside the module. The problem is a fragile boundary, not the number of files.",
+      "recommendation": "Reduce Component Coupling by defining the required public capability and moving the dependency to its contract. Protect internal imports with a focused architectural fitness function.",
+      "tradeoff": "Introduces a contract to maintain. Avoid a generic interface or pass-through layer with no useful responsibility.",
+      "alternatives": [
+        "Reassess whether both capabilities belong to one model and should be consolidated.",
+        "Share a stable domain concept with explicit ownership, without exposing internal services."
+      ],
+      "effort": "Small to medium, depending on the number of callers, which has not been measured.",
+      "why_now": "The illustrative code already crosses the intended module boundary.",
+      "when_not": "Do not separate responsibilities artificially when they belong to one model and legitimately change together.",
+      "validation": "Inspect callers and run Contract Tests and calculation tests. A proposed import rule checks Component Coupling at the source boundary; it has not been executed.",
+      "acceptance": "Billing uses only the agreed public interface. Internal pricing changes do not alter unrelated contracts.",
+      "rollback": "Keep a compatible temporary adapter until callers have migrated.",
+      "evidence": [
+        "E004",
+        "E006"
+      ],
+      "sources": [
+        "B05",
+        "B06",
+        "B08",
+        "W20"
+      ],
+      "leitwort": "T25",
+      "decision_statement": "Component Coupling crosses the intended public boundary, E004. Route the dependency through the required public capability before considering deployment changes."
+    },
+    {
+      "id": "F003",
+      "dimension": "D19",
+      "title": "Environment setup depends on implicit knowledge",
+      "priority": "P2",
+      "confidence": "medium",
+      "observation": "The example recipe does not define fixtures, data reset, or resources isolated per execution.",
+      "impact": "Developers and agents can verify different states, interfere with each other, or fail before exercising the intended behavior.",
+      "recommendation": "Document and implement the minimum diagnostic, setup, seed, and reset recipe needed for a deterministic oracle. Keep one authoritative instruction source.",
+      "tradeoff": "Fixtures and procedures need maintenance alongside the product. A full environment platform is unnecessary unless scale justifies it.",
+      "alternatives": [
+        "Start with one disposable environment per execution.",
+        "Use the existing integration environment with isolated schemas and resource identifiers after checking its limits."
+      ],
+      "effort": "Medium, relative to the external services and data required.",
+      "why_now": "The gap prevents a confident assessment of execution readiness.",
+      "when_not": "Do not invest in complex parallelism when one isolated execution meets the team workflow.",
+      "validation": "Start from a clean environment and verify one synthetic journey twice, including reset, against the same deterministic oracle. Proposed only; no product command was run.",
+      "acceptance": "The recipe states prerequisites, emits actionable failure messages, and reproduces the expected synthetic state without production secrets.",
+      "rollback": "Preserve the previous recipe during validation; discard only explicitly owned temporary resources.",
+      "evidence": [
+        "E005",
+        "E006"
+      ],
+      "sources": [
+        "B19",
+        "B22",
+        "W03"
+      ],
+      "leitwort": "L05",
+      "decision_statement": "A deterministic oracle cannot be reproduced reliably without controlled initial state, E005. Define setup, synthetic fixtures, and safe reset before claiming agent readiness."
+    },
+    {
+      "id": "F004",
+      "dimension": "D15",
+      "title": "Failures lack complete correlation",
+      "priority": "P2",
+      "confidence": "medium",
+      "observation": "The fictional integration logs do not link the incoming request, order, and ERP delivery attempt.",
+      "impact": "An operator may see an error without being able to identify the state that needs recovery.",
+      "recommendation": "Make end-to-end correctness observable by propagating correlation identifiers and recording relevant sanitized state transitions. Define an operational lookup for the flow.",
+      "tradeoff": "Adds a logging convention and storage cost. Avoid sensitive payloads and uncontrolled cardinality.",
+      "alternatives": [
+        "Use existing tracing if it spans the relevant flow.",
+        "Start with consistent structured logs before expanding the observability platform."
+      ],
+      "effort": "Small relative to this example flow; actual volume and platform costs are not measured.",
+      "why_now": "Integration recovery requires identifying the affected business state.",
+      "when_not": "Do not replace the observability tool if appropriate instrumentation in the existing one resolves the problem.",
+      "validation": "Simulate an authorized failure and trace its identifier to the order and delivery attempt. Confirm end-to-end correctness using persisted state, not logs alone.",
+      "acceptance": "An operator identifies current state and the next recovery action from the request, without secret values in logs.",
+      "rollback": "Revert new instrumentation without changing business data; preserve compatibility for log consumers.",
+      "evidence": [
+        "E009",
+        "E002"
+      ],
+      "sources": [
+        "B20",
+        "B21"
+      ],
+      "leitwort": "L06",
+      "decision_statement": "End-to-end correctness cannot be diagnosed from unlinked logs, E009. Connect the request, order, and delivery attempt before replacing the observability platform."
+    },
+    {
+      "id": "F005",
+      "dimension": "D10",
+      "title": "The scaling decision still needs measurements",
+      "priority": "P2",
+      "confidence": "medium",
+      "observation": "The scenario supplies an illustrative session count, but no request mix, throughput, latency, or saturation measurements.",
+      "impact": "There is no sound basis to choose query tuning, more resources, a worker, or distribution. This is not evidence that the application is slow.",
+      "recommendation": "Establish whether the topology is fit for purpose by agreeing Quality Attribute Scenarios and collecting a representative baseline before changing topology for performance.",
+      "tradeoff": "Requires preparation and measurement effort. It does not require generating load in production.",
+      "alternatives": [
+        "Use existing telemetry when representative and authorized.",
+        "For an experimental product, temporarily accept uncertainty with an explicit reassessment trigger."
+      ],
+      "effort": "Medium, depending on fixtures, environment, and available metrics.",
+      "why_now": "The growth decision depends on these data; architecture need not change before they exist.",
+      "when_not": "Do not start an extensive load-testing program without material growth or risk; use proportionate verification.",
+      "validation": "Define environment, journey mix, data, duration, warm-up, peaks, percentiles, and errors. Run only when authorized. Assess fit for purpose against the agreed target, not an invented threshold.",
+      "acceptance": "The record distinguishes offered load, completed throughput, latency, and saturation and states the operating range to which the result applies.",
+      "rollback": "Stop load at safety limits; remove only synthetic data and resources created for the test.",
+      "evidence": [
+        "E001",
+        "E007"
+      ],
+      "sources": [
+        "B01",
+        "B11",
+        "B21"
+      ],
+      "leitwort": "L01",
+      "decision_statement": "Whether this topology is fit for purpose at peak load remains unknown, E001 and E007. Establish a representative baseline before recommending distribution."
+    }
+  ],
+  "scenarios": [
+    {
+      "id": "Q001",
+      "title": "Peak query load",
+      "stimulus": "A client submits a representative query workload, still to be defined.",
+      "environment": "An isolated environment comparable to the target deployment.",
+      "response": "Return correct responses within the agreed percentile and error-rate boundary.",
+      "target": "Latency target not yet approved.",
+      "observed": "Not measured.",
+      "status": "unknown",
+      "evidence": [
+        "E007"
+      ]
+    },
+    {
+      "id": "Q002",
+      "title": "ERP unavailable",
+      "stimulus": "The ERP call times out after the order has committed locally.",
+      "environment": "A simulated integration with synthetic data.",
+      "response": "Expose explicit state and recover without duplicate protected effects.",
+      "target": "Confirmation contract needs approval.",
+      "observed": "The example suggests a risk; the scenario was not executed.",
+      "status": "proposed",
+      "evidence": [
+        "E002"
+      ]
+    },
+    {
+      "id": "Q003",
+      "title": "Change pricing",
+      "stimulus": "An engineer changes the internal order-pricing calculation.",
+      "environment": "Orders and Billing modules in the illustrative application.",
+      "response": "Preserve public contracts and avoid unrelated changes.",
+      "target": "Proposed Contract Test and dependency check.",
+      "observed": "An internal import is present in the example.",
+      "status": "proposed",
+      "evidence": [
+        "E004"
+      ]
+    }
+  ],
+  "diagrams": [
+    {
+      "id": "G001",
+      "title": "The system in context",
+      "view": "context",
+      "state": "demo",
+      "description": "A fictional order application stores relational data and integrates with an external ERP. Deployment boundaries are not inferred from directory names.",
+      "nodes": [
+        {
+          "id": "USERS",
+          "label": "Users",
+          "detail": "Order operations",
+          "col": 0,
+          "row": 0,
+          "kind": "actor",
+          "evidence": [
+            "E001"
+          ]
+        },
+        {
+          "id": "APP",
+          "label": "Order application",
+          "detail": "One principal deployment",
+          "col": 1,
+          "row": 0,
+          "kind": "service",
+          "evidence": [
+            "E008"
+          ]
+        },
+        {
+          "id": "ERP",
+          "label": "External ERP",
+          "detail": "Outside the system boundary",
+          "col": 2,
+          "row": 0,
+          "kind": "external",
+          "evidence": [
+            "E002"
+          ]
+        },
+        {
+          "id": "DB",
+          "label": "Relational database",
+          "detail": "Orders and local integrity",
+          "col": 1,
+          "row": 1,
+          "kind": "data",
+          "evidence": [
+            "E003"
+          ]
+        }
+      ],
+      "edges": [
+        {
+          "from": "USERS",
+          "to": "APP",
+          "label": "HTTPS",
+          "kind": "sync",
+          "basis": "demo",
+          "evidence": [
+            "E001"
+          ]
+        },
+        {
+          "from": "APP",
+          "to": "ERP",
+          "label": "External API",
+          "kind": "sync",
+          "basis": "demo",
+          "evidence": [
+            "E002"
+          ]
+        },
+        {
+          "from": "APP",
+          "to": "DB",
+          "label": "SQL transactions",
+          "kind": "sync",
+          "basis": "demo",
+          "evidence": [
+            "E003"
+          ]
+        }
+      ],
+      "evidence": [
+        "E001",
+        "E002",
+        "E003",
+        "E008"
+      ]
+    },
+    {
+      "id": "G002",
+      "title": "Layers and interfaces in the main flow",
+      "view": "component",
+      "state": "demo",
+      "description": "These components show runtime responsibilities, not a source dependency proof. Interface Adapters translate input; a Use Case coordinates order rules and persistence. A real assessment must verify these relationships in the code.",
+      "nodes": [
+        {
+          "id": "HTTP",
+          "label": "HTTP adapter",
+          "detail": "Contract and authorization",
+          "col": 0,
+          "row": 0,
+          "kind": "service",
+          "evidence": [
+            "E002"
+          ]
+        },
+        {
+          "id": "USECASE",
+          "label": "Use Case",
+          "detail": "Interactor, application policy",
+          "col": 1,
+          "row": 0,
+          "kind": "service",
+          "evidence": [
+            "E002"
+          ]
+        },
+        {
+          "id": "RULE",
+          "label": "Order rules",
+          "detail": "Entities and invariants",
+          "col": 2,
+          "row": 0,
+          "kind": "domain",
+          "evidence": [
+            "E006"
+          ]
+        },
+        {
+          "id": "DATA",
+          "label": "Persistence adapter",
+          "detail": "Transaction and mapping",
+          "col": 1,
+          "row": 1,
+          "kind": "service",
+          "evidence": [
+            "E002"
+          ]
+        },
+        {
+          "id": "STORE",
+          "label": "Relational schema",
+          "detail": "Keys and monetary precision",
+          "col": 2,
+          "row": 1,
+          "kind": "data",
+          "evidence": [
+            "E003"
+          ]
+        }
+      ],
+      "edges": [
+        {
+          "from": "HTTP",
+          "to": "USECASE",
+          "label": "Validated input",
+          "kind": "sync",
+          "basis": "demo",
+          "evidence": [
+            "E002"
+          ]
+        },
+        {
+          "from": "USECASE",
+          "to": "RULE",
+          "label": "Evaluate rules",
+          "kind": "sync",
+          "basis": "demo",
+          "evidence": [
+            "E006"
+          ]
+        },
+        {
+          "from": "USECASE",
+          "to": "DATA",
+          "label": "Persist order",
+          "kind": "sync",
+          "basis": "demo",
+          "evidence": [
+            "E002"
+          ]
+        },
+        {
+          "from": "DATA",
+          "to": "STORE",
+          "label": "Transactional SQL",
+          "kind": "sync",
+          "basis": "demo",
+          "evidence": [
+            "E003"
+          ]
+        }
+      ],
+      "evidence": [
+        "E002",
+        "E003",
+        "E006"
+      ]
+    },
+    {
+      "id": "G003",
+      "title": "The failure path that matters",
+      "view": "sequence",
+      "state": "demo",
+      "description": "Illustrative sequence: an external error occurs after the local commit. Boxes are numbered flow steps, not components calling each other directly. The ERP result does not undo the earlier commit.",
+      "nodes": [
+        {
+          "id": "STEP1",
+          "label": "1. Receive order",
+          "detail": "Operation input",
+          "col": 0,
+          "row": 0,
+          "kind": "service",
+          "evidence": [
+            "E002"
+          ]
+        },
+        {
+          "id": "STEP2",
+          "label": "2. Commit order",
+          "detail": "Order already exists",
+          "col": 1,
+          "row": 0,
+          "kind": "data",
+          "evidence": [
+            "E002"
+          ]
+        },
+        {
+          "id": "STEP3",
+          "label": "3. Call ERP",
+          "detail": "Integration may fail",
+          "col": 2,
+          "row": 0,
+          "kind": "external",
+          "evidence": [
+            "E002"
+          ]
+        },
+        {
+          "id": "STEP4",
+          "label": "4. Return error",
+          "detail": "State appears ambiguous",
+          "col": 2,
+          "row": 1,
+          "kind": "service",
+          "evidence": [
+            "E002"
+          ]
+        }
+      ],
+      "edges": [
+        {
+          "from": "STEP1",
+          "to": "STEP2",
+          "label": "Validate and write",
+          "kind": "sync",
+          "basis": "demo",
+          "evidence": [
+            "E002"
+          ]
+        },
+        {
+          "from": "STEP2",
+          "to": "STEP3",
+          "label": "After local commit",
+          "kind": "sync",
+          "basis": "demo",
+          "evidence": [
+            "E002"
+          ]
+        },
+        {
+          "from": "STEP3",
+          "to": "STEP4",
+          "label": "Timeout",
+          "kind": "sync",
+          "basis": "demo",
+          "evidence": [
+            "E002"
+          ]
+        }
+      ],
+      "evidence": [
+        "E002"
+      ]
+    },
+    {
+      "id": "G004",
+      "title": "Proposed evolution: a Transactional Outbox",
+      "view": "component",
+      "state": "proposed",
+      "description": "Conditional on accepting deferred integration. The order and publication intent commit in the same local transaction. A worker retries delivery; idempotency and reconciliation remain necessary. This does not require distributing every domain.",
+      "nodes": [
+        {
+          "id": "IN",
+          "label": "HTTP adapter",
+          "detail": "Confirmation contract",
+          "col": 0,
+          "row": 0,
+          "kind": "service",
+          "evidence": []
+        },
+        {
+          "id": "CORE",
+          "label": "Modular application",
+          "detail": "Rules and local transaction",
+          "col": 1,
+          "row": 0,
+          "kind": "domain",
+          "evidence": []
+        },
+        {
+          "id": "OUTBOX",
+          "label": "Order + outbox",
+          "detail": "One database transaction",
+          "col": 2,
+          "row": 0,
+          "kind": "data",
+          "evidence": []
+        },
+        {
+          "id": "WORKER",
+          "label": "Integration worker",
+          "detail": "Bounded retries",
+          "col": 2,
+          "row": 1,
+          "kind": "worker",
+          "evidence": []
+        },
+        {
+          "id": "REMOTE",
+          "label": "External ERP",
+          "detail": "Protected effect contract",
+          "col": 1,
+          "row": 1,
+          "kind": "external",
+          "evidence": []
+        }
+      ],
+      "edges": [
+        {
+          "from": "IN",
+          "to": "CORE",
+          "label": "Command",
+          "kind": "sync",
+          "basis": "proposed",
+          "evidence": []
+        },
+        {
+          "from": "CORE",
+          "to": "OUTBOX",
+          "label": "Atomic local write",
+          "kind": "sync",
+          "basis": "proposed",
+          "evidence": []
+        },
+        {
+          "from": "WORKER",
+          "to": "OUTBOX",
+          "label": "Read and update intent",
+          "kind": "sync",
+          "basis": "proposed",
+          "evidence": []
+        },
+        {
+          "from": "WORKER",
+          "to": "REMOTE",
+          "label": "Deliver and reconcile",
+          "kind": "sync",
+          "basis": "proposed",
+          "evidence": []
+        }
+      ],
+      "evidence": [
+        "E002"
+      ]
+    }
+  ],
+  "diagram_gaps": [
+    "There is insufficient information to reconstruct infrastructure, trust boundaries, a full schema, or a verified Context Map. A real assessment must add these views when relevant."
+  ],
+  "options": [
+    {
+      "id": "O001",
+      "title": "Keep the current structure",
+      "position": "keep",
+      "benefits": [
+        "Lowest immediate effort.",
+        "Preserves simple operations."
+      ],
+      "costs": [
+        "Retains the example integration ambiguity.",
+        "Produces no new capacity evidence."
+      ],
+      "preconditions": [
+        "Explicitly accept and record the current flow risks."
+      ],
+      "trigger": "Reassess when impact, agreed growth, or a recovery requirement becomes clear.",
+      "tradeoff": "The comparison baseline, not a recommendation to ignore F001.",
+      "evidence": [
+        "E001",
+        "E002",
+        "E007"
+      ],
+      "sources": [
+        "B01",
+        "W05"
+      ]
+    },
+    {
+      "id": "O002",
+      "title": "Evolve without distributing everything",
+      "position": "recommended",
+      "benefits": [
+        "Repairs the integration flow.",
+        "Protects public domain contracts and verification.",
+        "Preserves one simple principal deployment."
+      ],
+      "costs": [
+        "Adds integration state and a worker.",
+        "Requires tests, reconciliation, and boundary discipline."
+      ],
+      "preconditions": [
+        "Agree confirmation semantics.",
+        "Verify durable publication intent and the effect boundary."
+      ],
+      "trigger": "After the baseline, determine whether the worker needs independent resources or deployment.",
+      "tradeoff": "Resolve concrete risks before increasing distribution.",
+      "evidence": [
+        "E002",
+        "E004",
+        "E005",
+        "E008"
+      ],
+      "sources": [
+        "B05",
+        "B14",
+        "B16"
+      ]
+    },
+    {
+      "id": "O003",
+      "title": "Extract selected services",
+      "position": "conditional",
+      "benefits": [
+        "May isolate a specific workload or failure.",
+        "May support independent deployment where needed."
+      ],
+      "costs": [
+        "Adds contracts, operations, and partial failures.",
+        "Does not by itself guarantee better performance or lower cost."
+      ],
+      "preconditions": [
+        "Demonstrated bottleneck or autonomy requirement.",
+        "Explicit ownership, observability, and data boundaries."
+      ],
+      "trigger": "Only after measurements show that local improvements cannot meet the relevant requirement.",
+      "tradeoff": "One targeted extraction may be useful; comprehensive microservices have no demonstrated justification in this example.",
+      "evidence": [
+        "E001",
+        "E007",
+        "E008"
+      ],
+      "sources": [
+        "B03",
+        "B15",
+        "B16",
+        "W05"
+      ]
+    }
+  ],
+  "roadmap": [
+    {
+      "id": "R001",
+      "stage": "First, reduce uncertainty",
+      "title": "Agree the contract and characterize behavior",
+      "actions": [
+        "Agree the meaning of a confirmed order and ERP failure handling.",
+        "Add Characterization Tests for confirmation, timeout, and repeated input."
+      ],
+      "owner": "Product and engineering owners",
+      "effort": "Small to medium, depending on the external contract.",
+      "depends_on": [],
+      "acceptance": "Define expected cases and final states before changing behavior.",
+      "rollback": "No product change in this step; preserve assessment records.",
+      "related_findings": [
+        "F001"
+      ]
+    },
+    {
+      "id": "R002",
+      "stage": "Then, repair the flow",
+      "title": "Make integration recoverable",
+      "actions": [
+        "Persist durable intent when the contract allows deferred processing.",
+        "Implement idempotency, retry limits, and reconciliation.",
+        "Add correlation across request, order, and delivery."
+      ],
+      "owner": "Order and integration engineering owners",
+      "effort": "Medium, relative; no calendar estimate.",
+      "depends_on": [
+        "R001"
+      ],
+      "acceptance": "Failure and recovery do not duplicate the protected effect and leave queryable state.",
+      "rollback": "Retain compatible reads and drain or reconcile pending intents before rollback.",
+      "related_findings": [
+        "F001",
+        "F004"
+      ]
+    },
+    {
+      "id": "R003",
+      "stage": "In parallel, prepare maintenance",
+      "title": "Establish boundaries and a repeatable environment",
+      "actions": [
+        "Publish the pricing capability consumed by Billing.",
+        "Add a focused dependency rule.",
+        "Define setup, seed, reset, and verifiable commands."
+      ],
+      "owner": "Module owners and developer experience owner",
+      "effort": "Medium, depending on callers and local services.",
+      "depends_on": [],
+      "acceptance": "A synthetic journey works from a clean environment and forbidden internal imports are detected.",
+      "rollback": "Preserve compatible adapters and the previous setup recipe during verification.",
+      "related_findings": [
+        "F002",
+        "F003"
+      ]
+    },
+    {
+      "id": "R004",
+      "stage": "Only then, decide on scale",
+      "title": "Measure before extracting services",
+      "actions": [
+        "Agree workload and targets.",
+        "Collect a baseline from telemetry or an authorized isolated test.",
+        "Compare local tuning, resource changes, and selective extraction."
+      ],
+      "owner": "Engineering and operations",
+      "effort": "Medium, bounded by actual growth and risk.",
+      "depends_on": [
+        "R001",
+        "R003"
+      ],
+      "acceptance": "The scaling decision includes environment, workload, throughput, latency, errors, and cost.",
+      "rollback": "Stop the experiment at safety limits and clean up owned synthetic resources.",
+      "related_findings": [
+        "F005"
+      ]
+    }
+  ],
+  "agent_checks": [
+    {
+      "id": "A001",
+      "capability": "Locate rules",
+      "status": "not_run",
+      "method": "Identify calculation, invariants, callers, and tests.",
+      "result": "Illustrative evaluation protocol. No agent execution or performance measurement was performed.",
+      "evidence": []
+    },
+    {
+      "id": "A002",
+      "capability": "Prepare the environment",
+      "status": "not_run",
+      "method": "Start clean with dependencies and synthetic data.",
+      "result": "Illustrative evaluation protocol. No agent execution or performance measurement was performed.",
+      "evidence": []
+    },
+    {
+      "id": "A003",
+      "capability": "Isolate executions",
+      "status": "not_run",
+      "method": "Check for port, database, and queue collisions.",
+      "result": "Illustrative evaluation protocol. No agent execution or performance measurement was performed.",
+      "evidence": []
+    },
+    {
+      "id": "A004",
+      "capability": "Reproduce a failure",
+      "status": "not_run",
+      "method": "Observe final state after an ERP timeout.",
+      "result": "Illustrative evaluation protocol. No agent execution or performance measurement was performed.",
+      "evidence": []
+    },
+    {
+      "id": "A005",
+      "capability": "Verify final state",
+      "status": "not_run",
+      "method": "Check API and persistence using a deterministic oracle, not only the agent response.",
+      "result": "Illustrative evaluation protocol. No agent execution or performance measurement was performed.",
+      "evidence": []
+    },
+    {
+      "id": "A006",
+      "capability": "Diagnose the flow",
+      "status": "not_run",
+      "method": "Correlate request, order, and integration attempt.",
+      "result": "Illustrative evaluation protocol. No agent execution or performance measurement was performed.",
+      "evidence": []
+    }
+  ],
+  "metrics": [
+    {
+      "id": "M001",
+      "title": "Peak active sessions",
+      "unit": "sessions",
+      "current": 120,
+      "current_kind": "declared",
+      "target": null,
+      "target_kind": "unknown",
+      "environment": "Fictional briefing assumption.",
+      "note": "Not equivalent to in-flight requests or requests per second.",
+      "evidence": [
+        "E001"
+      ]
+    },
+    {
+      "id": "M002",
+      "title": "Query latency p95",
+      "unit": "ms",
+      "current": null,
+      "current_kind": "unknown",
+      "target": null,
+      "target_kind": "unknown",
+      "environment": "No measurement.",
+      "note": "Agree the target against business requirements before testing.",
+      "evidence": [
+        "E007"
+      ]
+    },
+    {
+      "id": "M003",
+      "title": "Completed throughput",
+      "unit": "requests/s",
+      "current": null,
+      "current_kind": "unknown",
+      "target": null,
+      "target_kind": "unknown",
+      "environment": "No measurement.",
+      "note": "Measure together with errors, latency, and saturation.",
+      "evidence": [
+        "E007"
+      ]
+    }
+  ],
+  "capacity": {
+    "summary": "There is no basis for claiming that the architecture meets a particular peak or needs distribution. The briefing session count does not answer that question.",
+    "assumptions": [
+      "The scenario does not define workload growth.",
+      "Data volume and distribution could change the conclusion."
+    ],
+    "measurements_needed": [
+      "Journey mix and offered versus completed request rates.",
+      "Latency p50/p95/p99, errors, and saturation.",
+      "Cost and contention of the most important queries."
+    ],
+    "growth_trigger": "Reassess topology when an agreed target is repeatedly missed and local improvements are insufficient.",
+    "evidence": [
+      "E001",
+      "E007"
+    ]
+  },
+  "cost": {
+    "summary": "Savings cannot be quantified without actual consumption and cost data. The recommendation preserves operational simplicity but adds implementation, testing, and recovery effort.",
+    "assumptions": [
+      "Financial horizon and currency are not defined.",
+      "Effort is relative, without invented hours or rates."
+    ],
+    "measurements_needed": [
+      "Compute, database, storage, network, and observability costs.",
+      "Support, maintenance, and diagnosis effort.",
+      "Migration and operating cost for each option."
+    ],
+    "evidence": [
+      "E007",
+      "E008"
+    ]
+  },
+  "evidence": [
+    {
+      "id": "E001",
+      "kind": "demo",
+      "location": "FICTIONAL EXAMPLE: Atlas briefing",
+      "revision": "Fictional revision",
+      "line_start": null,
+      "line_end": null,
+      "observation": "Illustrative assumptions: order product, five engineers, 120 peak active sessions. RPS, SLOs, growth, and budget are not measured or agreed.",
+      "captured_at": "2026-09-26",
+      "environment": "Illustrative scenario; no repository inspected.",
+      "command": null,
+      "artifact": null,
+      "supports": []
+    },
+    {
+      "id": "E002",
+      "kind": "demo",
+      "location": "FICTIONAL EXAMPLE: src/orders/create-order.ts",
+      "revision": "Fictional revision",
+      "line_start": 20,
+      "line_end": 68,
+      "observation": "In the fictional implementation, the order commits before the ERP call. An exception from that call produces HTTP 500. The example does not demonstrate deduplication of repeated input.",
+      "captured_at": "2026-09-26",
+      "environment": "Illustrative scenario; no repository inspected.",
+      "command": null,
+      "artifact": null,
+      "supports": []
+    },
+    {
+      "id": "E003",
+      "kind": "demo",
+      "location": "FICTIONAL EXAMPLE: db/schema.sql",
+      "revision": "Fictional revision",
+      "line_start": 1,
+      "line_end": 85,
+      "observation": "The fictional schema uses foreign keys and decimal monetary types. These safeguards alone do not prevent duplicate business commands.",
+      "captured_at": "2026-09-26",
+      "environment": "Illustrative scenario; no repository inspected.",
+      "command": null,
+      "artifact": null,
+      "supports": []
+    },
+    {
+      "id": "E004",
+      "kind": "demo",
+      "location": "FICTIONAL EXAMPLE: src/billing/calculate.ts",
+      "revision": "Fictional revision",
+      "line_start": 3,
+      "line_end": 17,
+      "observation": "Billing imports the internal pricing implementation from Orders instead of using a public capability contract.",
+      "captured_at": "2026-09-26",
+      "environment": "Illustrative scenario; no repository inspected.",
+      "command": null,
+      "artifact": null,
+      "supports": []
+    },
+    {
+      "id": "E005",
+      "kind": "demo",
+      "location": "FICTIONAL EXAMPLE: README.md",
+      "revision": "Fictional revision",
+      "line_start": 10,
+      "line_end": 44,
+      "observation": "The fictional documentation explains process startup, but not fixtures, state reset, or resource isolation for two sessions.",
+      "captured_at": "2026-09-26",
+      "environment": "Illustrative scenario; no repository inspected.",
+      "command": null,
+      "artifact": null,
+      "supports": []
+    },
+    {
+      "id": "E006",
+      "kind": "demo",
+      "location": "FICTIONAL EXAMPLE: tests/orders.spec.ts",
+      "revision": "Fictional revision",
+      "line_start": 1,
+      "line_end": 92,
+      "observation": "The scenario includes order calculation tests. It does not include a final-state test after an ERP timeout or repeated business command.",
+      "captured_at": "2026-09-26",
+      "environment": "Illustrative scenario; no repository inspected.",
+      "command": null,
+      "artifact": null,
+      "supports": []
+    },
+    {
+      "id": "E007",
+      "kind": "demo",
+      "location": "FICTIONAL EXAMPLE: scenario evidence gaps",
+      "revision": "Fictional revision",
+      "line_start": null,
+      "line_end": null,
+      "observation": "No load profiles, latency measurements, contention data, incident history, or cost records were supplied. No product execution was performed.",
+      "captured_at": "2026-09-26",
+      "environment": "Illustrative scenario; no repository inspected.",
+      "command": null,
+      "artifact": null,
+      "supports": []
+    },
+    {
+      "id": "E008",
+      "kind": "demo",
+      "location": "FICTIONAL EXAMPLE: deploy/app.yaml and manifests",
+      "revision": "Fictional revision",
+      "line_start": null,
+      "line_end": null,
+      "observation": "The fictional deployment has one main application and a relational database. A lockfile and build recipe are declared; the recipe was not executed.",
+      "captured_at": "2026-09-26",
+      "environment": "Illustrative scenario; no repository inspected.",
+      "command": null,
+      "artifact": null,
+      "supports": []
+    },
+    {
+      "id": "E009",
+      "kind": "demo",
+      "location": "FICTIONAL EXAMPLE: src/integrations/erp-client.ts",
+      "revision": "Fictional revision",
+      "line_start": 11,
+      "line_end": 55,
+      "observation": "The fictional logs do not link the external call, order, and incoming request through a shared correlation identifier.",
+      "captured_at": "2026-09-26",
+      "environment": "Illustrative scenario; no repository inspected.",
+      "command": null,
+      "artifact": null,
+      "supports": []
+    }
+  ],
+  "sources": [
+    {
+      "id": "B01",
+      "title": "Software Architecture in Practice",
+      "author": "Len Bass, Paul Clements, and Rick Kazman",
+      "url": "https://www.informit.com/store/software-architecture-in-practice-9780136886099",
+      "application": "Quality Attribute Scenarios, interfaces, architectural evaluation, and evolution.",
+      "access": "Public author, publisher, or official project page recorded in the original package; not a full-book reading in this update.",
+      "checked_at": "2026-09-26"
+    },
+    {
+      "id": "B03",
+      "title": "Software Architecture: The Hard Parts",
+      "author": "Neal Ford, Mark Richards, Pramod Sadalage, and Zhamak Dehghani",
+      "url": "https://www.developertoarchitect.com/books.html",
+      "application": "Distribution, decomposition, coupling, and data ownership tradeoffs.",
+      "access": "Public author, publisher, or official project page recorded in the original package; not a full-book reading in this update.",
+      "checked_at": "2026-09-26"
+    },
+    {
+      "id": "B05",
+      "title": "Domain-Driven Design",
+      "author": "Eric Evans",
+      "url": "https://www.domainlanguage.com/ddd/",
+      "application": "Strategic Design, Ubiquitous Language, Bounded Contexts, and Tactical Building Blocks.",
+      "access": "Public author, publisher, or official project page recorded in the original package; not a full-book reading in this update.",
+      "checked_at": "2026-09-26"
+    },
+    {
+      "id": "B06",
+      "title": "Clean Architecture",
+      "author": "Robert C. Martin",
+      "url": "https://www.informit.com/store/clean-architecture-a-craftsmans-guide-to-software-structure-9780134494166",
+      "application": "The Dependency Rule, policy boundaries, Component Cohesion, and Component Coupling.",
+      "access": "Public author, publisher, or official project page recorded in the original package; not a full-book reading in this update.",
+      "checked_at": "2026-09-26"
+    },
+    {
+      "id": "B08",
+      "title": "A Philosophy of Software Design",
+      "author": "John Ousterhout",
+      "url": "https://web.stanford.edu/~ouster/cgi-bin/book.php",
+      "application": "Deep modules, information hiding, complexity, and the cost of shallow interfaces.",
+      "access": "Public author, publisher, or official project page recorded in the original package; not a full-book reading in this update.",
+      "checked_at": "2026-09-26"
+    },
+    {
+      "id": "B09",
+      "title": "Refactoring",
+      "author": "Martin Fowler, with Kent Beck",
+      "url": "https://martinfowler.com/books/",
+      "application": "Behavior-preserving restructuring in small, verified steps.",
+      "access": "Public author, publisher, or official project page recorded in the original package; not a full-book reading in this update.",
+      "checked_at": "2026-09-26"
+    },
+    {
+      "id": "B11",
+      "title": "Designing Data-Intensive Applications",
+      "author": "Martin Kleppmann",
+      "url": "https://dataintensive.net/",
+      "application": "Storage, replication, transactions, consistency, and data processing. Terminology baseline: first edition.",
+      "access": "Public author, publisher, or official project page recorded in the original package; not a full-book reading in this update.",
+      "checked_at": "2026-09-26"
+    },
+    {
+      "id": "B14",
+      "title": "Enterprise Integration Patterns",
+      "author": "Gregor Hohpe and Bobby Woolf",
+      "url": "https://www.enterpriseintegrationpatterns.com/",
+      "application": "Messaging contracts, routing, delivery, and reliable integration.",
+      "access": "Public author, publisher, or official project page recorded in the original package; not a full-book reading in this update.",
+      "checked_at": "2026-09-26"
+    },
+    {
+      "id": "B15",
+      "title": "Building Microservices",
+      "author": "Sam Newman",
+      "url": "https://samnewman.io/books/",
+      "application": "Independent services, ownership, contracts, and operational costs.",
+      "access": "Public author, publisher, or official project page recorded in the original package; not a full-book reading in this update.",
+      "checked_at": "2026-09-26"
+    },
+    {
+      "id": "B16",
+      "title": "Monolith to Microservices",
+      "author": "Sam Newman",
+      "url": "https://samnewman.io/books/",
+      "application": "Incremental service extraction and alternatives to wholesale rewrites.",
+      "access": "Public author, publisher, or official project page recorded in the original package; not a full-book reading in this update.",
+      "checked_at": "2026-09-26"
+    },
+    {
+      "id": "B19",
+      "title": "Continuous Delivery",
+      "author": "Jez Humble and David Farley",
+      "url": "https://martinfowler.com/books/",
+      "application": "Deployment pipelines, feedback, reproducibility, and incremental delivery.",
+      "access": "Public author, publisher, or official project page recorded in the original package; not a full-book reading in this update.",
+      "checked_at": "2026-09-26"
+    },
+    {
+      "id": "B20",
+      "title": "Release It!",
+      "author": "Michael Nygard",
+      "url": "https://pragprog.com/titles/mnee2/release-it-second-edition/",
+      "application": "Stability patterns, failure boundaries, and production behavior.",
+      "access": "Public author, publisher, or official project page recorded in the original package; not a full-book reading in this update.",
+      "checked_at": "2026-09-26"
+    },
+    {
+      "id": "B21",
+      "title": "Site Reliability Engineering and The Site Reliability Workbook",
+      "author": "Betsy Beyer and fellow editors",
+      "url": "https://sre.google/books/",
+      "application": "SLOs, capacity, incident response, and reliable operation.",
+      "access": "Public author, publisher, or official project page recorded in the original package; not a full-book reading in this update.",
+      "checked_at": "2026-09-26"
+    },
+    {
+      "id": "B22",
+      "title": "Software Engineering at Google",
+      "author": "Titus Winters, Tom Manshreck, and Hyrum Wright",
+      "url": "https://abseil.io/resources/swe-book",
+      "application": "Testing, maintainability over time, knowledge sharing, and engineering practices.",
+      "access": "Public author, publisher, or official project page recorded in the original package; not a full-book reading in this update.",
+      "checked_at": "2026-09-26"
+    },
+    {
+      "id": "W01",
+      "title": "Architecture Tradeoff Analysis Method Collection",
+      "author": "Software Engineering Institute",
+      "url": "https://www.sei.cmu.edu/library/architecture-tradeoff-analysis-method-collection/",
+      "application": "Architecture assessment against quality goals; this skill is not a formal ATAM engagement.",
+      "access": "Public author, publisher, or official project page recorded in the original package; not a full-book reading in this update.",
+      "checked_at": "2026-09-26"
+    },
+    {
+      "id": "W02",
+      "title": "C4 model",
+      "author": "Simon Brown",
+      "url": "https://c4model.com/",
+      "application": "System Context, Container, and Component views with explicit abstraction levels.",
+      "access": "Public author, publisher, or official project page recorded in the original package; not a full-book reading in this update.",
+      "checked_at": "2026-09-26"
+    },
+    {
+      "id": "W03",
+      "title": "Harness engineering: leveraging Codex in an agent-first world",
+      "author": "Ryan Lopopolo, OpenAI",
+      "url": "https://openai.com/index/harness-engineering/",
+      "application": "Repository knowledge, inspectable environments, mechanical constraints, and agent feedback.",
+      "access": "Full public article rechecked for this update; published February 11, 2026.",
+      "checked_at": "2026-09-26"
+    },
+    {
+      "id": "W04",
+      "title": "Demystifying evals for AI agents",
+      "author": "Anthropic",
+      "url": "https://www.anthropic.com/engineering/demystifying-evals-for-ai-agents",
+      "application": "Agent evaluation tasks, trials, grading, and observed final state.",
+      "access": "Public author, publisher, or official project page recorded in the original package; not a full-book reading in this update.",
+      "checked_at": "2026-09-26"
+    },
+    {
+      "id": "W05",
+      "title": "Monolith First",
+      "author": "Martin Fowler",
+      "url": "https://martinfowler.com/bliki/MonolithFirst.html",
+      "application": "Boundary discovery and the costs of premature distribution.",
+      "access": "Public author, publisher, or official project page recorded in the original package; not a full-book reading in this update.",
+      "checked_at": "2026-09-26"
+    },
+    {
+      "id": "W10",
+      "title": "Domain-Driven Design Reference",
+      "author": "Eric Evans",
+      "url": "https://www.domainlanguage.com/ddd/reference/",
+      "application": "Canonical DDD pattern names and concise definitions; source summary is available under CC BY 4.0.",
+      "access": "Author reference page and linked reference PDF; not the complete book.",
+      "checked_at": "2026-09-26"
+    },
+    {
+      "id": "W11",
+      "title": "The Clean Architecture",
+      "author": "Robert C. Martin",
+      "url": "https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html",
+      "application": "The Dependency Rule, Entities, Use Cases, Interface Adapters, and Frameworks and Drivers.",
+      "access": "Full public author article.",
+      "checked_at": "2026-09-26"
+    },
+    {
+      "id": "W13",
+      "title": "Apache Kafka 4.3 Design: Message Delivery Semantics",
+      "author": "Apache Software Foundation",
+      "url": "https://kafka.apache.org/43/design/design/",
+      "application": "Scope of transactional processing, retries, and cooperation required from external sinks.",
+      "access": "Official documentation, Message Delivery Semantics section; version-specific example, not a required platform.",
+      "checked_at": "2026-09-26"
+    },
+    {
+      "id": "W20",
+      "title": "Clean Architecture: Component Cohesion and Component Coupling",
+      "author": "Robert C. Martin",
+      "url": "https://www.oreilly.com/library/view/clean-architecture-a/9780134494272/",
+      "application": "Canonical chapter terminology for REP, CCP, CRP, ADP, SDP, SAP, and the Main Sequence.",
+      "access": "Licensed table of contents and public chapter previews; not a full-book reading.",
+      "checked_at": "2026-09-26"
+    }
+  ],
+  "verification": [
+    {
+      "id": "V001",
+      "command": "Inspect the user repository",
+      "status": "not_run",
+      "exit_code": null,
+      "environment": "Package demonstration.",
+      "artifact": null,
+      "notes": "No real repository was made available for this demonstration.",
+      "captured_at": "2026-09-26"
+    },
+    {
+      "id": "V002",
+      "command": "Build, tests, load, and agent verification on the product",
+      "status": "not_run",
+      "exit_code": null,
+      "environment": "Package demonstration.",
+      "artifact": null,
+      "notes": "The report protocols are proposals, not completed executions.",
+      "captured_at": "2026-09-26"
+    }
+  ],
+  "decisions_needed": [
+    "Agree order and integration semantics before approving F001.",
+    "Define measurable requirements and acceptable residual risk.",
+    "Authorize an isolated environment and limits before any execution."
+  ],
+  "glossary": [
+    {
+      "term": "Bounded Context",
+      "definition": "The explicit boundary within which a particular domain model and its language are consistent."
+    },
+    {
+      "term": "The Dependency Rule",
+      "definition": "Source code dependencies point toward higher-level policy, not outward toward implementation details."
+    },
+    {
+      "term": "Entities",
+      "definition": "The Clean Architecture policy layer containing the most general enterprise business rules."
+    },
+    {
+      "term": "Use Cases (Interactors)",
+      "definition": "Application-specific business rules that orchestrate Entities and the steps needed to achieve an application goal."
+    },
+    {
+      "term": "Interface Adapters",
+      "definition": "Code that converts representations between policy and external delivery or persistence mechanisms."
+    },
+    {
+      "term": "Component Coupling",
+      "definition": "Principles governing dependencies among components and their stability."
+    },
+    {
+      "term": "Transactional Outbox",
+      "definition": "Persist business state and a publication intent in the same local transaction, then deliver that intent separately."
+    },
+    {
+      "term": "Effectively-Once Processing",
+      "definition": "A common community term for making repeated processing attempts produce one observable effect within an explicitly defined boundary."
+    },
+    {
+      "term": "seam",
+      "definition": "A point where behavior can be changed without editing the code at that point; an enabling point controls which behavior is used."
+    },
+    {
+      "term": "behavior-preserving",
+      "definition": "Refactoring changes internal structure while preserving the behavior included in the agreed contract."
+    },
+    {
+      "term": "deterministic oracle",
+      "definition": "A verification rule whose verdict is reproducible under controlled inputs, state, and explicitly stated assumptions."
+    },
+    {
+      "term": "Idempotency",
+      "definition": "Repeating the same identified operation has the same intended effect as applying it once, within the declared contract and retention scope."
+    },
+    {
+      "term": "p95",
+      "definition": "The percentile below which approximately 95 percent of observations fall for the stated sample and conditions."
+    },
+    {
+      "term": "SLO",
+      "definition": "A measurable service-level objective agreed for a defined scope and time window."
+    }
+  ],
+  "concept_applications": [
+    {
+      "id": "C001",
+      "term_id": "L01",
+      "status": "applied",
+      "decision": "Whether peak operation is fit for purpose is unresolved by a session count, E001 and E007. Keep the topology while establishing a baseline.",
+      "action": "Assess fit for purpose against agreed workload and response targets before extracting services.",
+      "verification": "Record offered load, completed throughput, latency, errors, and saturation in an authorized environment.",
+      "evidence": [
+        "E001",
+        "E007"
+      ],
+      "sources": [
+        "B01",
+        "W01"
+      ],
+      "related_findings": [
+        "F005"
+      ]
+    },
+    {
+      "id": "C002",
+      "term_id": "T25",
+      "status": "applied",
+      "decision": "Component Coupling exposes Order implementation to Billing through an internal import, E004. Repair the contract boundary first.",
+      "action": "Reduce Component Coupling by publishing the required capability and moving callers to it.",
+      "verification": "A focused import rule rejects the internal dependency while Contract Tests protect behavior.",
+      "evidence": [
+        "E004",
+        "E006"
+      ],
+      "sources": [
+        "B06",
+        "W20"
+      ],
+      "related_findings": [
+        "F002"
+      ]
+    },
+    {
+      "id": "C003",
+      "term_id": "L05",
+      "status": "applied",
+      "decision": "The deterministic oracle needs a controlled initial state, which the example setup recipe does not define, E005.",
+      "action": "Provide synthetic fixtures and safe reset so the deterministic oracle can be repeated from a clean state.",
+      "verification": "Run the same journey twice after reset and check the same final-state assertions; this is a proposed check.",
+      "evidence": [
+        "E005",
+        "E006"
+      ],
+      "sources": [
+        "B19",
+        "W03",
+        "W04"
+      ],
+      "related_findings": [
+        "F003"
+      ]
+    },
+    {
+      "id": "C004",
+      "term_id": "L06",
+      "status": "applied",
+      "decision": "End-to-end correctness spans the local commit, ERP effect, and user-visible response, E002. Clarify confirmation and recovery before adding infrastructure.",
+      "action": "Protect end-to-end correctness with explicit states, repeat-safe effects, and correlated attempts.",
+      "verification": "Exercise timeout and replay in isolation, then inspect both the local record and the protected external effect.",
+      "evidence": [
+        "E002",
+        "E009",
+        "E006"
+      ],
+      "sources": [
+        "B11",
+        "B14",
+        "W13"
+      ],
+      "related_findings": [
+        "F001",
+        "F004"
+      ]
+    },
+    {
+      "id": "C005",
+      "term_id": "T51",
+      "status": "applied",
+      "decision": "A Transactional Outbox is a conditional solution to the local write/publication-intent gap, E002, when deferred integration is valid.",
+      "action": "Use the Transactional Outbox only after approval of deferred confirmation; keep idempotency and reconciliation as separate obligations.",
+      "verification": "Fail after the local commit, resume delivery, and verify durable intent plus the protected sink effect. Not executed.",
+      "evidence": [
+        "E002",
+        "E003"
+      ],
+      "sources": [
+        "B11",
+        "B14",
+        "W13"
+      ],
+      "related_findings": [
+        "F001"
+      ]
+    },
+    {
+      "id": "C006",
+      "term_id": "T16",
+      "status": "unknown",
+      "decision": "The Dependency Rule cannot be judged from the runtime component diagram alone. The source-import graph of the policy and adapters is not supplied.",
+      "action": "Inspect inward and outward source dependencies before classifying compliance; do not infer a violation from an outward runtime call.",
+      "verification": "Read the concrete policy imports and composition interfaces at a known revision.",
+      "evidence": [
+        "E002",
+        "E004"
+      ],
+      "sources": [
+        "B06",
+        "W11"
+      ],
+      "related_findings": []
+    },
+    {
+      "id": "C007",
+      "term_id": "T49",
+      "status": "not_applicable",
+      "decision": "Event Sourcing is not required by the demonstrated outbox use case. No requirement makes the event history the authoritative domain state.",
+      "action": "Keep the existing state model; reconsider only when an authoritative event history serves a concrete requirement.",
+      "verification": "Verify that documentation does not mislabel publication intents as an event-sourced system.",
+      "evidence": [
+        "E002",
+        "E003"
+      ],
+      "sources": [
+        "B11"
+      ],
+      "related_findings": []
+    },
+    {
+      "id": "C008",
+      "term_id": "L02",
+      "status": "applied",
+      "decision": "The smallest reversible move is a compatible capability boundary and a clarified confirmation contract, not wholesale service extraction.",
+      "action": "Stage the smallest reversible move behind compatible interfaces, preserving read and recovery paths.",
+      "verification": "Check existing contracts before switching callers; stop or recover forward if data compatibility is lost.",
+      "evidence": [
+        "E002",
+        "E004",
+        "E008"
+      ],
+      "sources": [
+        "B09",
+        "B16"
+      ],
+      "related_findings": [
+        "F001",
+        "F002"
+      ]
+    },
+    {
+      "id": "C009",
+      "term_id": "T02",
+      "status": "unknown",
+      "decision": "Separate Orders and Billing modules do not establish a Bounded Context boundary. Model vocabulary, invariants, and ownership need confirmation.",
+      "action": "Compare the two models and their Ubiquitous Language before deciding whether to separate or consolidate them.",
+      "verification": "Record the domain meanings and integration relationship in a Context Map if distinct contexts are established.",
+      "evidence": [
+        "E004",
+        "E001"
+      ],
+      "sources": [
+        "B05",
+        "W10"
+      ],
+      "related_findings": []
+    }
+  ]
+}

@@ -1,0 +1,82 @@
+[
+  {
+    "id": "D01",
+    "title": "Fitness for purpose and sufficiency"
+  },
+  {
+    "id": "D02",
+    "title": "Domain model and Bounded Contexts"
+  },
+  {
+    "id": "D03",
+    "title": "Component Cohesion and Component Coupling"
+  },
+  {
+    "id": "D04",
+    "title": "Code design and refactorability"
+  },
+  {
+    "id": "D05",
+    "title": "Deployment topology"
+  },
+  {
+    "id": "D06",
+    "title": "APIs and integration"
+  },
+  {
+    "id": "D07",
+    "title": "Data modeling and integrity"
+  },
+  {
+    "id": "D08",
+    "title": "Persistence, ORM, and concurrency"
+  },
+  {
+    "id": "D09",
+    "title": "Events and distributed consistency"
+  },
+  {
+    "id": "D10",
+    "title": "Capacity, performance, and scalability"
+  },
+  {
+    "id": "D11",
+    "title": "Reliability and recovery"
+  },
+  {
+    "id": "D12",
+    "title": "Security and privacy"
+  },
+  {
+    "id": "D13",
+    "title": "Testing and testability"
+  },
+  {
+    "id": "D14",
+    "title": "Build, delivery, and dependencies"
+  },
+  {
+    "id": "D15",
+    "title": "Observability and operations"
+  },
+  {
+    "id": "D16",
+    "title": "Economics and total cost"
+  },
+  {
+    "id": "D17",
+    "title": "User interface and experience"
+  },
+  {
+    "id": "D18",
+    "title": "Team, documentation, and learning"
+  },
+  {
+    "id": "D19",
+    "title": "Agent legibility"
+  },
+  {
+    "id": "D20",
+    "title": "Agent execution and verification"
+  }
+]

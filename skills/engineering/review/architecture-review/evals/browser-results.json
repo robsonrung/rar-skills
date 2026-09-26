@@ -1,0 +1,149 @@
+{
+  "engine": "System Chromium via Playwright",
+  "browser_version": "144.0.7559.96",
+  "method": "The exact generated HTML bytes were supplied using page.set_content. The browser context was offline.",
+  "limitations": [
+    "Bundled Playwright browser executable was unavailable. System Chromium was used.",
+    "Direct file URL navigation was blocked by the environment browser policy. No policy was changed; the HTML bytes were rendered through the supported DOM content API.",
+    "These are package UI checks, not application or agent behavioral evaluations."
+  ],
+  "checks": [
+    {
+      "name": "english_document",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "name": "english_title",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "name": "fictional_banner",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "name": "all_dimensions",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "name": "all_findings",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "name": "all_concept_checkpoints",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "name": "all_diagrams",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "name": "concept_navigation",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "name": "unique_ids",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "name": "internal_links_resolve",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "name": "desktop_no_page_overflow",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "name": "text_search",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "name": "priority_filter",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "name": "filter_count",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "name": "combined_filter_no_results",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "name": "filter_reset",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "name": "keyboard_disclosure",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "name": "evidence_link_expands",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "name": "print_expands_details",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "name": "print_shows_filtered_content",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "name": "print_hides_navigation",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "name": "print_restores_state",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "name": "no_runtime_errors",
+      "status": "pass",
+      "detail": "[]"
+    },
+    {
+      "name": "no_external_requests",
+      "status": "pass",
+      "detail": "[]"
+    },
+    {
+      "name": "mobile_no_page_overflow",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "name": "mobile_diagram_scroll_container",
+      "status": "pass",
+      "detail": ""
+    },
+    {
+      "name": "without_javascript_content",
+      "status": "pass",
+      "detail": ""
+    }
+  ],
+  "passed": 27,
+  "failed": 0
+}
