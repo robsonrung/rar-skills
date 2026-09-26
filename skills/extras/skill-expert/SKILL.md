@@ -20,8 +20,9 @@ Infer the route from the user's request. An audit reports findings without edits
 | Package | Read [references/validation-and-packaging.md](references/validation-and-packaging.md). Package the requested skill and its dependencies without installing or publishing it unless requested. |
 | Evaluate or compare | Read [references/evaluation.md](references/evaluation.md). Choose a bounded comparison and report measured results separately from inspection. |
 | Fix discovery | Read [references/description-optimization.md](references/description-optimization.md). Inspect trigger metadata before changing the execution workflow. |
+| Diagnose a behavior | When a skill makes a model stall, ask again, drift, or overreach, have the seat that showed it name the file and quote the instruction behind that choice, then fix the owning layer. Do not add a counter-rule on top. |
 
-Load [references/portable-skill-authoring.md](references/portable-skill-authoring.md) when a change affects model routing, host capabilities, authority, or a shared protocol. Load [references/script-standards.md](references/script-standards.md) when adding or changing scripts. Do not reload references already available in the current context.
+Load [references/model-calibration.md](references/model-calibration.md) when judging instruction wording, migrating a skill to a newer model, or diagnosing a behavior. Load [references/portable-skill-authoring.md](references/portable-skill-authoring.md) when a change affects model routing, host capabilities, authority, or a shared protocol. Load [references/script-standards.md](references/script-standards.md) when adding or changing scripts. Do not reload references already available in the current context.
 
 ## Audit questions
 
@@ -31,8 +32,10 @@ Judge each instruction by its purpose and current effect:
 2. Does the entry load only common rules and the selected workflow? Move other modes, command manuals, and large templates to supporting files.
 3. Does a required sequence protect a real dependency or invariant? Keep that order; let the host choose the rest.
 4. Does context loading follow the changed surface? Reuse active project instructions and evidence instead of requiring a full read before every edit.
-5. Does verification test a changed contract or required repository gate? Remove generic reread loops and duplicate checks.
+5. Does verification test a changed contract or required repository gate? Remove generic reread loops, duplicate checks, and requests to deliberate before answering; effort settings control thinking. Never ask the model to write its internal reasoning into the response, because current Claude models can refuse that request. A decision rationale in an output field is fine.
 6. Does a stop protect an unresolved decision, external effect, or authority boundary? Reuse existing authorization and continue independent work.
+7. Does the skill say when it is done? Name the result and its completion condition. If one part is blocked, the skill finishes the rest and reports what it left out. It does not quietly narrow, widen, or swap the task.
+8. Can an instruction collide with another loaded layer, such as the user's request, AGENTS.md, a shared reference, or a calling skill? Current models follow a conflicting rule instead of ignoring it. Resolve the conflict where it lives, or state precedence: the user's explicit request wins over skill defaults, except for safety and authority boundaries.
 
 Keep permanent project facts, security boundaries, team standards, output schemas, and real engineering methods. Length alone does not make a rule wrong. When moving a rule, preserve its trigger and ensure the consumer still loads it.
 

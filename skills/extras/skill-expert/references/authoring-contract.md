@@ -4,7 +4,7 @@ Use this reference when applying feedback, moving content, or changing bundled p
 
 ## Admit useful instructions
 
-Keep a line when it supplies domain knowledge, a project standard, or a falsifiable contract that changes execution. A cue for a known model limitation needs evidence that it still helps the supported runtime.
+Keep a line when it supplies domain knowledge, a project standard, or a falsifiable contract that changes execution. A cue for a known model limitation needs evidence that it still helps the supported runtime, and it belongs with the runner or route that dispatches that model, as [model-calibration.md](model-calibration.md) describes.
 
 Remove vague effort language and repeated rationale. Fix a shared cause at its owner instead of appending the same workaround to several skills. Preserve an intentional duplicate only when its local placement protects a real consumer or boundary.
 

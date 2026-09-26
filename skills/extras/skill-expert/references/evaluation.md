@@ -8,6 +8,8 @@ Choose the question first: trigger accuracy, task completion, a safety boundary,
 
 Set the case count, models, call limit, output limit, and stop condition before running. Follow the workflow's model and spending approval rules. A request to edit a skill does not authorize an unbounded evaluation fleet. Ask about a case only when it needs domain facts or a decision the available evidence cannot supply.
 
+Choose models from the seats that actually execute the skill, which are its routes in `shared/model-routing.json` or its documented callers, not only the current host. When a change removes guidance, include the weakest executing seat, because a skill trimmed for a frontier model can under-guide a smaller one. When a change adds guidance, include the strongest seat, because an added rule can over-steer it.
+
 For an existing skill, use its prior revision as the baseline. For a new skill, compare with no skill when useful. Keep task inputs and environment comparable.
 
 Suggested `evals/evals.json` shape:

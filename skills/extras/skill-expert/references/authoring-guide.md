@@ -29,7 +29,11 @@ Check path resolution when moving text. Markdown links inside a reference resolv
 
 ## Instructions
 
-State domain rules and protocols directly. Specify sequence only when order affects correctness. Keep status values, required fields, permission boundaries, and failure outcomes explicit.
+State domain rules and protocols directly. Specify sequence only when order affects correctness. Keep status values, required fields, permission boundaries, and failure outcomes explicit. State the skill's purpose, its completion condition, and what happens when one part is blocked.
+
+Give a rule its reason instead of emphasis. One brief principle generalizes, so do not list every variant of a behavior. When output format matters, one positive example steers better than a list of prohibitions. Wording that current models over-follow, and its replacement, is in `references/model-calibration.md`.
+
+A skill that orchestrates workers states when delegation pays off: independent, sizeable, parallel work, not verification of its own output. A skill that reports results asks for the outcome first and for claims backed by tool evidence from the session.
 
 Give defaults with a reason to depart from them. Do not demand a ritual, invented alternative, new approval, or full evaluation for a routine scoped edit. Do not invent a fallback that changes the requested model, authority, or output.
 
