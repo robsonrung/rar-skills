@@ -10,7 +10,7 @@ After rendering, check cross-references, evidence, source links, observed versus
 
 ## Version and language
 
-This package uses schema version `2.0` and language `en`. Version 2.0 adds finding decision anchors and `concept_applications`. Version 1.0 reports require explicit migration: translate all narrative, retain evidence provenance, add and review the new decision fields, and change the version only after the record is complete. Do not silently relabel an old file as version 2.0.
+This package writes schema version `2.1` and still validates `2.0`. Version 2.0 added finding decision anchors and `concept_applications`. Version 2.1 adds optional groups and fields (below) learned from real reviews: the revision check, respected decisions, a target architecture, guardrails, folded-in reviews, short finding summaries and implementation safety notes. Any 2.1 field requires `schema_version: "2.1"`. Version 1.0 reports require explicit migration: translate all narrative, retain evidence provenance, add and review the new decision fields, and change the version only after the record is complete. Do not silently relabel an old file as version 2.0.
 
 All human-readable content is English. Preserve real identifiers, paths, commands, and source titles. Technical hyphenation and syntax remain intact. Avoid decorative dash punctuation in prose.
 
@@ -38,7 +38,23 @@ All human-readable content is English. Preserve real identifiers, paths, command
 | `verification` | Procedures, status, exit code, environment, artifact, date, and notes, including material blocked/not-run procedures. |
 | `decisions_needed`, `glossary` | Outstanding business/team decisions and relevant canonical definitions. |
 
-Lists may be empty where allowed by the schema; explain material omissions. Item IDs must be unique across sections. Use E for evidence, F for findings, S for strengths, Q for scenarios, G for diagrams, O for options, R for roadmap, A for agent checks, M for metrics, V for verification, and C for concept applications. D01 through D20 are fixed. B/W IDs refer to bibliography records. Term IDs L/T are catalog references, not report navigation IDs.
+## Optional 2.1 groups
+
+| Field | Contents and rules |
+| :--- | :--- |
+| `revision_check` | HEAD, branch, upstream, ahead/behind, uncommitted file count, the audited ref, the newer ref used for rechecks (or null) and the decision taken. When a newer ref exists, every P0 to P2 finding records `newer_ref_status`. |
+| `respected_decisions` | Documented choices the review deliberately did not flag (ADRs, architecture notes), each with its source, reason and evidence. A finding that contradicts one fills `adr_conflict`. |
+| `target` | The recommended module structure: modules with what they own, their interface and allowed dependencies; dependency and ownership rules with their current status and the guardrails that enforce them; trade-offs with the chosen option and each rejected option with its reason; an optional proposed diagram. |
+| `guardrails` | Automated checks that keep a boundary from eroding: kind, status (`existing` or `proposed`), rule, a sketch for proposed checks, and a baseline strategy. Prefer checks that fail only on new violations against a named baseline that can only shrink. |
+| `external_reviews` | Other reports folded in: origin, baseline, method, agreements, disagreements, adopted findings, and claims not re-verified. |
+
+Optional finding fields: `summary` (one-sentence `problem` and `solution`, plus `wins` as short phrases of 70 characters or fewer, shown first on the card), `dependency_category` (`in_process`, `local_substitutable`, `ports_and_adapters`, `true_external`, `not_applicable`), `newer_ref_status`, `adr_conflict`, `incident` (a linked production incident or fix commit) and `guardrails`. A finding that is `fixed` on the newer ref cannot be P0 or P1.
+
+Optional roadmap fields: `must_preserve` (invariants an implementer must keep, for example a safety check that must survive a move), `first_move` (at most three steps; the first pull requests to open) and `guardrails`.
+
+Optional evidence field: `excerpt`, a short verbatim fragment of the cited lines. `validate_report.py --repo <checkout>` confirms that cited files exist, line ranges fit and excerpts appear in the cited lines, for records at the audited ref.
+
+Lists may be empty where allowed by the schema; explain material omissions. Item IDs must be unique across sections. Use E for evidence, F for findings, S for strengths, Q for scenarios, G for diagrams, O for options, R for roadmap, A for agent checks, M for metrics, V for verification, C for concept applications, RD for respected decisions, GR for guardrails, TR for target rules, and XR for external reviews. D01 through D20 are fixed. B/W IDs refer to bibliography records. Term IDs L/T are catalog references, not report navigation IDs.
 
 ## Status, confidence, and priority
 
@@ -86,7 +102,7 @@ Edges have `from`, `to`, `label`, `kind`, `basis`, and `evidence`. Kinds: `sync`
 
 Explain protocol, contract, direction, exchanged data, authorization, transaction boundary, and relevant failure behavior. Sequence views use numbered flow steps, not formal UML lifelines. Represent return steps explicitly instead of unsupported self-edges.
 
-Observed and inferred edges require evidence. Proposed topology stays labeled proposed even when it reuses actual components. Diagrams use deterministic local SVG and accessible tables, without Mermaid or external rendering services. The views are informed by C4 questions, not certified as formal notation.
+Observed and inferred edges require evidence. Proposed topology stays labeled proposed even when it reuses actual components. A before and after pair for one finding is two diagrams, one observed and one proposed, both linked from the finding's evidence or the target. Diagrams use deterministic local SVG and accessible tables, without Mermaid or external rendering services. The views are informed by C4 questions, not certified as formal notation.
 
 ## Metrics and capacity
 
@@ -99,5 +115,9 @@ Provide percentiles, throughput, concurrency, errors, saturation, data volume, a
 Verification and agent-check statuses: `pass`, `fail`, `not_run`, `blocked`, `not_applicable`. Not-run procedures have null exit codes; passed procedures have zero. Scenario statuses: `verified`, `failed`, `unknown`, `proposed`. Agent success needs task artifacts and observed final state, not an AGENTS.md file.
 
 The Python tools use only the standard library. The validator implements the keywords used by this package and additional semantic/reference checks, not arbitrary JSON Schema. It cannot prove that a source exists, a command ran, or a judgment is correct.
+
+## Publishing as an artifact
+
+`render_report.py --artifact` emits page content for a host that supplies its own document skeleton and cannot print: a short title (the system name plus "Architecture Review", or `--title`), the style block and the body, without doctype, head, content security policy meta or print control. The report renders in light and dark themes in both modes through theme tokens. Publishing distributes the report; findings about exploitable weaknesses stay private unless the owner decides otherwise.
 
 Inventory is metadata-only, does not read source contents, follow symlinks, or execute the project. Conservative exclusions may hide relevant files; disclose scope. The renderer escapes report content rather than evaluating it. These precautions do not create a sandbox or replace execution authorization.

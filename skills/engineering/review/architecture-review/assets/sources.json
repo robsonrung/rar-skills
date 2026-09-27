@@ -385,5 +385,32 @@
     "application": "Canonical chapter terminology for REP, CCP, CRP, ADP, SDP, SAP, and the Main Sequence.",
     "access": "Licensed table of contents and public chapter previews; not a full-book reading.",
     "checked_at": "2026-09-26"
+  },
+  {
+    "id": "W21",
+    "title": "codebase-design skill: shared vocabulary for designing deep modules",
+    "author": "Matt Pocock",
+    "url": "https://github.com/mattpocock/skills/tree/main/skills/engineering/codebase-design",
+    "application": "Deep module vocabulary (module, interface, depth, seam, adapter, leverage, locality), the deletion test, the interface as the test surface, the one-adapter rule, dependency categories and design it twice.",
+    "access": "Public repository; SKILL.md, DEEPENING.md and DESIGN-IT-TWICE.md read in full.",
+    "checked_at": "2026-09-27"
+  },
+  {
+    "id": "W22",
+    "title": "improve-codebase-architecture skill",
+    "author": "Matt Pocock",
+    "url": "https://github.com/mattpocock/skills/tree/main/skills/engineering/improve-codebase-architecture",
+    "application": "Scoping by commit hot spots, friction-driven exploration, dependency categories on candidates, before and after views per candidate, respecting ADRs, and the follow-up loop (grilling, glossary updates, ADR offers).",
+    "access": "Public repository; SKILL.md and HTML-REPORT.md read in full.",
+    "checked_at": "2026-09-27"
+  },
+  {
+    "id": "W23",
+    "title": "Import Linter documentation",
+    "author": "David Seddon and contributors",
+    "url": "https://import-linter.readthedocs.io/",
+    "application": "Layer and forbidden-import contracts with named ignore_imports baselines as a Python architectural fitness function.",
+    "access": "Public project documentation; contract types consulted.",
+    "checked_at": "2026-09-27"
   }
 ]

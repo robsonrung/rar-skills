@@ -20,6 +20,7 @@ test_schema_version_two (__main__.CanonicalContractTests.test_schema_version_two
 test_term_catalog_ids_and_sources (__main__.CanonicalContractTests.test_term_catalog_ids_and_sources) ... ok
 test_unknown_finding_term_rejected (__main__.CanonicalContractTests.test_unknown_finding_term_rejected) ... ok
 test_unknown_term_rejected (__main__.CanonicalContractTests.test_unknown_term_rejected) ... ok
+test_added_resolved_and_changed (__main__.CompareTests.test_added_resolved_and_changed) ... ok
 test_agent_pass_needs_evidence (__main__.ContractTests.test_agent_pass_needs_evidence) ... ok
 test_code_requires_lines (__main__.ContractTests.test_code_requires_lines) ... ok
 test_current_diagram_cannot_mix_proposals (__main__.ContractTests.test_current_diagram_cannot_mix_proposals) ... ok
@@ -49,11 +50,19 @@ test_unexecuted_has_no_exit (__main__.ContractTests.test_unexecuted_has_no_exit)
 test_unknown_confidence (__main__.ContractTests.test_unknown_confidence) ... ok
 test_unknown_field (__main__.ContractTests.test_unknown_field) ... ok
 test_unknown_is_not_numeric (__main__.ContractTests.test_unknown_is_not_numeric) ... ok
+test_assemble_ids_supports_dedupe_and_checks (__main__.EvidenceToolTests.test_assemble_ids_supports_dedupe_and_checks) ... ok
+test_export_outside_repo_only (__main__.GitToolTests.test_export_outside_repo_only) ... ok
+test_history_counts_fix_commits (__main__.GitToolTests.test_history_counts_fix_commits) ... ok
+test_revision_check_reports_dirty_state (__main__.GitToolTests.test_revision_check_reports_dirty_state) ... ok
 test_content_is_not_read (__main__.InventoryTests.test_content_is_not_read) ... ok
 test_file_limit_is_explicit (__main__.InventoryTests.test_file_limit_is_explicit) ... ok
 test_metadata_only_exclusions_and_no_modification (__main__.InventoryTests.test_metadata_only_exclusions_and_no_modification) ... ok
 test_refuses_output_inside_repo (__main__.InventoryTests.test_refuses_output_inside_repo) ... ok
 test_sensitive_paths (__main__.InventoryTests.test_sensitive_paths) ... ok
+test_import_graph_cycle_and_contexts (__main__.MeasureTests.test_import_graph_cycle_and_contexts) ... ok
+test_js_imports (__main__.MeasureTests.test_js_imports) ... ok
+test_refuses_output_inside_tree (__main__.MeasureTests.test_refuses_output_inside_tree) ... ok
+test_writers_callers_pins_occurrences (__main__.MeasureTests.test_writers_callers_pins_occurrences) ... ok
 test_deterministic (__main__.RenderTests.test_deterministic) ... ok
 test_diagrams_and_no_placeholders (__main__.RenderTests.test_diagrams_and_no_placeholders) ... ok
 test_english_interface (__main__.RenderTests.test_english_interface) ... ok
@@ -62,8 +71,26 @@ test_export_preflight_no_partial_files (__main__.RenderTests.test_export_preflig
 test_exports_and_refuses_overwrite (__main__.RenderTests.test_exports_and_refuses_overwrite) ... ok
 test_internal_links_and_ids (__main__.RenderTests.test_internal_links_and_ids) ... ok
 test_no_external_assets (__main__.RenderTests.test_no_external_assets) ... ok
+test_artifact_links_resolve (__main__.RenderV21Tests.test_artifact_links_resolve) ... ok
+test_artifact_mode (__main__.RenderV21Tests.test_artifact_mode) ... ok
+test_both_themes_defined (__main__.RenderV21Tests.test_both_themes_defined) ... ok
+test_custom_title (__main__.RenderV21Tests.test_custom_title) ... ok
+test_new_sections_render (__main__.RenderV21Tests.test_new_sections_render) ... ok
+test_demo_uses_v21 (__main__.SchemaV21Tests.test_demo_uses_v21) ... ok
+test_external_review_references_findings (__main__.SchemaV21Tests.test_external_review_references_findings) ... ok
+test_first_move_limit (__main__.SchemaV21Tests.test_first_move_limit) ... ok
+test_fixed_upstream_cannot_stay_p1 (__main__.SchemaV21Tests.test_fixed_upstream_cannot_stay_p1) ... ok
+test_new_ids_are_unique (__main__.SchemaV21Tests.test_new_ids_are_unique) ... ok
+test_newer_ref_requires_recheck (__main__.SchemaV21Tests.test_newer_ref_requires_recheck) ... ok
+test_proposed_guardrail_needs_sketch (__main__.SchemaV21Tests.test_proposed_guardrail_needs_sketch) ... ok
+test_repo_check_lines_and_excerpt (__main__.SchemaV21Tests.test_repo_check_lines_and_excerpt) ... ok
+test_summary_wins_are_short (__main__.SchemaV21Tests.test_summary_wins_are_short) ... ok
+test_target_diagram_must_be_proposed (__main__.SchemaV21Tests.test_target_diagram_must_be_proposed) ... ok
+test_unknown_guardrail_reference (__main__.SchemaV21Tests.test_unknown_guardrail_reference) ... ok
+test_v20_report_still_valid (__main__.SchemaV21Tests.test_v20_report_still_valid) ... ok
+test_v21_fields_require_version (__main__.SchemaV21Tests.test_v21_fields_require_version) ... ok
 
 ----------------------------------------------------------------------
-Ran 64 tests in 0.784s
+Ran 91 tests in 0.653s
 
 OK

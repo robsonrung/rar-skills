@@ -21,3 +21,5 @@ Assess fitness for purpose, explicit coverage, source accuracy, observed/propose
 For each main Leitwort, verify that it changes the diagnosis, action, or check. A repeated word without a relevant consequence fails the behavioral criterion even when schema validation passes. Avoid forcing irrelevant concepts into a small system.
 
 Structural JSON validation is not a substitute for this review. The fixtures, execution harness, and reviewer judgments still need to be supplied for a real behavioral benchmark.
+
+Cases EV27 to EV33 were added in 2.1 from failures observed in real reviews: a stale checkout, a concept declared in many places, tests that cross past an interface, an ADR that explains an apparent flaw, folding in another review, a guard-relaxing parameter, and an ambiguous external outcome.

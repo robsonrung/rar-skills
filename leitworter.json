@@ -263,6 +263,19 @@
         "green only from a fresh run"
       ],
       "must_not_contain": []
+    },
+    {
+      "file": "skills/engineering/review/architecture-review/SKILL.md",
+      "concept": "fit for purpose / smallest reversible move / deletion test / locality / deterministic oracle",
+      "must_contain": [
+        "fit for purpose",
+        "smallest reversible move",
+        "deletion test",
+        "locality",
+        "deterministic oracle",
+        "end-to-end correctness"
+      ],
+      "must_not_contain": []
     }
   ],
   "canon": [

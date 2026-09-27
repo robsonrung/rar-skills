@@ -1,5 +1,5 @@
 {
-  "schema_version": "2.0",
+  "schema_version": "2.1",
   "language": "en",
   "meta": {
     "system": "Atlas, fictional order system",
@@ -354,7 +354,17 @@
         "W13"
       ],
       "leitwort": "L06",
-      "decision_statement": "End-to-end correctness is not protected by the local commit alone, E002. Clarify confirmation semantics before selecting a recovery mechanism."
+      "decision_statement": "End-to-end correctness is not protected by the local commit alone, E002. Clarify confirmation semantics before selecting a recovery mechanism.",
+      "summary": {
+        "problem": "A committed order can be reported as failed.",
+        "solution": "Persist intent and deliver through an outbox with explicit confirmation.",
+        "wins": [
+          "no duplicate orders on retry",
+          "recovery is observable"
+        ]
+      },
+      "dependency_category": "true_external",
+      "incident": "FICTIONAL EXAMPLE: a support ticket describing a duplicate order after a timeout."
     },
     {
       "id": "F002",
@@ -387,7 +397,19 @@
         "W20"
       ],
       "leitwort": "T25",
-      "decision_statement": "Component Coupling crosses the intended public boundary, E004. Route the dependency through the required public capability before considering deployment changes."
+      "decision_statement": "Component Coupling crosses the intended public boundary, E004. Route the dependency through the required public capability before considering deployment changes.",
+      "summary": {
+        "problem": "Billing imports Order internals to price invoices.",
+        "solution": "Publish a small pricing contract and forbid the internal imports.",
+        "wins": [
+          "locality: one pricing rule",
+          "leverage: one contract, many callers"
+        ]
+      },
+      "dependency_category": "in_process",
+      "guardrails": [
+        "GR01"
+      ]
     },
     {
       "id": "F003",
@@ -1018,6 +1040,10 @@
       "rollback": "No product change in this step; preserve assessment records.",
       "related_findings": [
         "F001"
+      ],
+      "first_move": true,
+      "must_preserve": [
+        "The order confirmation response contract seen by existing clients."
       ]
     },
     {
@@ -1058,6 +1084,9 @@
       "related_findings": [
         "F002",
         "F003"
+      ],
+      "guardrails": [
+        "GR01"
       ]
     },
     {
@@ -1802,6 +1831,131 @@
         "W10"
       ],
       "related_findings": []
+    }
+  ],
+  "revision_check": {
+    "head": "Fictional revision",
+    "branch": "main",
+    "upstream": null,
+    "ahead": null,
+    "behind": null,
+    "dirty_files": 0,
+    "audited_ref": "Fictional revision",
+    "newer_ref": null,
+    "decision": "Illustrative only: in a real audit this records HEAD against its upstream and which revision the findings describe.",
+    "evidence": [
+      "E001"
+    ]
+  },
+  "respected_decisions": [
+    {
+      "id": "RD01",
+      "title": "Billing reads Order totals, not Order rows",
+      "source": "FICTIONAL EXAMPLE: architecture note on billing inputs",
+      "reason": "Illustrative deliberate decision: the team chose a read-only totals query to keep billing independent of order edits. The review does not flag this read.",
+      "evidence": [
+        "E004"
+      ],
+      "related_findings": [
+        "F002"
+      ]
+    }
+  ],
+  "guardrails": [
+    {
+      "id": "GR01",
+      "title": "Billing may not import Order internals",
+      "kind": "import_contract",
+      "status": "proposed",
+      "rule": "Only the published Order pricing contract may be imported by Billing modules.",
+      "sketch": "[importlinter:contract:billing-uses-order-contract]\ntype = forbidden\nsource_modules = atlas.billing\nforbidden_modules = atlas.orders.internal\nignore_imports =\n    # baseline, not endorsed; remove entries, never add\n    atlas.billing.invoice -> atlas.orders.internal.pricing",
+      "baseline": "Existing violations are listed by name and may only be removed; a new edge fails the check.",
+      "related_findings": [
+        "F002"
+      ],
+      "evidence": [
+        "E004"
+      ]
+    }
+  ],
+  "target": {
+    "summary": "Illustrative target: one deployable, with Billing reaching Order only through a small pricing contract and the integration outbox owning retries.",
+    "modules": [
+      {
+        "name": "Order intake",
+        "owns": "Orders, their states and the pricing contract",
+        "interface": "place_order, order_totals",
+        "depends_on": []
+      },
+      {
+        "name": "Billing",
+        "owns": "Invoices and billing rules",
+        "interface": "invoice_for_period",
+        "depends_on": [
+          "Order intake (pricing contract only)"
+        ]
+      }
+    ],
+    "rules": [
+      {
+        "id": "TR01",
+        "rule": "Billing depends on Order intake only through its pricing contract.",
+        "status": "violated",
+        "enforced_by": [
+          "GR01"
+        ],
+        "evidence": [
+          "E004"
+        ]
+      }
+    ],
+    "tradeoffs": [
+      {
+        "question": "Where should the pricing rule live?",
+        "chosen": "In Order intake, published as a small contract.",
+        "rejected": [
+          {
+            "option": "Copy the rule into Billing",
+            "reason": "Two copies drift; locality is lost."
+          },
+          {
+            "option": "A separate pricing service",
+            "reason": "Adds a network seam without a second adapter or scaling need."
+          }
+        ]
+      }
+    ],
+    "diagram": "G004",
+    "evidence": [
+      "E004"
+    ],
+    "sources": [
+      "B06",
+      "B08"
+    ]
+  },
+  "external_reviews": [
+    {
+      "id": "XR01",
+      "title": "Illustrative second review of Atlas",
+      "origin": "FICTIONAL EXAMPLE: another team",
+      "baseline": "Fictional newer revision",
+      "method": "Module-structure review with import graph measurements.",
+      "agreements": [
+        "Billing reaches into Order internals."
+      ],
+      "disagreements": [
+        "Counted 14 cross-module imports where this audit counts 9; the difference is per-name versus per-module counting."
+      ],
+      "adopted_findings": [
+        "F002"
+      ],
+      "not_reverified": [
+        "The other review's domain grouping of support modules."
+      ],
+      "evidence": [
+        "E004"
+      ]
     }
   ]
 }

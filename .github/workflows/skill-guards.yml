@@ -60,6 +60,10 @@ jobs:
         run: python3 skills/shared/tests/test_review_evidence.py
       - name: Review finding integrity
         run: python3 skills/engineering/review/full-review/tests/test_findings_mechanics.py
+      - name: Architecture review contract, measurements and renderer
+        run: |
+          python3 skills/engineering/review/architecture-review/scripts/selftest.py
+          python3 skills/engineering/review/architecture-review/scripts/validate_report.py skills/engineering/review/architecture-review/examples/demo-audit.json
       - name: Council approval boundary
         run: python3 skills/engineering/workflow/models-consensus/tests/test_user_approval_contract.py
       - name: Council terminal transport

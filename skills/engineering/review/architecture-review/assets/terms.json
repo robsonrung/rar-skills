@@ -1024,5 +1024,89 @@
       "B11"
     ],
     "example": "Replication Lag Anomalies explain this stale read only after confirming the actual routing and replication history."
+  },
+  {
+    "id": "T69",
+    "group": "Design and verification",
+    "term": "deletion test",
+    "definition": "A thought experiment for a suspected shallow module: if deleting it makes its complexity vanish, it was a pass-through; if the complexity reappears across callers, it was earning its keep.",
+    "activate_when": "Judging whether a module, wrapper or layer is worth keeping or merging.",
+    "decision_question": "Where would this module's complexity go if it were deleted, and how many callers would absorb it?",
+    "guardrail": "The test judges placement of complexity, not code style; a small module can pass it and a large one can fail it.",
+    "sources": [
+      "W21",
+      "B08"
+    ],
+    "example": "The deletion test shows the retry rule would be copied into four callers, so the module stays and absorbs the fifth copy."
+  },
+  {
+    "id": "T70",
+    "group": "Design and verification",
+    "term": "leverage",
+    "definition": "What callers and tests gain from depth: more behavior exercised per unit of interface they must learn.",
+    "activate_when": "Comparing interfaces or justifying a deeper module.",
+    "decision_question": "How much behavior does one entry point give its callers and tests?",
+    "guardrail": "Leverage is measured at the interface a caller must learn, not by implementation size.",
+    "sources": [
+      "W21",
+      "B08"
+    ],
+    "example": "One settings object with typed values gives every billing caller leverage that eight key-string reads did not."
+  },
+  {
+    "id": "T71",
+    "group": "Design and verification",
+    "term": "locality",
+    "definition": "What maintainers gain from depth: change, bugs, knowledge and verification concentrate in one place instead of spreading across callers.",
+    "activate_when": "Assessing change cost or proposing to consolidate scattered rules.",
+    "decision_question": "How many places must one rule change touch today, and how many after the move?",
+    "guardrail": "Locality does not justify merging unrelated responsibilities; check cohesion and reasons to change.",
+    "sources": [
+      "W21",
+      "B08"
+    ],
+    "example": "Moving the five status writers behind one module gives locality: a retry bug is fixed once."
+  },
+  {
+    "id": "T72",
+    "group": "Design and verification",
+    "term": "adapter",
+    "definition": "A concrete implementation that satisfies an interface at a seam; the term names its role, not its size. One adapter makes a seam hypothetical, two make it real.",
+    "activate_when": "Deciding whether to introduce a port or interface at a seam.",
+    "decision_question": "Which two adapters, typically production and a test fake, justify this port?",
+    "guardrail": "A port with a single adapter is indirection; do not propose it without a concrete second adapter.",
+    "sources": [
+      "W21",
+      "B10"
+    ],
+    "example": "A production Channex adapter and an in-memory fake justify the provider port."
+  },
+  {
+    "id": "T73",
+    "group": "Design and verification",
+    "term": "dependency category",
+    "definition": "The kind of dependency behind a seam: in-process, local-substitutable, ports and adapters (owned remote), or true external. It decides how the deepened module is tested.",
+    "activate_when": "Recommending a seam, port or deepening and its test strategy.",
+    "decision_question": "What sits behind this seam, and can the tests use a real stand-in or do they need an adapter?",
+    "guardrail": "A local stand-in such as a real test database needs no port; add a port only for owned remote or true external dependencies.",
+    "sources": [
+      "W22",
+      "W21"
+    ],
+    "example": "The delivery module is local-substitutable for PostgreSQL and uses ports and adapters for the provider."
+  },
+  {
+    "id": "T74",
+    "group": "Design and verification",
+    "term": "design it twice",
+    "definition": "Produce several radically different interfaces for the same module before choosing one, then compare them by depth, locality and seam placement.",
+    "activate_when": "A finding proposes a new module interface and the first design may not be the best.",
+    "decision_question": "Which alternative interfaces were compared, and why did the chosen one win?",
+    "guardrail": "Alternatives must differ in shape, not in naming; compare them against the same constraints.",
+    "sources": [
+      "B08",
+      "W21"
+    ],
+    "example": "Design it twice produced a minimal, a flexible and a common-case interface; the minimal one won on locality."
   }
 ]

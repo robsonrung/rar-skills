@@ -397,5 +397,113 @@
     ],
     "status": "not_run",
     "setup": "Create a matching synthetic fixture with actual evidence files. Keep the reference answers hidden from the agent. Record the fixture hash and every attempt."
+  },
+  {
+    "id": "EV27",
+    "name": "stale-checkout",
+    "prompt": "The local branch is 11 commits behind its upstream as last fetched, and the working tree has uncommitted edits in files the review will cite. One defect visible at HEAD is already fixed upstream.",
+    "expected": [
+      "Run the revision check before reading source and report ahead/behind and uncommitted files.",
+      "Ask which revision to audit, or audit HEAD and recheck every P0 to P2 finding on the upstream ref without fetching or checking out.",
+      "Record newer_ref_status per finding and report the upstream-fixed defect as fixed, not as a P0/P1."
+    ],
+    "forbidden": [
+      "Fetch, check out, stash, or modify the working tree.",
+      "Report a finding as current without checking the newer ref when one exists."
+    ],
+    "status": "not_run",
+    "setup": "Create a matching synthetic fixture with actual evidence files. Do not use production. This description is not a substitute for repository evidence."
+  },
+  {
+    "id": "EV28",
+    "name": "concept-declared-in-n-places",
+    "prompt": "One scheduled job's identity, queue and parameters are declared in six modules; two declarations disagree, and a past fix commit added another lookup instead of consolidating.",
+    "expected": [
+      "Count declaration, writer and state-change sites with measurements and classify them.",
+      "Name the differing copies and link the fix commit as an incident.",
+      "Propose one owning module with a deletion test and locality argument, plus a guardrail."
+    ],
+    "forbidden": [
+      "Diagnose from file size or naming alone.",
+      "Propose a new service for the concept."
+    ],
+    "status": "not_run",
+    "setup": "Create a matching synthetic fixture with actual evidence files. Do not use production. This description is not a substitute for repository evidence."
+  },
+  {
+    "id": "EV29",
+    "name": "test-crosses-past-interface",
+    "prompt": "Tests build internal job objects by hand with the correct identity, so they pass while the production lookup path returns the wrong identity.",
+    "expected": [
+      "Identify that the tests cross past the interface and do not exercise the production path.",
+      "Treat those tests as weak evidence and propose a test through the real interface as the deterministic oracle."
+    ],
+    "forbidden": [
+      "Count the passing tests as proof that the lookup works."
+    ],
+    "status": "not_run",
+    "setup": "Create a matching synthetic fixture with actual evidence files. Do not use production. This description is not a substitute for repository evidence."
+  },
+  {
+    "id": "EV30",
+    "name": "adr-conflict",
+    "prompt": "An ADR records a deliberate choice (for example a broader expiry predicate than the queue predicate). The code looks inconsistent from outside.",
+    "expected": [
+      "Read ADRs before judging and record the choice in respected_decisions.",
+      "Raise a finding only with evidence that the documented reason no longer holds, and fill adr_conflict."
+    ],
+    "forbidden": [
+      "Flag the documented choice as a defect without referencing the ADR."
+    ],
+    "status": "not_run",
+    "setup": "Create a matching synthetic fixture with actual evidence files. Do not use production. This description is not a substitute for repository evidence."
+  },
+  {
+    "id": "EV31",
+    "name": "fold-in-external-review",
+    "prompt": "The user supplies another team's review of the same system at a newer commit, with import counts that differ from the audit's own.",
+    "expected": [
+      "Treat the review as leads and re-verify every adopted claim at the audited revision.",
+      "Reconcile metric differences by counting convention before calling them disagreements.",
+      "Record agreements, disagreements, adopted findings and unverified claims in external_reviews, and correct the report where the other review is right."
+    ],
+    "forbidden": [
+      "Copy findings without re-verification.",
+      "Declare a contradiction that is only a counting convention difference."
+    ],
+    "status": "not_run",
+    "setup": "Create a matching synthetic fixture with actual evidence files. Do not use production. This description is not a substitute for repository evidence."
+  },
+  {
+    "id": "EV32",
+    "name": "guard-relaxing-parameter",
+    "prompt": "A safety gate accepts parameters that relax two checks; three call sites pass them, one of them in a task that bypasses the delivery outbox, and no test pins the allowed callers.",
+    "expected": [
+      "List call sites with a caller measurement and classify each as justified or not.",
+      "Propose an allowed-callers test as a guardrail with a baseline.",
+      "Mark the outbox bypass explicitly and keep the gate itself unchanged."
+    ],
+    "forbidden": [
+      "Recommend removing the gate or its checks.",
+      "Assume all callers are safe because the gate exists."
+    ],
+    "status": "not_run",
+    "setup": "Create a matching synthetic fixture with actual evidence files. Do not use production. This description is not a substitute for repository evidence."
+  },
+  {
+    "id": "EV33",
+    "name": "ambiguous-external-outcome",
+    "prompt": "A delivery worker times out after sending to a provider. The record becomes 'unknown', which blocks all later deliveries for the same account; nothing resolves it and no alert fires.",
+    "expected": [
+      "Trace the failure path after an ambiguous outcome, not only success and clean failure.",
+      "Assess end-to-end correctness and recovery, including who can resolve the unknown state.",
+      "Propose a bounded retry, a terminal state, an alert and an operator resolution path with readback."
+    ],
+    "forbidden": [
+      "Call the design safe only because it fails closed.",
+      "Recommend automatic retries that could double-apply a non-idempotent effect."
+    ],
+    "status": "not_run",
+    "setup": "Create a matching synthetic fixture with actual evidence files. Do not use production. This description is not a substitute for repository evidence."
   }
 ]

@@ -18,6 +18,8 @@ Each checkpoint below is a question, not a conclusion. The answer must invoke th
 
 **Investigate:** Establish Ubiquitous Language, subdomains, Bounded Contexts, and an evidence-backed Context Map. Inspect invariants, ownership, and write paths. Within a context, evaluate Tactical Building Blocks: Entities, Value Objects, Aggregates and Aggregate Roots, Domain Services, Repositories, Factories, and Specifications where justified. Check Side-Effect-Free Functions and Intention-Revealing Interfaces. Distinguish Strategic Design from mandatory tactical ceremony.
 
+Run the concept duplication investigation in `module-design.md`: for each core concept, count the places that declare it, the modules that write it and the places that change its state. A concept with several differing copies and no owning module is usually a missing Bounded Context owner, not a naming issue.
+
 **Decision checkpoint:** Where does the Bounded Context change model meaning, and does an Anticorruption Layer protect that meaning at an external boundary?
 
 **Useful evidence:** Business flows, vocabulary, public contracts, aggregate mutation paths, data ownership, and context relationships.
@@ -28,6 +30,8 @@ Each checkpoint below is a question, not a conclusion. The answer must invoke th
 
 **Investigate:** Map imports, dependency cycles, internal access, shared state, public exports, and recurring changes across components. Apply Component Cohesion through REP, CCP, and CRP and Component Coupling through ADP, SDP, and SAP. Check The Dependency Rule against source dependencies, not runtime arrows. Use Main Sequence and Distance only with meaningful counting conventions. Analyze connascence by its actual form, degree, and locality.
 
+Measure with `measure.py imports`: report cycles both at module level and including in-function imports, because deferred imports can hide a large cycle behind an acyclic top level. Read `measure.py history` co-change for the modules in question.
+
 **Decision checkpoint:** Which component principle explains the observed change cost, and what contract or architectural fitness function would protect the boundary?
 
 **Useful evidence:** Actual dependency graph, composition roots, callers, package releases, and change history when available.
@@ -37,6 +41,8 @@ Each checkpoint below is a question, not a conclusion. The answer must invoke th
 ## D04. Code design and refactorability
 
 **Investigate:** Inspect names, intent, contracts, side effects, duplication of knowledge, cohesive functions, error behavior, and empty abstractions. Balance SOLID, DRY, KISS, and YAGNI rather than applying them as absolute rules. Compare deep modules with shallow wrappers. Prefer explicit behavior to unjustified inheritance, indirection, and metaprogramming. Identify seams and enabling points before changing difficult legacy code.
+
+Apply the module design lens (`module-design.md`): the deletion test for suspected pass-throughs, depth judged as leverage at the interface rather than line counts, locality of change, and the rule that one adapter is a hypothetical seam while two make it real. Record a `dependency_category` on every seam finding.
 
 **Decision checkpoint:** Which seam allows a behavior-preserving change, and does the proposed abstraction actually reduce caller knowledge?
 
@@ -128,6 +134,8 @@ Each checkpoint below is a question, not a conclusion. The answer must invoke th
 
 **Investigate:** Distinguish Unit, Integration, Contract, Component, End-to-End, Property-Based, concurrency, and load tests. Examine behavioral assertions, isolation, fixtures, test doubles, feedback time, and brittleness. Use Characterization Tests before uncertain legacy restructuring and the Humble Object Pattern when useful. Protect test oracles from changes made merely to make a test pass. High coverage with weak assertions is not sufficient.
 
+Look for tests that cross past the interface (hand-built internal state, patched private names): they pass while the production path is broken. Check whether safety-critical calls and guard-relaxing parameters have tests that pin their allowed callers. Count module paths named in tests (`measure.py test-pins`) before recommending file moves.
+
 **Decision checkpoint:** What deterministic oracle catches the important regression, and can the test fail for the right reason?
 
 **Useful evidence:** Read tests, actual executions, negative cases, false positives, and all flaky attempts.
@@ -187,6 +195,8 @@ Each checkpoint below is a question, not a conclusion. The answer must invoke th
 ## D19. Agent legibility
 
 **Investigate:** Assess the entry map, concise instructions, consistent local guidance, versioned documentation, canonical examples, explicit contracts, and discoverable ownership. Use Screaming Architecture and Ubiquitous Language where they aid navigation. Look for stale knowledge, hidden rules, excessive indirection, and undocumented code generation. Do not infer measured agent performance from file layout.
+
+List domain terms the review had to name that the project glossary lacks; they are cheap, high-value additions for the next agent.
 
 **Decision checkpoint:** Can an agent find the relevant Use Case and its invariant without inventing a contract?
 

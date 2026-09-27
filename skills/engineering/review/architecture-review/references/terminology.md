@@ -2,7 +2,7 @@
 
 Use these names consistently in questions, diagnoses, actions, and verification criteria. Definitions are written once in this catalog and mirrored into `assets/terms.json`. Copy only relevant definitions into a report glossary. Canonical vocabulary does not authorize a pattern: relevance still requires the actual workload, invariant, and evidence.
 
-Book and community wording can differ. Preserve the source's meaning. “Read-After-Write” is also called “read-your-writes consistency.” “Effectively-Once Processing” is a community description of a scoped observable effect, not asserted to be a DDIA chapter heading. Use Cases are often implemented as Interactors. REP is also written Reuse Release Equivalence Principle or Reuse/Release Equivalence Principle. Do not silently change a database's documented isolation guarantee into a stronger one.
+Book and community wording can differ. Preserve the source's meaning. “Read-After-Write” is also called “read-your-writes consistency.” “Effectively-Once Processing” is a community description of a scoped observable effect, not asserted to be a DDIA chapter heading. Use Cases are often implemented as Interactors. The deep-module terms (deletion test, leverage, locality, adapter, dependency category, design it twice) follow W21; seam keeps Feathers's meaning, and none of them replaces Bounded Context or the component principles. REP is also written Reuse Release Equivalence Principle or Reuse/Release Equivalence Principle. Do not silently change a database's documented isolation guarantee into a stronger one.
 
 For DDD, use singular Entity, Value Object, Aggregate, Aggregate Root, Domain Service, Repository, Factory, and Specification when describing one instance; use the regular plurals when describing a category. “Entities” in Clean Architecture has its own explicitly scoped entry. Anticorruption Layer uses Evans's spelling. ACL means Anticorruption Layer in this catalog; distinguish an access-control list where that acronym is used for security.
 
@@ -1095,6 +1095,96 @@ Guardrail: Shared infrastructure alone does not establish this diagnosis.
 Model decision: “This Distributed Monolith requires coordinated releases despite separate deployment units.”
 
 Sources: B03, B15, B16.
+
+
+### T69. deletion test
+
+A thought experiment for a suspected shallow module: if deleting it makes its complexity vanish, it was a pass-through; if the complexity reappears across callers, it was earning its keep.
+
+Activate when: Judging whether a module, wrapper or layer is worth keeping or merging.
+
+Decision question: Where would this module's complexity go if it were deleted, and how many callers would absorb it?
+
+Guardrail: The test judges placement of complexity, not code style; a small module can pass it and a large one can fail it.
+
+Model decision: “The deletion test shows the retry rule would be copied into four callers, so the module stays and absorbs the fifth copy.”
+
+Sources: W21, B08.
+
+
+### T70. leverage
+
+What callers and tests gain from depth: more behavior exercised per unit of interface they must learn.
+
+Activate when: Comparing interfaces or justifying a deeper module.
+
+Decision question: How much behavior does one entry point give its callers and tests?
+
+Guardrail: Leverage is measured at the interface a caller must learn, not by implementation size.
+
+Model decision: “One settings object with typed values gives every billing caller leverage that eight key-string reads did not.”
+
+Sources: W21, B08.
+
+
+### T71. locality
+
+What maintainers gain from depth: change, bugs, knowledge and verification concentrate in one place instead of spreading across callers.
+
+Activate when: Assessing change cost or proposing to consolidate scattered rules.
+
+Decision question: How many places must one rule change touch today, and how many after the move?
+
+Guardrail: Locality does not justify merging unrelated responsibilities; check cohesion and reasons to change.
+
+Model decision: “Moving the five status writers behind one module gives locality: a retry bug is fixed once.”
+
+Sources: W21, B08.
+
+
+### T72. adapter
+
+A concrete implementation that satisfies an interface at a seam; the term names its role, not its size. One adapter makes a seam hypothetical, two make it real.
+
+Activate when: Deciding whether to introduce a port or interface at a seam.
+
+Decision question: Which two adapters, typically production and a test fake, justify this port?
+
+Guardrail: A port with a single adapter is indirection; do not propose it without a concrete second adapter.
+
+Model decision: “A production Channex adapter and an in-memory fake justify the provider port.”
+
+Sources: W21, B10.
+
+
+### T73. dependency category
+
+The kind of dependency behind a seam: in-process, local-substitutable, ports and adapters (owned remote), or true external. It decides how the deepened module is tested.
+
+Activate when: Recommending a seam, port or deepening and its test strategy.
+
+Decision question: What sits behind this seam, and can the tests use a real stand-in or do they need an adapter?
+
+Guardrail: A local stand-in such as a real test database needs no port; add a port only for owned remote or true external dependencies.
+
+Model decision: “The delivery module is local-substitutable for PostgreSQL and uses ports and adapters for the provider.”
+
+Sources: W22, W21.
+
+
+### T74. design it twice
+
+Produce several radically different interfaces for the same module before choosing one, then compare them by depth, locality and seam placement.
+
+Activate when: A finding proposes a new module interface and the first design may not be the best.
+
+Decision question: Which alternative interfaces were compared, and why did the chosen one win?
+
+Guardrail: Alternatives must differ in shape, not in naming; compare them against the same constraints.
+
+Model decision: “Design it twice produced a minimal, a flexible and a common-case interface; the minimal one won on locality.”
+
+Sources: B08, W21.
 
 
 ## Data-intensive systems

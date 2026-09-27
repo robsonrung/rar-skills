@@ -29,6 +29,8 @@ When a pattern is unnecessary: “[Canonical term] is not applicable because [co
 | Can an agent verify success? | deterministic oracle | Name the independent assertion and controlled state, not a success narrative. |
 | Which migration step should come first? | smallest reversible move | Define the minimal step, rollback or forward recovery, and stop condition. |
 | Is a diagnosis supported? | evidence before opinion | Search for counterevidence before escalating a risk. |
+| Is this module earning its keep? | deletion test | Say where its complexity would go if it were deleted: vanish (pass-through) or reappear in named callers. |
+| Where would a change or bug land? | locality | Name the places one change must touch today and the single place it would touch after the move. |
 
 Use more specific terms when they do the work: Common Closure Principle (CCP) for shared reasons to change, connascence for a named agreement dependency, deep module for interface-to-implementation complexity, Read-After-Write for a writer's stale read. Precision matters more than a large vocabulary.
 
@@ -37,6 +39,8 @@ Use more specific terms when they do the work: Common Closure Principle (CCP) fo
 “The seam is the ERP gateway call; the composition root is its enabling point. Use this seam to inject a timeout without calling production.”
 
 “The Common Reuse Principle (CRP) exposes Billing dependence on unused Order internals, E004. Apply the Common Reuse Principle (CRP) by publishing the narrow pricing contract and checking forbidden imports.”
+
+“The deletion test on `JobIdentity` shows its rule would reappear in eight callers. Keep the module and move the other seven declarations into it; the locality gain is one place to change a job.”
 
 “The deterministic oracle checks the order record and protected ERP effect after replay. Keep the deterministic oracle independent of the agent's explanation and record every attempt.”
 

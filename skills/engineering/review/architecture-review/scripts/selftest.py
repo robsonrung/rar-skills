@@ -11,8 +11,12 @@ import tempfile
 import unittest
 from unittest.mock import patch
 import inventory
+import measure
 import render_report
-from validate_report import ROOT, read_json, validate
+import revision_check
+import evidence_tool
+import compare_audits
+from validate_report import ROOT, read_json, validate, repo_errors
 
 class Elements(HTMLParser):
     def __init__(self):
@@ -251,7 +255,7 @@ class CanonicalContractTests(unittest.TestCase):
         self.assertIn('&lt;script&gt;attack()',document)
     def test_behavioral_cases_are_not_executed(self):
         cases=read_json(ROOT/'evals/cases.json')
-        self.assertGreaterEqual(len(cases),26)
+        self.assertGreaterEqual(len(cases),33)
         self.assertTrue(all(c['status']=='not_run' for c in cases))
     def test_english_artifacts_no_portuguese_markers(self):
         import re
@@ -264,6 +268,186 @@ class CanonicalContractTests(unittest.TestCase):
         statuses={c['status'] for c in self.data['concept_applications']}
         self.assertTrue({'applied','unknown','not_applicable'}<=statuses)
         self.assertEqual(validate(self.data),[])
+
+
+class SchemaV21Tests(unittest.TestCase):
+    def setUp(self): self.data=read_json(ROOT/'examples/demo-audit.json')
+    def rejected(self,fragment):
+        errors=validate(self.data)
+        self.assertTrue(any(fragment in e for e in errors),errors)
+    def test_demo_uses_v21(self):
+        self.assertEqual(self.data['schema_version'],'2.1'); self.assertEqual(validate(self.data),[])
+    def test_v20_report_still_valid(self):
+        for k in ('revision_check','respected_decisions','guardrails','target','external_reviews'): self.data.pop(k)
+        for f in self.data['findings']:
+            for k in ('summary','dependency_category','newer_ref_status','adr_conflict','incident','guardrails'): f.pop(k,None)
+        for r in self.data['roadmap']:
+            for k in ('must_preserve','first_move','guardrails'): r.pop(k,None)
+        self.data['schema_version']='2.0'; self.assertEqual(validate(self.data),[])
+    def test_v21_fields_require_version(self):
+        self.data['schema_version']='2.0'; self.rejected('require schema_version 2.1')
+    def test_first_move_limit(self):
+        for r in self.data['roadmap']: r['first_move']=True
+        self.data['roadmap'].append(dict(copy.deepcopy(self.data['roadmap'][0]),id='R099',depends_on=[]))
+        self.rejected('at most three')
+    def test_newer_ref_requires_recheck(self):
+        self.data['revision_check']['newer_ref']='origin/main'; self.rejected('record newer_ref_status')
+    def test_fixed_upstream_cannot_stay_p1(self):
+        self.data['revision_check']['newer_ref']='origin/main'
+        for f in self.data['findings']: f['newer_ref_status']='unchanged'
+        f=self.data['findings'][0]; f['priority']='P1'; f['newer_ref_status']='fixed'
+        self.rejected('cannot stay P0/P1')
+    def test_unknown_guardrail_reference(self):
+        self.data['findings'][1]['guardrails']=['GR99']; self.rejected('unknown reference GR99')
+    def test_proposed_guardrail_needs_sketch(self):
+        self.data['guardrails'][0]['sketch']=None; self.rejected('needs a sketch')
+    def test_target_diagram_must_be_proposed(self):
+        self.data['target']['diagram']='G001'; self.rejected('must be a proposed view')
+    def test_summary_wins_are_short(self):
+        self.data['findings'][1]['summary']['wins']=['x'*71]; self.rejected('short phrases')
+    def test_external_review_references_findings(self):
+        self.data['external_reviews'][0]['adopted_findings']=['F999']; self.rejected('unknown reference F999')
+    def test_new_ids_are_unique(self):
+        self.data['guardrails'][0]['id']='F001'; self.rejected('unique')
+    def test_repo_check_lines_and_excerpt(self):
+        with tempfile.TemporaryDirectory() as td:
+            repo=Path(td); (repo/'src').mkdir(); (repo/'src/a.py').write_text('def f():\n    return 42\n')
+            e=self.data['evidence'][0]
+            e.update(kind='code',location='src/a.py',line_start=1,line_end=2,excerpt='return 42')
+            self.assertEqual(repo_errors(self.data,repo),[])
+            e['excerpt']='return 43'; self.assertTrue(any('excerpt' in x for x in repo_errors(self.data,repo)))
+            e['line_end']=9; self.assertTrue(any('exceeds' in x for x in repo_errors(self.data,repo)))
+            e['location']='src/missing.py'; self.assertTrue(any('not found' in x for x in repo_errors(self.data,repo)))
+
+class RenderV21Tests(unittest.TestCase):
+    def setUp(self): self.data=read_json(ROOT/'examples/demo-audit.json')
+    def test_new_sections_render(self):
+        html=render_report.render(self.data)
+        for anchor in ('revision','decisions','target','guardrails','reviews','GR01','TR01','RD01','XR01'):
+            self.assertIn(f'id="{anchor}"',html)
+        self.assertIn('First move',html); self.assertIn('Must preserve',html)
+        self.assertIn('summary-block',html)
+    def test_both_themes_defined(self):
+        html=render_report.render(self.data)
+        self.assertIn('@media (prefers-color-scheme: dark){:root:not([data-theme="light"])',html)
+        self.assertIn(':root[data-theme="dark"]',html)
+        self.assertIn('var(--svg-node)',html)
+        self.assertNotIn('fill="#fff"',html)
+    def test_artifact_mode(self):
+        html=render_report.render(self.data,artifact=True)
+        self.assertTrue(html.startswith('<title>Atlas Architecture Review</title>'))
+        for banned in ('<!doctype','<html','<head>','<body>','print-button','window.print','Content-Security-Policy'):
+            self.assertNotIn(banned,html)
+        self.assertIn('<style>',html); self.assertIn('id="report-search"',html)
+    def test_artifact_links_resolve(self):
+        parser=Elements(); parser.feed(render_report.render(self.data,artifact=True))
+        self.assertEqual(set(parser.links)-set(parser.ids),set()); self.assertEqual(parser.external,[])
+    def test_custom_title(self):
+        self.assertIn('<title>Atlas Review</title>',render_report.render(self.data,artifact=True,title='Atlas Review'))
+
+class MeasureTests(unittest.TestCase):
+    def pkg(self,root):
+        app=root/'app'; (app/'core').mkdir(parents=True); (root/'tests').mkdir()
+        (app/'__init__.py').write_text(''); (app/'core/__init__.py').write_text('')
+        (app/'a.py').write_text('from app import b\nfrom typing import TYPE_CHECKING\nif TYPE_CHECKING:\n    from app import c\n')
+        (app/'b.py').write_text('def g():\n    from app.a import x\n    return x\nclass Order:\n    __tablename__ = "orders"\n')
+        (app/'c.py').write_text('from app.b import Order\nfrom sqlalchemy import update\ndef h(db):\n    db.add(Order())\n    db.execute(update(Order))\n    gate(1, relax=True)\n')
+        (app/'core/d.py').write_text('from .. import a\nSTATUS = "done"\n')
+        (root/'tests/test_x.py').write_text('from unittest.mock import patch\n@patch("app.b.g")\n@patch("app.c._private")\ndef test_x(): pass\n')
+        (root/'.env').write_text('SECRET=do-not-read')
+    def test_import_graph_cycle_and_contexts(self):
+        with tempfile.TemporaryDirectory() as td:
+            root=Path(td); self.pkg(root)
+            mods,edges,_=measure.python_imports(root,'app',False)
+            self.assertEqual(edges[('app.a','app.b')],'module')
+            self.assertEqual(edges[('app.b','app.a')],'function')
+            self.assertEqual(edges[('app.a','app.c')],'type_checking')
+            self.assertEqual(edges[('app.core.d','app.a')],'module')
+            summary=measure.graph_summary(mods,edges,2,5)
+            self.assertEqual(summary['largest_cycle_including_deferred']['size'],2)
+            self.assertEqual(summary['largest_cycle_module_level']['size'],0)
+    def test_writers_callers_pins_occurrences(self):
+        with tempfile.TemporaryDirectory() as td:
+            root=Path(td); self.pkg(root)
+            ns=lambda **k: type('A',(),dict(dict(include_tests=False,top=5),**k))()
+            w=measure.cmd_writers(ns(root=root/'app'))
+            self.assertEqual(sorted(w['tables']['orders']['writers']),['c.py'])
+            c=measure.cmd_callers(ns(root=root/'app',function='gate',keyword='relax=True'))
+            self.assertEqual(c['sites'],1)
+            t=measure.cmd_test_pins(ns(root=root,prefix='app.'))
+            self.assertEqual((t['pins'],t['private_name_pins']),(2,1))
+            o=measure.cmd_occurrences(ns(root=root/'app',pattern='"done"',suffix=None))
+            self.assertEqual(o['files'],1)
+            self.assertNotIn('do-not-read',json.dumps([w,c,t,o]))
+    def test_js_imports(self):
+        with tempfile.TemporaryDirectory() as td:
+            root=Path(td); (root/'src').mkdir()
+            (root/'src/a.ts').write_text("import { b } from './b'\nconst c = () => import('./c')\n")
+            (root/'src/b.ts').write_text("export const b = 1\nimport a from './a'\n"); (root/'src/c.ts').write_text('export {}')
+            mods,edges,_=measure.js_imports(root,False)
+            self.assertEqual(edges[('src/a','src/b')],'module'); self.assertEqual(edges[('src/a','src/c')],'function')
+            self.assertEqual(measure.graph_summary(mods,edges,1,5)['largest_cycle_module_level']['size'],2)
+    def test_refuses_output_inside_tree(self):
+        with tempfile.TemporaryDirectory() as td:
+            root=Path(td); self.pkg(root)
+            r=subprocess.run([sys.executable,str(ROOT/'scripts/measure.py'),'--out',str(root/'m.json'),'imports',str(root)],capture_output=True,text=True)
+            self.assertNotEqual(r.returncode,0); self.assertFalse((root/'m.json').exists())
+
+def make_git_repo(root):
+    run=lambda *a: subprocess.run(['git','-C',str(root),*a],check=True,capture_output=True)
+    run('init','-q'); run('config','user.email','t@example.org'); run('config','user.name','T')
+    (root/'a.py').write_text('x = 1\n'); run('add','.'); run('commit','-qm','feat: start')
+    (root/'a.py').write_text('x = 2\n'); run('commit','-qam','fix: correct x')
+    return run
+
+@unittest.skipUnless(__import__('shutil').which('git'),'git not available')
+class GitToolTests(unittest.TestCase):
+    def test_revision_check_reports_dirty_state(self):
+        with tempfile.TemporaryDirectory() as td:
+            root=Path(td)/'repo'; root.mkdir(); make_git_repo(root); (root/'b.py').write_text('y')
+            before=subprocess.run(['git','-C',str(root),'status','--porcelain'],capture_output=True,text=True).stdout
+            r=revision_check.check(root)
+            self.assertEqual(r['dirty_files'],1); self.assertIsNone(r['behind']); self.assertTrue(r['advice'])
+            self.assertEqual(before,subprocess.run(['git','-C',str(root),'status','--porcelain'],capture_output=True,text=True).stdout)
+    def test_export_outside_repo_only(self):
+        with tempfile.TemporaryDirectory() as td:
+            root=Path(td)/'repo'; root.mkdir(); make_git_repo(root)
+            with self.assertRaises(ValueError): revision_check.export(root,'HEAD',root/'export')
+            info=revision_check.export(root,'HEAD~1',Path(td)/'export')
+            self.assertEqual((Path(td)/'export/a.py').read_text(),'x = 1\n'); self.assertEqual(info['files'],1)
+    def test_history_counts_fix_commits(self):
+        with tempfile.TemporaryDirectory() as td:
+            root=Path(td)/'repo'; root.mkdir(); make_git_repo(root)
+            ns=type('A',(),dict(root=root,since='10 years ago',path=None,top=5,max_files_per_commit=30))()
+            h=measure.cmd_history(ns)
+            self.assertEqual(h['commits'],2); self.assertEqual(h['fix_commits_top'][0][:2],('a.py',1))
+
+class EvidenceToolTests(unittest.TestCase):
+    def test_assemble_ids_supports_dedupe_and_checks(self):
+        with tempfile.TemporaryDirectory() as td:
+            repo=Path(td)/'repo'; repo.mkdir(); (repo/'a.py').write_text('one\ntwo\n')
+            recs=[dict(local_id='w1',kind='code',location='a.py',line_start=1,line_end=2,observation='Two lines.',excerpt='one two'),
+                  dict(local_id='w2',kind='code',location='a.py',line_start=1,line_end=2,observation='Two  lines.'),
+                  dict(local_id='w3',kind='inference',location='a.py',observation='Derived.',supports=['w1']),
+                  dict(local_id='w4',kind='code',location='a.py',line_start=1,line_end=9,observation='Too long.'),
+                  dict(local_id='w5',kind='measurement',location='a.py',observation='No command.')]
+            for r in recs: r['_origin']='x'
+            ev,idmap,errors=evidence_tool.assemble(recs,repo.resolve(),'rev','env','2026-09-27','E',1)
+            self.assertEqual(idmap['w1'],'E001'); self.assertEqual(idmap['w2'],'E001')
+            self.assertEqual([e for e in ev if e['id']==idmap['w3']][0]['supports'],['E001'])
+            self.assertTrue(any('exceed' in e for e in errors)); self.assertTrue(any('command' in e for e in errors))
+
+class CompareTests(unittest.TestCase):
+    def test_added_resolved_and_changed(self):
+        old=read_json(ROOT/'examples/demo-audit.json'); new=copy.deepcopy(old)
+        new['findings'][0]['priority']='P0'
+        gone=new['findings'].pop()
+        new['findings'].append(dict(copy.deepcopy(new['findings'][1]),id='F099',title='A brand new unrelated problem'))
+        r=compare_audits.compare(old,new)
+        self.assertIn(gone['id'],[x['id'] for x in r['findings']['resolved_or_dropped']])
+        self.assertIn('F099',[x['id'] for x in r['findings']['added']])
+        self.assertEqual(r['findings']['priority_changed'][0]['priority'][1],'P0')
+        self.assertIn('## New findings',compare_audits.markdown(r))
 
 
 if __name__=='__main__': unittest.main(verbosity=2)

@@ -1,5 +1,14 @@
 # Context, discovery, and evidence
 
+## Revision check before reading
+
+Run `scripts/revision_check.py <repo>` before inspecting any source. It reports HEAD, its upstream as last fetched, commits ahead and behind, uncommitted files and the last fetch time, without fetching or checking anything out.
+
+- When HEAD is behind its upstream, say so and ask which revision the audit should describe. Without an answer, audit HEAD and recheck every P0 to P2 finding on the newer ref before reporting; record the result in the finding's `newer_ref_status`. A finding already fixed there is reported as fixed upstream and cannot stay P0 or P1. Checking only the top findings is not enough: a lower finding that was fixed upstream still misleads the reader.
+- To read the newer ref without touching the checkout, export it with `--export-ref <ref> --export-dir <empty dir outside the repo>` (git archive) and point measurements and rechecks at the export.
+- Uncommitted files are part of what the user is working on; mark evidence from them as working-tree state and do not recommend changes that collide with them without saying so.
+- Record the outcome in `revision_check` in `audit.json`. Do not fetch without permission; a stale upstream is reported as a limitation.
+
 ## Questions that change decisions
 
 Inspect authorized sources first. Ask at most eight questions, omitting answered topics. Accept approximate ranges and record their origin. Explain which decision needs each answer.
@@ -27,7 +36,30 @@ Start with README, applicable instructions, manifests, lockfiles, workspaces, en
 
 File count is not quality. Automatic inventory is a conservative candidate list. Ignored directories, submodules, generated code, and dependencies may be excluded. Investigate relevant exceptions separately only when authorized.
 
-For large systems, map the whole known system, then sample critical flows, change hotspots, central components, expensive queries, fragile integrations, and team boundaries. Use history only when available and permitted. Distinguish change coupling in version history from runtime temporal coupling and connascence; co-change alone does not prove causation. Record known totals, inspected counts, and gaps.
+For large systems, map the whole known system, then sample critical flows, change hotspots, central components, expensive queries, fragile integrations, and team boundaries. Distinguish change coupling in version history from runtime temporal coupling and connascence; co-change alone does not prove causation. Record known totals, inspected counts, and gaps.
+
+## Measurements and history
+
+Use `scripts/measure.py` for structural numbers instead of ad hoc scripts: `imports` (dependency graph, cycles including in-function imports, fan-in and fan-out, instability, package matrix), `writers` (modules that write each table), `history` (churn, co-change, fix and revert commits), `test-pins` (module paths named in tests), `endpoints`, `callers` and `occurrences`. Every result states its counting conventions; quote them when a number supports a finding, and never compare numbers produced under different conventions without saying so.
+
+History is evidence when git is available. Read it by default: hot spots decide where depth pays off, co-change reveals hidden coupling, and fix commits link a design problem to an incident that already happened. An incident linked through a fix commit raises confidence and priority; record it in the finding's `incident` field. See `module-design.md` for the investigations these measurements feed.
+
+## Delegation and exploration packets
+
+Delegate exploration only when the inventory is larger than the coordinator can read directly; a small repository is cheaper to read than to brief. Split work by dimension or subsystem, never by finding. Each worker receives a packet and returns facts, not judgments.
+
+- **Packet in:** scope and paths, the audited revision, the read-only, no-secrets, no-execution and untrusted-content rules, and the evidence record format below. Do not send the rubric, priorities or Leitwörter; judgment stays with the coordinator.
+- **Records out:** JSON lines with `local_id`, `kind`, `location`, `line_start`, `line_end`, `observation`, optional `excerpt`, `command` for measurements and `supports` for inferences. An absence claim states the exact search and scope.
+- **Assembly:** `scripts/evidence_tool.py assemble` assigns E-IDs, maps `supports`, removes duplicates and checks files, line ranges and excerpts against the checkout. The coordinator re-reads every record that supports a P0 or P1 finding, a `not_applicable` rating or a system-wide absence claim.
+- **Privacy:** a worker that runs through an external provider receives private source code; that is an upload and needs the user's explicit approval (execution boundary 2). Prefer workers native to the host.
+
+## Challenge pass
+
+Before rendering, give every P0 and P1 candidate, and every structural recommendation, to a reviewer that did not produce it. The reviewer's task is to refute: find the guard, constraint, sweep, test or documented decision that makes the claim false or smaller, and check the newer ref when one exists. It returns, per claim, a verdict (confirmed, partly confirmed, refuted), the counterevidence with locations, the newer-ref status and a suggested priority. Record the pass as a verification entry, including how many priorities changed. Use an independent model or person when available; otherwise disclose a second pass by the same reviewer.
+
+## Folding in another review
+
+Another report on the same system is a lead, not evidence. To fold it in: record it as `documentation` evidence; re-verify each claim you adopt at the audited revision and cite your own evidence; reconcile metric differences by convention before calling them disagreements (for example per-statement versus per-name import counts); record agreements, disagreements, adopted findings and anything not re-verified in `external_reviews`; and correct your own report where the other review is right. Use `scripts/compare_audits.py` to line up two `audit.json` files for a follow-up audit.
 
 ## Traceable evidence
 

@@ -1,6 +1,6 @@
 # Sources and attribution policy
 
-The original bibliography is retained and translated. Public terminology references added or rechecked for this update are identified by their access notes. The check date is September 26, 2026. A publisher page, table of contents, or chapter excerpt is not a claim to have read the entire book. This is a complementary reading list, not an objective ranking of the best books.
+The original bibliography is retained and translated. Public terminology references added or rechecked for this update are identified by their access notes. The check date is September 26, 2026. W21 to W23 were added and checked on September 27, 2026. A publisher page, table of contents, or chapter excerpt is not a claim to have read the entire book. This is a complementary reading list, not an objective ranking of the best books.
 
 For each important finding, connect the relevant concept to an actual system observation. Literature establishes an analytical lens; it does not prove that the repository has a defect. Use `sources` only for references actually applied in that report. Do not append the entire catalog by default.
 
@@ -437,6 +437,36 @@ Source: https://www.oreilly.com/library/view/clean-architecture-a/9780134494272/
 Access: Licensed table of contents and public chapter previews; not a full-book reading.
 
 Recorded check date: 2026-09-26
+
+## W21. codebase-design skill: shared vocabulary for designing deep modules
+
+Matt Pocock. Deep module vocabulary (module, interface, depth, seam, adapter, leverage, locality), the deletion test, the interface as the test surface, the one-adapter rule, dependency categories and design it twice.
+
+Source: https://github.com/mattpocock/skills/tree/main/skills/engineering/codebase-design
+
+Access: Public repository; SKILL.md, DEEPENING.md and DESIGN-IT-TWICE.md read in full.
+
+Recorded check date: 2026-09-27
+
+## W22. improve-codebase-architecture skill
+
+Matt Pocock. Scoping by commit hot spots, friction-driven exploration, dependency categories on candidates, before and after views per candidate, respecting ADRs, and the follow-up loop (grilling, glossary updates, ADR offers).
+
+Source: https://github.com/mattpocock/skills/tree/main/skills/engineering/improve-codebase-architecture
+
+Access: Public repository; SKILL.md and HTML-REPORT.md read in full.
+
+Recorded check date: 2026-09-27
+
+## W23. Import Linter documentation
+
+David Seddon and contributors. Layer and forbidden-import contracts with named ignore_imports baselines as a Python architectural fitness function.
+
+Source: https://import-linter.readthedocs.io/
+
+Access: Public project documentation; contract types consulted.
+
+Recorded check date: 2026-09-27
 
 ## Disagreements require judgment
 

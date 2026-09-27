@@ -4,11 +4,15 @@ A reusable skill for assessing an existing software architecture and presenting 
 
 The central question is: **Is the system fit for purpose, with justified complexity and total cost?** The assessment must identify what to preserve as well as what to change. It does not automatically prefer DDD Tactical Building Blocks, additional layers, an ORM, events, a monolith, or microservices.
 
-## English edition, version 2.0.0
+## Version 2.1.0
+
+Version 2.1 adds what three independent reviews of one real system showed this skill was missing: a revision check before reading (a stale checkout once let an already-fixed defect into a published report), deterministic measurement scripts with stated counting conventions, an evidence assembler that checks cited lines, a module design lens (deletion test, leverage, locality, adapters, dependency categories) with three investigations (concept duplication, safety-critical callers, refactor cost), respected decisions, a target architecture with guardrails, implementation safety notes and first moves, a structured challenge pass, folding in other reviews, audit comparison, light and dark themes, and an artifact output mode. The deep-module material adapts Matt Pocock's `codebase-design` and `improve-codebase-architecture` skills [W21, W22]. Schema 2.1 is backward compatible: 2.0 reports still validate.
+
+## English edition
 
 The complete package is in English: instructions, reference guides, catalogs, schema, renderer messages, demo data, HTML, verification records, and behavioral evaluation specifications. Actual identifiers, commands, URLs, and canonical technical spelling are preserved.
 
-The terminology catalog contains 74 entries. It distinguishes DDD from Clean Architecture meanings and includes Component Cohesion/Coupling principles, storage and replication concepts, transaction isolation, legacy seams, and verification patterns. `references/leitwoerter.md` turns selected terms into decision checkpoints, finding statements, actions, and acceptance checks. This is an authoring convention, not a measured agent-performance claim.
+The terminology catalog contains 80 entries. It distinguishes DDD from Clean Architecture meanings and includes Component Cohesion/Coupling principles, storage and replication concepts, transaction isolation, legacy seams, and verification patterns. `references/leitwoerter.md` turns selected terms into decision checkpoints, finding statements, actions, and acceptance checks. This is an authoring convention, not a measured agent-performance claim.
 
 Schema 2.0 requires `leitwort` and `decision_statement` on findings and a `concept_applications` register. Earlier report JSON needs explicit migration; the validator will not silently accept or relabel it. Do not merge package versions without review.
 
@@ -59,11 +63,11 @@ Useful context includes purpose, team, criticality, typical and peak workload, d
 
 ## Outputs
 
-`report.html` includes context, current architecture, all 20 dimensions, strengths, findings, concept applications, quality scenarios, capacity, alternatives, roadmap, agent readiness, economics, evidence, verification, sources, and glossary. Observed and proposed diagrams remain distinct. Every finding explains its tradeoff, smallest useful action, conditions for not acting, acceptance, and rollback.
+`report.html` includes context and the revision audited, current architecture, all 20 dimensions, strengths, decisions respected, findings with short summaries, concept applications, quality scenarios, capacity, alternatives, the target architecture, roadmap with first moves, guardrails, agent readiness, economics, other reviews folded in, evidence, verification, sources, and glossary. Observed and proposed diagrams remain distinct. Every finding explains its tradeoff, smallest useful action, conditions for not acting, acceptance, and rollback.
 
 `audit.json` is the structured source. `evidence.jsonl` preserves provenance. `verification.md` records procedures and results. Optional inventory records metadata only. None of these files proves correctness on its own.
 
-The HTML includes local search, priority filtering, expandable details, SVG diagrams, accessible tables, narrow-screen layout, and print styles. It loads no external visualization assets, telemetry, or CDN. Source links are optional outbound links activated by the reader.
+The HTML includes local search, priority filtering, expandable details, SVG diagrams, accessible tables, light and dark themes, narrow-screen layout, and print styles. `--artifact` emits page content for an artifact host (short title, no document skeleton or print control). It loads no external visualization assets, telemetry, or CDN. Source links are optional outbound links activated by the reader.
 
 ## Package layout
 
@@ -74,6 +78,7 @@ architecture-review/
   references/
     workflow.md
     rubric.md
+    module-design.md
     decisions.md
     agent-readiness.md
     output-contract.md
@@ -88,6 +93,10 @@ architecture-review/
     report.html
   scripts/
     inventory.py
+    revision_check.py
+    measure.py
+    evidence_tool.py
+    compare_audits.py
     validate_report.py
     render_report.py
     selftest.py
@@ -123,7 +132,17 @@ Inventory a repository using an output path outside it:
 python3 scripts/inventory.py /path/to/repository --out /path/to/audits/inventory.json
 ```
 
-The inventory does not read code contents or execute the project. Architectural assessment is performed by the agent using this skill; the scripts do not infer architecture or fabricate findings.
+Check the revision first, measure structure, and validate cited lines against the checkout:
+
+```sh
+python3 scripts/revision_check.py /path/to/repository
+python3 scripts/measure.py imports /path/to/repository/src --prefix app
+python3 scripts/measure.py history /path/to/repository --since "6 months ago"
+python3 scripts/validate_report.py /path/to/audits/audit.json --repo /path/to/repository
+python3 scripts/compare_audits.py old/audit.json new/audit.json
+```
+
+The inventory does not read code contents or execute the project. The other scripts read source text and git metadata; none imports or runs project code, fetches, or writes inside the repository. Architectural assessment is performed by the agent using this skill; the scripts do not infer architecture or fabricate findings.
 
 ## Safety and evaluation
 

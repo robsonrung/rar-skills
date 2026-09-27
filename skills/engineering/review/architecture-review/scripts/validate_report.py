@@ -87,11 +87,16 @@ def validate(data: dict) -> list[str]:
     ids = []
     for group in groups:
         ids.extend(x['id'] for x in data[group])
+    for group in V21_GROUPS:
+        ids.extend(x['id'] for x in data.get(group, []))
+    if 'target' in data:
+        ids.extend(r['id'] for r in data['target']['rules'])
     if len(ids) != len(set(ids)):
         errors.append('IDs must be unique across all report sections')
     reserved = {'concepts','main','context','architecture','assessment','strengths','findings',
                 'requirements','alternatives','roadmap','agents','cost','evidence','verification',
-                'sources','report-search','priority-filter','filter-count','print-button'}
+                'sources','report-search','priority-filter','filter-count','print-button',
+                'revision','decisions','target','guardrails','reviews'}
     reserved.update('title-'+d['id'] for d in data['diagrams'])
     reserved.update('desc-'+d['id'] for d in data['diagrams'])
     reserved.update('arrow-'+d['id']+'-'+kind for d in data['diagrams']
@@ -261,6 +266,101 @@ def validate(data: dict) -> list[str]:
     finished=set()
     if any(visit(node,set(),finished) for node in roadmap):
         errors.append('roadmap: dependency cycle')
+    errors += v21_errors(data, findings, evidence)
+    return errors
+
+V21_GROUPS = ('respected_decisions', 'guardrails', 'external_reviews')
+V21_FINDING_FIELDS = ('summary', 'dependency_category', 'newer_ref_status', 'adr_conflict', 'incident', 'guardrails')
+V21_ROADMAP_FIELDS = ('must_preserve', 'first_move', 'guardrails')
+
+def uses_v21(data: dict) -> bool:
+    if any(k in data for k in ('revision_check', 'target') + V21_GROUPS):
+        return True
+    if any(k in f for f in data['findings'] for k in V21_FINDING_FIELDS):
+        return True
+    if any(k in r for r in data['roadmap'] for k in V21_ROADMAP_FIELDS):
+        return True
+    return any('excerpt' in e for e in data['evidence'])
+
+def v21_errors(data: dict, findings: set, evidence: dict) -> list[str]:
+    """Cross-reference and consistency rules for schema 2.1 additions."""
+    errors = []
+    if uses_v21(data) and data['schema_version'] != '2.1':
+        errors.append('schema_version: 2.1 fields require schema_version 2.1')
+    guards = {g['id']: g for g in data.get('guardrails', [])}
+    diagrams = {d['id']: d for d in data['diagrams']}
+    def refs(values, pool, where):
+        for value in values:
+            if value not in pool:
+                errors.append(f'{where}: unknown reference {value}')
+    for g in guards.values():
+        refs(g['related_findings'], findings, g['id'])
+        if g['status'] == 'existing' and not g['evidence']:
+            errors.append(f'{g["id"]}: an existing guardrail needs evidence of where it runs')
+        if g['status'] == 'proposed' and not g['sketch']:
+            errors.append(f'{g["id"]}: a proposed guardrail needs a sketch of the check')
+    for d in data.get('respected_decisions', []):
+        refs(d['related_findings'], findings, d['id'])
+        if not d['evidence']:
+            errors.append(f'{d["id"]}: a respected decision needs evidence of where it is recorded')
+    for x in data.get('external_reviews', []):
+        refs(x['adopted_findings'], findings, x['id'])
+    rc = data.get('revision_check')
+    newer = bool(rc and (rc['newer_ref'] or (rc['behind'] or 0) > 0))
+    for f in data['findings']:
+        refs(f.get('guardrails', []), guards, f['id'])
+        status = f.get('newer_ref_status')
+        if newer and f['priority'] != 'P3' and status in (None, 'not_checked'):
+            errors.append(f'{f["id"]}: a newer ref exists; record newer_ref_status after rechecking this finding there')
+        if status == 'fixed' and f['priority'] in ('P0', 'P1'):
+            errors.append(f'{f["id"]}: a finding fixed on the newer ref cannot stay P0/P1')
+        wins = f.get('summary', {}).get('wins', [])
+        if any(len(w) > 70 for w in wins):
+            errors.append(f'{f["id"]}: summary wins must be short phrases (70 characters or fewer)')
+    first = [r['id'] for r in data['roadmap'] if r.get('first_move')]
+    if len(first) > 3:
+        errors.append('roadmap: mark at most three steps as first_move')
+    for r in data['roadmap']:
+        refs(r.get('guardrails', []), guards, r['id'])
+    t = data.get('target')
+    if t:
+        if t['diagram'] is not None:
+            if t['diagram'] not in diagrams:
+                errors.append(f'target: unknown diagram {t["diagram"]}')
+            elif diagrams[t['diagram']]['state'] != 'proposed':
+                errors.append('target: the target diagram must be a proposed view')
+        for rule in t['rules']:
+            refs(rule['enforced_by'], guards, rule['id'])
+            if rule['status'] in ('holds', 'violated', 'partially_holds') and not rule['evidence']:
+                errors.append(f'{rule["id"]}: an assessed rule needs evidence')
+    return errors
+
+def repo_errors(data: dict, repo: Path) -> list[str]:
+    """Check cited files, line ranges and excerpts against a checkout of the audited ref.
+
+    Records whose revision names a different ref than revision_check.audited_ref are skipped,
+    because the working tree cannot prove them; check those with the ref's own export.
+    """
+    errors = []
+    repo = repo.resolve()
+    audited = (data.get('revision_check') or {}).get('audited_ref')
+    for e in data['evidence']:
+        if e['line_start'] is None or e['kind'] not in ('code', 'config', 'documentation'):
+            continue
+        if audited and not e['revision'].startswith(audited[:7]):
+            continue
+        path = (repo / e['location']).resolve()
+        if repo not in path.parents or path.is_symlink() or not path.is_file():
+            errors.append(f'{e["id"]}: cited file not found in the repository: {e["location"]}')
+            continue
+        lines = path.read_text(encoding='utf-8', errors='replace').splitlines()
+        if e['line_end'] > len(lines):
+            errors.append(f'{e["id"]}: line range {e["line_start"]}-{e["line_end"]} exceeds {len(lines)} lines')
+            continue
+        if 'excerpt' in e:
+            window = ' '.join(' '.join(lines[e['line_start'] - 1:e['line_end']]).split())
+            if ' '.join(e['excerpt'].split()) not in window:
+                errors.append(f'{e["id"]}: excerpt not found in the cited lines')
     return errors
 
 def load_validated(path: Path):
@@ -273,14 +373,20 @@ def load_validated(path: Path):
 def main():
     ap=argparse.ArgumentParser(description=__doc__)
     ap.add_argument('report',type=Path)
+    ap.add_argument('--repo',type=Path,help='check cited files, line ranges and excerpts against this checkout')
     args=ap.parse_args()
     try:
         data=load_validated(args.report)
+        if args.repo:
+            errors=repo_errors(data,args.repo)
+            if errors:
+                raise ReportError('\n'.join(errors))
     except (OSError,ValueError,RecursionError) as exc:
         print(f'INVALID\n{exc}',file=sys.stderr)
         return 1
     print(f'VALID: {len(data["dimensions"])} dimensions, {len(data["findings"])} findings, '
-          f'{len(data["evidence"])} evidence records. Structural checks only.')
+          f'{len(data["evidence"])} evidence records. Structural checks only'
+          + ('; cited lines checked against the repository.' if args.repo else '.'))
     return 0
 if __name__=='__main__':
     raise SystemExit(main())

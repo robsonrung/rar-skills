@@ -1,5 +1,18 @@
 # Validation results
 
+## Edition 2.1.0, September 27, 2026
+
+| Check | Result | Evidence and scope |
+| :--- | :--- | :--- |
+| Python selftests | 91 passed, 0 failed | `selftest.log`, Python 3.13. Adds 27 tests for schema 2.1 rules, `--repo` line and excerpt checks, the new sections, both themes, artifact mode, `measure.py` (import contexts and cycles, writers, callers, test pins, occurrences, JS imports, output refusal), `revision_check.py` (dirty state, export outside the repository, no working-tree change), `evidence_tool.py`, and `compare_audits.py`. |
+| Demo validation | Passed | `scripts/validate_report.py examples/demo-audit.json`; the fictional demo now uses schema 2.1 and exercises every new group. |
+| Visual inspection | Completed, manual | Regenerated `examples/rendered/report.html` viewed in a browser at desktop width in dark and light themes: findings with summaries and badges, target architecture tables, and diagrams. The automated browser suite and screenshots below were not re-run for 2.1. |
+| Measurement reproduction | Completed, read-only | `measure.py` run against a real private repository reproduced the counts a manual review had produced (a 140-module cycle hidden by in-function imports, 8 writer modules for two shared tables, 485 endpoints, 3 guard-relaxing call sites), and `revision_check.py` reported the 11-commit lag that the manual review discovered late. No product code was executed and nothing in that repository was written. |
+
+The behavioral cases EV01 to EV33 remain proposed evaluations; none has been executed end to end.
+
+## Edition 2.0.0
+
 Edition: 2.0.0, English. Verification date: September 26, 2026.
 
 ## Executed checks
