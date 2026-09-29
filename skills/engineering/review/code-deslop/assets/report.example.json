@@ -1,0 +1,40 @@
+{
+  "schema_version": "1.0",
+  "mode": "audit",
+  "scope": "Illustrative example only: example/count.ts, no repository inspected",
+  "summary": "Example proposal. No changes or checks have been performed.",
+  "changed_files": [],
+  "exclusions": ["This example does not describe a real repository assessment."],
+  "findings": [
+    {
+      "id": "F1",
+      "status": "proposed",
+      "category": "noise",
+      "path": "example/count.ts",
+      "line": 1,
+      "risk": "low",
+      "evidence": "Hypothetical input: '// Add one' directly above 'count += 1'.",
+      "cost": "Repeats the operation without explaining a constraint.",
+      "counterevidence": "Check whether this is tutorial code, an executable directive, or required public documentation.",
+      "action": "Remove only the narrating comment after confirming its purpose.",
+      "reason": "An assessment does not authorize edits.",
+      "check_ids": ["C1"]
+    }
+  ],
+  "checks": [
+    {
+      "id": "C1",
+      "kind": "static",
+      "command": null,
+      "baseline": "not-run",
+      "after": "not-run",
+      "evidence": "Example only; inspect the real source and comment consumers before editing."
+    }
+  ],
+  "review": {
+    "independence": "none",
+    "result": "not-run",
+    "evidence": "No reviewer ran for this illustrative example."
+  },
+  "unresolved": ["Replace every illustrative statement with actual evidence when producing a real report."]
+}
