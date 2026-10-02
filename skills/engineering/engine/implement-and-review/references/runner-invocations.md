@@ -51,6 +51,12 @@ approved `input_path`, verifies its canonical content hash, and puts that task
 contract before the notes. A note cannot replace the approved task contract.
 The manifest records both source digests.
 
+A canonical task with a standalone `**Status:** draft` declaration cannot launch,
+including spaces or tabs around the declaration or status value, even with an
+approved routing plan. Promote the task before dispatch. A dry run can
+preview a draft without writes. Legacy standalone contracts without a task
+status line remain supported.
+
 One sequential track works in a Git or non-Git directory. Independent tracks
 use reversible isolation:
 
@@ -194,6 +200,14 @@ Send the returned handoff through the host's follow-up tool, then use
 reviewer recheck; it retains the reviewer session and counts the next review
 cycle. Native follow-ups also have a hard bound; they do not extend the approved
 review cycle or evidence recovery allowances.
+
+The native implementation followup limit is the approved reviewer route's
+`recovery.review_cycles` plus `recovery.evidence_recoveries`. Plans without
+`recovery` keep the limit of four followups. The manifest saves `resume_attempts`
+before returning a handoff for host dispatch. The count persists across resume
+and context reconstruction. A retry while a call is pending cannot reserve
+another followup. Review cycles and evidence recoveries retain their separate
+counts and limits; the followup bound does not grant either reservation.
 
 If a native context is confirmed lost, use `--context-recovery-reason` on the
 documented continuation or receipt command. Reconstruct only the same role from

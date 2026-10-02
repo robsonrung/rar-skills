@@ -32,12 +32,12 @@ Test driven development
 
 Mode selection
 
-1. When invoking any skill that offers selectable modes (safe mode, panel mode, council modes, an `--auto` variant, a browser mechanism, or similar), ask the user which mode to use unless the user explicitly stated the mode in their request.
-2. Silence never selects a mode. A skill's default mode applies only after the user confirms it, or when the skill's own contract explicitly grants the mode (such as a documented `--auto` invocation).
-3. Ask once: name the available modes and their consequences in a single question, not a chain of prompts.
+1. Use the mode supplied by the user or inherited from the caller. Otherwise use the skill's safe scoped default when it fits the invocation authority.
+2. Ask only when the choice changes scope, cost, permitted effects, or a material unresolved decision. Name the relevant choices and consequences in one question. Continue independent authorized work while waiting.
+3. Silence is not approval. Preserve explicit council approval and any mode that requires additional authority. A documented invocation such as `--auto` supplies its stated mandate.
 
 Contract integrity
 
-1. Never delete, skip, weaken, narrow, or mock-away tests — and never loosen acceptance checks — to make a contract pass.
+1. Preserve tests and acceptance checks. Never delete, skip, weaken, narrow, or mock-away them to make a contract pass.
 2. Distinguish the accepted product contract from a test implementation error. Within repair authority, correct a selector, fixture, type expectation, or response expectation when authoritative requirements and source establish the result. Preserve the failed evidence and record the reason. Do not remove an assertion or weaken the accepted behavior. If the requirement itself changes or remains ambiguous, obtain the missing decision.
 3. Green obtained by gaming the check is a failure with extra steps: it converts a visible red into an invisible defect.

@@ -6,7 +6,7 @@ disable-model-invocation: true
 
 # Explain Architecture
 
-For a direct invocation, first use `shared/references/model-preview.md`. Nested calls reuse the parent's selected snapshot without another prompt or unlisted workers.
+Choose the branch before selecting a model. Explore, assemble, validate, and inspect the visual artifact in the assigned role. Before dispatching independent research work, obtain or reuse exactly one approved snapshot through `shared/references/model-preview.md`.
 
 Build an accurate mental model of a codebase (or a chosen part of it) and deliver it as one self-contained HTML **orientation page**. The goal is **orientation**, not critique — a reader should finish knowing what the pieces are, how they fit, where data flows, and where to look next.
 
@@ -45,7 +45,7 @@ Follow the shared evidence contract, `shared/references/grounded-evidence.md`: g
 4. **One real flow end-to-end** — trace a representative request or event through the layers (e.g. frontend action → API route → service → entity/DB → emitted event → worker). A concrete trace beats abstract description.
 5. **Cross-cutting** — auth, multi-tenancy, error handling, migrations, codegen.
 
-For a large scope, use available parallel research only for independent areas. Keep conclusions, source paths, and short verified snippets, not file dumps. Stop when each planned section has its lede, map facts, and 1–3 verbatim snippets with `path:line`.
+For a large scope, dispatch research only when an area is independent, substantial, and has a material evidence gap. Use the approved snapshot for every selected worker. A nested worker does not re-resolve a route or add a worker. Otherwise explore in the assigned role. Keep conclusions, source paths, and short verified snippets, not file dumps. Stop when each planned section has its lede, map facts, and 1–3 verbatim snippets with `path:line`.
 
 ## Step 2 — Organize into layers
 

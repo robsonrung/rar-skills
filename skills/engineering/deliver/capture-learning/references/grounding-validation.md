@@ -20,4 +20,4 @@ After an edit, run the mechanical validator again. Finish only when every remain
 
 ## Independent check
 
-Use one read-only reviewer only when the document makes material claims that current source and validator output cannot settle. Give that reviewer the document and the specific claims to check. Correct contradicted claims and soften unverifiable ones. Do not add a review pass for routine, well-cited documentation.
+Use one read-only reviewer only when the document makes material claims that current source and validator output cannot settle. Before dispatch, bind that reviewer to the approved snapshot from `../../../../shared/references/model-preview.md`. Give the reviewer the document and the specific claims to check. Correct contradicted claims and soften unverifiable ones. Do not add a review pass for routine, well-cited documentation.

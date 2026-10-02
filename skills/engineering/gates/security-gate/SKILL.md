@@ -5,15 +5,15 @@ description: Identify security decisions during an interview and classify slices
 
 # Security Gate
 
-For a direct invocation, first use `shared/references/model-preview.md`. Nested calls reuse the parent's selected snapshot without another prompt or unlisted workers.
-
-Two small jobs: (1) run the **threat-model-lite** while the user is still choosing the feature, so later phases do not guess security decisions; (2) apply the **deep-pass trigger list** to each slice, then verify deep slices against those decisions. This skill never performs the review — `full-review` does.
+Two small jobs: (1) apply the **threat-model-lite** while the user is still choosing the feature, so later phases do not guess security decisions; (2) apply the **deep-pass trigger list** to each slice, then verify deep slices against those decisions. This skill never performs the review — `full-review` does.
 
 The two leitwörter below are what you name as you work: a **threat-model-lite** question is something you ask the human now; a **deep-pass trigger** is a property of the change that forces a deeper review later.
 
 ## Threat-model-lite — spec-time checklist (interactive)
 
 Run this inside the requirements interview. Resolve repository facts from evidence and return only unresolved security decisions to the interview's frontier. These questions share its five-question limit; do not send a second question batch. Record the answers in the decision record. `to-prd` carries them into the PRD's Security Decisions section.
+
+Reuse recorded decisions. Use a safe scoped default only for a nonmaterial detail. Ask only when the answer changes access, data handling, scope, cost, permitted effect, or an unresolved security decision. Silence is not approval.
 
 1. **Actors & auth**: who can invoke this? What roles/permissions gate each action? What happens for unauthenticated or wrong-role access?
 2. **Untrusted input**: what data arrives from users or external systems? Where is it validated, and what is rejected?

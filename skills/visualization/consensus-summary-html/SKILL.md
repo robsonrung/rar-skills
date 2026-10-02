@@ -6,7 +6,7 @@ disable-model-invocation: true
 
 # Consensus Summary HTML
 
-For a direct invocation, first use `shared/references/model-preview.md`. Nested calls reuse the parent's selected snapshot without another prompt or unlisted workers.
+Choose the branch before selecting a model. Assemble, validate, and inspect the visual artifact in the assigned role. This skill does not dispatch a worker.
 
 Create one HTML page that helps a reader understand a council result in under a minute, then inspect the evidence without opening the raw transcript.
 

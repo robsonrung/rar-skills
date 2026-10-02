@@ -6,7 +6,7 @@ disable-model-invocation: true
 
 # Implement Tasks
 
-For a direct invocation, first use `shared/references/model-preview.md`. Nested calls reuse the parent's selected snapshot without another prompt or unlisted workers.
+Validate scope with the current coordinator and direct tools. Prepare one concrete preview through `shared/references/model-preview.md` before worker dispatch. Reuse an exact combined task and model approval or the parent's immutable snapshot; do not present another model selection for an unchanged plan.
 
 Model IDs, effort support, and task defaults come only from
 `shared/model-routing.json`. Resolve the relevant route before preview or
@@ -14,13 +14,13 @@ approval; preserve the exact saved route during dispatch, retry, and resume.
 
 Turn an approved queue into a verified change. Be a **thin conductor**: own model selection, scheduling, integration, and delivery. `implement-and-review` owns each task's implementation, focused review, and acceptance evidence.
 
-The sequence is `interview-me` → `to-prd` → `to-tasks` → `implement-tasks`. Receive the approved PRD and task queue under `.ai-workflow/work/<feature-slug>/`. A complete single task uses the same model approval and skips graph scheduling. Missing product decisions return to the appropriate earlier stage.
+The feature sequence is `interview-me` → `to-prd` → `to-tasks` → `implement-tasks`. Receive the approved PRD and canonical task queue under `.ai-workflow/work/<feature-slug>/`. For one bounded, specified change with clear acceptance and no unresolved product, security, public contract, data ownership, or dependency decisions, use the existing standalone `implement-and-review` path. It keeps exact model approval and independent review without creating a feature PRD or task graph. Missing material decisions return to the appropriate earlier stage.
 
 ## Select the current phase
 
 | Phase | Required work and reference |
 | --- | --- |
-| Prepare or revise a model plan | Read [references/model-plan.md](references/model-plan.md). Validate the approved queue, dependencies, input hashes, routes, native capabilities, role-session strategy, and available transports; produce the exact preview. |
+| Prepare or revise a model plan | Read [references/model-plan.md](references/model-plan.md). Validate canonical inputs, dependencies, routes, native capabilities, and role sessions. A combined decision can preview drafts; dispatch still requires actual approval and ready tasks. |
 | Schedule and integrate approved tasks | Read [references/feature-orchestration.md](references/feature-orchestration.md). Dispatch ready tasks, enforce write ownership, retain same-task role sessions through permitted iterations, and verify the combined result before releasing dependents. |
 | Verify and deliver | Read [references/completion.md](references/completion.md). Reconcile cross-task risks, capture final acceptance, and deliver within the user's authorization. |
 | Resume | Compare saved scope, route approval, task inputs, and repository state before continuing the applicable phase. Reuse matching approval and evidence. |
@@ -31,7 +31,7 @@ Resolve `shared/` as the collection's `shared` skill describes and worker skills
 
 Before any worker or model job, show exact implementation, independent review, and integration routes. For every route, show the model, effort, native or runner transport, host capability result, role-session strategy, receipt policy, task assignment, concurrency, and call limits. Include planned specialists; no hidden panel follows approval. Resolve task fit and exact models only through the shared routing references. Distinguish task-fit guidance from measured evidence.
 
-Use `.rar-skills/config.local.yaml` only as advisory input while forming the preview; never reread it after approval. The approved plan is authoritative.
+Use `.rar-skills/config.local.yaml` only as advisory input while forming the preview; never reread it after approval. The approved plan is authoritative. A combined response must explicitly approve both the concrete queue and exact execution plan. Record two gates with one actual response reference and bind all inputs; a task-only response cannot satisfy the model gate.
 
 Follow the shared preview decision. A request to “use defaults and run” approves the unchanged resolved setup within existing source sharing authority and accepted receipt limits; show the concrete plan and proceed. Otherwise obtain the model plan decision. Task approval, `--auto`, a saved preference alone, or silence is not model approval. Reuse an explicit approval for the exact scope and routes; do not ask again merely because a same-route role session is resumed or receives a newly recorded context ID. Save the actual response reference, timestamp, and scope/route digests in `routing-plan.json` as [the model-plan reference](references/model-plan.md) specifies.
 
@@ -43,7 +43,7 @@ A model, runner, role, mode, native transport, effort, provider routing, capabil
 2. Start a fresh implementer context and a separate independent reviewer context for each task. A later task never inherits either context. Reuse the recorded implementer for that task's fixes and evidence recovery, and its reviewer for rechecks. Use a separate persistent integration context for the combined revision; it never becomes a task implementer or reviewer. **Hand off the path, not the payload**: pass artifact paths and a short brief.
 3. Follow `host-model-execution.md`. When preflight proves that the active host can run the selected model, effort, isolation, and follow-up natively, use the native subagent or authorized task thread. Use a runner only for a foreign model, an explicit user-requested transport, or a native route that cannot meet the approved requirements, and disclose why in the preview. Prefer a resumable session for an iterative runner role. A missing native continuation capability is recorded; it does not authorize a transport change.
 4. Keep progress in **the ledger, not the transcript**. Store the preview, approved routing plan, and `run-state.json` under `.ai-workflow/impl-review/<session_id>/`. Before dispatch, record each role's route ID, host, transport, task and role, pending call, and pending context entry. When a call returns, record its actual context or session reference, completed turn, input revision, receipt, and resume result. Record effects before dispatch, then confirm from actual state.
-5. Default to at most three tasks in flight within the approved cap; use one sequential writer without isolation. A worker tool's absence is disclosed in the preview before proposing inline execution. Do not reuse a global latest-session selector while more than one role can run.
+5. Use the read-only shared queue controller as [references/queue-controller.md](references/queue-controller.md) specifies. It projects readiness from bound contracts, task manifests, and the call ledger. Default to at most three tasks in flight within the approved cap; use one sequential writer without isolation. Reserve calls before dispatch and keep ownership through unresolved calls and required integration. A worker tool's absence is disclosed in the preview before proposing inline execution.
 6. Keep the approved review and recovery limits per task. Defaults are three review/fix cycles and one evidence recovery. Record attempts before dispatch. Reuse the approved same-task role context during those attempts when it remains available. Exhaustion blocks that task; independent work may continue.
 7. Worker completion is not task completion. Integrate in dependency order and capture applicable acceptance on the combined state. Reuse matching evidence; rerun checks affected by code, dependency, environment, or contract changes and all checks the caller requires fresh.
 8. Pause only the affected task when new evidence requires a material product, security, data ownership, architecture, or irreversible-action decision. Resolve implementation facts from the repository and record reversible assumptions within scope.

@@ -6,7 +6,11 @@ argument-hint: "[PR number, branch name, 'current', or --port PORT]"
 
 # Browser Smoke Test
 
-For a direct invocation, first use `shared/references/model-preview.md`. Nested calls reuse the parent's selected snapshot without another prompt or unlisted workers.
+Run an existing browser suite or declared browser driver directly. A direct
+browser branch does not load a model preview. Before dispatching a browser worker,
+use `shared/references/model-preview.md` and bind one exact approved snapshot to
+the worker request, reservation, privacy controls, and report. Nested calls reuse
+that snapshot and do not add workers.
 
 Produce browser evidence for the routes a change can affect. This is a diff-scoped check. It does not repair code or replace release QA.
 
@@ -15,11 +19,24 @@ Produce browser evidence for the routes a change can affect. This is a diff-scop
 Result: a route table with captured browser evidence.
 
 When the caller uses `shared/references/review-evidence.md`, save actual driver
-output or screenshots for each required observation. Return their absolute paths
-and SHA-256 hashes with observation IDs from the prepared requirements. Report
-pass, fail, or skipped from the observed result. The shared verifier checks the
-files and declared result; it does not repeat browser actions. A skipped required
-observation prevents readiness.
+output or screenshots for each required observation. Use the same observation
+shape in browser smoke, validation, and review:
+
+```json
+{
+  "id": "checkout",
+  "result": "pass",
+  "evidence": [
+    {"path": "/absolute/run/checkout.png", "sha256": "<SHA256>"}
+  ]
+}
+```
+
+`id` must be declared by the prepared requirements. `result` is `pass`, `fail`,
+or `skipped`. Every row has one or more absolute hashed artifacts. Capture a skip
+reason in its driver output or other evidence file; do not add fields to the
+shared row. The shared verifier checks files and the declared observed result. It
+does not repeat browser actions. A skipped required observation prevents readiness.
 
 Done: every mapped route is Pass, Fail, or Skip with a reason. A run that exercises no route is `SKIP`, never `PASS`.
 
@@ -32,7 +49,10 @@ Done: every mapped route is Pass, Fail, or Skip with a reason. A run that exerci
 
 ### 1. Select one browser driver
 
-Reuse the target project's working browser stack when it meets the evidence contract. Select the mechanism in the shared preview by the required capabilities and actual worker access:
+Reuse the target project's working browser stack when it meets the evidence
+contract. Existing browser commands run directly. A worker branch selects the
+mechanism in its exact approved snapshot by required capabilities and actual worker
+access:
 
 | Mechanism | Select when |
 | --- | --- |
@@ -50,9 +70,9 @@ An external Pi worker does not inherit host browser tools. Preflight navigation,
 For visual work, verify model image support and the driver's screenshot path. Load a synthetic image with Pi's image reader or attachment path and capture a typed image payload through the selected adapter before sending repository material. A path or description in plain text is insufficient. Keep the route blocked when driver, tools, images, or required privacy controls fail preflight.
 
 For external Playwright CLI or agent-browser readiness, use the shared
-`browser_preflight.py` helper after observing the capability checks. Supply a
-JSON object with actual booleans for `navigation`, `state_inspection`,
-`interaction`, `assertions`, and `evidence_capture`, plus captured artifacts:
+`browser_preflight.py` helper after observing the capability checks. Supply a JSON
+object with actual booleans for `navigation`, `state_inspection`, `interaction`,
+`assertions`, and `evidence_capture`, plus captured artifacts:
 
 ```bash
 SHARED_DIR="<absolute shared skill directory>";
@@ -99,13 +119,29 @@ For each route, capture fresh state and check:
 3. No visible application error or new console error is caused by the flow.
 4. A changed form or interaction works when the diff affects it.
 
-Derive targets from current accessibility state. Prefer role, label, or stable test ID locators with automatic waits and observable assertions. For an edit, clear the field and read back the exact value before saving. Capture the request and response before navigation or reload. Verify the saved value after reload. Use the supported driver to script stable repeated actions, with assertions at each state change. Capture screenshots for visual evidence and failures; do not return image bytes as text.
+Derive targets from current accessibility state. Prefer role, label, or stable
+test ID locators with automatic waits and observable assertions. For an edit, clear
+the field and read back the exact value before saving. Capture the request and
+response before navigation or reload. Verify the saved value after reload. Use the
+supported driver to script stable repeated actions, with assertions at each state
+change. Capture screenshots for visual evidence and failures; do not return image
+bytes as text.
+
+For a shared snapshot, map every required flow to its declared observation ID and
+write the exact observation row above. A route table can summarize the flow, but it
+does not replace that row. Put that row in the scoped packet for the validation
+unit that owns its ID. A changed observation input, runtime identity, or required
+browser context needs a fresh observation. Keep the capture that explains a fail or
+skip as evidence; a later passing retry does not erase it.
 
 For OAuth, email, payment, SMS, or another external action, use existing explicit authority. If required authority or a human action is missing, ask in manual mode. In pipeline mode, mark only the affected route `Skip` and state the missing action.
 
 ### 5. Record failures
 
-For each failure, record the route, reproduction steps, rendered error, screenshots, relevant console output, network failures, and traces under the project test policy. Keep the original failure and any later passing retry; a retry does not erase flakiness. Continue with independent routes.
+For each failure, record the route, reproduction steps, rendered error,
+screenshots, relevant console output, network failures, and traces under the
+project test policy. Keep the original failure and any later passing retry; a retry
+does not erase flakiness. Continue with independent routes.
 
 Do not modify code during this skill. Route a repair request to `diagnose` or the active implementation workflow after the result is delivered. Recommend stable, important discovered flows for the existing test suite; authoring those tests belongs to the authorized implementation or validation scope.
 
@@ -119,7 +155,10 @@ Return this table and a result:
 
 Use `PASS` only when every exercised route passed. Use `FAIL` when a route failed. Use `PARTIAL` when some routes passed and others were skipped. Use `SKIP` when no route was exercised.
 
-Name the tested scope, server URL, selected driver, console-error count, human confirmations, and untested routes. Never claim that a route passed without captured browser state.
+Name the tested scope, server URL, selected driver, console-error count, human
+confirmations, and untested routes. Return each shared observation row and its
+evidence path with the table. Never claim that a route passed without captured
+browser state.
 
 ---
 

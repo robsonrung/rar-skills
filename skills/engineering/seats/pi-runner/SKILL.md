@@ -5,7 +5,7 @@ description: Execute an external Pi CLI prompt with a provider and model pinned 
 
 # Pi Runner
 
-For a direct invocation, first use `shared/references/model-preview.md`. Nested calls reuse the parent's selected snapshot without another prompt or unlisted workers.
+Use `shared/references/model-preview.md` to choose the branch first. Deterministic checks need no model selection. Actual dispatch uses one concrete approved snapshot; nested calls consume it without re-resolution or extra workers.
 
 Execute prompts through Pi (`pi`) in non-interactive mode. Strict request controls use RPC with a startup handshake; legacy calls retain print mode. Pin the gateway and model per invocation with `--provider` and `--model`, or select a central named seat with `--seat`. Credentials come from the gateway environment or Pi auth store. An exact model selection does not constrain inference provider fallback; carry that separate policy through `--provider-routing`.
 
@@ -16,9 +16,10 @@ Read `shared/references/host-model-execution.md` before choosing an external rou
 ## Named seats
 
 Named seats and their exact model IDs live in `shared/model-routing.json`.
-`--seat` reads those pins and labels the envelope with the seat name. An explicit
-`--model` is a per-call selection and must match the approved plan when one
-exists. Change maintained pins only in the central file. A missing CLI or key
+`--seat` reads those pins for a direct selection and labels the envelope. Workflow
+dispatch uses explicit `--provider`, `--model`, effort, and policy from the approved
+snapshot. It does not resolve a seat pin again. An explicit `--model` must match the
+approved plan when one exists. Change maintained pins only in the central file. A missing CLI or key
 reports `status: seat_unavailable`; there is no fallback to another seat.
 
 ## Gateway and capabilities
@@ -52,7 +53,7 @@ A seat whose model entry has a verified privacy block (`zdr_available: true`
 for the selected gateway in `shared/model-routing.json`) defaults to the
 central `profile_policy.provider_routing` when `--provider-routing` is
 omitted; an explicit policy still wins per call. The central policy pins the
-privacy controls only — the gateway selects among its zero-retention
+privacy controls only. The gateway selects among its zero-retention
 endpoints, no inference provider is fixed.
 
 Use the packaged request enforcement path with configuration scoped to the run.
@@ -114,7 +115,8 @@ snapshot. For a model with selectable effort:
 ```bash
 SKILL_DIR="<absolute path of this skill directory>";
 python3 "$SKILL_DIR/scripts/run_pi.py" --prompt-file <role-brief.md> \
-  --seat <selected-seat> --thinking <selected-effort> \
+  --provider <approved-gateway> \
+  --model <approved-model-id> --thinking <selected-effort> \
   --session <unique-role-session-file> \
   --provider-routing '<approved-provider-routing-json>' --disable-fallback --json
 ```

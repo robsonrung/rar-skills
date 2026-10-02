@@ -609,6 +609,264 @@ class ReviewEvidenceTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 self.prepare()
 
+    def test_select_checks_transfers_unchanged_scoped_inputs_and_runs_affected_inputs(self):
+        self.command("print('pass')")
+        self.plan["checks"][0]["inputs"] = ["app.txt"]
+        original = self.prepare()
+        captured = evidence.run_check(original, "check")
+        (self.root / "unrelated.txt").write_text("new unrelated file\n")
+        unchanged = evidence.prepare(self.root, self.base, self.contract, self.requirements,
+                                     self.artifacts / "unchanged-inputs")
+
+        selected = evidence.select_checks(unchanged, original, {"check": str(captured)})
+        self.assertEqual(selected["changed_paths"], ["unrelated.txt"])
+        self.assertEqual(selected["checks"], [{
+            "id": "check",
+            "action": "transfer",
+            "reason": "unchanged declared inputs; fresh environment and base assessment required",
+            "inputs": ["app.txt"],
+            "check": evidence.evidence_link(captured),
+        }])
+
+        (self.root / "app.txt").write_text("changed declared input\n")
+        affected = evidence.prepare(self.root, self.base, self.contract, self.requirements,
+                                    self.artifacts / "affected-input")
+        row = evidence.select_checks(affected, original, {"check": str(captured)})["checks"][0]
+        self.assertEqual(row["action"], "run")
+        self.assertIn("declared check inputs changed", row["reason"])
+        self.assertNotIn("check", row)
+
+    def test_select_checks_runs_whole_source_checks_after_any_content_change(self):
+        self.command("print('pass')")
+        original = self.prepare()
+        captured = evidence.run_check(original, "check")
+        (self.root / "unrelated.txt").write_text("new unrelated file\n")
+        target = evidence.prepare(self.root, self.base, self.contract, self.requirements,
+                                  self.artifacts / "whole-source")
+
+        row = evidence.select_checks(target, original, {"check": str(captured)})["checks"][0]
+        self.assertEqual(row["action"], "run")
+        self.assertEqual(row["inputs"], "whole-source")
+        self.assertIn("unknown dependencies require whole source scope", row["reason"])
+        self.assertNotIn("check", row)
+
+    def test_select_checks_cli_reports_transfer_and_named_fresh_execution(self):
+        self.command("print('pass')")
+        self.plan["checks"][0]["inputs"] = ["app.txt"]
+        original = self.prepare()
+        captured = evidence.run_check(original, "check")
+        (self.root / "unrelated.txt").write_text("new unrelated file\n")
+        target = evidence.prepare(self.root, self.base, self.contract, self.requirements,
+                                  self.artifacts / "cli-target")
+        checks = self.artifacts / "checks.json"
+        checks.write_text(json.dumps({"check": str(captured)}))
+        command = [sys.executable, evidence.__file__, "select-checks", "--snapshot", str(target),
+                   "--from-snapshot", str(original), "--checks", str(checks)]
+
+        transfer = subprocess.run(command, capture_output=True, text=True)
+        self.assertEqual(transfer.returncode, 0, transfer.stdout + transfer.stderr)
+        transfer_payload = json.loads(transfer.stdout)
+        self.assertEqual(transfer_payload["changed_paths"], ["unrelated.txt"])
+        self.assertEqual(transfer_payload["checks"][0]["action"], "transfer")
+        self.assertEqual(transfer_payload["checks"][0]["inputs"], ["app.txt"])
+        self.assertEqual(transfer_payload["checks"][0]["check"], evidence.evidence_link(captured))
+
+        fresh = subprocess.run([*command, "--fresh", "check"], capture_output=True, text=True)
+        self.assertEqual(fresh.returncode, 0, fresh.stdout + fresh.stderr)
+        fresh_row = json.loads(fresh.stdout)["checks"][0]
+        self.assertEqual(fresh_row["action"], "run")
+        self.assertEqual(fresh_row["reason"], "fresh execution required")
+        self.assertEqual(fresh_row["inputs"], ["app.txt"])
+
+    def test_fresh_checks_cannot_reuse_a_separate_snapshot_or_transfer(self):
+        self.command("print('pass')")
+        self.plan["checks"][0]["fresh"] = True
+        original = self.prepare()
+        captured = evidence.run_check(original, "check")
+        target = evidence.prepare(self.root, self.base, self.contract, self.requirements,
+                                  self.artifacts / "fresh-target")
+        definition = evidence.check_definition(evidence.load_record(target), "check")
+
+        row = evidence.select_checks(target, original, {"check": str(captured)})["checks"][0]
+        self.assertEqual(row["action"], "run")
+        self.assertEqual(row["reason"], "fresh execution required")
+        with self.assertRaisesRegex(ValueError, "fresh"):
+            evidence.validate_check(captured, evidence.load_record(target), definition)
+        with self.assertRaisesRegex(ValueError, "fresh"):
+            evidence.transfer_check(original, target, captured, self.transfer_assessment(original, target))
+
+    def test_selection_invalidates_reuse_for_contract_context_command_failure_and_log_changes(self):
+        self.command("print('pass')")
+        original = self.prepare()
+        captured = evidence.run_check(original, "check")
+
+        self.contract.write_text("Check a different result.\n**Status:** ready-for-agent\n")
+        changed_contract = evidence.prepare(self.root, self.base, self.contract, self.requirements,
+                                            self.artifacts / "changed-contract")
+        contract_row = evidence.select_checks(changed_contract, original, {"check": str(captured)})["checks"][0]
+        self.assertEqual(contract_row["action"], "run")
+        self.assertIn("acceptance contract changed", contract_row["reason"])
+
+        self.contract.write_text("Check the result.\n**Status:** ready-for-agent\n")
+        changed_context_plan = copy.deepcopy(self.plan)
+        changed_context_plan["context"] = {"runtime": "different"}
+        changed_context_requirements = self.artifacts / "changed_context.json"
+        changed_context_requirements.write_text(json.dumps(changed_context_plan))
+        changed_context = evidence.prepare(self.root, self.base, self.contract, changed_context_requirements,
+                                           self.artifacts / "changed-context")
+        context_row = evidence.select_checks(changed_context, original, {"check": str(captured)})["checks"][0]
+        self.assertEqual(context_row["action"], "run")
+        self.assertIn("environment identity changed", context_row["reason"])
+
+        changed_command_plan = copy.deepcopy(self.plan)
+        changed_command_plan["checks"][0]["command"] = [sys.executable, "-c", "print('different command')"]
+        changed_command_requirements = self.artifacts / "changed_command.json"
+        changed_command_requirements.write_text(json.dumps(changed_command_plan))
+        changed_command = evidence.prepare(self.root, self.base, self.contract, changed_command_requirements,
+                                           self.artifacts / "changed-command")
+        command_row = evidence.select_checks(changed_command, original, {"check": str(captured)})["checks"][0]
+        self.assertEqual(command_row["action"], "run")
+        self.assertIn("command or inputs declaration changed", command_row["reason"])
+
+        failed_plan = copy.deepcopy(self.plan)
+        failed_plan["checks"][0]["command"] = [sys.executable, "-c", "raise SystemExit(2)"]
+        failed_requirements = self.artifacts / "failed_requirements.json"
+        failed_requirements.write_text(json.dumps(failed_plan))
+        failed_original = evidence.prepare(self.root, self.base, self.contract, failed_requirements,
+                                           self.artifacts / "failed-original")
+        failed_capture = evidence.run_check(failed_original, "check")
+        failed_target = evidence.prepare(self.root, self.base, self.contract, failed_requirements,
+                                         self.artifacts / "failed-target")
+        failed_row = evidence.select_checks(failed_target, failed_original, {"check": str(failed_capture)})["checks"][0]
+        self.assertEqual(failed_row["action"], "run")
+        self.assertIn("prior check failed", failed_row["reason"])
+
+        log_original = evidence.prepare(self.root, self.base, self.contract, self.requirements,
+                                        self.artifacts / "log-original")
+        log_capture = evidence.run_check(log_original, "check")
+        log = next(row for row in evidence.load_record(log_capture)["logs"] if Path(row["path"]).name == "stdout.log")
+        Path(log["path"]).write_text("changed output\n")
+        log_target = evidence.prepare(self.root, self.base, self.contract, self.requirements,
+                                      self.artifacts / "log-target")
+        log_row = evidence.select_checks(log_target, log_original, {"check": str(log_capture)})["checks"][0]
+        self.assertEqual(log_row["action"], "run")
+        self.assertIn("log checksum", log_row["reason"])
+
+    def test_direct_capture_reuses_identical_evidence_and_rejects_forged_snapshot_binding(self):
+        self.command("print('pass')")
+        original = self.prepare()
+        captured = evidence.run_check(original, "check")
+        target = evidence.prepare(self.root, self.base, self.contract, self.requirements,
+                                  self.artifacts / "identical-target")
+        definition = evidence.check_definition(evidence.load_record(target), "check")
+
+        self.assertTrue(evidence.validate_check(captured, evidence.load_record(target), definition))
+        reused = evidence.select_checks(target, original, {"check": str(captured)})["checks"][0]
+        self.assertEqual(reused["action"], "reuse")
+        self.assertEqual(reused["check"], evidence.evidence_link(captured))
+        record = json.loads(captured.read_text())
+        record["payload"]["snapshot_path"] = str(target)
+        record["payload"]["snapshot_sha256"] = evidence.file_hash(target)
+        record["sha256"] = evidence.digest(record["payload"])
+        captured.write_text(json.dumps(record))
+
+        with self.assertRaisesRegex(ValueError, "capture path"):
+            evidence.validate_check(captured, evidence.load_record(target), definition)
+        row = evidence.select_checks(target, original, {"check": str(captured)})["checks"][0]
+        self.assertEqual(row["action"], "run")
+        self.assertIn("capture path", row["reason"])
+
+        record["payload"]["snapshot_path"] = "snapshot.json"
+        record["sha256"] = evidence.digest(record["payload"])
+        captured.write_text(json.dumps(record))
+        with self.assertRaisesRegex(ValueError, "capture snapshot"):
+            evidence.validate_check(captured, evidence.load_record(target), definition)
+        malformed = evidence.select_checks(target, original, {"check": str(captured)})["checks"][0]
+        self.assertEqual(malformed["action"], "run")
+        self.assertIn("capture snapshot", malformed["reason"])
+
+    def test_transfer_preserves_stdout_and_stderr_provenance(self):
+        self.command("import sys; print('standard output'); print('standard error', file=sys.stderr)")
+        original = self.prepare()
+        captured = evidence.run_check(original, "check")
+        captured_result = evidence.load_record(captured)
+        stdout = next(row for row in captured_result["logs"] if Path(row["path"]).name == "stdout.log")
+        stderr = next(row for row in captured_result["logs"] if Path(row["path"]).name == "stderr.log")
+        self.assertEqual(Path(stdout["path"]).read_text(), "standard output\n")
+        self.assertEqual(Path(stderr["path"]).read_text(), "standard error\n")
+
+        self.git("add", ".")
+        self.git("commit", "-qm", "Commit captured source")
+        target = evidence.prepare(self.root, self.base, self.contract, self.requirements,
+                                  self.artifacts / "provenance-target")
+        moved = evidence.transfer_check(original, target, captured, self.transfer_assessment(original, target))
+        moved_result = evidence.load_record(moved)
+
+        self.assertEqual(moved_result["logs"], captured_result["logs"])
+        self.assertEqual(moved_result["transfer"]["check"], evidence.evidence_link(captured))
+        self.assertEqual(Path(stdout["path"]).read_text(), "standard output\n")
+        self.assertEqual(Path(stderr["path"]).read_text(), "standard error\n")
+        self.assertTrue(evidence.validate_check(moved, evidence.load_record(target), self.plan["checks"][0]))
+
+    def test_unscoped_observations_need_fresh_evidence_after_any_content_change(self):
+        self.plan["observations"] = ["save"]
+        original = self.prepare()
+        capture = self.artifacts / "browser.txt"
+        capture.write_text("Saved and reloaded\n")
+        first = self.response(original)
+        first["observations"] = [{"id": "save", "result": "pass", "evidence": [evidence.evidence_link(capture)]}]
+        previous = self.record(original, first)
+        (self.root / "unrelated.txt").write_text("changed unrelated source\n")
+
+        target, delta = self.recheck(original, previous, "unscoped-observation")
+        delta["coverage"] = [{"path": "unrelated.txt", "outcome": "reviewed",
+                               "reason": "Read the changed source."}]
+        with self.assertRaisesRegex(ValueError, "fresh observations"):
+            self.record(target, delta)
+        self.assertEqual(evidence.fresh_observations(evidence.load_record(original), evidence.load_record(target)), {"save"})
+
+
+    def test_scoped_packet_cli_preserves_unit_capture_without_completing_review(self):
+        self.command("print('unit capture')")
+        self.plan["observations"] = ["save"]
+        snapshot = self.prepare()
+        evidence.run_check(snapshot, "check")
+        observations = self.artifacts / "observations.json"
+        observations.write_text("[]")
+        output = self.artifacts / "unit-packet.json"
+        command = subprocess.run([sys.executable, evidence.__file__, "prepare-packet", "--snapshot", str(snapshot),
+                                  "--observations", str(observations), "--id", "check", "--output", str(output)],
+                                 capture_output=True, text=True)
+        self.assertEqual(command.returncode, 0, command.stdout + command.stderr)
+        packet = evidence.load_packet(json.loads(command.stdout)["evidence_packet"], evidence.load_record(snapshot), snapshot, allow_partial=True)
+        self.assertEqual(packet["scope"], ["check"])
+        self.assertEqual(set(packet["checks"]), {"check"})
+        response = self.response(snapshot)
+        del response["checks"], response["observations"]
+        response["evidence_packet"] = evidence.evidence_link(output)
+        with self.assertRaisesRegex(ValueError, "packet is incomplete"):
+            self.record(snapshot, response)
+        with self.assertRaisesRegex(ValueError, "packet is incomplete"):
+            evidence.load_packet(evidence.evidence_link(output), evidence.load_record(snapshot), snapshot)
+        for index, scope in enumerate(([], ["unknown"], ["check", "check"], ["save"])):
+            with self.subTest(scope=scope), self.assertRaises(ValueError):
+                evidence.prepare_packet(snapshot, self.artifacts / ("bad-scope-" + str(index) + ".json"),
+                                        observations=[], scope=scope)
+
+
+
+    def test_prepared_snapshot_copy_cannot_claim_a_fresh_bundle(self):
+        self.command("print('pass')")
+        self.plan["checks"][0]["fresh"] = True
+        original = self.prepare()
+        evidence.run_check(original, "check")
+        copied = self.artifacts / "copied" / "snapshot.json"
+        copied.parent.mkdir()
+        copied.write_bytes(original.read_bytes())
+        with self.assertRaisesRegex(ValueError, "snapshot path differs"):
+            evidence.current_snapshot(copied)
+
+
 
 if __name__ == "__main__":
     unittest.main()

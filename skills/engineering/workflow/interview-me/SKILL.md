@@ -6,11 +6,7 @@ disable-model-invocation: true
 
 # Interview Me
 
-For a direct invocation, first use `shared/references/model-preview.md`. Nested calls reuse the parent's selected snapshot without another prompt or unlisted workers.
-
-Model IDs, effort support, and task defaults come only from
-`shared/model-routing.json`. Resolve the relevant route before preview or
-approval; preserve the exact saved route during dispatch, retry, and resume.
+For a direct invocation, use `shared/references/model-preview.md` to choose the branch first. Coordinator work and deterministic commands proceed within invocation authority. An actual worker branch uses one approved route snapshot. Nested calls reuse it without route selection or added workers.
 
 Turn a raw request into a **spec-ready** decision record that `to-prd` can turn into a PRD without reopening requirements. A material decision is spec-ready only when it is confirmed, settled by supplied scope and evidence in `--auto` mode, or out of scope. An explicit default is allowed only for a nonmaterial uncertainty.
 
@@ -18,15 +14,15 @@ Turn a raw request into a **spec-ready** decision record that `to-prd` can turn 
 
 Receive a feature request, an earlier exploration, and repository facts. Produce `.ai-workflow/work/<feature-slug>/decision-record.md` with status `draft` while the interview is open and `ready-for-prd` when the frontier is empty.
 
-Read `shared/references/workflow-stage-routing.md` before the interview. It names the few broad lenses that can change an early question. Use one relevant broad lens at a time when it changes a decision. Run another only when the first result exposes a necessary later decision. Use `security-gate` for an exposed security surface. Use `to-prototype` only when running code is the smallest reversible move that can settle a decision.
+Use `shared/references/workflow-stage-routing.md` when a broad lens can change a frontier decision. Apply the selected lens in this interview. Dispatch an independent specialist only for a material risk or unresolved question under its approved route. Use `security-gate` for an exposed security surface. Use `to-prototype` only when running code is the smallest reversible move that can settle a decision.
 
 ## Modes
 
-Manual mode is the default. It asks the user the questions in this skill and does not create automatic roles or call a runner. Keep the manual path unchanged when `--auto` is absent.
+Use a supplied or inherited mode. When no mode is supplied, manual mode is the safe scoped default. Ask only when a mode changes scope, cost, permitted effects, or an unresolved decision. Silence does not authorize `--auto`.
 
-`--auto` is an opt-in two-role interview. Read [references/auto-mode.md](references/auto-mode.md), `shared/references/model-roster.md`, `shared/references/task-shaped-model-routing.md`, and `shared/references/host-model-execution.md` before dispatch. Those shared references select the exact route and host execution path. `--auto` authorizes the selected roles to make evidence-based answers within the supplied scope. It does not authorize a changed model route, `models-consensus`, implementation, publication, or an irreversible external effect.
+Manual mode asks the user the questions in this skill and creates no automatic roles or runner calls. `--auto` is an opt-in two-role interview. Read [references/auto-mode.md](references/auto-mode.md) before dispatch. The coordinator records one concrete route snapshot for its actual calls. Both roles consume that snapshot without re-resolving a route or adding a worker. `--auto` authorizes the selected default pair to make evidence-based answers within the supplied scope. A changed route, `models-consensus`, implementation, publication, or an irreversible external effect needs its own authority.
 
-Do not call `design-gate`, `test-lens`, a practice skill, a panel, or `models-consensus`. If the user explicitly wants additional opinions, direct them to invoke `models-consensus`; its own workflow presents the proposed seats for user approval before it runs.
+Use `models-consensus` only for an explicitly requested council with its separate approval. The interview does not use a council as a routine escalation.
 
 This step ends at the decision record. `to-prd` writes the draft PRD. Do not plan files, create tasks, or implement code.
 

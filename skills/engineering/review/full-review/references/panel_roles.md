@@ -11,4 +11,4 @@ Use only concerns selected by the approved review plan. The table does not creat
 | Structure | Does the change add unnecessary complexity, unclear ownership, or a fragile boundary? |
 | Tests | Do the tests prove the changed behavior and its important failure or boundary case? |
 
-Each selected route receives its question, the same scoped context, and the output contract. Synthesis merges exact duplicates, applies the filtering pipeline, and preserves the plan's route receipts. Do not add a route because a concern appears in this table.
+Apply a selected concern in the assigned reviewer context. A dispatched route receives its question, the same scoped context, and the output contract. Synthesis merges exact duplicates, applies the filtering pipeline, and preserves the snapshot's route receipts. Do not add a route because a concern appears in this table.

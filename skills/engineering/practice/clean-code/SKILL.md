@@ -1,11 +1,11 @@
 ---
 name: clean-code
-description: Refactor existing code with behavior-preserving Clean Code practices. Use for local naming, readability, duplication, or structure problems; use architecture-lens for module boundary decisions.
+description: Refactor existing code with behavior-preserving Clean Code practices. Apply it to local naming, readability, duplication, or structure problems; use architecture-lens for module boundary decisions.
 ---
 
 # Clean Code
 
-For a direct invocation, first use `shared/references/model-preview.md`. Nested calls reuse the parent's selected snapshot without another prompt or unlisted workers.
+Choose the branch before selecting a model. Coordinator work and deterministic commands proceed within invocation authority. Apply this method in the current role. It does not dispatch a worker. For a worker dispatch, use `shared/references/model-preview.md` and its one approved route snapshot. Nested skills and runners consume it without another selection or worker.
 
 Improve existing code so it is easier to read, safer to change, and simpler to test while preserving behavior by default.
 
@@ -17,7 +17,7 @@ Improve existing code so it is easier to read, safer to change, and simpler to t
 - Keep domain language visible. Do not hide business rules behind generic helpers.
 - Remove duplication only when duplicated code represents the same concept and has the same reason to change.
 - Avoid new patterns, dependencies, formatting churn, and module moves unless they clearly reduce real complexity.
-- If tests are missing or weak and the refactor is risky, improve existing tests, or add or suggest focused characterization tests as the behavior-preserving net, before changing structure deeply. For legacy code with no net to stand on, build that net first via `safe-incremental-coding`, then return here.
+- If tests are missing or weak and the refactor is risky, improve existing tests, or add or suggest focused characterization tests as the behavior-preserving net, before changing structure deeply. For legacy code with no net to stand on, apply `safe-incremental-coding` first, then return here.
 
 ## Workflow
 

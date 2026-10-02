@@ -10,7 +10,11 @@ The approval document contains `session_id`, `question`, `mode`, `preview`, and 
 
 | Field | Contract |
 | --- | --- |
-| `seats` | Seat `id`, `provider`, `requested_model`, and `model_receipt` with status, source, and observed model |
+| `seats` | Registry for every approved role model. Each entry has `id`, `provider`, `requested_model`, and `model_receipt` with status, source, and observed model. A judge only seat may be additional to the three opening seats. |
+| `council_name`, `poll_profile`, and `risk_flags` | For a new poll, the resolved council, `standard` or `lean`, and the risk classification. Omitted `poll_profile` means legacy standard. |
+| `poll_policy` | For a new poll, immutable copy of central `council_policy`, including `low_confidence_threshold` and `full_required_flags`. Lean must match central policy at initialization. |
+| `poll_budget` | For a poll, the resolved base, conditional, retry, and maximum call counts. Lean requires it, and it must match the generic call budget fields in the approval record. |
+| `conditional_stages` | Lean requires the central stage snapshot: three planned optional gap repairs and two conditional judges. |
 | `roles` | Every planned step: `call`, `role`, `seat`, `requested_model`, `effort`, `effort_control`, `continuity_key`, `depends_on`, and optional `conditional` boolean |
 | `effort` | Exactly one matching `call`, `effort`, and `effort_control` entry per step |
 | `execution` | Exactly one matching `call`, `host`, `execution_path`, `transport`, `continuity_key`, `session_policy`, and `resume_policy` entry per step |
@@ -24,11 +28,33 @@ The approval document contains `session_id`, `question`, `mode`, `preview`, and 
 
 Use `effort_control: configured` with a named effort, or `effort_control: runtime` with `effort: null`. Runner execution entries also name exact `runner` and read-only `runner_role` values. These differ from council stage identity: for example, council role `opening` can use runner role `researcher`. Non-`no_tools` runner profiles list exact `allowed_tools`; `allowed_mcp_servers` defaults to empty. `tool_evidence` defaults to `observed`; `configured` is valid only for `repo_read_only` without MCP servers, as [runner-invocations.md](runner-invocations.md) defines. A Codex runner entry uses `allowed_tools: []` and `tool_evidence: configured`. An adapter effort alias can be pinned as `effort_value`; otherwise the actual forwarded effort must equal the approved effort. Each execution entry uses `session_policy: persistent_same_role` and `resume_policy: recorded_context_only`. Role names are the stage keys in the table below. The `call` identifies a planned step; each dispatch attempt gets a separate call ID at reservation.
 
-Each independent role has its own continuity key. Only an opening seat can reuse its key for that seat's `gap_repair` or `later_round` steps. The repeated key must retain the same model, effort, host, execution path, transport, and tools. List the opening before its continuation steps. Organizer, judges, synthesizer, advisors, reviewers, and chairman use separate keys.
+Each independent role has its own continuity key. Only an opening role can reuse its key for its `gap_repair` or `later_round` steps. The repeated key must retain the same model, effort, host, execution path, transport, and tools. List the opening before its continuation steps. Organizer, judges, synthesizer, advisors, reviewers, and chairman use separate keys.
 
 Opening and advisor steps have `depends_on: []`. Other stages declare their prerequisites by planned step ID. Encode the selected mode's order in these dependencies, including all blind openings before organizer analysis and independent judges before synthesis. Unknown dependencies and cycles fail initialization. The caller still supplies the correct neutral briefs, anonymized peer digests, and mode-specific quorum decision; the CLI cannot establish those from free text.
 
 The number of roles equals `base_calls + conditional_calls`. Exactly `conditional_calls` roles have `conditional: true`. `maximum_calls` equals the role count plus `validation_retry_ceiling`. Include one possible retry for every planned or conditional call when choosing the normal `maximum_calls`; a smaller explicit retry ceiling permits fewer repairs. Each step can have at most one retry, and every retry consumes the original global and role budgets.
+
+A standard poll retains seven base calls, three conditional gap repairs, ten
+planned roles, a validation retry ceiling of ten, and a maximum of twenty calls.
+A lean poll has five base calls, two conditional judges, and three planned
+optional gap repairs. It also has ten planned roles, a validation retry
+ceiling of ten, and a maximum of twenty calls. The approval preview includes
+the exact conditional judge routes and their complete route controls.
+An explicit approval may use a smaller retry ceiling and matching maximum under
+the generic call budget contract.
+
+An existing standard plan without the new poll fields keeps its original graph,
+budget, state, and resume behavior. It does not acquire a lean gate during
+recovery.
+
+For lean, initialization verifies the saved `poll_policy` against the central
+policy and saves it in the immutable plan. Resume reads that plan only. It does
+not resolve a later central policy or profile default. Lean requires exactly
+three openings, one organizer, two judges, one synthesis, and three planned
+optional gap repairs. Its organizer depends on all openings. A gap repair depends on the
+organizer and resumes one unique opening context. Each judge depends on the
+organizer and all planned gap repairs. Synthesis depends on the organizer, both
+judges, and all planned gap repairs.
 
 ```bash
 python3 <models-consensus-dir>/scripts/council_state.py fingerprint --approval-state <preview.json>
@@ -40,13 +66,16 @@ Copy the digest into `preview.scope_fingerprint`. Show only the selected council
 {"approval": {"status": "approved", "scope_fingerprint": "the exact preview digest"}}
 ```
 
-The CLI never infers or writes approval. A changed question, mode, model, provider, receipt requirement, effort, role, dependency, tool profile, execution path, transport, or budget requires a new preview. Initialize only after approval:
+The CLI never infers or writes approval. A changed question, mode, poll profile,
+risk flags, policy snapshot, model, provider, receipt requirement, effort, role,
+dependency, tool profile, execution path, transport, or budget requires a new
+preview. Initialize only after approval:
 
 ```bash
 python3 <models-consensus-dir>/scripts/council_state.py --state <run.json> init --approval-state <preview.json>
 ```
 
-Initialization stores an immutable plan, stage schemas, and digest beside the runtime state. Repeating initialization verifies the approval and preserves existing attempts, contexts, failures, artifacts, and budgets. Resume uses these snapshots; it does not resolve new defaults or substitute current schemas after a CLI upgrade. An unknown state version blocks changes and preserves the file.
+Initialization stores an immutable plan, stage schemas, and digest beside the runtime state. Repeating initialization verifies the approval and preserves existing attempts, contexts, failures, artifacts, and budgets. Resume uses these snapshots; it does not resolve new defaults or substitute current schemas after a CLI upgrade. For lean, status and resume revalidate organizer evidence, raw receipts, and conditional decision artifacts before they report completion. An unknown state version blocks changes and preserves the file.
 
 For a cmux plan, continue to use [cmux-transport.md](cmux-transport.md) and its `cmux_council.py fingerprint --approval-state <preview.json>` command. The generic state CLI does not adopt or launch terminal seats.
 
@@ -117,7 +146,33 @@ python3 <models-consensus-dir>/scripts/council_state.py --state <run.json> skip 
 
 `observe` uses `runner_jobs.observe_many` for explicitly bound pending jobs. It reads status without dispatch or automatic retry. A dead or missing job is unresolved until exact failure evidence is reconciled. Native pending calls use the host's recorded context and turn, then the shared completion capture.
 
-A planned conditional step can be skipped before any attempt, with a stored reason. An attempted or required step cannot be skipped. Dependent steps require valid or explicitly skipped prerequisites. State becomes completed when all approved steps are valid or skipped. `status` reports the stored attempts, step outcomes, measured usage, unknown counts, and advisory response cap.
+A standard conditional step can be skipped before any attempt with a stored
+reason. An attempted or required step cannot be skipped. A lean conditional gap
+repair or judge uses the validated organizer response to decide whether it is
+required. When it is not required, `skip --step <conditional-step> --reason
+<reason>` records:
+
+```json
+{
+  "status": "conditional-not-needed",
+  "reason": "<operator explanation>",
+  "decision": {"path": "<immutable decision artifact>", "sha256": "<digest>"}
+}
+```
+
+The immutable decision artifact names `organizer_step`, `organizer_call`, the
+validated normalized organizer evidence reference, its raw receipt reference,
+`judges_required`, `triggers`, and `gap_repair_required`. Before synthesis, the
+runtime verifies the artifacts, receipt, response schema, and decision digest.
+Every state action verifies existing lean skip evidence before it can progress.
+A caller supplied reason cannot skip a required judge or gap repair. A
+`conditional-not-needed` judge is neither missing required coverage nor a
+successful execution.
+
+Dependent steps require valid, `skipped`, or `conditional-not-needed`
+prerequisites. State becomes completed when all approved steps have one of those
+outcomes. `status` reports the stored attempts, step outcomes, measured usage,
+unknown counts, and advisory response cap.
 
 Keep state at `.ai-workflow/consensus/{session_id}.json` and the report at `.ai-workflow/consensus/{session_id}.md`. The CLI stores immutable artifacts in `{state-path}.artifacts/`. If this location is not writable, report the blocker; durable reservation is required before dispatch.
 

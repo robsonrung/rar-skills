@@ -6,7 +6,7 @@ disable-model-invocation: true
 
 # HTML Explainer
 
-For a direct invocation, first use `shared/references/model-preview.md`. Nested calls reuse the parent's selected snapshot without another prompt or unlisted workers.
+Choose the branch before selecting a model. Gather evidence, assemble, validate, and inspect the visual artifact in the assigned role. Before dispatching an independent dossier worker, obtain or reuse exactly one approved snapshot through `shared/references/model-preview.md`.
 
 Produce one self-contained HTML file that teaches a reader how a real system works, grounded in the repo's actual code.
 
@@ -38,7 +38,7 @@ Default output path: `docs/<topic>-explainer.html` in the project repo. An expli
 
 The evidence rules live in `shared/references/grounded-evidence.md`. Read it, then build one **evidence dossier** per subsystem as it defines: mechanism, 2–5 verbatim snippets with exact `path:line`, caveats, and war stories from code comments before writing any HTML.
 
-Typical decomposition (adapt to the subject): entry/infrastructure + deployment, the main processing pipeline, data access + safety mechanisms, observability/logging. When the harness supports delegating work to subagents, dispatch the dossiers in parallel — one subagent per subsystem, each instructed to return verbatim snippets with `path:line`. Without delegation, explore inline, capped at what the three-depth page actually needs: for each planned section, stop reading once you hold its lede, its diagram facts, and 2–5 snippets.
+Typical decomposition (adapt to the subject): entry/infrastructure + deployment, the main processing pipeline, data access + safety mechanisms, observability/logging. Dispatch a dossier only when its subsystem is independent, substantial, and needs material evidence. Use the approved snapshot for every selected worker. A nested worker does not re-resolve a route or add a worker. Otherwise explore inline, capped at what the three-depth page actually needs: for each planned section, stop reading once you hold its lede, its diagram facts, and 2–5 snippets.
 
 Trust dossiers for structure, but the snippets you publish are covered by verbatim-or-absent: spot-check any snippet that looks paraphrased against the file before including it.
 

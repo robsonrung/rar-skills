@@ -5,7 +5,7 @@ description: Execute an external Antigravity CLI (`agy`) prompt for a Gemini rou
 
 # Gemini Runner
 
-For a direct invocation, first use `shared/references/model-preview.md`. Nested calls reuse the parent's selected snapshot without another prompt or unlisted workers.
+Use `shared/references/model-preview.md` to choose the branch first. Deterministic checks need no model selection. Actual dispatch uses one concrete approved snapshot; nested calls consume it without re-resolution or extra workers.
 
 Execute the caller's scoped prompt through the local CLI. Shared roles, envelope keys, and result handling live in `shared/references/runner-common.md`. Preserve **seat fidelity**: name the provider that actually answered, and report unavailable or unverified seats honestly.
 
@@ -19,10 +19,15 @@ Set `SKILL_DIR` to this loaded skill directory in the same shell call:
 
 ```bash
 SKILL_DIR="<absolute path of this skill directory>";
-python3 "$SKILL_DIR/scripts/run_gemini.py" "<scoped prompt>" --json
+python3 "$SKILL_DIR/scripts/run_gemini.py" "<scoped prompt>" \
+  --model <approved-model-id> --disable-fallback --json
 ```
 
-An approved workflow supplies the exact model, effort, role, tool mode, and receipt policy. Pass those approved options and `--disable-fallback`; this basic example does not authorize a different route.
+Copy the selected model label, role, tool mode, receipt policy, and supported limits
+from the snapshot. This runner has no effort flag or native effort control. A route
+requiring unsupported control stays blocked. Nested calls use the saved options
+without resolving defaults again. The example does not grant source sharing or
+tool authority.
 
 ## Runtime boundaries
 

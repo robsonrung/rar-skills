@@ -6,7 +6,11 @@ disable-model-invocation: true
 
 # Pre-PR Review
 
-For a direct invocation, first use `shared/references/model-preview.md`. Nested calls reuse the parent's selected snapshot without another prompt or unlisted workers.
+First decide whether the remaining gap needs a worker. Direct command and browser
+branches execute through their declared tools and do not load a model preview. A
+worker branch uses `shared/references/model-preview.md` before dispatch and binds
+one exact approved snapshot to its request, reservation, and report. Nested calls
+reuse that snapshot and do not add workers.
 
 Check whether a completed implementation is ready for pull request review. Reuse valid task and integration evidence. Run only the work needed to close gaps. The **acceptance contract** is a scoped, verified local change with no confirmed P0, P1, or P2 finding left open. Approval from a reviewer alone does not meet this contract.
 
@@ -20,15 +24,33 @@ If no task changes exist, report `no-changes` and stop before review. An unreada
 
 ## 1. Check existing evidence
 
-Read the available task reports, integration report, residual findings, and referenced review and verification evidence. Inspect the existing run state and approved model plan when present. A report path or completion label alone is not proof of coverage.
+Read the available task reports, integration report, residual findings, and
+referenced review and verification evidence. Inspect the existing run state and
+approved model plan when present. A report path or completion label alone is not
+proof of coverage.
 
-Read `shared/references/review-evidence.md`. Run the shared verifier on the current
-combined review record with the intended PR base; use the launcher's `verify-review`
-for a task record. Require exit code 0 and `ready` before reusing that record for
-readiness. Missing or stale structured evidence is a gap. Legacy Markdown reports
-can guide a focused review but cannot establish deterministic readiness.
+For a validation run, read the initial `review_snapshot` from its validation plan
+and the checked packet exported through `validation_control.py evidence-packet`.
+Each latest required unit can use a scoped packet for its own planned IDs. The
+exported packet merges that evidence and must cover the complete shared scope from
+one current snapshot compatible with the initial scope. Its declared statuses must
+agree with captured command results and browser observations. A generic status map,
+controller summary, or prose report is context only. It cannot be upgraded into
+shared evidence or reused as readiness after the fact.
 
-Compare that evidence with the current task diff, intended base, requirements, relevant dependencies, and environment. Include uncommitted edits and changes made after review. A different commit alone does not invalidate evidence when the relevant content and assumptions still match. Missing or unverifiable evidence leaves a gap.
+Read `shared/references/review-evidence.md`. The validation packet preserves
+captured facts, but it does not replace reviewer judgment. Run the shared verifier
+on the current combined review record with the intended PR base; use the launcher's
+`verify-review` for a task record. Require exit code 0 and `ready` before reusing
+that record for readiness. Missing or stale structured evidence is a gap. Legacy
+Markdown reports can guide a focused review but cannot establish deterministic
+readiness.
+
+Compare that evidence with the current task diff, intended base, requirements,
+relevant dependencies, and environment. Include uncommitted edits and changes made
+after review. A different commit alone does not invalidate evidence when the
+relevant content and assumptions still match. Missing or unverifiable evidence
+leaves a gap.
 
 Record which evidence is valid and which work is missing: task review, integration review, required checks, browser flows, or finding resolution. Task reviews do not prove that the combined change was reviewed. For multiple tasks, confirm coverage of shared contracts, migration order, and interactions between tasks.
 
@@ -54,20 +76,38 @@ Resolve only the selected skills by name through the host catalog or collection 
 
 Use the existing approved reviewer context for a focused recheck, or `full-review` with a focused scope when no suitable context remains. Select specialists only for exposed risks. The absence of a separate simplification report is not a gap after a complete task review. Do not run simplification just because this skill was invoked.
 
-Before dispatch, follow the collection's shared model routing and host execution references. Reuse approved implementation and review routes for the same scope. Present new or changed routes for approval before starting workers. Keep the reviewer context separate from the implementer. Do not silently replace an unavailable route.
+Run `verify-changes` and `browser-smoke` directly for command and observation
+gaps. Before dispatching a reviewer or another worker, follow the collection's
+shared model routing and host execution references. Reuse approved implementation
+and review routes for the same scope. Bind the worker to one exact approved
+snapshot with current routes, privacy controls, source and requirement identity,
+independent reviewer role, and reserved budget. Present new or changed routes for
+approval before starting workers. Keep the reviewer context separate from the
+implementer. Do not silently replace an unavailable route.
 
 Keep review reports and evidence in a temporary directory outside the project. Pass the task requirements as the specification when no pull request exists. Preserve valid coverage from prior reports; the combined evidence must cover every file with a meaningful task change.
 
 After closing gaps, prepare the current source snapshot, capture required checks,
-and obtain the shared structured review response. Record the actual response and
-run the shared verifier before reporting readiness. Preserve older records and
-let the reviewer assess which prior findings and coverage remain valid.
+and record each required browser observation in the shared shape. Use the shared
+packet for direct evidence. It preserves raw command output and provenance,
+source, dependency, environment, and requirement identity, runtime gates, and
+browser artifacts. Each observation contains only `id`, `result`, and `evidence`,
+where `evidence` contains absolute `{path, sha256}` links. Do not turn a prose pass
+into command execution. Obtain the
+shared structured review response, preserve its actual text, and run the shared
+verifier before reporting readiness. Preserve older records and let the reviewer
+assess which prior findings and coverage remain valid.
 
 For browser checks, pass the running local application's URL and port explicitly. Reuse matching browser evidence when available. A missing server or skipped required flow remains a verification gap. The absence of a published preview does not complete browser verification.
 
 ### Review when evidence is unavailable
 
-Run an independent `review-gate` with the task requirements, intended base, and current source snapshot. Configure `verify: true` for missing or invalid check results and let the gate call `verify-changes`. Use `verify: false` only when all required checks already have valid evidence and no fresh run is required. Pass those evidence references into the final report. Complete missing browser checks separately when needed.
+Run an independent `review-gate` with the task requirements, intended base, and
+current source snapshot. Configure `verify: true` for missing or invalid check
+results and let the gate call `verify-changes`. Use `verify: false` only when all
+required checks already have valid evidence and no fresh run is required. Pass the
+bound evidence packet into the final report. Complete missing browser checks
+separately when needed.
 
 Do not repeat commands already covered by an aggregate check. After simplification or a fix, invalidate only the evidence affected by that change.
 

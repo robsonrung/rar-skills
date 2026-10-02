@@ -5,7 +5,7 @@ description: Commit scoped changes, push a branch, and open or update a GitHub p
 
 # Open Pull Request
 
-For a direct invocation, first use `shared/references/model-preview.md`. Nested calls reuse the parent's selected snapshot without another prompt or unlisted workers.
+Choose the branch before selecting a model. This workflow runs with the current coordinator and direct tools. It does not dispatch a worker.
 
 Create a reviewable pull request whose title, body, and commits explain the change and its evidence. The next consumer is the reviewer. Done means the requested description is returned or the remote pull request URL is confirmed.
 

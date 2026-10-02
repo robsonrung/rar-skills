@@ -11,7 +11,7 @@ This skill is the unit of portability. It must be usable when copied by itself i
 1. Keep the skill focused on one job.
 2. Keep this skill's routing, contracts, and references inside the skill folder; the panel scripts are the one shared dependency, in `shared/scripts/`.
 3. Treat any top level repository agent profile as optional optimization, never as a required dependency.
-4. Bind model, effort, and execution path through the approved route. A native host route is preferred when it can meet the exact model; a foreign or unsupported route uses a runner with fallback disabled.
+4. Bind model, effort, and execution path through the one approved snapshot. A native host route is preferred when it can meet the exact model; a foreign or unsupported route uses a runner with fallback disabled.
 5. Keep one isolated context per task and role through later phases. The route record holds its native context or runner session ID.
 6. Run independent role rounds before reconciliation.
 7. Preserve dissent in the decision log.

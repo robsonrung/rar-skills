@@ -2,11 +2,16 @@
 
 Use this reference to place engineering skills in the four-stage workflow. It is a routing contract, not a checklist. A skill runs only when its trigger changes a decision, a task contract, or the implementation.
 
+Apply methods and read-only lenses in the assigned coordinator or implementer by
+default. Loading a skill is not worker dispatch. Select an independent specialist
+only for a material risk or unresolved question and include its exact route in the
+approved snapshot. Independent final code review remains required.
+
 ## 1. Interview Me: discover decisions that change the next question
 
 The interview produces a decision record. It may use a broad lens when that lens changes the next question or prevents a false assumption. Use another only when the first decision makes it necessary. It does not run `design-gate`, implementation practices, a review panel, or every matching lens.
 
-| Decision needed now | Skill to call | What the interview records |
+| Decision needed now | Procedure to apply | What the interview records |
 | --- | --- | --- |
 | System style, service decomposition, data ownership, or durable architecture trade-off | `macro-architecture` | Chosen shape, trade-off, and rejected alternative |
 | Domain boundary, business vocabulary, or external-context relationship | `domain-driven-design` strategic route | Bounded context, ubiquitous language, and integration choice |
@@ -20,21 +25,32 @@ The user may decide no broad design work is needed. Record that fact and continu
 
 ## 2. To PRD: preserve settled choices
 
-The PRD turns the decision record into one specification. It does not open fresh architecture choices, invoke a council, or repeat an interview. When a decision needed for implementation is missing, return to the interview and settle it with the user.
+The PRD turns the decision record into one specification. Reuse its source locators
+and revisions; recheck only changed or disputed facts. It does not open fresh
+architecture choices, invoke a council, or repeat an interview. When a decision
+needed for implementation is missing, settle that decision with the user.
 
 The PRD carries outcomes, constraints, security decisions, and observable success conditions. It does not prescribe test mechanics, design patterns, or files to edit.
 
 ## 3. To Tasks: turn one PRD into executable slices
 
-For each slice, call `design-gate` once. It selects at most three relevant lenses and records only the selected lens names, their required changes, and the gate verdict in the Slice Contract. Call `security-gate` to record `security: deep` or `security: standard`.
+For each slice, apply `design-gate` once. It selects at most three relevant lenses
+and records their findings, required changes, and verdict in the Slice Contract.
+Recheck only a blocking lens after the design changes. Apply `security-gate` to
+record `security: deep` or `security: standard`. Reuse these findings in implementation.
 
-Use `test-lens` only when the slice has a real test-design decision, such as an integration boundary, mock boundary, concurrency case, or an existing brittle test. Otherwise express acceptance as observable behavior directly. Material unanswered slice decisions return to the user before task approval.
+Apply `test-lens` only for a real test-design decision, such as an integration
+boundary, mock boundary, concurrency case, or brittle test. Otherwise express
+acceptance as observable behavior. Settle material unanswered decisions before
+approval. Task-only planning presents canonical task drafts without worker route
+resolution. When execution is requested, the caller can offer combined approval
+of those drafts and the required concrete worker routes.
 
 ## 4. Implement Tasks: apply the selected constraints
 
 The implementation engine starts from the approved Slice Contract. It uses the inherited `design-gate` constraints as its last focused design check and re-routes only when implementation changes the slice's design surface. It does not replay every lens.
 
-| Trigger during implementation or review | Skill to call | Moment |
+| Trigger during implementation or review | Procedure to apply | Moment |
 | --- | --- | --- |
 | Any new behavior or bug fix with a usable test seam | `tdd` | Default execution loop |
 | Untested legacy code must change | `safe-incremental-coding` then `tdd` | Build the characterization test net first |
@@ -53,6 +69,14 @@ The implementation engine starts from the approved Slice Contract. It uses the i
 | Deep security slice | `security-gate` with `full-review` | Verify recorded decisions against the implementation |
 
 `models-consensus` is never a workflow escalation. Run it only when the user explicitly asks for more opinions. Its own skill presents the proposed seats before work begins.
+
+## Small accepted task
+
+Use standalone `implement-and-review` for one accepted task with a complete
+acceptance contract and no unresolved product, data, security, public contract,
+or dependency decision. This is an entry to the existing engine, not another
+stage. Keep scoped implementation, required checks, and independent final review.
+If a material decision remains open, settle it through the applicable stage first.
 
 ## Completion rule
 

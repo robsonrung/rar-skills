@@ -1,12 +1,14 @@
 # rar-skills
 
-`rar-skills` is an engineering skill library. Its main workflow turns a
-well-understood request into a verified local result through four clear stages:
+`rar-skills` is an engineering skill library. Its feature workflow turns a
+request into a verified local result through four stages:
 
 `interview-me` → `to-prd` → `to-tasks` → `implement-tasks`
 
-The full contract is in [docs/workflow.md](docs/workflow.md). It is the current
-source for workflow behavior.
+For one bounded, specified change with clear acceptance and no unresolved
+material decision, use `implement-and-review` directly. It retains exact worker
+approval and independent review without a feature PRD or task graph.
+See [docs/workflow.md](docs/workflow.md) for the workflow guide and owning contracts.
 
 ## Workflow
 
@@ -14,36 +16,39 @@ source for workflow behavior.
 | --- | --- | --- |
 | `interview-me` | `decision-record.md` | Use relevant repository facts, then ask at most five independent questions in one turn. With `--auto`, keep two isolated role contexts: resolve the product or technical interview roles from the central routing configuration. The respondent can provide evidence and alternatives, but cannot settle a material user decision. Record settled decisions and scope; the record becomes `ready-for-prd` when the interview closes. |
 | `to-prd` | `prd.md` | Turn a `ready-for-prd` decision record into a draft PRD. The user reviews it before it becomes approved. |
-| `to-tasks` | `tasks-draft.md`, then task slices | Create dependency-aware tasks with acceptance evidence and applicable engineering checks. The user approves the task breakdown before slices become `ready-for-agent`. |
-| `implement-tasks` | Verified local result | Show the proposed roles, exact implementation and review models, execution paths, reasoning effort, and model-verification policy before dispatch. Use the shared preview decision, including an explicit request to use defaults and run for the unchanged setup. |
+| `to-tasks` | Canonical task files, compact `tasks-draft.md`, and `queue.json` | Write each complete task contract once. The index links contracts and dependencies. Task-only approval is the default. When execution is requested, one explicit response can approve the queue and exact worker plan. Drafts cannot run. |
+| `implement-tasks` | Verified local result | Dispatch ready tasks through `implement-and-review` with the approved implementation, independent review, and integration routes. Verify the combined state before releasing dependents. |
 
-Task approval and model selection are separate. A task queue defines what
-will be built. The model plan defines who will implement and review it. Every
-directly invoked skill uses the [shared preview](skills/shared/references/model-preview.md).
-It names the actual coordinator, exact worker routes, tools, privacy controls,
-fallbacks, and limits. A skill that runs only commands starts no additional worker.
-Nested skills reuse the selected snapshot without another prompt. A request to
-use defaults and run permits the unchanged resolved setup within existing source
-sharing authority and accepted receipt limits; silence cannot approve it.
+Task approval defines the work. Model approval defines the exact worker routes
+and controls. They remain separate decisions even when one response covers both.
+The [shared preview](skills/shared/references/model-preview.md) first selects the
+branch. Coordinator work, inline methods, and deterministic commands need no
+worker selection. Actual dispatch needs one concrete preview with roles, tools,
+privacy controls, receipt policy, fallbacks, and budgets. Nested skills reuse
+the approved snapshot. A request to use defaults and run permits the unchanged
+resolved setup within source sharing authority and accepted receipt limits.
+Silence cannot approve it.
 
-Updated workflow callers select the central `saver` profile by default: cheap
-seats (GLM 5.3 Flash, DeepSeek V4.1 Flash, with Grok and Gemini alternates)
-implement and explore, while frontier seats (Astra, Opus 5.5) keep every
-reviewer role. `economy` (cheap reviewers too), `balanced`, and explicit
-legacy family routes remain selectable. Local preferences
-select a profile name, while model and effort defaults remain in
-`skills/shared/model-routing.json`. No local quality or savings comparison has
-been run for the new selection.
+[`model-routing.json`](skills/shared/model-routing.json) owns profile names,
+exact models, and effort defaults. Workflow previews resolve `--profile default`,
+with a validated local preference or explicit override when supplied. Profiles
+include `saver`, `economy`, and `balanced`; the configuration selects the default.
+Legacy family routes remain selectable. Approved snapshots retain their exact routes when configuration
+changes. Static checks do not prove model quality, latency, or cost savings.
 
 `implement-tasks` checks native host capability before external runner
-availability, chooses the route for each task shape, and uses the approved
-effort. It reports unavailable seats and never silently replaces a preferred
-model or effort. An exact native model uses an isolated persistent subagent or,
-when supported and authorized, a task thread. A runner serves a foreign model
-or an exact route the host cannot provide. Workspace selection and integration
+availability and preserves the approved route and effort. Each task has an
+isolated implementer and an independent reviewer. Each role retains its own
+context for permitted fixes and rechecks. An unavailable route blocks its work
+unless its exact fallback was approved. Workspace selection and integration
 follow the engine's
 [isolation and integration contract](skills/engineering/engine/implement-and-review/references/worktree-and-integration.md).
-Without delivery authorization, the result stays local and verified.
+Without delivery authorization, the result stays local and verified. The
+[read-only queue controller](skills/engineering/workflow/implement-tasks/references/queue-controller.md)
+projects readiness from bound contracts, manifests, and the existing call ledger.
+It starts no worker and changes no state. The conductor reserves each call before
+dispatch, keeps write ownership through pending calls and integration, and
+enforces dependency and concurrency limits.
 
 A requested or configured model is not proof that it served a run. Each route
 records `model_verification` as `required` or `allow_unverified`. `required`
@@ -63,32 +68,54 @@ session rules are in
 | Moment | Skills |
 | --- | --- |
 | Discover risk and behavior | `security-gate`, a broad lens only when it changes the next question, and `to-prototype` when a runnable question blocks a decision |
-| Plan a task slice | `design-gate` once, `security-gate` for the security classification, and `test-lens` only for a real test-design decision |
+| Plan a task slice | `design-gate` once with at most three inline lenses, `security-gate` for the security classification, and `test-lens` for a real test-design decision |
 | Resolve an implementation shape | `coding-design-plan` when the shape is unresolved; reuse inherited gate constraints |
 | Build new behavior | `tdd`, then `clean-code` for a refactor decision and `test-lens` for a test-design decision |
 | Change untested legacy code | `safe-incremental-coding` before broad edits |
 | Investigate an unexpected failure | `diagnose` |
 | Review a completed change | Approved scoped review; `full-review` for integration seams or named risks, `coding-review-simplify` for a useful simplification, and `browser-smoke` for affected web flows |
 
-Reuse captured checks when the relevant code, dependencies, environment, and
-contract still match; rerun affected checks and any required fresh checks.
-Routine reviews do not start a council.
+Routine lenses are read-only procedures in the assigned role. A material risk
+or unresolved question can require an approved independent specialist. The final
+code review remains independent. Routine reviews do not start a council.
+
+The [shared evidence contract](skills/shared/references/review-evidence.md)
+selects affected checks from declared inputs. It retains matching captures,
+requires an explicit transfer assessment for changed source identity, and runs
+affected or required fresh checks. Unknown dependencies use whole-source scope.
+Keep original logs and immutable snapshots. A passing command or completion
+label alone cannot establish review readiness.
 
 ## Feature validation
 
 [`validate-e2e`](skills/engineering/workflow/validate-e2e/SKILL.md) validates an
-existing feature against a finite acceptance contract. It previews editable model
-routes and runner choices, reuses current evidence, and records bounded test and
-model attempts. Required behavior and runtime gates remain separate. It returns
-a scoped result without opening a pull request or changing production.
+existing feature against a finite acceptance contract. Command-only work runs
+directly. Worker work uses the exact approved routes and reserved budgets.
+Validation exports current captured checks and browser observations through the
+same evidence packet used by review. Required behavior and runtime gates remain
+separate. `pre-pr-review` reuses evidence only after the shared verifier accepts
+it. Approved recovery allowances retain total limits across native and runner
+resumes. A scoped pass does not prove universal coverage.
+
+Claude preflight caches only stable capability results with a current fingerprint
+and a 24-hour limit. Each launch still checks local CLI identity, configuration,
+launch context, authentication visibility, and installation drift. Receipts,
+entitlement, quota, and request privacy remain current-run facts.
 
 ## Optional council
 
 `models-consensus` is for a user who explicitly asks for more opinions. It is
-user-invoked only. No workflow or model invokes it. Before it runs, it presents the mode, selected model seats,
-exact models and transports, roles, reasoning effort, call budget, and
-unavailable seats. The user approves or changes the roster. It provides
-deliberation only and never implements code.
+user-invoked only. Before it runs, it presents the mode, exact seats and
+transports, roles, effort, receipt policy, call budget, and unavailable seats.
+The user approves that council plan separately. `poll` retains the `standard`
+profile by default. Explicit `lean` is available for low-risk questions through
+`per_call` transport. Both judge routes remain approved and run when validated
+organizer evidence finds gaps, contradictions, low confidence, or high risk.
+The council provides deliberation only.
+
+`brainstorm` batches up to five independent decisions after its territory gate.
+`to-prototype` uses the smallest experiment that can settle one question, such as
+one visual fixture or two useful alternatives. Prototype code remains disposable.
 
 ## Delivery
 
@@ -98,8 +125,8 @@ item. Those actions are never implied by task or model-plan approval.
 
 ## Library map
 
-There are 58 installable skills. The following map keeps every skill
-discoverable while leaving detailed instructions in each `SKILL.md`.
+The following map keeps the skills discoverable while leaving detailed
+instructions in each `SKILL.md`. The shared library installs beside them.
 
 | Domain | Skills |
 | --- | --- |
@@ -108,10 +135,10 @@ discoverable while leaving detailed instructions in each `SKILL.md`.
 | Gates | `design-gate`, `security-gate` |
 | Lenses | `advanced-react`, `agent-architecture-lens`, `architecture-lens`, `data-systems-coding-lens`, `design-patterns`, `distributed-systems-patterns`, `domain-driven-design`, `macro-architecture`, `software-design-philosophy`, `ui-ux-pro-max` |
 | Practice | `clean-code`, `diagnose`, `frontend-design`, `safe-incremental-coding`, `tdd`, `test-lens` |
-| Review | `coding-review-simplify`, `full-review` |
+| Review | `architecture-review`, `code-deslop`, `coding-review-simplify`, `full-review` |
 | Delivery | `capture-learning`, `open-pr`, `resolve-pr-feedback`, `session-handoff`, `summarize` |
 | Model seats | `claude-runner`, `codex-runner`, `gemini-runner`, `grok-runner`, `pi-runner` |
-| Independent utilities | `agents-md-craft`, `browser-smoke`, `cmux-cli`, `collaborative-delivery`, `decide-about-disagreements`, `diverse-plan`, `dynamic-harness`, `fable-mindset`, `knowledge-graph`, `peer-sessions`, `review-gate`, `skill-expert`, `verify-changes` |
+| Independent utilities | `agents-md-craft`, `browser-smoke`, `cmux-cli`, `collaborative-delivery`, `decide-about-disagreements`, `diverse-plan`, `dynamic-harness`, `environment-check`, `fable-mindset`, `knowledge-graph`, `peer-sessions`, `review-gate`, `skill-expert`, `verify-changes` |
 | Visualizations | `consensus-summary-html`, `explain-architecture`, `html-explainer` |
 
 ## Install
@@ -151,8 +178,8 @@ approved plan. Check external runner availability before selecting one:
 python3 skills/shared/scripts/discover_runners.py probe
 ```
 
-The roster is the only source of model identifiers. Do not copy model IDs into
-workflow instructions. A successful probe confirms a transport, not the model
+Resolve model identifiers from the central configuration. A successful probe
+confirms a transport, not the model
 that later serves the request.
 
 ## Documentation
@@ -183,9 +210,10 @@ runner capabilities, task routes, and council roles. Skills and adapters read
 it; approved run plans preserve exact selections as immutable snapshots.
 
 ```bash
-python3 skills/shared/scripts/model_routing.py resolve code-exploration --family gpt
-python3 skills/shared/scripts/model_routing.py resolve routine-implementation --family claude
-python3 skills/shared/scripts/model_routing.py resolve isolated-implementation --family gpt --risk high
+python3 skills/shared/scripts/model_routing.py resolve code-exploration --profile default
+python3 skills/shared/scripts/model_routing.py resolve routine-implementation --profile default
+python3 skills/shared/scripts/model_routing.py resolve isolated-implementation --profile default --risk high
+python3 skills/shared/scripts/model_routing.py council routine --poll-profile lean
 python3 skills/shared/scripts/model_routing.py validate
 ```
 

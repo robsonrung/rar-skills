@@ -66,6 +66,13 @@ The helper executes the declared argument list without an implicit shell. It rec
 
 Each check runs once per evidence directory. A retry uses a new directory and preserves the failed result. Reference a prior captured check when its source hash, context hash, and complete command definition match. For identical content after a commit or worktree transfer, use the explicit `transfer-check` protocol below. The validator checks these bindings. A prose claim of a pass is insufficient.
 
+New captures bind the original snapshot path and hash. Validation also checks the
+original contract, requirements, command definition, and capture directory. Keep
+the original result with its separate `stdout.log` and `stderr.log`; copying a
+result into another bundle does not rebind it. Older direct captures remain valid
+when their bundle snapshot supplies the same binding. Generic status reports
+without these facts cannot become captured command records.
+
 For browser observations, save actual driver output or screenshots and their SHA-256 hashes. The helper checks file integrity and the declared result; it does not execute or interpret browser actions. Missing or skipped required observations prevent readiness.
 
 ## Reviewer response
@@ -151,6 +158,10 @@ Prepare a JSON observation list from actual driver captures. Each entry contains
 Use `prepare-packet --snapshot <snapshot.json> --observations <observations.json> --output <packet.json>`.
 An optional `--checks <checks.json>` maps check IDs to captured result files. Otherwise the helper
 uses the snapshot's check directory. Preparation rejects missing entries and invalid hashes.
+For sequential validation units, repeat `--id <declared-id>` to prepare a scoped
+unit packet with only those checks and observations. It records that explicit
+`scope` and validates every included ID. A scoped packet cannot establish review
+readiness until the required unit packets are combined into a complete packet.
 For the task launcher, pass `review --evidence-packet <packet.json>` to validate the packet before
 reserving a review cycle. The launcher adds required response coverage to the bound review brief.
 
@@ -178,3 +189,71 @@ that omitted callers are independent. Unknown dependencies require the full scop
 Optional `observation_inputs` maps observation IDs to relative captured file paths. A change to a
 listed file or the declaration requires a fresh observation. The reviewer still assesses semantic
 effects on unlisted callers. This does not authorize reuse after a behavior change.
+
+Without a complete observation input declaration, any source content change
+requires fresh browser observations. Use the same observation shape in
+validation, browser smoke tests, and review: `{id, result, evidence}` with
+`pass`, `fail`, or `skipped` and nonempty `{path, sha256}` capture links. Runtime
+commands remain declared checks, including when a browser suite runs them.
+
+## Select affected checks
+
+Run the selector before executing or transferring checks:
+
+```bash
+python3 <shared-dir>/scripts/review_evidence.py select-checks \
+  --snapshot <current-snapshot.json> --from-snapshot <prior-snapshot.json> \
+  --checks <original-check-paths.json> --fresh <required-fresh-check-id>
+```
+
+`--checks` is a JSON map of IDs to original captured result paths. Omit
+`--from-snapshot` and `--checks` for an initial run. Repeat `--fresh` for required
+fresh runs. A check definition can set `fresh: true` to enforce that requirement
+for every consumer. The selector returns each ID, its declared inputs, changed
+paths, and one action:
+
+1. `run`: execute through `run-check`. This includes missing, failed, invalid,
+   or changed evidence and required fresh checks.
+2. `reuse`: reference the passing capture with matching source, requirements,
+   contract, environment, and command.
+3. `transfer`: unchanged declared inputs permit a candidate transfer. Capture
+   the existing environment and base assessment, then use `transfer-check`.
+
+Unknown dependencies use the whole captured source. The selector does not infer
+dependencies from path names or turn an unaffected path into review approval.
+Transfer still rejects failed commands, altered output, and changed identities.
+Fresh checks cannot transfer. A fresh run uses a new snapshot directory.
+
+## Bridge feature validation to review
+
+New `validate-e2e` plans bind `review_snapshot: {path, sha256}` to the existing
+shared requirements and snapshot artifacts. Required units account for every
+shared check and observation ID. Reserve each attempt against a current snapshot,
+execute commands through `run-check`, and capture browser observations in the
+shape above. Finish with a bound evidence packet; declared unit statuses must
+equal its captured command and browser outcomes. A unit can use a scoped packet
+that covers its declared IDs, so sequential units can finish within the approved
+parallel ceiling. The final bridge combines the completed required units into
+one complete packet before independent review.
+
+After all required units pass, export checked references:
+
+```bash
+python3 <validate-e2e-dir>/scripts/validation_control.py \
+  --shared-dir <shared-dir> --state <run-state.json> \
+  evidence-packet --output <validation-evidence-packet.json>
+```
+
+The bridge returns `snapshot` and `evidence_packet` links. It rechecks current
+source, raw logs, scope, and capture hashes. All required units must bind one
+current snapshot. A repair may reserve a new snapshot with the same approved
+contract, root, base, and required scope; it retains consumed limits. Changed
+environment facts belong in the new snapshot context. No extra mutable evidence
+ledger or acceptance copy is needed.
+
+Give the packet to the independent reviewer. Record its actual coverage,
+findings, and response, then run `verify`. `pre-pr-review` reuses that structured
+review only when the same verifier accepts current source and evidence. A unit
+pass alone supplies no reviewer judgment. Historical generic validation data
+remains context only; the bridge rejects it instead of adding missing identities
+after the run.

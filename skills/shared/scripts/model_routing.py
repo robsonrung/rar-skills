@@ -14,6 +14,9 @@ from typing import Any
 CONFIG_PATH = Path(__file__).resolve().parents[1] / "model-routing.json"
 
 EFFORT_SCALING_VALUES = ("monotonic", "flat", "flat-above-high", "non-monotonic")
+POLL_PROFILE_NAMES = ("standard", "lean")
+POLL_BUDGET_FIELDS = ("base_calls", "conditional_calls", "validation_retry_ceiling", "maximum_calls")
+POLL_CONDITIONAL_STAGES = ("gap_repair", "judge")
 
 
 def require(condition: bool, message: str) -> None:
@@ -106,9 +109,68 @@ def resolve_role(selection: dict, config: dict) -> dict:
     return dict(seat=seat, model=entry["model"], runner=entry["runner"], effort=effort)
 
 
+def council_poll_policy(config: dict | None = None) -> dict:
+    """Return the immutable policy fields that a lean preview must snapshot."""
+    config = load_config() if config is None else config
+    policy = config["council_policy"]
+    return {
+        "low_confidence_threshold": policy["low_confidence_threshold"],
+        "full_required_flags": copy.deepcopy(policy["full_required_flags"]),
+    }
+
+
+def validate_council_policy(config: dict) -> None:
+    policy = config.get("council_policy")
+    require(isinstance(policy, dict), "Missing council policy")
+    require(set(policy) == {"low_confidence_threshold", "full_required_flags", "poll_profiles"}, "Invalid council policy")
+    threshold = policy.get("low_confidence_threshold")
+    require(type(threshold) is int and 0 <= threshold <= 100, "Invalid council low confidence threshold")
+    flags = policy.get("full_required_flags")
+    require(isinstance(flags, list) and flags and all(isinstance(flag, str) and flag for flag in flags), "Invalid council full required flags")
+    require(len(flags) == len(set(flags)), "Duplicate council full required flag")
+    profiles = policy.get("poll_profiles")
+    require(isinstance(profiles, dict) and set(profiles) == set(POLL_PROFILE_NAMES), "Invalid council poll profiles")
+    for name, profile in profiles.items():
+        require(
+            isinstance(profile, dict) and set(profile) == {"budget", "conditional_stages"},
+            f"Invalid council poll profile: {name}",
+        )
+        budget = profile["budget"]
+        stages = profile["conditional_stages"]
+        require(
+            isinstance(budget, dict) and set(budget) == set(POLL_BUDGET_FIELDS),
+            f"Invalid council poll budget: {name}",
+        )
+        require(
+            all(type(budget[field]) is int and budget[field] >= 0 for field in POLL_BUDGET_FIELDS),
+            f"Invalid council poll budget value: {name}",
+        )
+        require(
+            isinstance(stages, dict) and set(stages) == set(POLL_CONDITIONAL_STAGES),
+            f"Invalid council conditional stages: {name}",
+        )
+        require(
+            all(type(stages[stage]) is int and stages[stage] >= 0 for stage in POLL_CONDITIONAL_STAGES),
+            f"Invalid council conditional stage count: {name}",
+        )
+        require(
+            budget["conditional_calls"] == sum(stages.values()),
+            f"Council conditional calls differ from stages: {name}",
+        )
+        planned_calls = budget["base_calls"] + budget["conditional_calls"]
+        require(
+            budget["validation_retry_ceiling"] == planned_calls,
+            f"Council retry ceiling differs from planned calls: {name}",
+        )
+        require(
+            budget["maximum_calls"] == planned_calls + budget["validation_retry_ceiling"],
+            f"Council maximum calls differs from retry ceiling: {name}",
+        )
+
+
 def validate_config(config: Any) -> None:
     require(isinstance(config, dict) and config.get("schema_version") == 1, "Unsupported model routing schema")
-    for key in ("effort_profiles", "runners", "models", "routes", "policy", "councils"):
+    for key in ("effort_profiles", "runners", "models", "routes", "policy", "council_policy", "councils"):
         require(isinstance(config.get(key), dict) and bool(config[key]), f"Missing configuration object: {key}")
     levels = config.get("effort_levels")
     require(isinstance(levels, list) and all(isinstance(v, str) and v for v in levels), "Invalid effort levels")
@@ -171,11 +233,47 @@ def validate_config(config: Any) -> None:
         seen.add(seat)
     for name, seats in config.get("discovery_presets", {}).items():
         require(isinstance(seats, list) and bool(seats) and all(seat in seen for seat in seats), f"Invalid discovery preset: {name}")
+    validate_council_policy(config)
     for name, council in config["councils"].items():
+        require(
+            isinstance(council, dict) and set(council) == {"openings", "organizer", "judges", "synthesis"},
+            f"Invalid council: {name}",
+        )
+        require(
+            isinstance(council["openings"], list) and len(council["openings"]) == 3,
+            f"Council {name} requires three openings",
+        )
+        require(
+            isinstance(council["judges"], list) and len(council["judges"]) == 2,
+            f"Council {name} requires two judges",
+        )
         for ref in [*council["openings"], council["organizer"], *council["judges"], council["synthesis"]]:
             resolve_reference(ref, config)
         models = [resolve_reference(ref, config)["model"] for ref in council["openings"]]
-        require(len(models) >= 3 and len(models) == len(set(models)), f"Council {name} requires distinct opening models")
+        require(len(models) == len(set(models)), f"Council {name} requires distinct opening models")
+        profiles = config["council_policy"]["poll_profiles"]
+        standard_budget = profiles["standard"]["budget"]
+        standard_stages = profiles["standard"]["conditional_stages"]
+        lean_budget = profiles["lean"]["budget"]
+        lean_stages = profiles["lean"]["conditional_stages"]
+        opening_count = len(council["openings"])
+        judge_count = len(council["judges"])
+        require(
+            standard_budget["base_calls"] == opening_count + 1 + judge_count + 1,
+            f"Council {name} does not match the standard base budget",
+        )
+        require(
+            standard_stages == {"gap_repair": opening_count, "judge": 0},
+            f"Council {name} does not match the standard conditional stages",
+        )
+        require(
+            lean_budget["base_calls"] == opening_count + 1 + 1,
+            f"Council {name} does not match the lean base budget",
+        )
+        require(
+            lean_stages == {"gap_repair": opening_count, "judge": judge_count},
+            f"Council {name} does not match the lean conditional stages",
+        )
     for seat, model in config["models"].items():
         if "default_effort" in model:
             validate_selection(model["runner"], model["model"], model["default_effort"], config)
@@ -207,6 +305,40 @@ def resolve_reference(reference: dict, config: dict) -> dict:
     except (KeyError, TypeError) as exc:
         raise ValueError(f"Invalid route reference: {reference}") from exc
     return resolve_role(selection, config)
+
+
+def resolve_council(name: str, poll_profile: str = "standard", *, risk_flags: list[str] | tuple[str, ...] | None = None,
+                    config: dict | None = None) -> dict:
+    """Resolve a council profile into exact routes without dispatching calls."""
+    config = load_config() if config is None else config
+    require(name in config["councils"], f"Unknown council: {name}")
+    profiles = config["council_policy"]["poll_profiles"]
+    require(isinstance(poll_profile, str) and poll_profile in profiles, f"Unknown poll profile: {poll_profile}")
+    supplied_flags = [] if risk_flags is None else risk_flags
+    require(isinstance(supplied_flags, (list, tuple)), "Council risk flags must be a list")
+    policy = council_poll_policy(config)
+    require(all(isinstance(flag, str) and flag in policy["full_required_flags"] for flag in supplied_flags), "Unknown council risk flag")
+    require(len(supplied_flags) == len(set(supplied_flags)), "Duplicate council risk flag")
+    resolved_flags = [flag for flag in policy["full_required_flags"] if flag in supplied_flags]
+    if poll_profile == "lean":
+        require(name != "security", "Lean poll profile requires standard for the security council")
+        require(not resolved_flags, "Lean poll profile requires standard when risk flags are selected")
+    council = config["councils"][name]
+    result = {
+        key: [resolve_reference(reference, config) for reference in value] if isinstance(value, list)
+        else resolve_reference(value, config)
+        for key, value in council.items()
+    }
+    profile = profiles[poll_profile]
+    result.update(
+        council_name=name,
+        poll_profile=poll_profile,
+        risk_flags=resolved_flags,
+        poll_policy=policy,
+        poll_budget=copy.deepcopy(profile["budget"]),
+        conditional_stages=copy.deepcopy(profile["conditional_stages"]),
+    )
+    return result
 
 
 def resolve_route(name: str, family: str, *, risk: str = "normal", config: dict | None = None) -> dict:
@@ -409,6 +541,8 @@ def main() -> int:
     resolve.add_argument("--risk", default="normal")
     council = commands.add_parser("council", help="Resolve a council preview without starting any calls")
     council.add_argument("name")
+    council.add_argument("--poll-profile", choices=POLL_PROFILE_NAMES, default="standard")
+    council.add_argument("--risk-flag", action="append", default=[], metavar="FLAG")
     args = parser.parse_args()
     try:
         config = load_config(args.config)
@@ -425,8 +559,7 @@ def main() -> int:
             else:
                 output = resolve_route(args.route, args.family or "gpt", risk=args.risk, config=config)
         elif args.command == "council":
-            require(args.name in config["councils"], f"Unknown council: {args.name}")
-            output = {key: [resolve_reference(ref, config) for ref in value] if isinstance(value, list) else resolve_reference(value, config) for key, value in config["councils"][args.name].items()}
+            output = resolve_council(args.name, args.poll_profile, risk_flags=args.risk_flag, config=config)
         else:
             output = config
         print(json.dumps(output, indent=2))

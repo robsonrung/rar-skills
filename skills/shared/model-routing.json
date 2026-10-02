@@ -2167,6 +2167,44 @@
       "evidence": "validate-e2e/references/model-research.md, checked 2026-09-19; task-fit judgment, not local measured equivalence."
     }
   },
+  "council_policy": {
+    "low_confidence_threshold": 70,
+    "full_required_flags": [
+      "security",
+      "money",
+      "migrations",
+      "public_contracts",
+      "data_loss",
+      "deep_review",
+      "high_risk"
+    ],
+    "poll_profiles": {
+      "standard": {
+        "budget": {
+          "base_calls": 7,
+          "conditional_calls": 3,
+          "validation_retry_ceiling": 10,
+          "maximum_calls": 20
+        },
+        "conditional_stages": {
+          "gap_repair": 3,
+          "judge": 0
+        }
+      },
+      "lean": {
+        "budget": {
+          "base_calls": 5,
+          "conditional_calls": 5,
+          "validation_retry_ceiling": 10,
+          "maximum_calls": 20
+        },
+        "conditional_stages": {
+          "gap_repair": 3,
+          "judge": 2
+        }
+      }
+    }
+  },
   "councils": {
     "technical": {
       "openings": [

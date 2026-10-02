@@ -1,16 +1,18 @@
 # Task shaped model routing
 
-Read [`model-routing.json`](../model-routing.json) for every maintained model
-and effort selection. [model-roster.md](model-roster.md) explains its fields;
+Use [`model-routing.json`](../model-routing.json) when selecting a worker's model
+and effort. [model-roster.md](model-roster.md) explains its fields;
 [host-model-execution.md](host-model-execution.md) controls native execution,
 transport checks, and separate role contexts. This reference defines selection
 and review procedure, not another table of model defaults.
 
 ## Select before approval
 
-Use [model-preview.md](model-preview.md) for the single direct invocation preview,
-user overrides, and inherited selections. This procedure resolves only the roles
-that preview needs.
+Use [model-preview.md](model-preview.md) to choose the branch first. Coordinator
+work, applied methods and lenses, and deterministic commands need no model route.
+For actual dispatch, consume an existing approved snapshot or resolve only the
+roles needed for one concrete selection. The caller can combine this selection
+with task approval; it does not need a second model question.
 
 1. Match the work to a `routes` entry by its purpose and conditions. Use bounded
    exploration for evidence collection, isolated implementation for a small
@@ -22,16 +24,10 @@ that preview needs.
    skill, adding `--local-profile <name>` for a validated local preference.
    Explicit profiles and legacy family routes remain selectable. The
    output names the exact model and effort for each role and records a configuration digest. It starts no workers.
-   The `saver` profile routes exploration, implementation, test authorship,
-   e2e browser work, and first-pass diagnosis to cheap seats (GLM 5.3 Flash,
-   DeepSeek V4.1 Flash, with Grok and Gemini as approved alternates) while
-   every reviewer stays on a frontier seat (Astra or Opus 5.5). It exists to
-   preserve OpenAI and Claude subscription quota for planning, risk, and
-   review work. The `economy` profile, which also reviews on cheap seats,
-   remains an explicit opt-in; `balanced` and legacy families stay selectable.
-   First-pass `diagnosis` on a cheap seat is a bounded attempt: escalate to
-   `deep-analysis` or `difficult-implementation` when repeated repair adds no
-   new evidence or the causal chain stays unknown.
+   `saver` preserves strong review roles; `economy` remains an explicit opt-in.
+   Read exact seats and alternates from the configuration. First-pass diagnosis
+   is bounded: an unresolved causal chain can justify a proposed `deep-analysis`
+   or `difficult-implementation` route within the caller's change procedure.
 3. Apply `policy.high_risk_triggers` before editing. Resolve with `--risk high`
    when a trigger applies. A strong lead must settle requirements, interfaces,
    invariants, and critical acceptance cases before routine parts are delegated.
@@ -94,13 +90,14 @@ with `model_routing.py council <name>` only to prepare the approval preview.
 
 ## Approval and exact routes
 
-Every direct invocation follows [model-preview.md](model-preview.md). A request
-to use defaults and run, or existing approval for the unchanged concrete setup,
-permits the selected routes within authorized source sharing and receipt limits.
-Otherwise obtain the caller's model plan decision; silence cannot provide it.
-Nested skills reuse the selected snapshot. Save an implementation plan and
-validate it against `implementation-routing-plan.schema.json`. Consensus keeps
-its own explicit invocation and approval.
+Only actual worker dispatch requires a concrete model selection under
+[model-preview.md](model-preview.md). A request to use defaults and run, an exact
+model request, or approval for the unchanged concrete setup permits those routes
+within source sharing authority and receipt limits. Otherwise obtain the caller's
+model plan decision; silence cannot provide it. Nested skills and runners consume
+the approved snapshot without route resolution or extra workers. Save the
+implementation plan and validate it against `implementation-routing-plan.schema.json`.
+Consensus keeps its own explicit invocation and approval.
 
 Each route records task, track, role, seat, model, execution mode, transport,
 effort and control, provider routing, capabilities and tool policy, receipt
@@ -133,6 +130,8 @@ effort, or changed transport needs the calling workflow's change decision.
 
 Use scripts for status waits, hashes, evidence assembly, and receipt normalization. These jobs
 need no model route. Keep the coordinator brief limited to changed facts and unresolved decisions.
+Reserve each model call against the existing ledger before dispatch, including repairs,
+fallbacks, specialists, and review rechecks. Recovery preserves counters and total ceilings.
 Do not reduce an explicitly selected model or effort. Select a cheaper future route only through
 the selected plan. A performance claim needs a bounded comparison against the same
 acceptance cases. Measure input,

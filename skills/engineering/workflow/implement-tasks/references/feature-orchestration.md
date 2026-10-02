@@ -41,15 +41,19 @@ Keep each context available until its role is complete and all required evidence
 
 ## Scheduling
 
-1. Validate the graph before starting. Reject unknown IDs, self-dependencies, and cycles. Preserve stable task IDs.
-2. A task is ready when every blocker is `done` and its changes passed acceptance on the integration state.
-3. Separate product blockers from write conflicts. Use the queue's named shared-contract owners and release conditions. Honor the queue's parallelization constraints. Serialize shared files, migrations, interfaces, and security-sensitive paths unless there is an explicit merge plan.
-4. Start at most the approved number of tasks. Each new worktree starts at the current integration revision. A running independent task can finish on its recorded base; after integration, check interactions and rerun acceptance affected by the combined state.
+1. Use the shared read-only controller from [queue-controller.md](queue-controller.md) before each wave. It validates IDs, blockers, cycles, approved scope and route bindings, ownership, and concurrency. Preserve stable IDs. The canonical task file owns acceptance; the compact index owns references; manifests and the ledger own progress.
+2. Select only returned `ready` tasks. Each dependency needs verified integration evidence bound to its contract and the current combined source state. A task or worker completion label alone cannot release a dependent. Finish returned `required_integration` work through the approved integration route, then project readiness again.
+3. Separate product blockers from write conflicts. Keep shared files, migrations, interfaces, and security surfaces serialized unless the approved queue input names an accepted merge plan with overlap and combined verification. An unresolved task or pending call keeps its write ownership until reconciliation and integration permit release.
+4. Start at most the approved number of tasks. Use one writer without isolation. Each new worktree starts at the current integration revision. A running independent task can finish on its recorded base; after integration, check interactions and rerun affected acceptance. The scheduler only projects a wave; reserve its calls in the ledger before dispatch.
 5. Record task role context IDs, runner-session IDs, pending calls, and task states before dispatch. Use the shared call-ledger helper to reserve and reconcile calls. Read compact status and result envelopes. Use cursor-based host waits or `runner_jobs.py wait-many` for explicit runner jobs. One bounded wait replaces alternating status and sleep calls. Do not load unchanged report bodies. Open report bodies for failures, changed results, and final synthesis, not repeated polling.
 
 ## Integration
 
 Use the project's branch convention and preserve unrelated changes. Default to one sequential writer in the selected workspace and record acceptance after each task. Follow `references/worktree-and-integration.md` from the loaded `implement-and-review` skill for isolation and integration. Perform commit-based integration only when its required git actions are explicitly authorized.
+
+Reuse a launcher-managed independent review when its exact approved route, contract, acceptance, and snapshot already match the current combined source. Its immutable manifest links must pass the shared verifier. Do not repeat that review only to release a dependency. Changed source or uncovered interactions require current integration evidence.
+
+Represent an additional integration review as an approved `role: reviewer` route with its own scope ID and canonical `input_path`, such as `integration-T1` bound to the T1 task contract for dependency release. Keep its context separate from both task roles. Reserve the call through the shared run-state helper with the combined `review_snapshot`, dispatch through the selected native host or runner, and record the actual receipt with `complete`. This review-only scope uses the shared ledger lifecycle; the per-task launcher still owns implementation/review pairs. Link the resulting immutable snapshot from the ledger's `integration_evidence[T1]`. A final feature review can bind the PRD as its canonical input.
 
 Before an authorized merge, record a pending effect with task ID, source revision, and target revision. Merge, verify ancestry and acceptance, then confirm the effect. After a crash, inspect the repository before retrying a pending merge.
 

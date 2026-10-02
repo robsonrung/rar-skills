@@ -4,6 +4,10 @@ Use **selection over compression**: send the task's acceptance contract, settled
 open questions, allowed paths, relevant source locators, and remaining limits. Keep complete
 reports and logs in files. Do not summarize an entire parent conversation into a worker prompt.
 
+Prepare a worker packet only for actual dispatch. Methods and routine read-only
+lenses applied in the assigned role use its current inputs and record findings
+in the caller's existing artifact. They do not create another role or packet.
+
 ## Bind the derived notes
 
 Prepare a source list with absolute paths, authority (`decision`, `evidence`, or
@@ -30,8 +34,9 @@ without changing a decision hash. If decisions change, revise the affected brief
 new packet path. Never replace old evidence to conceal drift.
 
 The launcher verifies `<brief-file>.packet.json` before dispatch. New workflow runs use this
-binding. Legacy briefs remain readable and receive the complete input check too. Direct interview,
-design, and handoff callers run `verify` themselves. Resolve conflicting notes against current
+binding. Legacy briefs remain readable and receive the complete input check too. Interview,
+design, and handoff callers verify packets before their own worker dispatch. Reuse source
+locators and revisions from the decision record; recheck changed or disputed facts. Resolve conflicting notes against current
 user decisions before sending the packet; a checksum cannot resolve their meaning.
 
 ## Check the complete rendered input

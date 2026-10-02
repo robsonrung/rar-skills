@@ -3,15 +3,15 @@ name: skill guards
 # Mechanical guards for the skill repo (see the "right-size guards" rule:
 # if it needs an LLM to judge, it's not a CI test).
 #
-#   1. Cross-runner parity — the wrapper-script envelope contract cannot
+#   1. Cross-runner parity: the wrapper-script envelope contract cannot
 #      drift between claude/codex/gemini/grok/pi runners.
-#   2. Skill frontmatter — every SKILL.md has routable name + description,
+#   2. Skill frontmatter: every SKILL.md has routable name + description,
 #      name matches its directory, no upstream prefixes.
-#   3. Runner-dir parity — a runner skill cannot land without registering
+#   3. Runner-dir parity: a runner skill cannot land without registering
 #      its seat in model-routing.json (or being deliberately allowlisted).
-#   4. Task-shaped routing — planning, review, and delivery assignments keep
+#   4. Task-shaped routing: planning, review, and delivery assignments keep
 #      their intended seat roles and launcher defaults.
-#   5. Command guard — the runner-fleet denylist blocks every catastrophic
+#   5. Command guard: the runner-fleet denylist blocks every catastrophic
 #      probe and allows every recoverable lookalike.
 
 on:
@@ -35,23 +35,37 @@ jobs:
           python3 skills/shared/tests/test_stream_capture.py
           python3 skills/shared/tests/test_skill_paths.py
       - name: Central model configuration
-        run: python3 skills/shared/tests/test_model_config.py
+        run: |
+          python3 skills/shared/tests/test_model_config.py
+          python3 skills/shared/tests/test_model_profiles.py
       - name: Task shaped model routing
-        run: python3 skills/shared/tests/test_model_routing.py
+        run: |
+          python3 skills/shared/tests/test_model_routing.py
+          python3 skills/shared/tests/test_council_routing.py
       - name: Serving model receipt provenance
         run: python3 skills/shared/tests/test_model_receipt.py
       - name: Native panel dispatch
         run: python3 skills/shared/tests/test_native_panel_dispatch.py
       - name: Approved implementation dispatch
         run: python3 skills/engineering/engine/implement-and-review/tests/test_launch.py
+      - name: Canonical task queue and readiness projection
+        run: python3 skills/shared/tests/test_task_queue.py
       - name: Persistent call ledger and context packets
         run: |
           python3 skills/shared/tests/test_run_state.py
           python3 skills/shared/tests/test_context_packet.py
       - name: Structured Claude receipts
         run: python3 skills/engineering/seats/claude-runner/tests/test_run_claude.py
+      - name: Stable capability cache and current launch checks
+        run: |
+          python3 skills/shared/tests/test_preflight_cache.py
+          python3 skills/shared/tests/test_runner_preflight.py
+          python3 skills/shared/tests/test_claude_process_contract.py
+          python3 skills/shared/tests/test_install_drift.py
+          python3 skills/shared/tests/test_execution_policy.py
       - name: Runner output contracts
         run: |
+          python3 skills/engineering/seats/codex-runner/tests/test_run_codex.py
           python3 skills/engineering/seats/gemini-runner/tests/test_run_gemini.py
           python3 skills/shared/tests/test_output_contract.py
       - name: Peer fleet lifecycle
@@ -65,7 +79,11 @@ jobs:
           python3 skills/engineering/review/architecture-review/scripts/selftest.py
           python3 skills/engineering/review/architecture-review/scripts/validate_report.py skills/engineering/review/architecture-review/examples/demo-audit.json
       - name: Council approval boundary
-        run: python3 skills/engineering/workflow/models-consensus/tests/test_user_approval_contract.py
+        run: |
+          python3 skills/engineering/workflow/models-consensus/tests/test_user_approval_contract.py
+          python3 skills/engineering/workflow/models-consensus/tests/test_council_state.py
+          python3 skills/engineering/workflow/models-consensus/tests/test_runner_council_integration.py
+          python3 skills/engineering/workflow/models-consensus/tests/test_lean_poll.py
       - name: Council terminal transport
         run: python3 skills/engineering/workflow/models-consensus/tests/test_cmux_council.py
       - name: Feature validation controls

@@ -6,7 +6,7 @@ license: Complete terms in LICENSE.txt
 
 # Frontend Design
 
-For a direct invocation, first use `shared/references/model-preview.md`. Nested calls reuse the parent's selected snapshot without another prompt or unlisted workers.
+Choose the branch before selecting a model. Coordinator work and deterministic commands proceed within invocation authority. Apply this method in the current role. It does not dispatch a worker. For a worker dispatch, use `shared/references/model-preview.md` and its one approved route snapshot. Nested skills and runners consume it without another selection or worker.
 
 This skill guides creation of distinctive, production-grade frontend interfaces: implement real working code with exceptional attention to aesthetic details and creative choices.
 

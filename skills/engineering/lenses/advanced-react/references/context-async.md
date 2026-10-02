@@ -1,6 +1,6 @@
 # Context, refs, UI, fetch, errors (ch 8–16)
 
-Read the section that matches the surface. Do not load the whole file into a subagent when only one section applies — quote the section name in the handoff.
+Read the section that matches the surface. When a material risk or unresolved question warrants an approved independent specialist, name only that section in its bounded packet.
 
 ## Contents
 

@@ -1,6 +1,6 @@
 # Bug finding lenses
 
-Use one lens only when the approved review plan assigns the matching concern. This is a prompt guide, not a required panel.
+Apply one lens only when the approved review plan assigns the matching concern. It stays in the assigned reviewer context unless an approved specialist route is needed for a material risk or unresolved question. This is a prompt guide, not a required panel.
 
 | Concern | Inspect |
 | --- | --- |

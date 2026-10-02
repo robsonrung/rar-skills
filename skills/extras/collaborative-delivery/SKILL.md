@@ -6,11 +6,11 @@ disable-model-invocation: true
 
 # Collaborative Delivery
 
-For a direct invocation, first use `shared/references/model-preview.md`. Nested calls reuse the parent's selected snapshot without another prompt or unlisted workers.
+Choose the branch before selecting a model. Select the task and panel roles in the current coordinator. Before starting a panel role, use `shared/references/model-preview.md` to bind one approved route snapshot.
 
 Model IDs, effort support, and task defaults come only from
-`shared/model-routing.json`. Resolve the relevant route before preview or
-approval; preserve the exact saved route during dispatch, retry, and resume.
+`shared/model-routing.json`. Preserve the approved snapshot during dispatch,
+retry, and resume.
 
 Use this only after an approved task plan exists and a panel audit trail is required. It is intentionally more expensive than the normal implementation path. The panel is mandatory once this skill is chosen.
 
@@ -18,10 +18,10 @@ Read `shared/collaborative-panel-runner.md` and
 `shared/references/host-model-execution.md` before starting. They define the
 panel runner, real-participation rule, status taxonomy, completion check, native
 delegation, and session rules. `assets/routing.toml` is an editable default for
-one host. Before any role starts, bind it to the approved route described in
-`shared/references/task-shaped-model-routing.md`. Show its exact model,
-execution path, effort, and verification policy to the user. A configured model
-label is not a serving-model receipt.
+one host. Use `shared/references/task-shaped-model-routing.md` to bind the
+selected roles in the approved snapshot. Show its exact model, execution path,
+effort, and verification policy to the user. A configured model label is not a
+serving-model receipt.
 
 ## Outcome
 
@@ -29,7 +29,7 @@ Deliver one task with a recorded red, green, refactor, review, verification, and
 
 ## Workflow
 
-1. Select one task and restate its acceptance contract, expected files, and narrowest verification command.
+1. Select one task and restate its acceptance contract, expected files, and narrowest verification command. Before any role starts, record planned phase calls and concurrency against the snapshot ceilings.
 2. Run the phases in order: `task_intake`, `red`, `green`, `refactor`, `review`, `verification`, and `handoff`. Keep one isolated context per task and role across those phases. An implementer, reviewer, synthesizer, and adversarial role never share a context.
 3. Every phase includes the synthesis and adversarial anchors. The configured specialist roles add their independent response. Add `backend` or `interface` as a phase role only when the current slice touches that surface.
 4. In `red`, add or update the failing test and record the expected failure. In `green`, make the smallest change that passes it. In `refactor`, simplify only while tests stay green.

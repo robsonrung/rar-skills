@@ -162,6 +162,10 @@ def approval_scope_payload(state: dict[str, Any]) -> dict[str, Any]:
         raise UsageError("approval state must contain a preview object")
     if preview.get("transport") != "cmux":
         raise UsageError("approval preview transport must be cmux")
+    if preview.get("poll_profile", "standard") not in {"standard", "lean"}:
+        raise UsageError("unknown poll profile")
+    if preview.get("poll_profile") == "lean":
+        raise UsageError("lean poll requires per_call transport with organizer evidence gating")
     validate_role_scope(preview)
     try:
         normalized_preview = json.loads(json.dumps(preview, ensure_ascii=False))

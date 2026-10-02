@@ -42,7 +42,9 @@ When moving text, retain reachable source knowledge and correct paths. Do not cr
 
 An explicit change request authorizes its necessary reversible work. An audit request does not authorize edits. Reuse prior approval for the same scope and action; silence is not new approval.
 
-Use `shared/references/model-preview.md` for each direct invocation; nested skills reuse the selected snapshot without another prompt or unlisted workers. Preserve user-requested model previews and genuine security boundaries. Carry bounded authority through dependent work without widening it. Continue independent work when one action needs a decision.
+Choose the branch before selecting a model. Coordinator work and deterministic work use invocation authority without route resolution. Before a worker dispatch, use `shared/references/model-preview.md` to bind one approved snapshot. Nested skills and runners reuse that snapshot without re-resolution or extra workers. Preserve user-requested model previews and genuine security boundaries. Carry bounded authority through dependent work without widening it. Continue independent work when one action needs a decision.
+
+Use a supplied or inherited mode. Otherwise use a safe scoped default that fits invocation authority. Ask only when a choice changes scope, cost, permitted effects, or a material unresolved decision. Silence is not approval. Preserve explicit council approval and modes that require additional authority.
 
 Keep skill invocation separate from delegation. The presence of a multi-agent tool is not itself a reason or authorization to use it. When delegation is authorized, each worker needs a scope, output contract, and owner for integration.
 

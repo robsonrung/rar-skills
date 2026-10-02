@@ -1,11 +1,11 @@
 ---
 name: safe-incremental-coding
-description: "Build characterization tests before a risky change to untested legacy code. Use to preserve existing behavior while making the affected code testable, then hand behavior changes to tdd."
+description: "Build characterization tests before a risky change to untested legacy code. Apply it to preserve existing behavior while making the affected code testable, then hand behavior changes to tdd."
 ---
 
 # Safe Incremental Coding
 
-For a direct invocation, first use `shared/references/model-preview.md`. Nested calls reuse the parent's selected snapshot without another prompt or unlisted workers.
+Choose the branch before selecting a model. Coordinator work and deterministic commands proceed within invocation authority. Apply this method in the current role. It does not dispatch a worker. For a worker dispatch, use `shared/references/model-preview.md` and its one approved route snapshot. Nested skills and runners consume it without another selection or worker.
 
 Protect the existing behavior needed for a requested change, using the legacy change method from Dave Farley's _The Software Developers' Guidebook_. The aim is **ease of change**: the affected code can be changed safely.
 
@@ -50,13 +50,13 @@ If these conditions already hold after the net is built, proceed directly to the
 
 For example: “The **characterization test** protects the current output, and the dependency seam lets `tdd` test the requested change.”
 
-Use `tdd` for the intentional behavior change. Keep the characterization tests as protection while finer tests become useful. Retire one only when replacement tests demonstrably cover the same behavior.
+Apply `tdd` for the intentional behavior change. Keep the characterization tests as protection while finer tests become useful. Retire one only when replacement tests demonstrably cover the same behavior.
 
 Report the protected behavior, any testability changes, checks run, and remaining evidence gaps.
 
 ## Boundaries
 
 1. Keep intentional behavior changes separate from characterization and refactoring.
-2. Use `diagnose` when unexpected behavior needs an explanation before it can be safely pinned.
-3. Use `clean-code` for local cleanup of code already protected by tests, `test-lens` for test value, and `architecture-lens` for module boundary decisions.
+2. Apply `diagnose` when unexpected behavior needs an explanation before it can be safely pinned.
+3. Apply `clean-code` for local cleanup of code already protected by tests, `test-lens` for test value, and `architecture-lens` for module boundary decisions.
 4. Do not quote or reconstruct source text from the book.

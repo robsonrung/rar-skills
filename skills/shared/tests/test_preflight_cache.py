@@ -10,6 +10,7 @@ import tempfile
 import time
 import unittest
 import subprocess
+from concurrent.futures import ThreadPoolExecutor
 from unittest.mock import patch
 from pathlib import Path
 
@@ -39,6 +40,7 @@ class PreflightCacheTests(unittest.TestCase):
             "ttl_seconds": preflight_cache.TTL_SECONDS,
             "result": {"available": True},
         }
+        entry["result_sha256"] = preflight_cache.result_digest(entry["result"])
         data = {"schema_version": preflight_cache.SCHEMA_VERSION, "entries": {seat: entry}}
         self.cache.write_text(json.dumps(data), encoding="utf-8")
         return entry
@@ -78,11 +80,43 @@ class PreflightCacheTests(unittest.TestCase):
         self.assertIsNone(entry)
         self.assertIn("fingerprint mismatch", reason)
 
+    def test_lookup_rejects_malformed_entry_identity(self):
+        mutations = {
+            "seat": "other-seat",
+            "runner": "",
+            "fingerprint": "",
+            "ttl_seconds": 1,
+        }
+        for field, value in mutations.items():
+            with self.subTest(field=field):
+                self.store()
+                data = json.loads(self.cache.read_text())
+                data["entries"]["glm"][field] = value
+                self.cache.write_text(json.dumps(data), encoding="utf-8")
+                entry, reason = preflight_cache.lookup(self.cache, "glm", "fp-1")
+                self.assertIsNone(entry)
+                self.assertIn("entry", reason)
+        self.store()
+        entry, reason = preflight_cache.lookup(self.cache, "glm", "fp-1", runner="claude")
+        self.assertIsNone(entry)
+        self.assertIn("runner mismatch", reason)
+
     def test_future_timestamp_is_a_miss(self):
         self.store(age=-3600)
         entry, reason = preflight_cache.lookup(self.cache, "glm", "fp-1")
         self.assertIsNone(entry)
         self.assertIn("future", reason)
+
+    def test_nonfinite_and_boolean_timestamps_are_misses(self):
+        for timestamp in (True, float("nan"), float("inf"), -float("inf")):
+            with self.subTest(timestamp=timestamp):
+                self.store()
+                data = json.loads(self.cache.read_text())
+                data["entries"]["glm"]["checked_at_epoch"] = timestamp
+                self.cache.write_text(json.dumps(data), encoding="utf-8")
+                entry, reason = preflight_cache.lookup(self.cache, "glm", "fp-1")
+                self.assertIsNone(entry)
+                self.assertIn("timestamp", reason)
 
     def test_corrupt_file_is_a_miss_and_set_recovers(self):
         self.cache.write_text("{not json", encoding="utf-8")
@@ -96,6 +130,15 @@ class PreflightCacheTests(unittest.TestCase):
         )
         entry, reason = preflight_cache.lookup(self.cache, "glm", "fp-1")
         self.assertIsNotNone(entry, reason)
+
+    def test_result_digest_detects_structurally_valid_corruption(self):
+        self.store()
+        data = json.loads(self.cache.read_text())
+        data["entries"]["glm"]["result"] = {"available": False}
+        self.cache.write_text(json.dumps(data), encoding="utf-8")
+        entry, reason = preflight_cache.lookup(self.cache, "glm", "fp-1")
+        self.assertIsNone(entry)
+        self.assertIn("digest", reason)
 
     def test_clear_one_seat_and_all(self):
         self.store(seat="glm")
@@ -137,6 +180,18 @@ class PreflightCacheTests(unittest.TestCase):
             self.assertIsNone(preflight_cache.lookup(self.cache, "glm", upgraded)[0])
             self.assertTrue(all(call.args[0] == ["/mock/claude", "--version"] for call in run.call_args_list))
 
+    def test_unparsed_successful_version_still_changes_generic_fingerprint(self):
+        with patch.object(preflight_cache, "resolve_cli", return_value="/mock/claude"), \
+             patch.object(preflight_cache.subprocess, "run") as run:
+            run.return_value = subprocess.CompletedProcess([], 0, "Claude Code build alpha", "")
+            first = preflight_cache.compute_fingerprint("claude")
+            snapshot = preflight_cache.fingerprint_snapshot("claude")
+            run.return_value = subprocess.CompletedProcess([], 0, "Claude Code build beta", "")
+            second = preflight_cache.compute_fingerprint("claude")
+        self.assertNotEqual(first, second)
+        self.assertFalse(snapshot["cacheable"])
+        self.assertIsNone(snapshot["version_probe"]["version"])
+
     def test_context_and_policy_changes_invalidate(self):
         first = preflight_cache.compute_fingerprint("missing-cli", launch_context="restricted", policy_digest="one")
         second = preflight_cache.compute_fingerprint("missing-cli", launch_context="host", policy_digest="one")
@@ -145,6 +200,7 @@ class PreflightCacheTests(unittest.TestCase):
 
     def test_live_auth_receipts_and_entitlement_rejected(self):
         for result in ({"auth_ok": True}, {"checks": {"auth_visibility": {"status": "true"}}},
+                       {"checks": {"is_authenticated": True}}, {"checks": {"request_policy": {"safe": True}}},
                        {"model_receipt": {"model": "example"}}, {"model_entitlement": True}):
             self.assertEqual(self.run_cli("set", "--seat", "test", "--runner", "test", "--fingerprint", "fp", "--result", json.dumps(result)), 2)
         self.assertFalse(self.cache.exists())
@@ -165,6 +221,23 @@ class PreflightCacheTests(unittest.TestCase):
             cli.write_text("different binary contents")
             after = preflight_cache.compute_fingerprint("cli")
         self.assertNotEqual(before, after)
+
+    def test_model_routing_source_change_invalidates_cacheability_fingerprint(self):
+        cli = Path(self.tmp.name) / "cli"
+        helper = Path(self.tmp.name) / "model_routing_fixture.py"
+        cli.write_text("version one")
+        helper.write_text("routing revision one")
+        with patch.object(preflight_cache, "MODEL_ROUTING_PATH", helper), \
+             patch.object(preflight_cache, "resolve_cli", return_value=str(cli)), \
+             patch.object(preflight_cache.subprocess, "run", return_value=subprocess.CompletedProcess([], 0, "1.0.0", "")):
+            before = preflight_cache.fingerprint_snapshot("cli")
+            self.assertTrue(before["cacheable"])
+            self.store(fingerprint=before["fingerprint"])
+            helper.write_text("routing revision two")
+            after = preflight_cache.fingerprint_snapshot("cli")
+        self.assertTrue(after["cacheable"])
+        self.assertNotEqual(before["fingerprint"], after["fingerprint"])
+        self.assertIsNone(preflight_cache.lookup(self.cache, "glm", after["fingerprint"])[0])
 
     def test_relative_path_tracks_child_executable_when_version_is_unchanged(self):
         parent = Path(self.tmp.name)
@@ -189,6 +262,28 @@ class PreflightCacheTests(unittest.TestCase):
             self.assertEqual((parent / "bin" / "claude").read_text(), "#!/bin/sh\nprintf '2.1.280\\n'\n")
         finally:
             os.chdir(original_cwd)
+
+    def test_concurrent_stores_preserve_each_entry(self):
+        original_write = preflight_cache.write_cache
+
+        def delayed_write(path, data):
+            time.sleep(0.01)
+            original_write(path, data)
+
+        def store(index):
+            return preflight_cache.store(
+                self.cache,
+                f"seat-{index}",
+                "runner",
+                f"fingerprint-{index}",
+                {"available": True},
+            )
+
+        with patch.object(preflight_cache, "write_cache", side_effect=delayed_write):
+            with ThreadPoolExecutor(max_workers=8) as executor:
+                list(executor.map(store, range(8)))
+        data = preflight_cache.read_cache(self.cache)
+        self.assertEqual(set(data["entries"]), {f"seat-{index}" for index in range(8)})
 
 
 if __name__ == "__main__":

@@ -1,6 +1,6 @@
 # Conditional Specialist Prompts
 
-Use a specialist only when the approved plan names it and the diff matches its trigger. Each specialist receives the relevant diff subset plus `rules_compact`.
+Apply this guidance in the assigned reviewer context when it resolves a routine concern. Dispatch a specialist only when the risk is material or the question remains unresolved, the approved snapshot names its route, and the diff matches its trigger. Without a matching inherited snapshot, use [`model-preview.md`](../../../../shared/references/model-preview.md) before dispatch. Each dispatched specialist receives the relevant diff subset plus `rules_compact`.
 
 ## Database Migration Reviewer
 

@@ -5,13 +5,13 @@ description: Coordinate peer sessions through native delegation or a durable mai
 
 # Peer Sessions
 
-For a direct invocation, first use `shared/references/model-preview.md`. Nested calls reuse the parent's selected snapshot without another prompt or unlisted workers.
+Choose the branch before selecting a model. Select peer scopes and surfaces in the current coordinator. Before starting a peer, use `shared/references/model-preview.md` to bind one approved route snapshot.
 
 Run a peer fleet as a ledger, not the transcript: every peer receives a brief by path and returns one structured reply by path. The ledger, not the transcript, is the delivery record; native messages may wake a coordinator.
 
 ## 1. Establish the fleet record
 
-Pick the smallest coherent shape: two to four peers with non-overlapping ownership. Give each peer a narrow objective, an absolute working directory, a deadline, and one expected reply.
+Pick the smallest coherent shape: two to four peers with non-overlapping ownership. Give each peer a narrow objective, an absolute working directory, a deadline, and one expected reply. Record peer count, planned calls, and the deadline before starting a peer.
 
 Create the record before starting a peer. Set `SKILL_DIR` to the absolute directory containing this file in the same shell call:
 
@@ -33,7 +33,7 @@ State the rule while acting: “The **ledger, not the transcript** records this 
 
 **Name the surface before you start.** Use in-process delegates by default. Probe `cmux ping` only when visible peers are requested or native delegation is unavailable. Use visible tabs when the user asks to watch work, names a session, tab, panel, or workspace, or when native delegation is unavailable and cmux is available. Record the selected surface; do not ask the user to repeat that choice.
 
-For model selection and continuation, use `shared/references/task-shaped-model-routing.md` and `shared/references/host-model-execution.md`. Prefer native delegation for models the host exposes. Keep the same peer context for later turns of its task and role; store its actual context ID and reconcile pending calls before resending. Different roles keep separate contexts. A visible terminal or runner job ID alone does not identify a persistent model session.
+Use the snapshot's selected routes with `shared/references/task-shaped-model-routing.md` and `shared/references/host-model-execution.md`. Prefer native delegation for models the host exposes. Keep the same peer context for later turns of its task and role; store its actual context ID and reconcile pending calls before resending. Different roles keep separate contexts. A visible terminal or runner job ID alone does not identify a persistent model session.
 
 Start every peer with only its brief path and the allowed scope. The peer reads its own brief, works within the user's authority, and writes its reply through `scripts/peer_mailbox.py` from this skill's directory.
 

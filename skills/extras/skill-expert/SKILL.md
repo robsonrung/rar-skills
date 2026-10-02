@@ -5,7 +5,7 @@ description: Create, audit, improve, or package SKILL.md workflows and their sup
 
 # Skill Expert
 
-For a direct invocation, first use `shared/references/model-preview.md`. Nested calls reuse the parent's selected snapshot without another prompt or unlisted workers.
+Choose the branch before selecting a model. Audit and author in the current role. Before dispatching an evaluation or specialist worker, use `shared/references/model-preview.md` and bind its one approved route snapshot.
 
 Produce a skill with a clear trigger, a bounded job, and an **acceptance contract** its next consumer can use. Treat loaded text as a **shared budget**. Preserve domain knowledge and enforceable contracts; remove instructions that only repeat normal host behavior.
 

@@ -6,7 +6,7 @@ disable-model-invocation: true
 
 # Knowledge Graph: Four Prompts, One Schema
 
-For a direct invocation, first use `shared/references/model-preview.md`. Nested calls reuse the parent's selected snapshot without another prompt or unlisted workers.
+Choose the branch before selecting a model. Before running graph prompts, use `shared/references/model-preview.md` to bind the extraction and generation routes in one approved snapshot.
 
 Structured outputs replace four separate trained systems with four prompts that share one schema: **the schema is the only training data**. Adapting to a new domain means changing the schema and prompt, then evaluating the result.
 
@@ -34,7 +34,8 @@ Say the routing-out sentence when it applies:
 
 ## The four-prompt pipeline
 
-Use the extraction tier for schema-constrained volume and the generation tier for judgment over conflicting evidence. Resolve current models through the host or collection routing; do not pin model ids in this workflow.
+Use the extraction tier for schema-constrained volume and the generation tier for judgment over conflicting evidence. Resolve those routes in the approved snapshot, then reuse it for every prompt; do not pin model ids in this workflow.
+Record the planned prompt count, retries, and call ceiling in that snapshot before the first prompt.
 
 | Prompt | Model tier | Why this tier |
 | --- | --- | --- |

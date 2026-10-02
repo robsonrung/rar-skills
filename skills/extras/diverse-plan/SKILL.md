@@ -6,7 +6,7 @@ disable-model-invocation: true
 
 # Diverse Plan
 
-For a direct invocation, first use `shared/references/model-preview.md`. Nested calls reuse the parent's selected snapshot without another prompt or unlisted workers.
+Choose the branch before selecting a model. Select branch premises and material review needs in the current coordinator. Before dispatching selected branches or reviewers, use `shared/references/model-preview.md` to bind one approved route snapshot.
 
 Use this only when alternative designs can change the implementation decision. It is separate from `models-consensus`: the user chose a planning exercise, not a council. Never invoke the council from this skill.
 
@@ -16,39 +16,40 @@ Return one executable plan. It names the chosen approach, rejected alternatives,
 
 ## Routing
 
-Read
+For selected workers, read
 [`task-shaped-model-routing.md`](../../shared/references/task-shaped-model-routing.md),
 [`model-roster.md`](../../shared/references/model-roster.md), and
 [`host-model-execution.md`](../../shared/references/host-model-execution.md)
-before selecting seats. Use the semantic route selected there, not a legacy
-seat name or pinned model id.
+to map the snapshot roles. Use the selected semantic route, not a legacy seat
+name or pinned model id.
 
-Resolve `deep-analysis`, `architecture`, or `technical-analysis` from
-`shared/model-routing.json` for each selected branch. Use `precision-review`
-only when a specific semantic risk needs an independent critique. Branches must
-explore different premises; they must not repeat the same brief at higher effort.
+Map each selected branch to `deep-analysis`, `architecture`, or
+`technical-analysis` from `shared/model-routing.json`. Use `precision-review`
+only when a specific semantic risk needs an independent critique. Record the
+exact routes in the approved snapshot. Branches must explore different premises;
+they must not repeat the same brief at higher effort.
 
 Use two blind branch seats by default. Add a third only when an unresolved
 boundary, failure case, or delivery tradeoff needs a distinct approach. The
 configuration supplies models and effort; this skill supplies the branch protocol.
 
-Resolve the exact native model through the active host first. Start each blind
-branch in its own isolated persistent subagent or supported task context. Use a
-runner only for a foreign model or a native route that cannot meet the approved
-plan, then capture its own session for later critique or synthesis turns.
-Probe only the selected capabilities. Preserve **seat fidelity**: a missing
-seat is unavailable, never silently replaced. Continue only with two distinct
-available branch seats. If that quorum is unavailable, return the missing
-prerequisites and the single-model `to-prd` path instead.
+Use the snapshot's exact native route through the active host first. Start each
+blind branch in its own isolated persistent subagent or supported task context.
+Use a runner only for a foreign model or a native route that cannot meet the
+approved plan, then capture its own session for later critique or synthesis
+turns. Probe only the selected capabilities. Preserve **seat fidelity**: a
+missing seat is unavailable, never silently replaced. Continue only with two
+distinct available branch seats. If that quorum is unavailable, return the
+missing prerequisites and the single-model `to-prd` path instead.
 
 ## Route Approval
 
-Before branch dispatch, present the exact route table: branch or lens, seat,
+After branch selection, present the exact route table: branch or lens, seat,
 current model, effort, role, execution path, call count, and unavailable
-action. Use this table as the shared preview and apply its decision rules once.
-Reuse the selected snapshot inside nested skills; do not add a second prompt.
-Do not launch an unselected branch or critique. Record the actual selection
-with the plan artifacts and use only those routes.
+action. Include the blind branches, selected critiques, synthesis, and execution
+completeness check. Use this table for the shared preview and apply its decision
+rules once. Do not launch an unselected branch or critique. Record the approved
+snapshot with the plan artifacts and use only those routes.
 
 ## Workflow
 
@@ -60,7 +61,7 @@ with the plan artifacts and use only those routes.
 
 ## Synthesize and enrich
 
-Use the approved synthesis route. It chooses the plan spine, incorporates
+Use the synthesis route from the approved snapshot. It chooses the plan spine, incorporates
 verified improvements, and records why the strongest alternative lost. Keep the
 synthesis context separate from each blind opening. If the selected route is
 unavailable, stop and report the missing route or use only a user-approved
@@ -68,7 +69,7 @@ alternate.
 
 ## Execution completeness check
 
-Use the approved implementation-review route to test whether an implementer can follow the plan without inventing a design decision. Check scope, file placement, acceptance criteria, commands, tests, rollout risk, and rollback. One material gap gets one targeted correction round; otherwise stop.
+Use the implementation-review route from the approved snapshot to test whether an implementer can follow the plan without inventing a design decision. Check scope, file placement, acceptance criteria, commands, tests, rollout risk, and rollback. One material gap gets one targeted correction round; otherwise stop.
 
 ## Output
 

@@ -5,7 +5,10 @@ description: Set up an isolated git worktree for new work or an existing ref. Us
 
 # Worktree Isolation
 
-For a direct invocation, first use `shared/references/model-preview.md`. Nested calls reuse the parent's selected snapshot without another prompt or unlisted workers.
+Choose the branch first. Workspace setup uses the current role and direct tools
+within the caller's isolation authority. It needs no model worker or route
+resolution. Any later worker dispatch follows `shared/references/model-preview.md`
+and consumes the caller's approved snapshot without re-resolution or extra workers.
 
 Ensure the current work happens in an isolated workspace without disturbing the user's main checkout. Most coding harnesses now create a worktree by default at session start, so first detect whether **isolation already exists**.
 

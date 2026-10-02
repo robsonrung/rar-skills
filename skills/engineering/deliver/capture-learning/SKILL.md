@@ -5,7 +5,7 @@ description: Capture a verified, reusable solution in docs/solutions. Use when a
 
 # Capture Learning
 
-For a direct invocation, first use `shared/references/model-preview.md`. Nested calls reuse the parent's selected snapshot without another prompt or unlisted workers.
+Choose the branch before selecting a model. Routine capture work runs in the current role. Before dispatching an independent reviewer, use `shared/references/model-preview.md` and bind its one approved route snapshot.
 
 Create one source-grounded solution document that a later engineer can find and use. The next consumer is someone facing the same problem. Done means the document is written, validated, and does not state an unverified claim as fact.
 

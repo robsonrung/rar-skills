@@ -1,10 +1,12 @@
 # External review prompts
 
-Use this template only for a seat selected by the approved routing plan. Read
+Use this template only for a worker selected by the approved route snapshot. Read
 `references/review-dispatch.md` and
 [`host-model-execution.md`](../../../../shared/references/host-model-execution.md)
-first. The dispatch contract owns the seat, model, effort, execution path,
-fallback rule, and review scope; this file owns only the lens prompt. The same
+to validate the snapshot's transport and tools. The dispatch contract owns the seat, model,
+effort, execution path,
+fallback rule, and review scope; this file owns only the lens prompt. It cannot
+select another route or worker. The same
 prompt can go to a native role or an external runner.
 
 Assign one lens to each selected route. If two routes inspect the same change, give them non-overlapping category emphasis. Do not add a seat because a runner happens to be available. Use the exact native model in an isolated role context when the host supports it. Use a runner only for a foreign or unsupported route, and keep that runner session for later rechecks of the same role.

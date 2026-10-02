@@ -12,7 +12,7 @@ disable-model-invocation: true
 
 # Review Gate
 
-For a direct invocation, first use `shared/references/model-preview.md`. Nested calls reuse the parent's selected snapshot without another prompt or unlisted workers.
+Choose the branch before selecting a model. Select the review scope in the current coordinator. Before dispatching a worker, use `shared/references/model-preview.md` to bind one approved route snapshot.
 
 Review a pull-request head end to end and return a verdict. You are the review **orchestrator**: you declare the review scope, delegate the close reading to isolated reviewer roles, verify with real command runs and the deployed preview when one exists, and return one structured result. Selected reviewers own the initial diff reading. The merge is mechanical; targeted candidate verification is separate and does not repeat the full review.
 
@@ -56,19 +56,21 @@ Select the smallest reviewer set that covers the scope contract. Start with one 
 ### Seat discovery
 
 Use the caller's approved reviewer plan when present. Otherwise select the
-risk-based scope, read
+risk-based scope. Before reviewer dispatch, use the shared preview once to bind
+the selected roles through
 [`task-shaped-model-routing.md`](../../shared/references/task-shaped-model-routing.md),
 [`model-roster.md`](../../shared/references/model-roster.md), and
-[`host-model-execution.md`](../../shared/references/host-model-execution.md),
-then use the shared preview and its decision rules once before dispatch. Probe
-only the selected capabilities without starting model jobs. Record the selected
-seat table; nested skills and persona briefs cannot override it.
+[`host-model-execution.md`](../../shared/references/host-model-execution.md).
+Probe only the selected capabilities without starting model jobs. Include the
+selected personas, adversarial verifier, and any required browser worker in the
+snapshot. Record the selected seat table, planned calls, and concurrency. Nested
+skills and persona briefs cannot override the snapshot.
 
-Resolve `broad-review`, `independent-review`, `precision-review`, or
-`security-review` from `shared/model-routing.json` for the selected scope.
-The reviewer must differ from the writer and inspect actual code and evidence.
-A design analysis is a separate role. Validate each exact host or adapter before
-approval; an unverified specialist cannot be treated as available.
+Bind `broad-review`, `independent-review`, `precision-review`, or
+`security-review` from `shared/model-routing.json` for the selected scope. The
+reviewer must differ from the writer and inspect actual code and evidence. A
+design analysis is a separate role. Validate each exact host or adapter before
+dispatch; an unverified specialist cannot be treated as available.
 
 | Persona | Required review shape |
 | --- | --- |
@@ -114,7 +116,7 @@ Evidence-check candidate findings before filing. Use a separate adversarial veri
 Skip only when `verify: false`.
 
 1. **Deterministic checks.** Invoke the `verify-changes` skill with `mode:pipeline`, scoped to the diff's affected workspaces, and embed its returned `checks[]` verbatim in the result. If that skill is not installed on the host, read `verify-changes/references/command-discovery.md` by path and follow it directly — the command-discovery knowledge lives there, not here.
-2. **Preview walk** (`preview: auto`). For a browser-facing change, search the PR for a deployed preview URL (`gh pr checks`, `gh pr view --json statusCheckRollup,comments`). If one is up, use `browser-smoke`'s driver-selection workflow in a scoped worker and walk the specific feature this PR changes. What you see is first-class evidence. If the preview is down, absent, or irrelevant to the changed surface, record the reason in `previewVerification` and continue; never fabricate UI observations.
+2. **Preview walk** (`preview: auto`). For a browser-facing change, search the PR for a deployed preview URL (`gh pr checks`, `gh pr view --json statusCheckRollup,comments`). If one is up, use `browser-smoke`'s direct driver or a selected snapshot role and walk the specific feature this PR changes. What you see is first-class evidence. If the preview is down, absent, or irrelevant to the changed surface, record the reason in `previewVerification` and continue; never fabricate UI observations.
 
 Every check you ran goes in `checks[]` with its command and result — and never claim a check ran that didn't.
 

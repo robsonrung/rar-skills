@@ -4,7 +4,7 @@
 
 ```python
 check_claude(model, effort, cli_path=None, launch_context=None,
-             *, working_dir=None, env=None)
+             *, working_dir=None, env=None, use_capability_cache=False)
 ```
 
 Direct calls may omit the model or effort to use runtime defaults. Omitted
@@ -90,9 +90,33 @@ entitlement, serving receipts, quota, and request privacy fields. Full preflight
 reports must not be cached. Extract stable checks when needed. Auth visibility
 must be checked again in the actual execution context.
 
+Direct `check_claude` calls leave the capability cache off. The Claude runner
+enables it for launches. It stores only the static transport, parsed CLI version,
+compatibility, and effort checks, plus the configuration digest that binds those
+checks to their loaded configuration. It never stores authentication, entitlement,
+tool or request policy, privacy controls, receipts, quotas, launch context, or
+installation drift.
+
+Every cached launch recomputes the local fingerprint, then runs the live
+authentication and installation checks. The fingerprint binds CLI identity and
+version, configuration and compatibility policy evidence, the preflight and
+model routing script digests, launch context, and the exact model and effort.
+A changed fingerprint,
+unparsed or failed version probe, missing fingerprint, expired entry, corrupt
+entry, or invalid static result causes a fresh static probe. The version result
+from the fingerprint feeds that fresh probe, so one launch does not run a second
+version command. A failed cache lookup or write also leaves the fresh preflight
+available for the launch.
+
+Cache entries include a digest of their stable result. The reader verifies the
+entry seat, runner, fingerprint, TTL, timestamp, and result digest before a hit.
+The runner requires `runner="claude"`. Writers lock the cache while they merge
+entries, so concurrent launches retain entries written by other launches.
+
 Recompute the fingerprint before lookup. It includes CLI path, resolved path,
 file size, modification time, inode, version, loaded configuration and policy
-digests, caller policy digest, and launch context. Pass `working_dir` and `env`
+digests, the preflight and model routing script digests, exact model and effort,
+caller policy digest, and launch context. Pass `working_dir` and `env`
 to `compute_fingerprint` when execution uses them. A CLI upgrade changes the
 fingerprint. Missing fingerprints, old cache schemas, changed fingerprints,
 and expired entries are misses. Cache status reports only age, not current

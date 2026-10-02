@@ -1,15 +1,8 @@
 # Auto interview mode
 
-Read this only when the invocation includes `--auto`. This mode uses two fixed
-roles to progress the **design tree** from supplied scope and repository facts.
-It is not a council and does not invoke `models-consensus`.
+Read this only when the invocation includes `--auto`. This mode dispatches two fixed roles to progress the **design tree** from supplied scope and repository facts. It is not a council.
 
 ## Route and authority
-
-Read `shared/references/model-roster.md`,
-`shared/references/task-shaped-model-routing.md`, and
-`shared/references/host-model-execution.md`. Resolve `interview-product` or `interview-technical` from
-`shared/model-routing.json`. That file owns all role, model, and effort defaults.
 
 Classify the request before the first call:
 
@@ -19,18 +12,16 @@ Classify the request before the first call:
 | Explicit developer technical problem | `interview-technical` route |
 | Unclear | `interview-product` route; record the classification assumption |
 
-Record a compact auto route preview with the classification, roles, host
-execution paths, effort, receipt status, and ceilings. Continue without a
-separate model approval: `--auto` is **the mandate** for the selected default
-pair and for automated answers inside the supplied scope. A missing capability
-or a change to model, effort, role, transport, or receipt policy pauses the
-affected route for a user decision. Never silently use the coordinator model, a
-different host model, or two contexts for one role.
+Use `shared/references/model-preview.md` to build or reuse one concrete route snapshot for the actual dispatch. The snapshot records the classification, roles, exact models and effort, host execution paths, source sharing, receipt policy, and ceilings. `--auto` is **the mandate** for the selected default pair and automated answers inside the supplied scope. A change to model, effort, role, transport, source sharing, receipt policy, or ceiling needs a user decision.
+
+Both roles consume the saved snapshot. A nested method, runner, or repair does not re-resolve a route, ask another model question, or add a worker. A missing capability pauses the affected route for a user decision.
 
 Record the route's `model_verification` policy. `--auto` authorizes an
 `allow_unverified` route when the host cannot expose the serving identity, but
 the route preview and run state must label that limit. A `required` route stays
 blocked without a matching verified receipt.
+
+Before each dispatch, bind the role packet and its source revisions to the route snapshot. Reserve the call against the total and per-role ceilings in the ledger before it starts. A route without a valid packet, approved snapshot, or remaining budget does not dispatch.
 
 Use native isolated subagents or persistent task threads when the selected model
 is native to the active host. For a foreign model or an unsupported native path,
@@ -47,9 +38,7 @@ recorded receipt policy before the result enters the decision record.
 
 ## Role protocol
 
-Create two isolated role contexts. They exchange only the persisted decision
-record, question packets, answer packets, and cited repository evidence. Do not
-merge their conversations or call a later response an independent opinion.
+Create two isolated role contexts. They exchange only the persisted decision record, question packets, answer packets, and cited repository evidence. Use source locators and revisions. Exclude secrets, unrelated personal data, and full transcripts from role packets. Do not merge their conversations or call a later response an independent opinion.
 
 | Role | Job | Inputs | Required output |
 | --- | --- | --- | --- |
@@ -108,13 +97,9 @@ Use the same directory for `round-<n>-questions.json` and
 `.ai-workflow/work/<feature-slug>/decision-record.md`. Store artifacts by path;
 do not put full conversation transcripts in state.
 
-Under `## Auto interview run` in the decision record, store `Run ID`, `State`,
-and `Status`. Update the pointer at each checkpoint. It is the first resume
-lookup; it is not a substitute for the state validation below.
+Under `## Auto interview run` in the decision record, store `Run ID`, `State`, `Status`, and the route snapshot reference. Update the pointer at each checkpoint. It is the first resume lookup; it is not a substitute for state validation.
 
-Before the first dispatch, append this required entry to the shared `gates`
-array. It records the explicit `--auto` authorization; it does not ask for a
-second approval:
+Before the first dispatch, append this required entry to the shared `gates` array. It records the explicit `--auto` authorization and the approved route snapshot. It does not ask for a second approval:
 
 ```json
 {
@@ -123,7 +108,8 @@ second approval:
   "source": "--auto",
   "scope_fingerprint": "sha256 of supplied request and constraints",
   "original_input_revision": "initial source revision or digest",
-  "route_fingerprint": "sha256 of the selected role routes"
+  "route_fingerprint": "sha256 of the selected role routes",
+  "route_snapshot_reference": "path to the approved route snapshot"
 }
 ```
 
@@ -144,6 +130,7 @@ for each role:
     "scope_reference": "user request reference",
     "scope_fingerprint": "stable supplied-scope digest",
     "route_fingerprint": "selected-route digest",
+    "route_snapshot_reference": "path to the approved route snapshot",
     "decision_record_path": ".ai-workflow/work/<feature-slug>/decision-record.md",
     "roles": {
       "<semantic-role>": {
@@ -160,6 +147,8 @@ for each role:
         "effort": "selected effort or null",
         "effort_control": "configured or runtime",
         "tool_policy": "selected tool policy",
+        "source_sharing": "approved source classes and exclusions",
+        "provider_controls": "selected provider privacy and fallback controls",
         "capability_source": "native or runner capability evidence",
         "supported_efforts": ["observed supported effort values"],
         "model_verification": "allow_unverified or required",
@@ -177,10 +166,7 @@ for each role:
 }
 ```
 
-Replace placeholder receipt values only with actual host or provider evidence.
-A configured model label, a transcript, or a self-description is not a verified
-receipt. Persist a pending call and its attempt before dispatch; reconcile it
-before sending another prompt after a restart.
+Replace placeholder receipt values only with actual host or provider evidence. A configured model label, a transcript, or a self-description is not a verified receipt. Persist a pending call, reservation, and attempt before dispatch. Reconcile the call before sending another prompt after a restart.
 
 Use these ceilings from the first checkpoint:
 
@@ -243,10 +229,4 @@ gate is `to-prd`.
 
 ## Context budget
 
-Use `shared/references/context-packets.md` for each role's first packet. Include the
-current decisions, frontier, user scope, source authority, and targeted locators.
-Keep complete transcripts and reports in the evidence archive, not in every prompt.
-Later turns carry changed decisions and unresolved questions. A source contradiction
-remains explicit; summarization cannot invent authority or settle an open preference.
-If context is exhausted, reconcile the same session and compact from the decision
-record before retrying. Record the failed call and any remaining uncertainty.
+Use `shared/references/context-packets.md` for each role's first packet. Include the current decisions, frontier, user scope, source authority, and targeted locators with revisions. Keep complete transcripts and reports in the evidence archive, not in every prompt. Packets and cited evidence remain immutable. On a contradiction, **flag, never overwrite**; append the new source and preserve the earlier revision. Later turns carry changed decisions and unresolved questions. Summarization cannot invent authority or settle an open preference. If context is exhausted, reconcile the same session and compact from the decision record before retrying. Record the failed call and remaining uncertainty.

@@ -34,6 +34,20 @@ normalized record must still satisfy the current requirements. Old check results
 must match source and context or pass the explicit transfer protocol. A changed environment identity requires fresh observations. Version 2 context notes do not change identity. Declared observation input changes also require fresh evidence. Changed code also requires new browser
 observations where the old behavior or runtime no longer represents the change.
 
+Use `review_evidence.py select-checks` with the current snapshot, prior snapshot,
+and original check paths before a recheck. Execute its `run` entries, keep its
+validated `reuse` references, and complete the existing assessment and
+`transfer-check` for `transfer` candidates. Unknown check dependencies require
+whole source scope. `fresh: true` and explicit fresh IDs always require execution.
+Unscoped browser observations require new captures after any source content
+change. Preserve raw failures and browser results when preparing a replacement
+packet; a new reviewer response cannot turn a failed or skipped capture into a pass.
+
+Validation packets exported through `validation_control.py evidence-packet`
+use the same captured check and observation contract. They still need the
+reviewer's coverage and findings. Generic validation status files and historical
+prose cannot supply execution evidence for an incremental review.
+
 For a factual correction to review prose, use `mode: addendum`. Source and
 requirements must be unchanged. Coverage, affected paths, checks, and observations
 must be empty. A finding's evidence or the summary can be corrected, but no finding

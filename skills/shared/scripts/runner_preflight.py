@@ -10,9 +10,13 @@ import shutil
 import subprocess
 from pathlib import Path
 
+import model_routing
 from model_routing import CONFIG_PATH, config_digest, load_config, unique_object, validate_selection, runner_efforts
 
 COMPATIBILITY_PATH = Path(__file__).resolve().parents[1] / "runner-compatibility.json"
+PREFLIGHT_PATH = Path(__file__).resolve()
+MODEL_ROUTING_PATH = Path(model_routing.__file__).resolve()
+STATIC_CHECK_NAMES = ("transport", "compatibility", "effort")
 
 
 def file_evidence(path: Path | str) -> dict:
@@ -115,22 +119,46 @@ def local_command(cli_path: str, args: list[str], *, working_dir: str | None = N
         return None
 
 
-def check_claude(model: str | None, effort: str | None, cli_path: str | None = None,
-                 launch_context: dict | str | None = None, *,
-                 working_dir: str | None = None, env: dict | None = None) -> dict:
-    """Check supplied controls in this process context; omitted controls stay unknown.
+def cli_version_probe(cli_path: str, *, working_dir: str | None = None,
+                      env: dict | None = None) -> dict:
+    """Run one local version probe and retain only its compatibility value."""
+    result = local_command(cli_path, ["--version"], working_dir=working_dir, env=env)
+    version = None
+    identity = None
+    if result is not None and result.returncode == 0:
+        identity = (result.stdout or result.stderr or "").strip()
+        output = identity.splitlines()
+        candidate = output[0] if output else None
+        if parse_version(candidate) is not None:
+            version = candidate
+    return {
+        "attempted": True,
+        "return_code": result.returncode if result is not None else None,
+        "identity": identity,
+        "version": version,
+    }
 
-    launch_context may name the context or provide {"auth_visibility": "full"}.
-    Use full only when the caller confirms credential visibility matches execution.
-    A local loggedIn result is visibility evidence, never proof of live authentication.
-    """
-    checks = {name: check(None, "Not checked.") for name in (
-        "transport", "compatibility", "auth_visibility", "model_entitlement", "effort", "tools",
-    )}
-    evidence = {"config": file_evidence(CONFIG_PATH), "policy": file_evidence(COMPATIBILITY_PATH),
-                "launch_context": launch_identity(launch_context, working_dir=working_dir, env=env), "provider_calls": 0}
+
+def _capability_evidence(resolved_cli: str | None, version: str | None) -> dict:
+    cli = (cli_evidence(resolved_cli) if resolved_cli else
+           {"path": None, "resolved_path": None, "sha256": None})
+    cli["version"] = version
+    return {
+        "config": file_evidence(CONFIG_PATH),
+        "policy": file_evidence(COMPATIBILITY_PATH),
+        "cli": cli,
+    }
+
+
+def probe_claude_capabilities(model: str | None, effort: str | None,
+                              cli_path: str | None = None, *,
+                              working_dir: str | None = None, env: dict | None = None,
+                              version_probe: dict | None = None) -> dict:
+    """Probe static Claude transport and compatibility facts without auth checks."""
+    checks = {name: check(None, "Not checked.") for name in STATIC_CHECK_NAMES}
     reasons = []
     config = None
+    evidence = _capability_evidence(None, None)
     try:
         config = load_config()
         evidence["config"]["config_digest"] = config_digest(config)
@@ -147,18 +175,16 @@ def check_claude(model: str | None, effort: str | None, cli_path: str | None = N
 
     resolved_cli = resolve_cli(str(cli_path or "claude"), working_dir=working_dir, env=env)
     checks["transport"] = check(resolved_cli is not None, "CLI found." if resolved_cli else "CLI not found or not executable.")
-    evidence["cli"] = cli_evidence(resolved_cli) if resolved_cli else {"path": None, "resolved_path": None, "sha256": None}
-    version = None
     if resolved_cli:
-        result = local_command(resolved_cli, ["--version"], working_dir=working_dir, env=env)
-        if result is not None and result.returncode == 0:
-            output = (result.stdout or result.stderr or "").strip().splitlines()
-            candidate = output[0] if output else None
-            if parse_version(candidate) is not None:
-                version = candidate
+        probe = (version_probe if isinstance(version_probe, dict) else
+                 cli_version_probe(resolved_cli, working_dir=working_dir, env=env))
+        version = probe.get("version") if isinstance(probe.get("version"), str) else None
     else:
+        version = None
         reasons.append(checks["transport"]["detail"])
-    evidence["cli"]["version"] = version
+    evidence = _capability_evidence(resolved_cli, version)
+    if config is not None:
+        evidence["config"]["config_digest"] = config_digest(config)
     try:
         checks["compatibility"] = (check(None, "Model was omitted; runtime model compatibility is unverified.")
                                    if model is None else claude_compatibility(model, version, config=config))
@@ -170,9 +196,213 @@ def check_claude(model: str | None, effort: str | None, cli_path: str | None = N
         checks["compatibility"] = check(None, "Compatibility policy could not be loaded.")
         reasons.append("Compatibility policy could not be loaded.")
         evidence["policy_error"] = type(exc).__name__
+    return {
+        "model": model,
+        "effort": effort,
+        "blocked": bool(reasons),
+        "reasons": reasons,
+        "checks": checks,
+        "evidence": evidence,
+        "resolved_cli": resolved_cli,
+    }
+
+
+def cacheable_claude_capabilities(report: dict) -> dict:
+    """Extract the exact stable fields allowed in the capability cache."""
+    if report.get("blocked"):
+        raise ValueError("Blocked Claude capabilities cannot be cached.")
+    checks = report.get("checks")
+    evidence = report.get("evidence")
+    if not isinstance(checks, dict) or not isinstance(evidence, dict):
+        raise ValueError("Invalid Claude capability report.")
+    if any(not isinstance(checks.get(name), dict) for name in STATIC_CHECK_NAMES):
+        raise ValueError("Claude capability report lacks a static check.")
+    cli = evidence.get("cli")
+    if not isinstance(cli, dict) or not isinstance(cli.get("version"), str):
+        raise ValueError("Claude capability report lacks a parsed CLI version.")
+    cli_path = cli.get("path")
+    if not isinstance(cli_path, str) or not cli_path:
+        raise ValueError("Claude capability report lacks a resolved CLI path.")
+    config = evidence.get("config")
+    if not isinstance(config, dict) or not isinstance(config.get("config_digest"), str):
+        raise ValueError("Claude capability report lacks a configuration digest.")
+    return {
+        "available": True,
+        "transport": checks["transport"],
+        "compatibility": checks["compatibility"],
+        "effort": checks["effort"],
+        "version": cli["version"],
+        "cli_path": cli_path,
+        "config_digest": config["config_digest"],
+    }
+
+
+def cached_claude_capabilities(result: dict, *, resolved_cli: str | None,
+                               version: str | None, model: str | None,
+                               effort: str | None) -> dict:
+    """Validate and reconstruct a static report from a narrow cache result."""
+    required = {"available", "transport", "compatibility", "effort", "version", "cli_path", "config_digest"}
+    if not isinstance(result, dict) or set(result) != required or result.get("available") is not True:
+        raise ValueError("Cached Claude capability result has an invalid shape.")
+    if result.get("cli_path") != resolved_cli or result.get("version") != version:
+        raise ValueError("Cached Claude capability result does not match the current CLI.")
+    if not isinstance(version, str) or parse_version(version) is None:
+        raise ValueError("Cached Claude capability result lacks a valid CLI version.")
+    for name in STATIC_CHECK_NAMES:
+        value = result.get(name)
+        allowed = {"status", "detail"}
+        if name == "compatibility":
+            allowed |= {"requirement_seat", "minimum_version", "observed_version", "requirement_evidence"}
+        if not isinstance(value, dict) or set(value) - allowed or value.get("status") not in {"true", "false", "unknown"} or not isinstance(value.get("detail"), str):
+            raise ValueError("Cached Claude capability result has an invalid check.")
+    compatibility = result["compatibility"]
+    if result["transport"]["status"] != "true" or result["effort"]["status"] == "false":
+        raise ValueError("Cached Claude capability result cannot be nonblocking.")
+    if model is not None and effort is not None and result["effort"]["status"] != "true":
+        raise ValueError("Cached Claude effort result cannot satisfy explicit controls.")
+    if compatibility["status"] == "false":
+        raise ValueError("Cached Claude compatibility result cannot be nonblocking.")
+    if compatibility["status"] == "unknown":
+        if set(compatibility) != {"status", "detail"}:
+            raise ValueError("Cached Claude compatibility result has an invalid unknown shape.")
+    else:
+        compatibility_fields = {
+            "status", "detail", "requirement_seat", "minimum_version",
+            "observed_version", "requirement_evidence",
+        }
+        if set(compatibility) != compatibility_fields:
+            raise ValueError("Cached Claude compatibility result lacks compatibility evidence.")
+        for name in ("requirement_seat", "minimum_version", "observed_version", "requirement_evidence"):
+            if not isinstance(compatibility[name], str) or not compatibility[name]:
+                raise ValueError("Cached Claude compatibility result has an invalid field.")
+        minimum_version = parse_version(compatibility["minimum_version"])
+        if minimum_version is None:
+            raise ValueError("Cached Claude compatibility result has an invalid minimum version.")
+        if compatibility["observed_version"] != version:
+            raise ValueError("Cached Claude compatibility result does not match the current CLI version.")
+        if parse_version(version) < minimum_version:
+            raise ValueError("Cached Claude compatibility result is below its minimum version.")
+    config_digest = result.get("config_digest")
+    if not isinstance(config_digest, str) or re.fullmatch(r"[0-9a-f]{64}", config_digest) is None:
+        raise ValueError("Cached Claude capability result has an invalid configuration digest.")
+    evidence = _capability_evidence(resolved_cli, version)
+    evidence["config"]["config_digest"] = config_digest
+    return {
+        "model": model,
+        "effort": effort,
+        "blocked": False,
+        "reasons": [],
+        "checks": {name: result[name] for name in STATIC_CHECK_NAMES},
+        "evidence": evidence,
+        "resolved_cli": resolved_cli,
+    }
+
+
+def claude_cache_key(model: str | None, effort: str | None) -> str:
+    """Scope a capability entry to the exact requested Claude controls."""
+    return f"claude:{model if model is not None else '<runtime>'}:{effort if effort is not None else '<runtime>'}"
+
+
+def cached_or_fresh_claude_capabilities(model: str | None, effort: str | None,
+                                        cli_path: str | None, launch_context: dict | str | None,
+                                        *, working_dir: str | None = None,
+                                        env: dict | None = None) -> tuple[dict, dict]:
+    """Use a validated static cache entry, or refresh it without weakening preflight."""
+    try:
+        from preflight_cache import fingerprint_snapshot, lookup, store
+        snapshot = fingerprint_snapshot(
+            str(cli_path or "claude"),
+            launch_context=launch_context,
+            working_dir=working_dir,
+            env=env,
+            model=model,
+            effort=effort,
+        )
+    except Exception as exc:  # Cache support must not weaken a fresh preflight.
+        return (
+            probe_claude_capabilities(model, effort, cli_path, working_dir=working_dir, env=env),
+            {"status": "unavailable", "reason": type(exc).__name__},
+        )
+
+    probe_cli = snapshot.get("cli_path") or cli_path
+    version_probe = snapshot.get("version_probe")
+    if not snapshot.get("cacheable") or not isinstance(snapshot.get("fingerprint"), str):
+        return (
+            probe_claude_capabilities(model, effort, probe_cli, working_dir=working_dir,
+                                      env=env, version_probe=version_probe),
+            {"status": "miss", "reason": "fingerprint incomplete"},
+        )
+
+    key = claude_cache_key(model, effort)
+    try:
+        entry, reason = lookup(preflight_cache_path(), key, snapshot["fingerprint"], runner="claude")
+    except Exception as exc:  # Cache I/O must not prevent a fresh local probe.
+        entry, reason = None, f"cache lookup failed: {type(exc).__name__}"
+    if entry is not None:
+        try:
+            return (
+                cached_claude_capabilities(
+                    entry["result"],
+                    resolved_cli=snapshot["cli_path"],
+                    version=snapshot["version_probe"]["version"],
+                    model=model,
+                    effort=effort,
+                ),
+                {"status": "hit"},
+            )
+        except (KeyError, TypeError, ValueError):
+            reason = "invalid cached capability result"
+
+    fresh = probe_claude_capabilities(model, effort, probe_cli, working_dir=working_dir,
+                                      env=env, version_probe=version_probe)
+    cache_status = {"status": "miss", "reason": reason}
+    if not fresh["blocked"]:
+        try:
+            result = cacheable_claude_capabilities(fresh)
+            store(preflight_cache_path(), key, "claude", snapshot["fingerprint"], result)
+            cache_status["stored"] = True
+        except Exception:  # Cache I/O must not prevent the already fresh preflight from running.
+            cache_status["stored"] = False
+    return fresh, cache_status
+
+
+def preflight_cache_path() -> Path:
+    """Resolve the cache location lazily so direct preflight has no cache dependency."""
+    from preflight_cache import default_cache_path
+    return default_cache_path()
+
+
+def check_claude(model: str | None, effort: str | None, cli_path: str | None = None,
+                 launch_context: dict | str | None = None, *,
+                 working_dir: str | None = None, env: dict | None = None,
+                 use_capability_cache: bool = False) -> dict:
+    """Check supplied controls in this process context; omitted controls stay unknown.
+
+    launch_context may name the context or provide {"auth_visibility": "full"}.
+    Use full only when the caller confirms credential visibility matches execution.
+    A local loggedIn result is visibility evidence, never proof of live authentication.
+    ``use_capability_cache`` reuses only static transport, compatibility, and
+    effort checks. Authentication and installation checks always run live.
+    """
+    cache = None
+    if use_capability_cache:
+        static, cache = cached_or_fresh_claude_capabilities(
+            model, effort, cli_path, launch_context, working_dir=working_dir, env=env,
+        )
+    else:
+        static = probe_claude_capabilities(model, effort, cli_path, working_dir=working_dir, env=env)
+
+    checks = {name: static["checks"][name] for name in STATIC_CHECK_NAMES}
     checks["model_entitlement"] = check(None, "Local metadata cannot prove account access to this model.")
     checks["tools"] = check(None, "Tool access depends on the execution context and selected tool policy.")
     checks["auth_visibility"] = check(None, "Credential visibility has not been established in this launch context.")
+    evidence = static["evidence"]
+    evidence["launch_context"] = launch_identity(launch_context, working_dir=working_dir, env=env)
+    evidence["provider_calls"] = 0
+    if cache is not None:
+        evidence["capability_cache"] = cache
+    reasons = list(static["reasons"])
+    resolved_cli = static["resolved_cli"]
     if resolved_cli and not reasons:
         result = local_command(resolved_cli, ["auth", "status", "--json"], working_dir=working_dir, env=env)
         evidence["auth_status"] = {"return_code": result.returncode if result is not None else None}

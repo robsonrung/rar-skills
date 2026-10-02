@@ -104,6 +104,59 @@ def validate_plan(plan):
     require(refs, "bind the current acceptance source files")
     require(len({str(Path(r['path']).resolve()) for r in refs}) == len(refs), "duplicate input paths")
     verify_refs(refs)
+    if "review_snapshot" in plan:
+        snapshot = bound_snapshot(plan, current=False)
+        required = {key for unit in units if unit["required"] for key in unit["checks"]}
+        scope = snapshot["requirements"]["value"]
+        check_ids, observation_ids = {row["id"] for row in scope["checks"]}, set(scope["observations"])
+        require(not check_ids.intersection(observation_ids), "validation check and observation ids must be distinct")
+        expected = check_ids | observation_ids
+        require(required == expected, "required units must account for every shared check and observation")
+        require(all(set(unit["checks"]) <= expected for unit in units), "unit contains unknown shared check or observation")
+        require(not plan.get("working_dir") or str(Path(plan["working_dir"]).resolve()) == snapshot["source"]["root"],
+                "validation workspace differs from the shared snapshot")
+
+
+def bound_snapshot(plan, ref=None, current=True):
+    from review_evidence import current_snapshot, load_record
+    baseline_ref = plan["review_snapshot"]
+    ref = baseline_ref if ref is None else ref
+    require(isinstance(ref, dict) and set(ref) == {"path", "sha256"}, "invalid shared snapshot reference")
+    verify_refs([ref])
+    snapshot = current_snapshot(ref["path"]) if current else load_record(ref["path"])
+    identity = snapshot["requirements"]["value"]["context"].get("identity", snapshot["requirements"]["value"]["context"])
+    require({"runtime", "dependencies"} <= set(identity) and bool({"external_state", "services"} & set(identity)),
+            "validation needs runtime, dependency, and external state identity")
+    if ref != baseline_ref:
+        verify_refs([baseline_ref])
+        baseline = load_record(baseline_ref["path"])
+        require(snapshot["source"]["root"] == baseline["source"]["root"] and snapshot["source"]["base"] == baseline["source"]["base"],
+                "validation source root or intended base changed")
+        require(snapshot["contract"]["sha256"] == baseline["contract"]["sha256"], "validation acceptance contract changed")
+        expected, observed = baseline["requirements"]["value"], snapshot["requirements"]["value"]
+        require({key: value for key, value in expected.items() if key != "context"}
+                == {key: value for key, value in observed.items() if key != "context"}, "validation required scope changed")
+    return snapshot
+
+
+def checked_result(plan, unit, result, snapshot_ref=None):
+    """Validate captured facts without replacing independent review judgment."""
+    from review_evidence import load_packet, validate_check, check_definition
+    snapshot_ref = snapshot_ref or plan["review_snapshot"]
+    snapshot = bound_snapshot(plan, snapshot_ref)
+    require(result.get("evidence_packet"), "shared captured evidence packet is required")
+    packet = load_packet(result["evidence_packet"], snapshot, snapshot_ref["path"], allow_partial=True)
+    observations = {row["id"]: row for row in packet["observations"]}
+    require(set(unit["checks"]) <= set(packet["checks"]) | set(observations), "unit packet is missing planned check or observation ids")
+    statuses = {}
+    for key in unit["checks"]:
+        if key in packet["checks"]:
+            passed = validate_check(packet["checks"][key], snapshot, check_definition(snapshot, key))
+            statuses[key] = "passed" if passed else "failed"
+        else:
+            statuses[key] = {"pass": "passed", "fail": "failed", "skipped": "skipped"}[observations[key]["result"]]
+    require(result["checks"] == statuses, "declared statuses differ from captured command or browser results")
+    return packet
 
 
 def verify_refs(refs):
@@ -128,6 +181,8 @@ def initialize(state, path, ledger):
         require(state["validation"]["plan"] == ref, "existing run has a different plan")
         return
     require(not state, "use an empty state or resume the existing validation run")
+    if "review_snapshot" in plan:
+        bound_snapshot(plan)
     state.update(skill="validate-e2e", run_id=plan["run_id"])
     ledger.initialize(state, path, plan["run_id"], plan["call_limits"])
     state["validation"] = {"plan": ref, "attempts": {}}
@@ -141,6 +196,8 @@ def reserve(state, unit_id, attempt_id, input_path, reason, kind="validation"):
     unit = units[0]
     attempts = state["validation"]["attempts"]
     intent = {"unit": unit_id, "input": {"path": str(Path(input_path).resolve()), "sha256": digest(input_path)}, "reason": reason}
+    if "review_snapshot" in plan:
+        bound_snapshot(plan, intent["input"])
     if kind != "validation":
         intent["kind"] = kind
     if attempt_id in attempts:
@@ -226,9 +283,9 @@ def finish(state, attempt_id, path):
     plan = load_plan(state)
     attempt = state["validation"]["attempts"][attempt_id]
     ref = {"path": str(Path(path).resolve()), "sha256": digest(path)}
-    if attempt["status"] != "pending":
+    completed = attempt["status"] != "pending"
+    if completed:
         require(attempt.get("result") == ref, "completed attempt has a different result")
-        return
     result = read(path)
     require(result["attempt_id"] == attempt_id, "result belongs to another attempt")
     require(result["input_sha256"] == attempt["intent"]["input"]["sha256"], "result input does not match reserved snapshot")
@@ -238,11 +295,16 @@ def finish(state, attempt_id, path):
     checks = result["checks"]
     require(isinstance(checks, dict) and set(checks) == set(unit["checks"]), "result must account for every planned check")
     require(all(v in ("passed", "failed", "blocked", "skipped") for v in checks.values()), "invalid check status")
-    require(result.get("evidence"), "captured evidence required")
-    verify_refs(result["evidence"])
+    if "review_snapshot" in plan:
+        checked_result(plan, unit, result, attempt["intent"]["input"])
+    require(result.get("evidence") or result.get("evidence_packet") and "review_snapshot" in plan, "captured evidence required")
+    verify_refs(result.get("evidence", []))
     if any(v != "passed" for v in checks.values()):
         require(result.get("reason"), "nonpass result needs a reason")
     status = next((s for s in ("failed", "blocked", "skipped") if s in checks.values()), "passed")
+    if completed:
+        require(attempt["status"] == status, "completed status differs from captured evidence")
+        return
     attempt.update(status=status, result=ref, finished_at=utc().isoformat())
     state["steps"].append({"step": attempt_id, "result": status, "artifact": ref["path"]})
 
@@ -251,13 +313,21 @@ def summarize(state):
     plan = load_plan(state)
     attempts = state["validation"]["attempts"]
     last = {a["intent"]["unit"]: a for a in attempts.values()}
+    last_ids = {a["intent"]["unit"]: key for key, a in attempts.items()}
     units = {}
     for unit in plan["units"]:
         entry = last.get(unit["id"])
         status = entry["status"] if entry else "pending"
         if entry and entry.get("result"):
             verify_refs([entry["intent"]["input"], entry["result"]])
-            verify_refs(read(entry["result"]["path"])["evidence"])
+            result = read(entry["result"]["path"])
+            require(result["attempt_id"] == last_ids[unit["id"]] and result["input_sha256"] == entry["intent"]["input"]["sha256"],
+                    "validation result binding differs")
+            require(entry["status"] == next((s for s in ("failed", "blocked", "skipped") if s in result["checks"].values()), "passed"),
+                    "validation status differs from captured result")
+            verify_refs(result.get("evidence", []))
+            if "review_snapshot" in plan:
+                checked_result(plan, unit, result, entry["intent"]["input"])
         preflights = [p for p in state["validation"].get("preflights", {}).values() if p["unit"] == unit["id"]]
         if preflights:
             verify_refs([preflights[-1]["input"], preflights[-1]["record"]])
@@ -279,9 +349,41 @@ def summarize(state):
         status = "ceiling_hit"
     else:
         status = "partial"
+    if status == "passed" and "review_snapshot" not in plan:
+        status = "blocked"
     return {"status": status, "units": units, "required_passed": required.count("passed"),
             "required_total": len(required), "attempts_used": len(attempts), "pending_role_calls": pending_calls,
+            "evidence_kind": "shared-captured" if "review_snapshot" in plan else "context-only",
             "deadline": plan["budgets"]["deadline"]}
+
+
+def export_evidence(state, output):
+    """Bridge completed direct captures to shared review without promoting generic reports."""
+    from review_evidence import prepare_packet, evidence_link
+    plan = load_plan(state)
+    require("review_snapshot" in plan, "historical generic evidence is context only; run fresh shared captures")
+    require(summarize(state)["status"] == "passed", "validation is incomplete or has failed required evidence")
+    last = {a["intent"]["unit"]: a for a in state["validation"]["attempts"].values()}
+    checks, observations, snapshot_ref = {}, {}, None
+    for unit in plan["units"]:
+        if not unit["required"]:
+            continue
+        entry = last[unit["id"]]
+        require(snapshot_ref is None or snapshot_ref == entry["intent"]["input"], "all required units must bind one current snapshot before export")
+        snapshot_ref = entry["intent"]["input"]
+        packet = checked_result(plan, unit, read(entry["result"]["path"]), snapshot_ref)
+        for key, path in packet["checks"].items():
+            if key not in unit["checks"]:
+                continue
+            require(key not in checks or checks[key] == path, "validation units reference different command captures")
+            checks[key] = path
+        for row in packet["observations"]:
+            if row["id"] not in unit["checks"]:
+                continue
+            require(row["id"] not in observations or observations[row["id"]] == row, "validation units reference different browser captures")
+            observations[row["id"]] = row
+    path = prepare_packet(snapshot_ref["path"], output, checks, list(observations.values()))
+    return {"snapshot": snapshot_ref, "evidence_packet": evidence_link(path)}
 
 
 def main():
@@ -309,6 +411,8 @@ def main():
     for name in ("route", "call", "brief", "phase"):
         role.add_argument("--" + name, required=True)
     sub.add_parser("summary")
+    bridge = sub.add_parser("evidence-packet", help="export checked direct captures for shared review; legacy reports remain context")
+    bridge.add_argument("--output", required=True)
     args = parser.parse_args()
     sys.path.insert(0, str(args.shared_dir / "scripts"))
     if args.action == "preview-models":
@@ -343,9 +447,12 @@ def main():
             return reserve_role(state, ledger, args.route, args.call, args.brief, args.phase)
         elif args.action == "finish":
             finish(state, args.attempt, args.result)
+        elif args.action == "evidence-packet":
+            require(not args.dry_run, "evidence-packet writes an immutable artifact; omit --dry-run")
+            return export_evidence(state, args.output)
         return summarize(state)
     try:
-        if args.dry_run or args.action == "summary":
+        if args.dry_run or args.action in {"summary", "evidence-packet"}:
             output = apply(read(args.state) if args.state.exists() else {})
         else:
             with ledger.locked(args.state) as state:

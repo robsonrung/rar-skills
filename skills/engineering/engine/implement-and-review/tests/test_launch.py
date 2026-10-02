@@ -329,6 +329,86 @@ class LauncherTests(unittest.TestCase):
                 launcher.cmd_launch(arguments)
         self.assertFalse((self.root / ".ai-workflow" / "impl-review" / "draft").exists())
 
+    def test_approved_routes_cannot_launch_draft_task_contracts(self):
+        self.task.write_text(self.task.read_text(encoding="utf-8").replace(
+            "**Status:** ready-for-agent", "**Status:** draft"), encoding="utf-8")
+        for mode in ("native", "runner"):
+            with self.subTest(mode=mode):
+                plan_path = self.native_plan() if mode == "native" else self.plan()[0]
+                args = self.launch_arguments(plan_path, f"draft-task-{mode}")
+                output = io.StringIO()
+                with mock.patch.object(launcher, "dispatch_route") as dispatch, \
+                     mock.patch.object(launcher, "create_worktree") as isolate, \
+                     contextlib.redirect_stdout(output), contextlib.redirect_stderr(io.StringIO()):
+                    with self.assertRaises(SystemExit):
+                        launcher.cmd_launch(args)
+                dispatch.assert_not_called()
+                isolate.assert_not_called()
+                self.assertIn("task contract is still a draft", json.loads(output.getvalue())["error"])
+                self.assertFalse(self.manifest_for(args.session_id).parent.exists())
+
+    def test_legacy_statusless_contract_launches_with_approved_routes(self):
+        self.task.write_text("# Approved standalone contract\n\nAcceptance: command succeeds\n", encoding="utf-8")
+        for mode in ("native", "runner"):
+            with self.subTest(mode=mode):
+                plan_path = self.native_plan() if mode == "native" else self.plan()[0]
+                args = self.launch_arguments(plan_path, f"statusless-task-{mode}")
+                with mock.patch.object(launcher, "fire_runner", return_value={"job_id": "test-12345678"}) as fire, \
+                     contextlib.redirect_stdout(io.StringIO()):
+                    self.assertEqual(launcher.cmd_launch(args), 0)
+                if mode == "runner":
+                    fire.assert_called_once()
+                else:
+                    fire.assert_not_called()
+                manifest = json.loads(self.manifest_for(args.session_id).read_text(encoding="utf-8"))
+                self.assertEqual(manifest["tracks"]["api"]["implementation"]["mode"], mode)
+
+    def test_approved_routes_cannot_launch_whitespace_padded_draft_status(self):
+        declarations = (
+            "**Status:**   draft",
+            "**Status:** draft   ",
+            "  **Status:** draft",
+            " \t**Status:**\t draft\t ",
+            "**Status:**\u00a0draft",
+            "**Status:** draft\u00a0",
+        )
+        for number, declaration in enumerate(declarations):
+            self.task.write_text(f"# Approved task\n\nAcceptance: command succeeds\n\n{declaration}\n", encoding="utf-8")
+            self.assertIn(declaration + "\n", launcher.canonical_task_text(self.task.read_text(encoding="utf-8")))
+            for mode in ("native", "runner"):
+                with self.subTest(declaration=declaration, mode=mode):
+                    plan_path = self.native_plan() if mode == "native" else self.plan()[0]
+                    args = self.launch_arguments(plan_path, f"padded-draft-{number}-{mode}")
+                    output = io.StringIO()
+                    with mock.patch.object(launcher, "dispatch_route") as dispatch, \
+                         mock.patch.object(launcher, "create_worktree") as isolate, \
+                         contextlib.redirect_stdout(output), contextlib.redirect_stderr(io.StringIO()):
+                        with self.assertRaises(SystemExit):
+                            launcher.cmd_launch(args)
+                    dispatch.assert_not_called()
+                    isolate.assert_not_called()
+                    self.assertIn("task contract is still a draft", json.loads(output.getvalue())["error"])
+                    self.assertFalse(self.manifest_for(args.session_id).parent.exists())
+
+    def test_draft_task_can_be_previewed_and_promoted_before_launch(self):
+        self.task.write_text(self.task.read_text(encoding="utf-8").replace(
+            "**Status:** ready-for-agent", "**Status:** draft"), encoding="utf-8")
+        plan_path = self.native_plan()
+        args = self.launch_arguments(plan_path, "promoted-task")
+        args.dry_run = True
+        with contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(launcher.cmd_launch(args), 0)
+        self.assertFalse(self.manifest_for(args.session_id).parent.exists())
+        self.task.write_text(self.task.read_text(encoding="utf-8").replace(
+            "**Status:** draft", "**Status:** ready-for-agent"), encoding="utf-8")
+        plan_path = self.native_plan()
+        args.routing_plan = str(plan_path)
+        args.dry_run = False
+        with contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(launcher.cmd_launch(args), 0)
+        manifest = json.loads(self.manifest_for(args.session_id).read_text(encoding="utf-8"))
+        self.assertEqual(manifest["tracks"]["api"]["implementation"]["status"], "awaiting_native_dispatch")
+
     def test_draft_dry_run_is_an_explicit_zero_write_preview(self) -> None:
         plan_path, _, _ = self.plan()
         draft = json.loads(plan_path.read_text(encoding="utf-8"))
@@ -661,6 +741,131 @@ class LauncherTests(unittest.TestCase):
                 launcher.cmd_resume_native(resume)
         manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
         self.assertEqual(manifest["status"], "ceiling_hit")
+
+    def completed_native_implementation(self, session_id, limits=None):
+        plan_path = self.native_plan()
+        if limits is not None:
+            plan = json.loads(plan_path.read_text(encoding="utf-8"))
+            reviewer = next(route for route in plan["routes"] if route["role"] == "reviewer")
+            reviewer["recovery"] = limits
+            plan["approval"]["routes_digest"] = launcher.canonical_digest(launcher.normalized_routes(plan["routes"]))
+            plan_path.write_text(json.dumps(plan), encoding="utf-8")
+        with contextlib.redirect_stdout(io.StringIO()):
+            launcher.cmd_launch(self.launch_arguments(plan_path, session_id))
+        manifest_path = self.manifest_for(session_id)
+        self.complete_native_followup(manifest_path, "impl-context", 1)
+        follow_up = self.root / "follow-up.md"
+        follow_up.write_text("Apply the accepted finding and capture its verification.\n", encoding="utf-8")
+        args = Namespace(manifest=str(manifest_path), session_id=None, task_id=None, working_dir=None,
+            track="api", follow_up=str(follow_up), timeout=1, context_recovery_reason=None)
+        return plan_path, manifest_path, args
+
+    def complete_native_followup(self, manifest_path, context_id, completed_turn):
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        dispatch = manifest["tracks"]["api"]["implementation"]["native_dispatch"]
+        receipt_path = self.root / "follow-up-receipt.json"
+        receipt_path.write_text(json.dumps(self.native_receipt(
+            dispatch, context_id=context_id, completed_turn=completed_turn)), encoding="utf-8")
+        with contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(launcher.cmd_record_native(self.record_native_arguments(manifest_path, receipt_path)), 0)
+
+    def test_native_followups_use_lower_and_higher_approved_limits(self):
+        for review_cycles, evidence_recoveries in ((1, 1), (5, 2)):
+            with self.subTest(review_cycles=review_cycles, evidence_recoveries=evidence_recoveries):
+                limits = {"review_cycles": review_cycles, "evidence_recoveries": evidence_recoveries}
+                _, manifest_path, args = self.completed_native_implementation(
+                    f"native-limits-{review_cycles}-{evidence_recoveries}", limits)
+                ceiling = review_cycles + evidence_recoveries
+                for attempt in range(1, ceiling + 1):
+                    with contextlib.redirect_stdout(io.StringIO()):
+                        self.assertEqual(launcher.cmd_resume_native(args), 0)
+                    reserved = json.loads(manifest_path.read_text(encoding="utf-8"))
+                    entry = reserved["tracks"]["api"]["implementation"]
+                    self.assertEqual(entry["resume_attempts"], attempt)
+                    self.assertEqual(reserved["native_contexts"]["impl-api"]["pending_call_id"],
+                        entry["native_dispatch"]["call_id"])
+                    self.complete_native_followup(manifest_path, "impl-context", attempt + 1)
+                completed = json.loads(manifest_path.read_text(encoding="utf-8"))
+                for _ in range(2):
+                    with mock.patch.object(launcher, "dispatch_route", side_effect=AssertionError("exhausted followup dispatched")) as dispatch, \
+                         contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+                        with self.assertRaises(SystemExit):
+                            launcher.cmd_resume_native(args)
+                    dispatch.assert_not_called()
+                    exhausted = json.loads(manifest_path.read_text(encoding="utf-8"))
+                    self.assertEqual(exhausted["status"], "ceiling_hit")
+                    self.assertEqual(exhausted["tracks"], completed["tracks"])
+                    self.assertEqual(exhausted["native_contexts"], completed["native_contexts"])
+                    self.assertEqual(exhausted["attempts"], completed["attempts"])
+
+    def test_pending_native_followup_retry_preserves_reservation_and_evidence(self):
+        _, manifest_path, args = self.completed_native_implementation("native-pending-retry")
+        with contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(launcher.cmd_resume_native(args), 0)
+        original = manifest_path.read_bytes()
+        entry = json.loads(original)["tracks"]["api"]["implementation"]
+        brief_path = Path(entry["brief"])
+        brief = brief_path.read_bytes()
+        for reason in (None, "The context was reported lost"):
+            args.context_recovery_reason = reason
+            with mock.patch.object(launcher, "dispatch_route", side_effect=AssertionError("pending followup dispatched again")) as dispatch, \
+                 contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+                with self.assertRaises(SystemExit):
+                    launcher.cmd_resume_native(args)
+            dispatch.assert_not_called()
+            self.assertEqual(manifest_path.read_bytes(), original)
+            self.assertEqual(brief_path.read_bytes(), brief)
+        self.assertEqual(entry["resume_attempts"], 1)
+
+    def test_native_context_reconstruction_does_not_reset_followup_count(self):
+        _, manifest_path, args = self.completed_native_implementation("native-count-recovery",
+            {"review_cycles": 1, "evidence_recoveries": 1})
+        with contextlib.redirect_stdout(io.StringIO()):
+            launcher.cmd_resume_native(args)
+        self.complete_native_followup(manifest_path, "impl-context", 2)
+        args.context_recovery_reason = "Host confirmed the completed context was lost"
+        with contextlib.redirect_stdout(io.StringIO()):
+            launcher.cmd_resume_native(args)
+        self.complete_native_followup(manifest_path, "replacement-context", 1)
+        completed = json.loads(manifest_path.read_text(encoding="utf-8"))
+        self.assertEqual(completed["tracks"]["api"]["implementation"]["resume_attempts"], 2)
+        self.assertEqual(completed["native_contexts"]["impl-api"]["last_completed_turn"], 1)
+        self.assertEqual(completed["native_context_breaks"][0]["previous_context_id"], "impl-context")
+        with mock.patch.object(launcher, "dispatch_route", side_effect=AssertionError("reconstruction reset the count")) as dispatch, \
+             contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+            with self.assertRaises(SystemExit):
+                launcher.cmd_resume_native(args)
+        dispatch.assert_not_called()
+
+    def test_native_followup_rejects_replaced_plan_approval_without_reserving(self):
+        plan_path, manifest_path, args = self.completed_native_implementation("native-plan-drift")
+        plan = json.loads(plan_path.read_text(encoding="utf-8"))
+        reviewer = next(route for route in plan["routes"] if route["role"] == "reviewer")
+        reviewer["recovery"] = {"review_cycles": 6, "evidence_recoveries": 2}
+        plan["approval"]["routes_digest"] = launcher.canonical_digest(launcher.normalized_routes(plan["routes"]))
+        plan_path.write_text(json.dumps(plan), encoding="utf-8")
+        original = manifest_path.read_bytes()
+        with mock.patch.object(launcher, "dispatch_route", side_effect=AssertionError("changed approval dispatched")) as dispatch, \
+             contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+            with self.assertRaises(SystemExit):
+                launcher.cmd_resume_native(args)
+        dispatch.assert_not_called()
+        self.assertEqual(manifest_path.read_bytes(), original)
+
+    def test_native_followup_rejects_invalid_resume_counts(self):
+        _, manifest_path, args = self.completed_native_implementation("native-invalid-count")
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        for count in (True, -1, "1"):
+            with self.subTest(count=count):
+                manifest["tracks"]["api"]["implementation"]["resume_attempts"] = count
+                manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+                original = manifest_path.read_bytes()
+                with mock.patch.object(launcher, "dispatch_route") as dispatch, \
+                     contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+                    with self.assertRaises(SystemExit):
+                        launcher.cmd_resume_native(args)
+                dispatch.assert_not_called()
+                self.assertEqual(manifest_path.read_bytes(), original)
 
     def test_bound_brief_keeps_the_approved_contract(self) -> None:
         path, _, _ = self.plan()

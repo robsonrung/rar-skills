@@ -6,7 +6,7 @@ disable-model-invocation: true
 
 # Brainstorm
 
-For a direct invocation, first use `shared/references/model-preview.md`. Nested calls reuse the parent's selected snapshot without another prompt or unlisted workers.
+For a direct invocation, use `shared/references/model-preview.md` to choose the branch first. Coordinator work and deterministic commands proceed within invocation authority. An actual worker branch uses one approved route snapshot. Nested calls reuse it without route selection or added workers.
 
 Decide whether to build and which direction to explore. Keep **the why before the how**: identify the problem before choosing a mechanism. **Expand the solution space** with alternatives supported by the user's needs and the project. Do not write production code or implementation tasks.
 
@@ -18,9 +18,9 @@ Use existing context and inspect relevant code, docs, and prior decisions. Ask o
 
 Compare the current approach, the smallest useful change, and a materially different option when one exists. State the expected result, cost, and principal risk. Claims about the project must cite files inspected in this run; label assumptions and unverified external claims.
 
-For generated ideas, read `references/idea-basis-contract.md`: each idea needs a source or an explicit reasoning basis. If the user cannot assess an unfamiliar area, read `references/blindspot-pass.md` and explain its decision points before asking for a choice.
+For generated ideas, read `references/idea-basis-contract.md`: each idea needs a source or an explicit reasoning basis. When the user cannot assess a territory, read `references/blindspot-pass.md`. Its territory gate comes before its batch of informed decisions.
 
-Use `models-consensus` only when the user asks for additional opinions. That skill owns model selection, approval, dispatch, and council artifacts. Pass a neutral problem statement and then use its report here. Do not start a separate brainstorming panel.
+Use `models-consensus` only for an explicitly requested council. That skill owns separate council approval, routing, dispatch, and council artifacts. Pass a neutral problem statement and use its report here. Do not create a council for routine options.
 
 ## 3. Choose a direction
 

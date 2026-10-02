@@ -1,6 +1,6 @@
 ---
 name: coding-review-simplify
-description: Review a completed code change for behavior-preserving simplification, local correctness, and maintainability. Use after implementing a scoped task or when the user asks to simplify a concrete diff. Do not use as a full feature review or to choose the delivery reviewer plan.
+description: Review a completed code change for behavior-preserving simplification, local correctness, and maintainability. Apply it after a scoped task or when the user asks to simplify a concrete diff. Do not use as a full feature review or to choose the delivery reviewer plan.
 allowed-tools:
   - Bash
   - Read
@@ -12,20 +12,20 @@ allowed-tools:
 
 # Coding Review Simplify
 
-For a direct invocation, first use `shared/references/model-preview.md`. Nested calls reuse the parent's selected snapshot without another prompt or unlisted workers.
+Choose the branch before selecting a model. Coordinator work and deterministic commands proceed within invocation authority. Apply this method in the current review role. It does not dispatch a worker. For a worker dispatch, use `shared/references/model-preview.md` and its one approved route snapshot. Nested skills and runners consume it without another selection or worker.
 
 Tighten a completed diff while the implementation context is fresh. The result is a smaller coherent shape, or a focused concern with proof. The next consumer is the approved review plan.
 
-This is a behavior-preserving pass. It does not automatically call `full-review`. The approved routing plan decides whether a later focused, seam, or deep review is needed.
+This is a behavior-preserving pass. It does not create a new review route. The approved routing plan decides whether a later focused, seam, or deep review is needed.
 
 ## Workflow
 
 1. Read the task acceptance contract, changed files, diff, and verification already captured. Start with the changed surface and expand only across a real boundary.
 2. Check the change against its intended observable behavior. Report a concern only when it can cause a bug, regression, maintenance trap, data risk, weak verification, or material reader confusion.
 3. Simplify only when the result remains behavior-preserving. Keep validation at trust boundaries, authorization checks, invariant assertions, encoding, and accessibility safeguards unless evidence proves they are dead.
-4. Select a focused review when the diff adds a helper, changes ownership, or affects a hot or asynchronous path. Read the matching persona from `references/personas/` only for that concern. Use `data-systems-coding-lens` when stored state or asynchronous behavior changes.
+4. Apply the matching review concern in the current role when the diff adds a helper, changes ownership, or affects a hot or asynchronous path. Read the matching persona from `references/personas/` only for that concern. Apply `data-systems-coding-lens` when stored state or asynchronous behavior changes. Dispatch an independent specialist only for a material risk or unresolved question through an approved route.
 5. Run the **Connascence Pass** only when the diff crosses a boundary or feels tangled. Identify what is **connascent**, then state its strength, locality, degree, and smallest safe remedy. Leave local static coupling alone when extraction adds indirection without safety.
-6. Escalate a boundary-wide design concern to the relevant lens. Do not start a broader refactor from this pass.
+6. Apply the relevant lens to a boundary-wide design concern in the current role. Do not start a broader refactor from this pass.
 7. Turn each accepted concern into a focused fix, test, check, or explicit follow-up. Re-run only the verification affected by a made change.
 
 ## Simplification cues

@@ -2,14 +2,17 @@
 """Offline regression checks for runner context and model compatibility."""
 import json
 import copy
+import os
 import subprocess
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 import discover_runners
+import install_drift
 import runner_preflight as preflight
 
 
@@ -22,6 +25,19 @@ class RunnerPreflightTests(unittest.TestCase):
         with patch.object(preflight.shutil, "which", return_value="/mock/claude"), patch.object(preflight.subprocess, "run", side_effect=command) as run:
             result = preflight.check_claude(model, effort, launch_context=context)
         return result, run
+
+    def cache_cli(self, root: Path, *, symlink: bool = False) -> Path:
+        target = root / "claude_target"
+        target.write_text("#!/bin/sh\n", encoding="utf-8")
+        target.chmod(0o755)
+        if not symlink:
+            return target
+        launcher = root / "claude"
+        try:
+            launcher.symlink_to(target)
+        except OSError as exc:
+            self.skipTest(f"Cannot create a test launcher symlink: {exc}")
+        return launcher
 
     def test_old_cli_blocks_exact_model_without_auth_or_inference(self):
         result, run = self.probe(version="2.1.275 (Claude Code)")
@@ -38,6 +54,7 @@ class RunnerPreflightTests(unittest.TestCase):
         self.assertEqual(result["checks"]["tools"]["status"], "unknown")
         self.assertEqual(run.call_count, 2)
         self.assertNotIn("private@example.test", json.dumps(result))
+        self.assertNotIn("capability_cache", result["evidence"])
 
     def test_known_full_visibility_logout_blocks(self):
         result, _ = self.probe(context={"auth_visibility": "full"})
@@ -70,6 +87,215 @@ class RunnerPreflightTests(unittest.TestCase):
             result = preflight.check_claude("claude-opus-5-5", "high")
         self.assertFalse(result["blocked"])
         self.assertEqual(result["checks"]["auth_visibility"]["status"], "unknown")
+
+    def test_capability_cache_hit_rechecks_live_state_and_supports_symlink_launcher(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            cache = root / "preflight-cache.json"
+            launcher = self.cache_cli(root, symlink=True)
+            env = {"PATH": str(root), "HOME": str(root)}
+            auth_states = [True, False]
+            commands = []
+
+            def command(argv, **kwargs):
+                commands.append(argv[1:])
+                if argv[1:] == ["--version"]:
+                    return subprocess.CompletedProcess(argv, 0, "2.1.280 (Claude Code)", "")
+                if argv[1:] == ["auth", "status", "--json"]:
+                    return subprocess.CompletedProcess(argv, 0, json.dumps({"loggedIn": auth_states.pop(0)}), "")
+                self.fail(f"Unexpected local command: {argv}")
+
+            installations = [{"reasons": []}, {"reasons": ["Current installation changed."]}]
+            with patch.dict(os.environ, {"RAR_SKILLS_PREFLIGHT_CACHE": str(cache)}, clear=False), \
+                 patch.object(preflight.subprocess, "run", side_effect=command), \
+                 patch.object(install_drift, "check_loaded_install", side_effect=installations) as drift:
+                first = preflight.check_claude(
+                    "claude-opus-5-5", "high", cli_path=str(launcher),
+                    launch_context={"auth_visibility": "full"}, working_dir=str(root), env=env,
+                    use_capability_cache=True,
+                )
+                second = preflight.check_claude(
+                    "claude-opus-5-5", "high", cli_path=str(launcher),
+                    launch_context={"auth_visibility": "full"}, working_dir=str(root), env=env,
+                    use_capability_cache=True,
+                )
+        self.assertFalse(first["blocked"])
+        self.assertEqual(first["evidence"]["capability_cache"]["status"], "miss")
+        self.assertEqual(second["evidence"]["capability_cache"]["status"], "hit")
+        self.assertTrue(second["blocked"])
+        self.assertEqual(second["checks"]["auth_visibility"]["status"], "false")
+        self.assertEqual(second["evidence"]["installation"]["reasons"], ["Current installation changed."])
+        self.assertEqual(second["evidence"]["cli"]["path"], str(launcher.absolute()))
+        self.assertEqual(len(second["evidence"]["config"]["config_digest"]), 64)
+        self.assertEqual(commands, [["--version"], ["auth", "status", "--json"], ["--version"], ["auth", "status", "--json"]])
+        self.assertEqual(drift.call_count, 2)
+
+    def test_corrupted_cached_compatibility_forces_a_fresh_preflight(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            cache = root / "preflight-cache.json"
+            cli = self.cache_cli(root)
+            env = {"PATH": str(root), "HOME": str(root)}
+            commands = []
+
+            def command(argv, **kwargs):
+                commands.append(argv[1:])
+                if argv[1:] == ["--version"]:
+                    return subprocess.CompletedProcess(argv, 0, "2.1.280 (Claude Code)", "")
+                if argv[1:] == ["auth", "status", "--json"]:
+                    return subprocess.CompletedProcess(argv, 0, '{"loggedIn": true}', "")
+                self.fail(f"Unexpected local command: {argv}")
+
+            with patch.dict(os.environ, {"RAR_SKILLS_PREFLIGHT_CACHE": str(cache)}, clear=False), \
+                 patch.object(preflight.subprocess, "run", side_effect=command), \
+                 patch.object(install_drift, "check_loaded_install", return_value={"reasons": []}):
+                first = preflight.check_claude(
+                    "claude-opus-5-5", "high", cli_path=str(cli), working_dir=str(root), env=env,
+                    use_capability_cache=True,
+                )
+                data = json.loads(cache.read_text(encoding="utf-8"))
+                entry = data["entries"][preflight.claude_cache_key("claude-opus-5-5", "high")]
+                entry["result"]["compatibility"].pop("minimum_version")
+                cache.write_text(json.dumps(data), encoding="utf-8")
+                second = preflight.check_claude(
+                    "claude-opus-5-5", "high", cli_path=str(cli), working_dir=str(root), env=env,
+                    use_capability_cache=True,
+                )
+        self.assertFalse(first["blocked"])
+        self.assertFalse(second["blocked"])
+        self.assertEqual(second["evidence"]["capability_cache"]["status"], "miss")
+        self.assertIn("digest", second["evidence"]["capability_cache"]["reason"])
+        self.assertEqual(commands, [["--version"], ["auth", "status", "--json"], ["--version"], ["auth", "status", "--json"]])
+
+    def test_cached_static_result_rejects_nonblocking_invalid_statuses(self):
+        result = {
+            "available": True,
+            "transport": {"status": "true", "detail": "CLI found."},
+            "compatibility": {
+                "status": "true",
+                "detail": "Compatible.",
+                "requirement_seat": "opus",
+                "minimum_version": "2.1.280",
+                "observed_version": "2.1.280",
+                "requirement_evidence": "fixture",
+            },
+            "effort": {"status": "true", "detail": "Accepted."},
+            "version": "2.1.280",
+            "cli_path": "/mock/claude",
+            "config_digest": "a" * 64,
+        }
+        valid = preflight.cached_claude_capabilities(
+            result, resolved_cli="/mock/claude", version="2.1.280",
+            model="claude-opus-5-5", effort="high",
+        )
+        self.assertFalse(valid["blocked"])
+        mutations = (
+            ("transport", {"status": "false", "detail": "Missing."}),
+            ("effort", {"status": "unknown", "detail": "Unknown."}),
+            ("compatibility", {"status": "true", "detail": "Compatible.", "auth_visibility": {"status": "true"}}),
+            ("compatibility", {
+                "status": "true", "detail": "Compatible.", "requirement_seat": "opus",
+                "minimum_version": "not-a-version", "observed_version": "2.1.280",
+                "requirement_evidence": "fixture",
+            }),
+            ("compatibility", {
+                "status": "true", "detail": "Compatible.", "requirement_seat": "opus",
+                "minimum_version": "2.1.280", "observed_version": "2.1.281",
+                "requirement_evidence": "fixture",
+            }),
+            ("compatibility", {
+                "status": "true", "detail": "Compatible.", "requirement_seat": "opus",
+                "minimum_version": "999.0.0", "observed_version": "2.1.280",
+                "requirement_evidence": "fixture",
+            }),
+        )
+        for field, value in mutations:
+            with self.subTest(field=field):
+                cached = copy.deepcopy(result)
+                cached[field] = value
+                with self.assertRaises(ValueError):
+                    preflight.cached_claude_capabilities(
+                        cached, resolved_cli="/mock/claude", version="2.1.280",
+                        model="claude-opus-5-5", effort="high",
+                    )
+        for missing_field in ("minimum_version", "requirement_seat", "requirement_evidence"):
+            with self.subTest(missing_field=missing_field):
+                cached = copy.deepcopy(result)
+                cached["compatibility"].pop(missing_field)
+                with self.assertRaises(ValueError):
+                    preflight.cached_claude_capabilities(
+                        cached, resolved_cli="/mock/claude", version="2.1.280",
+                        model="claude-opus-5-5", effort="high",
+                    )
+
+    def test_failed_or_empty_version_probe_never_uses_a_cache_entry(self):
+        import preflight_cache
+
+        version_results = {
+            "empty": (0, "", ""),
+            "failed": (1, "", "CLI is unavailable"),
+        }
+        for name, (return_code, stdout, stderr) in version_results.items():
+            with self.subTest(name=name), tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary)
+                cli = self.cache_cli(root)
+                env = {"PATH": str(root), "HOME": str(root)}
+                commands = []
+
+                def command(argv, **kwargs):
+                    commands.append(argv[1:])
+                    if argv[1:] == ["--version"]:
+                        return subprocess.CompletedProcess(argv, return_code, stdout, stderr)
+                    self.fail(f"Unexpected local command: {argv}")
+
+                with patch.dict(os.environ, {"RAR_SKILLS_PREFLIGHT_CACHE": str(root / "preflight_cache.json")}, clear=False), \
+                     patch.object(preflight.subprocess, "run", side_effect=command), \
+                     patch.object(preflight_cache, "lookup", side_effect=AssertionError("Cache lookup must not run")), \
+                     patch.object(preflight_cache, "store", side_effect=AssertionError("Cache store must not run")), \
+                     patch.object(install_drift, "check_loaded_install", return_value={"reasons": []}) as drift:
+                    report = preflight.check_claude(
+                        "claude-opus-5-5", "high", cli_path=str(cli), working_dir=str(root), env=env,
+                        use_capability_cache=True,
+                    )
+            self.assertTrue(report["blocked"])
+            self.assertEqual(report["evidence"]["capability_cache"], {"status": "miss", "reason": "fingerprint incomplete"})
+            self.assertEqual(commands, [["--version"]])
+            drift.assert_called_once()
+
+    def test_cache_failures_fall_back_to_a_fresh_static_probe(self):
+        import preflight_cache
+
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            cli = self.cache_cli(root)
+            env = {"PATH": str(root), "HOME": str(root)}
+            commands = []
+
+            def command(argv, **kwargs):
+                commands.append(argv[1:])
+                if argv[1:] == ["--version"]:
+                    return subprocess.CompletedProcess(argv, 0, "2.1.280 (Claude Code)", "")
+                if argv[1:] == ["auth", "status", "--json"]:
+                    return subprocess.CompletedProcess(argv, 0, '{"loggedIn": true}', "")
+                self.fail(f"Unexpected local command: {argv}")
+
+            with patch.dict(os.environ, {"RAR_SKILLS_PREFLIGHT_CACHE": str(root / "preflight_cache.json")}, clear=False), \
+                 patch.object(preflight.subprocess, "run", side_effect=command), \
+                 patch.object(preflight_cache, "lookup", side_effect=OSError("Fixture lookup failure")) as lookup, \
+                 patch.object(preflight_cache, "store", side_effect=OSError("Fixture store failure")) as store, \
+                 patch.object(install_drift, "check_loaded_install", return_value={"reasons": []}) as drift:
+                report = preflight.check_claude(
+                    "claude-opus-5-5", "high", cli_path=str(cli), working_dir=str(root), env=env,
+                    use_capability_cache=True,
+                )
+        self.assertFalse(report["blocked"])
+        self.assertEqual(report["evidence"]["capability_cache"]["status"], "miss")
+        self.assertIn("cache lookup failed", report["evidence"]["capability_cache"]["reason"])
+        self.assertIs(report["evidence"]["capability_cache"]["stored"], False)
+        self.assertEqual(commands, [["--version"], ["auth", "status", "--json"]])
+        lookup.assert_called_once()
+        store.assert_called_once()
+        drift.assert_called_once()
 
     def test_unknown_version_is_not_compatible(self):
         result, _ = self.probe(version="unrecognized version")

@@ -1,6 +1,6 @@
 # cmux Interactive Transport
 
-Use this reference only after the approval preview selects `transport: cmux`. Select a native host route first when it can meet the approved model and isolation contract; cmux is an approved interactive route, not an automatic fallback. `peer-sessions` owns the terminal fleet. `models-consensus` adopts that fleet, sends each turn to its recorded surface, and collects the declared JSON artifacts. The **terminal relay** is load-bearing: no terminal transcript is an answer channel.
+Use this reference only after the approval preview selects `transport: cmux`. Lean polls require organizer evidence gating and use native or runner `per_call` transport. The cmux approval payload rejects `poll_profile: lean` before fingerprinting, adoption, or relay. Select a native host route first when it can meet the approved model and isolation contract; cmux is an approved interactive route, not an automatic fallback. `peer-sessions` owns the terminal fleet. `models-consensus` adopts that fleet, sends each turn to its recorded surface, and collects the declared JSON artifacts. The **terminal relay** is load-bearing: no terminal transcript is an answer channel.
 
 ## Preconditions
 

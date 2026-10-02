@@ -134,6 +134,7 @@ class ReceiptTests(unittest.TestCase):
         self.assertEqual(preflight.call_args.kwargs["cli_path"], "/fixture/claude")
         self.assertEqual(preflight.call_args.kwargs["working_dir"], result["working_dir"])
         self.assertEqual(preflight.call_args.kwargs["env"]["CLAUDE_CODE_OAUTH_TOKEN"], "injected-fixture-token")
+        self.assertIs(preflight.call_args.kwargs["use_capability_cache"], True)
         self.assertNotIn("injected-fixture-token", json.dumps(result))
         process.assert_not_called()
         fallback.assert_not_called()

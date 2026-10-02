@@ -5,9 +5,9 @@ description: "Check local prerequisites and present the result. Use when the use
 
 # Environment Check
 
-Run the repository's environment checker and present its report. No model
-worker: the coordinator runs one direct command, so the model preview resolves
-to **No additional model worker** and adds no approval gate.
+Run the repository's environment checker and present its report. Choose the
+branch before selecting a model. This deterministic command runs within
+invocation authority and dispatches no worker.
 
 ## Run
 
@@ -31,9 +31,10 @@ stop; no other check ran.
 Add flags only when the user's context calls for them:
 
 - `--project /absolute/path/to/repo` when the user asks about a specific project.
-- `--browser auto|playwright-cli|agent-browser|none` when browser work matters;
-  the mode-selection rule applies — ask which browser mechanism to check unless
-  the user already named one.
+- `--browser auto|playwright-cli|agent-browser|none` when browser work matters.
+  Use an explicit or inherited selection when supplied. Otherwise `auto` is the
+  safe scoped default. Ask only when a choice changes scope, cost, permitted
+  effects, or a material unresolved decision.
 - `--native-models` when the user relies on host model access instead of
   external CLIs.
 

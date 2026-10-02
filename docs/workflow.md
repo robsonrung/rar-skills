@@ -1,140 +1,250 @@
 # The development workflow
 
-The standard path is:
+Use the feature path when the request needs discovery or several task slices:
 
 `interview-me` → `to-prd` → `to-tasks` → `implement-tasks`
 
-Each skill has one job. The next skill receives an artifact from the previous
-one. The routing rules live in
-[`workflow-stage-routing.md`](../skills/shared/references/workflow-stage-routing.md).
-Current model and effort choices live in
-[`task-shaped-model-routing.md`](../skills/shared/references/task-shaped-model-routing.md)
-and the single [`model-routing.json`](../skills/shared/model-routing.json) configuration. Native
-delegation and session rules live in
-[`host-model-execution.md`](../skills/shared/references/host-model-execution.md).
+For one bounded, specified change with clear acceptance and no unresolved
+product, security, public contract, data ownership, or dependency decision, use
+`implement-and-review` directly. This path retains exact worker approval,
+independent review, and captured acceptance evidence. It does not require a
+feature PRD or task graph. A missing material decision returns to the relevant
+earlier stage.
+
+This guide describes the owning contracts. The
+[stage routing](../skills/shared/references/workflow-stage-routing.md) reference
+places engineering methods. The
+[central configuration](../skills/shared/model-routing.json) owns models,
+profiles, effort defaults, and council policy. The
+[host execution](../skills/shared/references/host-model-execution.md) reference
+owns native dispatch and role context reuse.
+
+## Select the branch before the workers
+
+Applying a method or lens in the current role does not dispatch a worker.
+Coordinator work and deterministic tests, builds, hashes, status, evidence
+assembly, and waits proceed through direct tools. These branches need no worker
+table or model selection question.
+
+Actual dispatch uses one [concrete preview](../skills/shared/references/model-preview.md).
+Show the actual coordinator separately and only the required workers. Each row
+names the scope, role, exact model and effort, transport, tools, isolation,
+source sharing, provider controls, receipt policy, exact fallbacks, and limits.
+Nested skills use that approved snapshot without another selection or extra
+worker.
+
+Resolve workflow routes with `model_routing.py resolve <route> --profile default`.
+The central configuration selects the default. A validated local preference or
+explicit override can change the preview. The approved snapshot controls dispatch,
+repair, and resume even after preferences or central defaults change. Bare CLI
+resolution keeps legacy family behavior, so it does not select the workflow
+default.
+
+A request to use defaults and run permits the unchanged concrete setup within
+existing source sharing authority and accepted receipt limits. Silence does not
+approve a route. An unavailable model, unsupported effort, failed privacy
+control, or required missing receipt blocks its route. Only an exact approved
+fallback can replace it without another decision.
 
 ## 1. `interview-me`
 
-Use this when the request needs decisions before it can become a specification.
-It reads the relevant code, glossary, and existing decisions first. When five
-independent decisions exist and the interface can show them, it asks exactly
-five questions in one turn. Otherwise it asks fewer, never more. A question
-with an answer that can be found in the repository is investigated instead of
-asked.
+Use relevant repository facts, vocabulary, and existing decisions before asking.
+Ask up to five independent questions in one turn. Resolve facts from source;
+ask the user for material decisions that source cannot settle.
 
-It records settled decisions, assumptions, exclusions, security decisions, and
-observable success conditions in `.ai-workflow/work/<slug>/decision-record.md`.
+Record settled decisions, assumptions, exclusions, security choices, and
+observable success conditions in
+`.ai-workflow/work/<slug>/decision-record.md`. It becomes `ready-for-prd` when
+the interview closes.
 
-With `--auto`, the interview keeps two isolated role contexts through its
-rounds. Resolve the product or technical interview roles from
-[`model-routing.json`](../skills/shared/model-routing.json). The respondent
-can investigate evidence and propose alternatives. It cannot invent a material
-user preference, approval, or decision. The interviewer still asks no more than
-five user questions in one turn.
+With `--auto`, resolve the product or technical interview roles from the central
+configuration and retain two isolated contexts through the rounds. The
+respondent can investigate evidence and propose alternatives. It cannot invent
+a user preference or approval. Material decisions stay with the user unless
+the user explicitly delegates them.
 
-Use `security-gate` here when the change has a security surface. Use one broad
-engineering lens only when it changes the next question or prevents a false
-assumption. Record observable behavior, but reserve `test-lens` for a real
-test-design decision during task design or implementation. Use `to-prototype`
-only when running a small experiment is the only way to settle a decision that
-changes the specification.
+Use `security-gate` for a security surface and one broad inline lens when it can
+change the next question. Use `to-prototype` only for a decision that requires
+an experiment. Test mechanics belong in task design or implementation.
 
 ## 2. `to-prd`
 
-Use this after the interview closes. It accepts only a decision record marked
-`ready-for-prd`, then synthesizes it into `.ai-workflow/work/<slug>/prd.md`.
-It does not restart the interview.
+Receive a `ready-for-prd` decision record and write
+`.ai-workflow/work/<slug>/prd.md` as `draft`. Preserve settled behavior, scope,
+design and security decisions, rollout limits, and observable outcomes. Return
+a material conflict or missing decision to the interview.
 
-The PRD starts as `draft`. It becomes `approved` only after the user reviews
-the product scope, behavior, constraints, and acceptance expectations. It
-includes security decisions and observable success conditions. Task planning
-uses `test-lens` only when a real test-design decision is needed.
+The user reviews the specification before it becomes `approved`. PRD approval
+defines the product contract. It does not approve a task queue or worker routes.
 
 ## 3. `to-tasks`
 
-Use this after an approved PRD. It creates
-`.ai-workflow/work/<slug>/tasks-draft.md` with small, dependency-aware tasks.
-Each task has acceptance evidence, affected areas, dependencies, risks, and the
-engineering checks selected by the stage-routing rules.
+Receive an approved PRD. Write each complete Slice Contract once in
+`tasks/T<N>-<slug>.md`, initially as `draft`. Keep stable IDs, acceptance,
+verified command definitions, gate findings, security classification, rollback,
+review focus, dependencies, and write ownership in that file.
 
-The user approves or changes the task breakdown. Only then does the skill
-publish the slice files under `.ai-workflow/work/<slug>/tasks/` with status
-`ready-for-agent`.
+`tasks-draft.md` is a compact index with task links and scheduling metadata.
+`queue.json` provides machine-readable dependencies, ownership, concurrency,
+and any approved merge plan. It does not duplicate acceptance or execution
+state. Read the [task contract](../skills/engineering/workflow/to-tasks/references/task-contract.md)
+for the fields and approval binding.
 
-Task approval approves the work definition. It does not approve the models or
-reasoning effort that will be used to implement it.
+Task-only approval is the default. When execution is requested, the preview can
+include the exact model plan. One actual response can then explicitly approve
+both decisions. Record separate task and model gates with that response. Bind
+the reviewed PRD, index, queue, task identities, and routes when applicable.
+Keep the immutable preview and actual response as evidence.
+
+After approval, promote only the exact task status to `ready-for-agent` and
+verify the prospective content hashes. Drafts cannot dispatch. A task-only
+response cannot satisfy the model gate. A change to acceptance, dependencies,
+ownership, or routes needs a revised binding and the applicable decision.
+
+Published task files in legacy queues remain canonical. Keep their approval
+history and execution records. Supply and bind missing machine scheduling
+metadata before the work that needs it; a legacy queue does not require a
+cosmetic rewrite.
 
 ## 4. `implement-tasks`
 
-Use this only with an approved task queue. Before it starts a worker, it checks
-native host capability, then external runner availability, and presents an
-implementation plan. The plan names, for every task or task group, the role,
-exact model, execution path, reasoning effort, model-verification policy, and
-any unavailable seat. The user can approve the plan or change it.
-The shared [model preview](../skills/shared/references/model-preview.md) selects
-Economy by default, respects local preferences and explicit role changes, and
-reuses the selected snapshot in child skills. A request to use defaults and run
-authorizes the unchanged concrete plan within existing source sharing authority.
-Existing tests run as repository commands without another model worker.
-Handle an unavailable route under the shared
-[approval and exact route rules](../skills/shared/references/task-shaped-model-routing.md#approval-and-exact-routes):
-block the affected route and continue independent authorized work.
+Validate the approved queue and reuse a matching combined approval when present.
+Otherwise prepare the exact implementation, independent review, and integration
+routes before dispatch. Task approval, `--auto`, a saved preference, or silence
+does not approve worker routes.
 
-A requested or configured model name is not proof that it served a run. Each
-approved route records `model_verification` as `required` or
-`allow_unverified`. `required` needs `model_receipt.status: verified` from a
-native or provider event. An `allow_unverified` route needs explicit approval
-and the final report labels that limit clearly.
+Bind canonical inputs by content hash. The launcher's normalization excludes
+only recognized standalone progress status lines. It preserves acceptance and
+gate content. Local preferences inform the preview once and do not change an
+approved plan during execution.
 
-The routing plan binds each approved task input by `content_sha256`. It ignores
-only an exact standalone task status line, so a status change does not revoke
-approval. Any other input change requires a new model-plan approval.
+Check exact native capability before external runner availability. Use an
+isolated native context when it meets the selected model, effort, tools,
+receipt, and follow-up requirements. Use an approved runner for a foreign or
+unsupported route. Keep implementer, reviewer, and integration contexts
+separate. Reuse each context only for its own task and role.
 
-After model-plan approval, an exact native model uses a persistent isolated
-subagent. In the ChatGPT app, a supported and authorized task thread can hold
-that role instead. A runner serves a foreign model or a native route that cannot
-meet the approved plan. An implementer and reviewer never share a context, and
-each keeps its own context for later fixes or rechecks. Use the engine's
+Use the [read-only queue controller](../skills/engineering/workflow/implement-tasks/references/queue-controller.md)
+to project `ready`, `blocked`, and `required_integration` work from bound
+contracts, task manifests, the call ledger, and verified integration evidence.
+Its `approval-inputs` and `schedule` commands write no state, start no worker,
+and run no acceptance command. Consult its current `--help` for arguments.
+
+The conductor reserves selected calls and inputs in the existing ledger before
+dispatch. The projection itself reserves nothing. Retain ownership through
+pending calls and required integration. Independent tasks can run within the
+approved concurrency cap. Without isolation, use one sequential writer. Shared
+files and migration, interface, or security surfaces serialize tasks unless an
+approved merge plan permits overlap.
+
+Worker completion does not release dependents. Verify the combined source state,
+acceptance, interactions, and findings first. A complete single-task review does
+not require a duplicate panel. A current launcher review can supply matching
+combined-state evidence. An extra integration reviewer call needs its separately
+approved scope and reserved allowance. Use the engine's
 [isolation and integration contract](../skills/engineering/engine/implement-and-review/references/worktree-and-integration.md)
-to choose workspaces and determine authority for integration. The result stays
-local and verified unless delivery is authorized. It does not create user-owned
-tasks or require sidebar naming, pinning, or goals.
+for workspaces and integration authority.
 
-The implementation path is selected by the task shape:
+## Engineering methods and review
 
-| Moment | Skills used when applicable |
+| Moment | Applicable method |
 | --- | --- |
-| Design each task slice | `design-gate` once, `security-gate` for the security classification, and `test-lens` only for a real test-design decision |
-| An unresolved implementation shape | `coding-design-plan`; reuse inherited gate constraints and reroute only for a changed design surface |
-| New or changed behavior | `tdd`; use `test-lens` only when a test-design decision is needed |
-| Untested legacy code | `safe-incremental-coding` before broad edits |
-| A failure that is not immediately understood | `diagnose` |
-| While improving a verified change | `clean-code` and `coding-review-simplify` |
-| Final task and feature review | Approved scoped review; `full-review` for integration seams or named risks, plus `browser-smoke` for affected web flows |
+| Design a slice | Apply `design-gate` once with at most three relevant inline lenses; classify security with `security-gate`. |
+| Resolve implementation shape | Apply `coding-design-plan` for an unresolved shape. Reuse inherited constraints unless the surface changed. |
+| Build behavior | Use `tdd` when test-first verification adds value; use `test-lens` for a real test-design choice. |
+| Change untested legacy behavior | Use `safe-incremental-coding` before a risky edit. |
+| Investigate an unexplained failure | Use `diagnose` to prove its cause. |
+| Improve a verified change | Use `clean-code` or `coding-review-simplify` for a concrete local need. |
+| Review completion | Use the approved independent reviewer; use `full-review` for integration seams or named risks and `browser-smoke` for affected interface flows. |
 
-Reuse captured checks when the relevant code, dependencies, environment, and
-acceptance contract still match. Rerun affected checks and those explicitly
-required fresh. A complete single-task review does not need a duplicate panel.
-Routine design and code review do not call `models-consensus`.
+Routine lenses are read-only procedures in the assigned role. A material risk
+or unresolved question can require an independent specialist with its own
+approved route and reserved budget. Final code review remains independent.
+Resolve blocking gate findings before task approval. Recheck the lens that
+raised the finding instead of replaying the full gate. Routine reviews do not
+start a council.
 
-## Optional council
+## Capture and reuse verification
 
-`models-consensus` is for a user who explicitly wants more opinions on a
-decision. It is user-invoked only and is not an automatic workflow escalation.
-No workflow or model invokes it. Before it starts, it shows the mode, selected model seats, exact models and
-transports, roles, reasoning effort, call budget, and unavailable seats. The
-user approves or changes that roster. The council is deliberation only. It does
-not implement code or replace normal review.
+The [shared evidence contract](../skills/shared/references/review-evidence.md)
+binds source, requirements, dependencies, environment, command definitions,
+coverage, and findings in immutable records. `verify-changes` executes the
+selected repository commands directly. The shared `select-checks` helper returns
+`run`, `reuse`, or a candidate `transfer` from declared inputs and changed paths.
 
-## Delivery boundary
+Run affected checks and every declared or requested fresh check. Retain matching
+passing captures. A transfer needs the explicit runtime, dependency, external
+state, and base interaction assessment. Unknown dependencies use whole-source
+scope. A changed commit alone does not require every command to run again;
+unchanged file hashes alone do not prove semantic independence.
 
-`implement-tasks` produces a local, verified result by default. Committing,
-pushing, opening or updating a pull request, and creating or changing a tracker
-item each require explicit user authorization. A verified local result remains
-reviewable when no delivery action is authorized.
+`validate-e2e` binds required units to the shared snapshot, reserves attempts
+before execution, and captures command results and browser observations in the
+shared evidence shape. Its `evidence-packet` export rechecks source and capture
+integrity. All required units must reference one current compatible snapshot.
+Repair can replace the snapshot within the same approved contract while keeping
+consumed limits.
 
-## Optional tools
+Give that packet to the independent reviewer, preserve its actual response, and
+run the shared verifier before claiming readiness. `pre-pr-review` uses the same
+verifier to reuse valid coverage and close only the remaining gaps. A status map,
+prose pass, worker success, or council recommendation is insufficient. Required
+runtime gates remain separate from business behavior. Missing browser evidence
+remains a gap.
 
-`brainstorm` can clarify a broad idea before the interview. `to-prototype` can
-answer one runnable uncertainty during discovery or planning. These are detours,
-not extra mandatory stages.
+## Preflight and recovery
+
+Claude preflight caches stable transport, compatibility, and effort capabilities.
+The cache uses a current fingerprint of CLI identity and version, routing and
+preflight code, configuration, policy, launch context, model, and effort, with a 24-hour limit. A mismatch,
+expiry, or corrupt entry requires a fresh capability check. Each launch still
+checks authentication visibility and installation drift. Local login metadata
+does not prove live account entitlement. Serving receipts, quota, per-request
+privacy, and tool permissions remain current-run facts.
+
+Before each native or runner call, reserve its approved allowance and pending
+state. Reconcile an uncertain completion before retrying. Keep raw output,
+receipt limits, input identity, and role context references. Defaults are three
+task review/fix cycles and one evidence recovery. Validation and other callers
+can define their own bounded allowances. Starting a new stage or resuming a
+context does not reset consumed call, attempt, or time limits. Exhaustion stops
+the affected work while independent authorized work can continue.
+
+## Optional discovery and council
+
+`brainstorm` can clarify a broad idea before the interview. When its territory
+gate applies, the user chooses whether to receive a decision map. Then batch up
+to five independent decisions. A declined map or silence does not settle a
+material choice.
+
+`to-prototype` answers one runnable uncertainty with the smallest useful
+experiment. A visual question can start with one fixture or static screen and
+use two alternatives when comparison matters. Add a host page only when real
+application context changes the observation. Record actual observations and
+limits. Prototype code never becomes production code.
+
+`models-consensus` runs only on an explicit user request for extra opinions.
+Its council approval remains separate from implementation approval. The current
+modes are `poll`, `debate`, and `personas`. A poll defaults to `standard`.
+Explicit `lean` is limited to low-risk questions and `per_call` transport;
+`cmux` rejects it. Security, money, migrations, public contracts, data loss,
+deep review, and high risk require standard.
+
+Lean retains three blind opening seats, organizer, and synthesis. Both judge
+routes and conditional gap repairs appear in the approved budget. Judges run
+when validated organizer evidence shows material gaps, contradictions,
+confidence below the central threshold, or high risk. Otherwise immutable
+organizer evidence establishes `conditional-not-needed`. A caller's reason
+alone cannot skip a judge. Report answer confidence and verified diversity
+confidence separately. The council remains read-only and cannot implement or
+approve its recommendation.
+
+## Delivery boundary and limits
+
+The default result is a verified local diff. Commit, push, pull request, tracker,
+external message, publication, and deployment actions each retain their own
+authority. Routine execution does not create user-owned chats or sidebar changes.
+
+Installed names and public compatibility remain intact. Static and offline
+contract checks establish only the contracts they exercise. They do not prove
+model quality, production readiness, measured latency, or cost savings.

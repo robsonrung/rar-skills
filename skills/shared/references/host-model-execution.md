@@ -1,9 +1,11 @@
 # Host model execution
 
-Use this contract whenever a skill delegates a worker or resumes a role. Use
-[model-preview.md](model-preview.md) once on direct invocation; nested skills
-reuse the selected snapshot without another prompt or unlisted workers. Select the model from `model-roster.md` and `task-shaped-model-routing.md`;
-then select the native host tool or external runner. Preserve **seat fidelity**:
+Use this contract when dispatching or resuming a worker. Coordinator work,
+deterministic commands, and methods or lenses applied in the assigned role do not
+need a worker. [model-preview.md](model-preview.md) owns the branch decision and
+one concrete selection for actual dispatch. Consume the approved snapshot on
+nested calls and resumes. Use `model-roster.md` and `task-shaped-model-routing.md`
+only when preparing a new selection. Preserve **seat fidelity**:
 "This route keeps the selected model and reuses its own role context."
 
 ## Choose the execution path
@@ -69,7 +71,8 @@ local transcript path is not a native conversation ID.
 If native setup is pending, wait for the usable context handle before sending
 work. A temporary setup identifier is not a ready model session.
 
-Before each call, record its attempt and pending state. After it returns, capture
+Before each call, reserve its budget and record the attempt and pending state in
+the existing ledger. Include specialists, repairs, fallbacks, and rechecks. After it returns, capture
 the result and receipt. On resume, reconcile the pending call with its actual
 status before resending. Use the recorded ID to send only the next prompt,
 changed inputs, and relevant artifact paths. Never use a global "last session"
@@ -145,10 +148,12 @@ status. This contract adds no hidden calls, review panel, or publication action.
 
 ## Bounded context and receipts
 
-Start bounded research, design-gate, and task roles with a fresh context unless
-that same role is continuing its own work. Pass the current decision packet and
-evidence locators, not the parent transcript. Reuse loaded instructions within a
-context. A provider context limit is not a reason to start another paid role.
+Start each dispatched independent role with a fresh context unless that role is
+continuing its own work. Apply inherited design-gate findings and selected
+read-only lenses in the assigned role. Follow [workflow-stage-routing.md](workflow-stage-routing.md)
+for the one gate pass and blocking lens recheck. An approved specialist receives
+the current decision packet and evidence locators. Reuse loaded instructions within
+a context. A provider context limit is not a reason to start another paid role.
 
 Save raw completion output immediately. Use structured runner output for resumable
 roles. A missing session ID or malformed terminal result is a receipt failure to

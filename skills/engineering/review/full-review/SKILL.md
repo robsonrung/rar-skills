@@ -11,11 +11,11 @@ allowed-tools:
 
 # Full Review
 
-For a direct invocation, first use `shared/references/model-preview.md`. Nested calls reuse the parent's selected snapshot without another prompt or unlisted workers.
+Choose the branch before selecting a model. Coordinator-only review and deterministic evidence work proceed within invocation authority. Apply routine review lenses in the assigned reviewer context. For a worker dispatch, use `shared/references/model-preview.md` and its one approved route snapshot. Nested skills, runners, and rechecks consume that snapshot. They do not select another route or worker.
 
-Model IDs, effort support, and task defaults come only from
-`shared/model-routing.json`. Resolve the relevant route before preview or
-approval; preserve the exact saved route during dispatch, retry, and resume.
+For a worker dispatch, model IDs, effort support, and task defaults come only
+from `shared/model-routing.json`. Preserve the exact saved route during
+dispatch, retry, and resume.
 
 Review the risks that a focused implementation pass cannot see. The result is a precise, evidence-backed verdict. The next consumer is the author or delivery workflow. A review is complete when its scope, evidence, findings, verification limits, and verdict are explicit.
 
@@ -29,23 +29,23 @@ The review plan is a **scope contract**. Do not claim coverage outside it. It st
 | `seam` | Integrated tasks, shared contracts, or cross-boundary behavior | Approved route or routes that cover logic and state plus root-cause precision. Add a second route only when the plan names it. |
 | `deep` | Explicit deep request, security-sensitive boundary, migration, public contract, or high residual risk | The seam shape plus selected security, data, compatibility, or structural specialists. |
 
-Do not launch a blanket panel. Seat names, model choice, runner, and effort come only from the approved plan and the model roster. When a direct review request has no plan, infer the narrowest scope from the diff and state it before reviewing. Do not dispatch an external route until its plan is approved. A direct request for a deep review authorizes the deep scope, not an unplanned route dispatch.
+Do not launch a blanket panel. Seat names, model choice, runner, and effort come only from the approved plan and the model roster. Use the supplied or inherited review mode and scope. Otherwise use the narrowest safe scope the evidence supports. Ask only when the choice changes scope, cost, permitted effects, or a material unresolved decision. Silence is not approval. Do not dispatch an external route until its plan is approved. A direct request for a deep review authorizes the deep scope, not an unplanned route dispatch.
 
-Before selecting or dispatching a route, read
+For a worker dispatch without a matching snapshot, `model-preview.md` uses
 [`task-shaped-model-routing.md`](../../../shared/references/task-shaped-model-routing.md),
 [`model-roster.md`](../../../shared/references/model-roster.md), and
-[`host-model-execution.md`](../../../shared/references/host-model-execution.md).
-They select the task fit, exact model, effort support, native delegation, and
-role-session rules. The review plan names the resulting route; this skill does
-not replace it with a convenient runner or the coordinator model.
+[`host-model-execution.md`](../../../shared/references/host-model-execution.md)
+to form the one selection. A matching snapshot is consumed unchanged. The review
+plan names the resulting route; this skill does not replace it with a convenient
+runner or the coordinator model.
 
 ## Workflow
 
 1. Establish the target: pull request, commit range, local diff, task file set, or document. An empty diff is an outcome, not a failure.
 2. Read the active project conventions already in context and the local contracts that affect the changed paths. Collect the diff, changed files, relevant surrounding code, and existing review comments. Existing comments are candidates, not facts.
 3. Run `scripts/review_scope.py` from this skill's directory when reviewing code. Use its risk signals to confirm or narrow the plan; do not widen a focused review merely because a helper is available.
-4. Read `references/review-dispatch.md` before allocating review seats. Apply the host execution reference before choosing a native route or external runner. Load only the reference that matches a planned concern: `references/bug_finders.md`, `references/panel_roles.md`, `references/conditional_specialists.md`, or `references/structural_quality_review.md`. For a requirements document, use only the relevant persona from `references/doc-personas/`.
-5. Give every selected seat the same scoped context, conventions, and output contract. Preserve **seat fidelity**: an unavailable seat is recorded as unavailable, never replaced silently. Use the exact native model in an isolated persistent subagent or supported task context when the host provides it. Use a runner only for a foreign or unsupported route. Keep each reviewer context for later rechecks, and keep it separate from the implementer and other independent reviewers. Run independent seats concurrently when the host supports it.
+4. Load only the reference that matches a selected concern: `references/bug_finders.md`, `references/panel_roles.md`, `references/conditional_specialists.md`, or `references/structural_quality_review.md`. For a requirements document, use only the relevant persona from `references/doc-personas/`. Read `references/review-dispatch.md` only before an actual worker dispatch.
+5. Routine concern lenses are read only in the assigned reviewer context. Dispatch an independent specialist only when a material risk or unresolved question requires it and the approved snapshot names its route. Give every dispatched seat the same scoped context, conventions, and output contract. Preserve **seat fidelity**: an unavailable seat is recorded as unavailable, never replaced silently. Use the exact native model and effort in an isolated persistent subagent or supported task context when the host provides it. Use a runner only for a foreign or unsupported route. Keep each reviewer context for later rechecks, and keep it separate from the implementer and other independent reviewers. Run independent seats concurrently when the host supports it. A final code review remains independent from the implementer.
 6. Verify runtime, security, correctness, compatibility, reliability, and performance findings when execution is possible. Evidence-check structural findings against the changed code. Mark an unverified claim as unverified or lower confidence; do not turn it into a blocker by assertion.
 7. For code, read `references/filtering_pipeline.md` and `references/review_output_schema.json`. For a document, use `references/doc-findings-schema.json`. Deduplicate, retain only evidence-backed findings with a location, then apply the active threshold and cap. **Precision over volume**: do not report cosmetic preference, broad refactor wishes, or pre-existing issues outside scope.
 8. Return the verdict. The default is report-only. When the user or caller has explicitly authorized fixes, record `apply_fixes: true` and apply them within that scope; no second approval or exact user syntax is needed. Review the changed paths before delivery.

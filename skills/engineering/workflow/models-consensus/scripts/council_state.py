@@ -26,6 +26,7 @@ from execution_metrics import aggregate_metrics, normalize_metrics, FIELDS
 from model_receipt import attach_model_receipt
 from output_contract import _decode_exactly_one_json, validate_document, validate_schema
 from cmux_council import validate_role_scope, require_token
+from model_routing import council_poll_policy, load_config
 
 SCHEMAS = {
     "poll": {"opening": "opening-answer", "organizer": "organizer-analysis",
@@ -34,6 +35,7 @@ SCHEMAS = {
     "personas": {"advisor": "opening-answer", "reviewer": "persona-review", "chairman": "persona-chairman"},
 }
 require = ledger.require
+COMPLETE = {"valid", "skipped", "conditional-not-needed"}
 
 
 def digest(value):
@@ -87,8 +89,12 @@ def plan_from(document):
         positive(preview["elapsed_seconds"], "elapsed seconds")
     seats = preview["seats"]
     models = {s["requested_model"] for s in seats}
+    openings = [role for role in roles if role["role"] == "opening"]
+    opening_models = {role["requested_model"] for role in openings}
     require((frozen["mode"] == "personas" and len(seats) == len(models) == 1)
-            or (frozen["mode"] != "personas" and len(seats) == len(models) == 3), "mode requires the approved seat count and model diversity")
+            or (frozen["mode"] != "personas" and len(openings) == len(opening_models) == 3),
+            "mode requires the approved opening seat count and model diversity")
+    require({seat["id"] for seat in seats} == {role["seat"] for role in roles}, "seat registry must exactly cover approved roles")
     execution = preview.get("execution", [])
     require(isinstance(execution, list) and all(isinstance(x, dict) for x in execution), "execution entries are required")
     executions = {e["call"]: e for e in execution}
@@ -131,7 +137,9 @@ def plan_from(document):
             require(stage not in {"gap_repair", "later_round"}, "later stages must resume an opening context")
             require(route["role"] == stage, "context role must match its first stage")
             routes[context_key] = route
-        schema_name = SCHEMAS[frozen["mode"]][stage]
+        schema_name = ("organizer-analysis-lean" if frozen["mode"] == "poll"
+                       and preview.get("poll_profile") == "lean" and stage == "organizer"
+                       else SCHEMAS[frozen["mode"]][stage])
         schema = _decode_exactly_one_json((Path(__file__).resolve().parents[1] / "schemas" / (schema_name + ".schema.json")).read_text())
         validate_schema(schema)
         steps[step_id] = {"route_id": context_key, "stage": stage, "schema": schema,
@@ -159,11 +167,139 @@ def plan_from(document):
             visited.add(step_id)
     for step_id in steps:
         visit(step_id)
+    validate_poll_profile(frozen, steps)
     ceilings = {"total_role_calls": maximum}
     for route_id in routes:
         ceilings[route_id] = sum(s["route_id"] == route_id for s in steps.values()) * (2 if retries else 1)
     return {"approval": copy.deepcopy(document["approval"]), "scope": frozen, "scope_fingerprint": approved_digest,
             "routes": list(routes.values()), "steps": steps, "limits": ceilings}
+
+
+def validate_poll_profile(frozen, steps):
+    preview = frozen["preview"]
+    profile = preview.get("poll_profile", "standard")
+    require(profile in {"standard", "lean"}, "unknown poll profile")
+    require(frozen["mode"] == "poll" or profile == "standard", "lean profile requires poll mode")
+    if profile != "lean":
+        return
+    # Only new plans read policy defaults. Recovery uses the approved snapshot.
+    configuration = load_config()
+    policy = council_poll_policy(configuration)
+    profile_defaults = configuration["council_policy"]["poll_profiles"]["lean"]
+    budget = profile_defaults["budget"]
+    require(preview.get("poll_policy") == policy, "lean poll policy differs from central configuration")
+    require(preview.get("conditional_stages") == profile_defaults["conditional_stages"],
+            "lean conditional stage snapshot differs from central profile")
+    require(preview.get("poll_budget") == {key: preview[key] for key in
+            ("base_calls", "conditional_calls", "validation_retry_ceiling", "maximum_calls")},
+            "lean poll budget snapshot differs from approved call counts")
+    flags = preview.get("risk_flags")
+    require(isinstance(flags, list) and all(isinstance(flag, str) and flag in policy["full_required_flags"] for flag in flags)
+            and len(flags) == len(set(flags)), "lean preview requires explicit valid risk flags")
+    require(not flags and preview.get("council_name") != "security", "risk requires the standard poll profile")
+    stages = {stage: [key for key, step in steps.items() if step["stage"] == stage]
+              for stage in SCHEMAS["poll"]}
+    require(len(stages["opening"]) == 3 and len(stages["organizer"]) == 1
+            and len(stages["judge"]) == 2 and len(stages["synthesis"]) == 1
+            and len(stages["gap_repair"]) == 3, "lean poll requires three openings, organizer, three gap repairs, both judges, and synthesis")
+    openings = set(stages["opening"])
+    organizer = stages["organizer"][0]
+    gaps = set(stages["gap_repair"])
+    judges = set(stages["judge"])
+    synthesis = stages["synthesis"][0]
+    require(set(steps[organizer]["depends_on"]) == openings, "lean organizer requires all blind openings")
+    require(all(set(steps[key]["depends_on"]) == {organizer} for key in gaps), "lean gap repair requires organizer evidence")
+    require(len({steps[key]["route_id"] for key in gaps}) == len(gaps), "lean gap repairs must use distinct opening contexts")
+    require(all(set(steps[key]["depends_on"]) == {organizer, *gaps} for key in judges), "lean judges require organizer and all gap repairs")
+    require(set(steps[synthesis]["depends_on"]) == {organizer, *gaps, *judges}, "lean synthesis requires organizer, both judges, and all gap repairs")
+    require(all(step["conditional"] == (key in gaps or key in judges) for key, step in steps.items()), "lean conditional stages must be gap repairs and both judges")
+    require(preview["base_calls"] == budget["base_calls"] and preview["conditional_calls"] == budget["conditional_calls"]
+            and preview["validation_retry_ceiling"] <= budget["validation_retry_ceiling"]
+            and preview["maximum_calls"] <= budget["maximum_calls"], "lean poll budget differs from central profile bounds")
+
+
+def lean_poll(plan):
+    return plan["scope"]["mode"] == "poll" and plan["scope"]["preview"].get("poll_profile") == "lean"
+
+
+def organizer_decision(state, plan):
+    organizer = next(key for key, step in plan["steps"].items() if step["stage"] == "organizer")
+    require(step_status(state, organizer) == "valid", "validated organizer evidence is required")
+    call_id = state["council"]["steps"][organizer][-1]
+    call = state["call_ledger"]["calls"][call_id]
+    reference = call["council"]["artifact"]
+    intact(reference)
+    intact(call["council"]["raw_receipt"])
+    artifact = json.loads(Path(reference["path"]).read_text())
+    require(artifact["call_id"] == call_id and artifact["step"] == organizer and artifact["status"] == "valid"
+            and artifact["raw_receipt"] == call["council"]["raw_receipt"]
+            and artifact["schema_digest"] == digest(plan["steps"][organizer]["schema"]), "organizer evidence binding differs")
+    response = artifact["response"]
+    validation = validate_document(response, plan["steps"][organizer]["schema"])
+    require(validation.valid, validation.error)
+    triggers = []
+    if response["material_gaps"]:
+        triggers.append("material_gap")
+    if response["contradictions"]:
+        triggers.append("material_conflict")
+    if response["confidence"] < plan["scope"]["preview"]["poll_policy"]["low_confidence_threshold"]:
+        triggers.append("low_confidence")
+    if response["high_risk"]:
+        triggers.append("high_risk")
+    return {"organizer_step": organizer, "organizer_call": call_id, "evidence": reference,
+            "raw_receipt": artifact["raw_receipt"], "judges_required": bool(triggers),
+            "triggers": triggers, "gap_repair_required": response["material_gaps"]}
+
+
+def validate_conditional_skip(state, step_id, decision):
+    record = state["council"]["skipped"].get(step_id)
+    require(isinstance(record, dict) and record.get("status") == "conditional-not-needed",
+            "conditional-not-needed evidence is required")
+    intact(record.get("decision"))
+    require(json.loads(Path(record["decision"]["path"]).read_text()) == decision,
+            "conditional skip evidence differs from organizer")
+
+
+def validate_lean_evidence(state, plan):
+    if not lean_poll(plan):
+        return
+    skipped = state["council"].get("skipped", {})
+    if not skipped and state.get("status") != "completed":
+        return
+    decision = organizer_decision(state, plan)
+    for key in skipped:
+        require(key in plan["steps"], "conditional skip is absent from approved plan")
+        stage = plan["steps"][key]["stage"]
+        require(stage in {"judge", "gap_repair"}, "conditional skip stage differs from approved plan")
+        needed = decision["judges_required" if stage == "judge" else "gap_repair_required"]
+        require(not needed, "required conditional review cannot be skipped")
+        validate_conditional_skip(state, key, decision)
+    if state.get("status") == "completed":
+        synthesis = next(key for key, step in plan["steps"].items() if step["stage"] == "synthesis")
+        lean_gate(state, plan, synthesis)
+
+
+def lean_gate(state, plan, step_id, skipping=False):
+    if not lean_poll(plan):
+        return None
+    stage = plan["steps"][step_id]["stage"]
+    if stage not in {"judge", "gap_repair", "synthesis"}:
+        return None
+    decision = organizer_decision(state, plan)
+    if stage in {"judge", "gap_repair"}:
+        needed = decision["judges_required" if stage == "judge" else "gap_repair_required"]
+        require(not needed if skipping else needed,
+                f"{stage} is required by organizer evidence" if skipping else f"{stage} is conditional-not-needed; record an evidence-based skip")
+    else:
+        for key, step in plan["steps"].items():
+            if step["stage"] not in {"judge", "gap_repair"}:
+                continue
+            needed = decision["judges_required" if step["stage"] == "judge" else "gap_repair_required"]
+            if needed:
+                require(step_status(state, key) == "valid", "required conditional review is incomplete")
+            else:
+                validate_conditional_skip(state, key, decision)
+    return decision
 
 
 def store_json(directory, value, label):
@@ -225,19 +361,25 @@ def read_plan(state):
     require(state.get("council", {}).get("version") == 1, "unsupported council state version; preserve this file")
     reference = state["call_ledger"]["plan"]
     require(ledger.sha(reference["path"]) == reference["sha256"], "immutable council plan changed")
-    return json.loads(Path(reference["path"]).read_text())
+    plan = json.loads(Path(reference["path"]).read_text())
+    validate_lean_evidence(state, plan)
+    return plan
 
 
 def step_status(state, step_id):
     if step_id in state["council"].get("skipped", {}):
-        return "skipped"
+        record = state["council"]["skipped"][step_id]
+        return record["status"] if isinstance(record, dict) else "skipped"
     calls = state["council"]["steps"].get(step_id, [])
     return state["call_ledger"]["calls"][calls[-1]]["council"]["response_status"] if calls else "not_started"
 
 
 def refresh_status(state, plan):
     statuses = [step_status(state, step) for step in plan["steps"]]
-    if all(s in {"valid", "skipped"} for s in statuses):
+    if all(s in COMPLETE for s in statuses):
+        if lean_poll(plan):
+            synthesis = next(key for key, step in plan["steps"].items() if step["stage"] == "synthesis")
+            lean_gate(state, plan, synthesis)
         state.update(status="completed", phase="completed")
     elif "pending" in statuses:
         state.update(status="running", phase="awaiting_results")
@@ -259,11 +401,14 @@ def skip(state, step_id, reason):
     require(step_id in plan["steps"] and plan["steps"][step_id]["conditional"], "only an approved conditional step can be skipped")
     require(isinstance(reason, str) and reason.strip(), "skip reason is required")
     require(not state["council"]["steps"].get(step_id), "an attempted step cannot be skipped")
+    decision = lean_gate(state, plan, step_id, skipping=True)
+    record = {"status": "conditional-not-needed", "reason": reason,
+              "decision": store_json(state["council"]["artifacts"], decision, "conditional-decision")} if decision else reason
     skipped = state["council"].setdefault("skipped", {})
-    require(step_id not in skipped or skipped[step_id] == reason, "skip reason already recorded")
-    skipped[step_id] = reason
+    require(step_id not in skipped or skipped[step_id] == record, "skip reason already recorded")
+    skipped[step_id] = record
     refresh_status(state, plan)
-    return {"step": step_id, "status": "skipped", "reason": reason}
+    return {"step": step_id, "status": record["status"] if isinstance(record, dict) else "skipped", "reason": reason}
 
 
 def budget_status(state, plan):
@@ -348,7 +493,8 @@ def reserve(state, step_id, call_id, brief):
         ledger.reserve(state, step["route_id"], call_id, brief, step["stage"], "council:" + call_id)
         return {"reservation": "existing", "dispatch_allowed": False, "call_id": call_id, "status": existing["status"]}
     require(step_id not in state["council"].get("skipped", {}), "step was skipped")
-    require(all(step_status(state, dependency) in {"valid", "skipped"} for dependency in step["depends_on"]), "step prerequisites are not complete")
+    require(all(step_status(state, dependency) in COMPLETE for dependency in step["depends_on"]), "step prerequisites are not complete")
+    lean_gate(state, plan, step_id)
     budget_gate(state, plan)
     history = state["council"]["steps"].get(step_id, [])
     require(not history or calls[history[-1]]["council"].get("response_status") in {"malformed", "execution_failed"}, "step is completed or pending")
@@ -559,6 +705,8 @@ def observe(state):
 def status(state):
     plan = read_plan(state)
     return {**ledger.summary(state), "budget": budget_status(state, plan),
+            "poll_profile": plan["scope"]["preview"].get("poll_profile", "standard") if plan["scope"]["mode"] == "poll" else None,
+            "step_outcomes": {step: step_status(state, step) for step in plan["steps"]},
             "skipped": state["council"].get("skipped", {}),
             "steps": {step: [{"call_id": call, "status": state["call_ledger"]["calls"][call]["council"]["response_status"]}
                              for call in calls] for step, calls in state["council"]["steps"].items()}}

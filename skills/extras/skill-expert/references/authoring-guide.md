@@ -35,7 +35,7 @@ Give a rule its reason instead of emphasis. One brief principle generalizes, so 
 
 A skill that orchestrates workers states when delegation pays off: independent, sizeable, parallel work, not verification of its own output. A skill that reports results asks for the outcome first and for claims backed by tool evidence from the session.
 
-Give defaults with a reason to depart from them. Do not demand a ritual, invented alternative, new approval, or full evaluation for a routine scoped edit. Do not invent a fallback that changes the requested model, authority, or output.
+Use a supplied or inherited mode. Otherwise give a safe scoped default that fits invocation authority. Ask only when a choice changes scope, cost, permitted effects, or a material unresolved decision. Silence is not approval. Do not demand a ritual, invented alternative, new approval, or full evaluation for a routine scoped edit. Do not invent a fallback that changes the requested model, authority, or output.
 
 Follow the project's active language and vocabulary standards. In this collection, consult the repository's `LEITWORTER.md` and `leitworter.json` when changing a named concept. Preserve the name and its decision role rather than adding repeated narration.
 

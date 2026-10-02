@@ -5,7 +5,7 @@ description: Create an immutable session handoff or orient from a selected hando
 
 # Session Handoff
 
-For a direct invocation, first use `shared/references/model-preview.md`. Nested calls reuse the parent's selected snapshot without another prompt or unlisted workers.
+Choose the branch before selecting a model. This workflow runs with the current coordinator and direct tools. It does not dispatch a worker.
 
 Preserve enough verified context for a fresh session to continue without guessing. The acceptance contract is the **cold-start test**: a reader with only the handoff can identify the goal, current state, evidence, and next action.
 

@@ -6,11 +6,11 @@ disable-model-invocation: true
 
 # Dynamic Harness
 
-For a direct invocation, first use `shared/references/model-preview.md`. Nested calls reuse the parent's selected snapshot without another prompt or unlisted workers.
+Choose the branch before selecting a model. Plan and classify work in the current coordinator. Before dispatching selected workers, use `shared/references/model-preview.md` to bind one approved route snapshot.
 
 Model IDs, effort support, and task defaults come only from
-`shared/model-routing.json`. Resolve the relevant route before preview or
-approval; preserve the exact saved route during dispatch, retry, and resume.
+`shared/model-routing.json`. Preserve the approved snapshot during dispatch,
+retry, and resume.
 
 Use this skill for work that benefits from explicit delegation. It is not the default for a normal task. The **smallest coherent shape** is one local worker or one bounded check; add agents only when independent work reduces time or improves evidence.
 
@@ -48,7 +48,7 @@ Workers receive only the context they need. Assign disjoint write scopes for cod
 
 ## Run the Work
 
-1. Resolve models with `shared/references/task-shaped-model-routing.md` and native delegation with `shared/references/host-model-execution.md`. Prefer native tools for supported host models and external runners for other selected routes. If no route can meet an exact model assignment, report the affected route; serial local work cannot stand in for a different approved model.
+1. Use the snapshot's routes with `shared/references/task-shaped-model-routing.md` and native delegation with `shared/references/host-model-execution.md`. Prefer native tools for supported host models and external runners for other selected routes. If no route can meet an exact model assignment, report the affected route; serial local work cannot stand in for a different approved model.
 2. Start only independent workers. Use a verifier for high-impact outputs and give it the evidence and rubric, not the worker's conclusion.
 3. Inspect every worker result and changed path before integration. Mark each material claim `verified`, `refuted`, or `unresolved`.
 4. Keep external side effects and destructive operations in the main workstream unless the user has authorized them.
@@ -56,7 +56,7 @@ Workers receive only the context they need. Assign disjoint write scopes for cod
 
 ## Loops and Budgets
 
-Before a repeated batch, define **three exits**: a success signal, an escalation condition, and a hard ceiling on batches and workers. Record the counters before each batch. **The model never decides the retry**.
+Before a repeated batch, define **three exits**: a success signal, an escalation condition, and a hard ceiling on batches and workers. Record planned workers, calls, and remaining authorized budget before each dispatch. **The model never decides the retry**.
 
 Default scale is one to three workers for a quick check, then a representative slice before expanding. Ask for a budget only when the requested work can materially consume paid services, production access, or a large fleet.
 

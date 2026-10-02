@@ -5,7 +5,7 @@ description: Create a concise continuity summary from the active session. Use wh
 
 # Summarize
 
-For a direct invocation, first use `shared/references/model-preview.md`. Nested calls reuse the parent's selected snapshot without another prompt or unlisted workers.
+Choose the branch before selecting a model. This workflow runs with the current coordinator and direct tools. It does not dispatch a worker.
 
 Create a concise summary from information already visible in this session. The next consumer is a fresh session. The acceptance contract is the **cold-start test**: a reader with only this summary can name the goal, current state, evidence, and next action without guessing.
 

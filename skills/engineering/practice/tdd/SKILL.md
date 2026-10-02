@@ -1,11 +1,11 @@
 ---
 name: tdd
-description: "Implement behavior through the red-green-refactor loop. Use when test-first execution is requested or selected by the coding workflow; use safe-incremental-coding first for untested legacy code."
+description: "Implement behavior through the red-green-refactor loop. Apply it when test-first execution is requested or selected by the coding workflow; apply safe-incremental-coding first for untested legacy code."
 ---
 
 # TDD — Test-First Execution
 
-For a direct invocation, first use `shared/references/model-preview.md`. Nested calls reuse the parent's selected snapshot without another prompt or unlisted workers.
+Choose the branch before selecting a model. Coordinator work and deterministic commands proceed within invocation authority. Apply this method in the current role. It does not dispatch a worker. For a worker dispatch, use `shared/references/model-preview.md` and its one approved route snapshot. Nested skills and runners consume it without another selection or worker.
 
 ## The Iron Law
 
@@ -16,7 +16,7 @@ For a direct invocation, first use `shared/references/model-preview.md`. Nested 
 
 ## Step 0 — whose code is this?
 
-For a risky change to untested legacy code, use `safe-incremental-coding` for the missing characterization. Reuse existing behavioral and failure evidence that covers the changed surface. Proceed directly when that protection already exists.
+For a risky change to untested legacy code, apply `safe-incremental-coding` for the missing characterization. Reuse existing behavioral and failure evidence that covers the changed surface. Proceed directly when that protection already exists.
 
 ## The loop
 
@@ -25,7 +25,7 @@ Run one loop per increment of behavior. Keep each pass small enough that you cou
 1. **Frame the smallest reversible move.** One caller-visible increment of behavior — the cheapest reversible learning step, smaller than feels natural. If you can't state the outcome in a sentence, the step is too big; split it. Say it while choosing: "the **smallest reversible move** here is…".
 2. **Write the test first, predict the failure, see it fail.** Express _what_ the code should do from its caller's perspective. Say the expected failure out loud before running — a different failure already taught you something.
 3. **Get to green the simplest way.** The least code that passes; naive is fine. This is a tactical step, not a design step — don't polish yet.
-4. **Refactor under green.** Improve a concrete design problem, then run the affected tests before the next behavior change. Use `clean-code` to name a smell when one exists. Assert internal invariants where they must hold: an assertion is **executable documentation**, and its failure is a bug rather than a condition to catch and ignore.
+4. **Refactor under green.** Improve a concrete design problem, then run the affected tests before the next behavior change. Apply `clean-code` to name a smell when one exists. Assert internal invariants where they must hold: an assertion is **executable documentation**, and its failure is a bug rather than a condition to catch and ignore.
 5. **Integrate coherent increments.** Keep each increment small and passing. Commit only when the user or caller has authorized it; use completed behavior and passing checks to choose the boundary, not a timer.
 
 ## Control the variables
@@ -66,9 +66,9 @@ After each loop iteration (or coherent batch), report:
 ## Routing
 
 - Stored state, queues, retries, migrations, external APIs → reuse the approved data-systems-coding-lens findings. Run the lens only for an uncovered data risk or a changed design surface, not before every loop iteration.
-- Smell vocabulary and naming during the refactor step → `clean-code`.
-- Judging whether an existing test is worth keeping → `test-lens`.
-- An unexplained failure surfaces mid-loop → `diagnose`. An understood red or regression stays in the current loop; use the existing evidence instead of starting a second investigation.
+- Apply `clean-code` for smell vocabulary and naming during the refactor step.
+- Apply `test-lens` when judging whether an existing test is worth keeping.
+- Apply `diagnose` when an unexplained failure surfaces mid-loop. An understood red or regression stays in the current loop; use the existing evidence instead of starting a second investigation.
 
 ## Gotchas
 

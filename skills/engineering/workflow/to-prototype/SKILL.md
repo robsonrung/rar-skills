@@ -5,7 +5,7 @@ description: Build a throwaway experiment to answer a design question that readi
 
 # Prototype
 
-For a direct invocation, first use `shared/references/model-preview.md`. Nested calls reuse the parent's selected snapshot without another prompt or unlisted workers.
+For a direct invocation, use `shared/references/model-preview.md` to choose the branch first. Coordinator work and deterministic commands proceed within invocation authority. An actual worker branch uses one approved route snapshot. Nested calls reuse it without route selection or added workers.
 
 Answer one decision-changing question with throwaway code. **Prototype code never graduates**: the next production task rebuilds the selected behavior under its acceptance contract. A prototype produces evidence and a decision, not a finished feature.
 
@@ -15,13 +15,13 @@ Identify the unknown, the observation that would answer it, and the time or scop
 
 Choose the smallest useful form:
 
-1. Visual alternatives: read `references/ui.md`. Compare layouts on a local route with safe data.
+1. Visual decision: read `references/ui.md`. Start with one fixture or static screen for one question. When a comparison can change the decision, use two alternatives. An explicit user request for a different bounded set controls. Use a host page or switcher only when real app context changes the observation.
 2. Logic or state behavior that a person must explore: read `references/logic.md`. Use a standalone HTML demo.
 3. A technical property such as integration behavior, latency, or library support: write a small local script or harness that records the relevant input, output, and measurement. Do not add a UI that cannot help answer the question.
 
 ## 2. Run the experiment
 
-Keep the work isolated in a scratch location or local worktree. Name it as a prototype and give one command or file path to run it. Use in-memory or scratch data. Use real services only when that access is authorized and necessary to the question.
+Keep the work isolated in a scratch location or local worktree. Name it as a prototype and give one command or file path to run it. Use safe memory backed or scratch data. Use real services only when that access is authorized and necessary to the question.
 
 Skip production scaffolding and unrelated polish. Keep enough checks and error output to trust the experiment. Record actual observations and failed attempts. Stop at the agreed limit if the question remains unresolved.
 

@@ -1,11 +1,9 @@
-# Review dispatch
+# Review Dispatch
+
+Use this reference only when a branch dispatches a review worker. Routine concern lenses stay read only in the assigned reviewer context. Dispatch a selected independent specialist only for a material risk or unresolved question.
 
 The approved routing plan supplies the exact seat, model, effort, execution path,
-and unavailable action. Before approval, resolve defaults from
-[`model-routing.json`](../../../../shared/model-routing.json) through
-[`task-shaped-model-routing.md`](../../../../shared/references/task-shaped-model-routing.md).
-Apply [`host-model-execution.md`](../../../../shared/references/host-model-execution.md)
-before dispatch. Do not select a new default while resuming an approved review.
+and unavailable action. Reuse its snapshot when scope and controls match. Without a matching snapshot, use [`model-preview.md`](../../../../shared/references/model-preview.md) to resolve only roles selected for this dispatch and save one concrete selection. Consume that selection for dispatch and resume. Do not read central defaults after selection. Use [`host-model-execution.md`](../../../../shared/references/host-model-execution.md) to validate the snapshot's host and transport before dispatch.
 
 ## Select the review shape
 
@@ -17,21 +15,23 @@ before dispatch. Do not select a new default while resuming an approved review.
 | Research, architecture, or design | `design-review` | Add actual code review when code is in scope |
 | Defensive security | `security-review` | Verify specialist access before proposing any conditional model |
 
-Resolve family and effort from the configuration, then verify support in the
-selected host or adapter. The review role defines its job: a code reviewer checks
-requirements, full diff, relevant surrounding code, missing cases, and captured
-checks. Design analysis alone cannot approve code. After the initial review, use
+For a new selection, `model-preview.md` resolves family and effort from the
+configuration, then verifies support in the selected host or adapter. A dispatch
+uses the snapshot's exact model and effort unchanged. The review role defines its
+job: a code reviewer checks requirements, full diff, relevant surrounding code,
+missing cases, and captured checks. Design analysis alone cannot approve code.
+After the initial review, use
 [Incremental review responses](../../../../shared/references/incremental-review.md)
 for changed and affected paths. Retain earlier coverage through the verified
 record; do not repeat a full review for a prose correction.
 
 ## Dispatch rules
 
-1. Select only routes present in the approved plan. A specialist or second pass
+1. Select only routes present in the approved snapshot. A specialist or second pass
    must be named there; a review request does not imply a panel.
 2. Prefer supported native delegation. Use a separate persistent reviewer context
    and retain it for later rechecks. Never share it with the implementer.
-3. Preserve seat fidelity, exact effort, and the plan's receipt policy. Disable
+3. Preserve seat fidelity, exact model and effort, and the plan's receipt policy. Disable
    runner fallback and compare each result with the approved route.
 4. Follow the approved unavailable action on a mismatch or missing capability.
    Without an approved alternate, report the affected route as blocked.

@@ -665,6 +665,7 @@ def _run_claude(
         from runner_preflight import check_claude
         result["preflight"] = check_claude(
             model, effort, cli_path=cmd[0], working_dir=cwd, env=child_env,
+            use_capability_cache=True,
         )
     except Exception as exc:  # noqa: BLE001
         result["preflight"] = {

@@ -1,19 +1,35 @@
 # Model preview
 
-Use this contract once for every directly invoked executable skill. Resolve
-`shared/` from the loaded shared library as [its entry](../SKILL.md) describes.
-Nested skills reuse the parent's selected snapshot without another prompt or
-unlisted workers. Preserve manual invocation rules and the separate explicit
-council gate in `models-consensus`.
+For every directly invoked executable skill, first determine whether its branch
+dispatches a worker. This branch decision requires no model selection or route
+resolution. Resolve `shared/` as [its entry](../SKILL.md) describes. Preserve
+manual invocation controls and the separate explicit council gate in `models-consensus`.
+
+## Choose the branch first
+
+Determine whether the requested branch needs a model worker. Loading or applying
+a method, lens, or reference in the current coordinator or implementer does not
+dispatch a worker. Run deterministic tests, builds, checks, hashes, status,
+evidence assembly, and waits directly.
+
+Coordinator-only and deterministic branches proceed within invocation authority.
+They need no full route resolution, model table, or model selection question.
+Name direct command work when useful; say **No additional model worker** when
+the distinction matters. A read-only lens stays in the assigned role unless a
+material risk or unresolved question requires an approved independent specialist.
+
+For actual dispatch, reuse an existing approved snapshot when scope and controls
+match. Otherwise resolve only the required roles and obtain one concrete selection
+under the rules below. Nested skills and runners consume that exact snapshot;
+they do not re-resolve preferences, ask another model question, or add workers.
 
 ## Resolve the selection
 
 1. Identify the actual current coordinator model and exposed effort. A preview
    cannot change it. Report unavailable identity or usage fields as unknown.
-2. Select only the roles needed by the requested scope. Run existing tests,
-   builds, checks, hashes, and status commands directly. For a skill with no
-   worker, say **No additional model worker**; name the coordinator and the
-   tools that will run. Do not create a worker merely to fill a preview row.
+2. Select only the workers needed by the chosen branch. Include independent
+   review and any material specialist the branch requires. Do not create a
+   worker merely to fill a preview row.
 3. Before selection, apply explicit user instructions, then
    [local preview preferences](local-config.md), then central defaults.
    [`model-routing.json`](../model-routing.json) is the only maintained source
@@ -73,16 +89,15 @@ profile across task kinds. Persist requested per-route changes to
 future work. A selection for the current task is not a request to change
 future defaults. Saved changes never alter approved routes.
 
-Offer **Keep defaults**, **Change selected roles**, or **Use another profile**.
-A direct request to “use defaults and run” permits the unchanged resolved setup
-within existing source sharing authority and accepted receipt limits. Show the
-concrete setup and proceed. Reuse actual prior approval only when scope and all
-selected controls still match. Preserve invocation authority that a skill
-explicitly grants, such as `interview-me --auto`; do not add another gate.
-Otherwise obtain one concrete selection before workers start, using the caller's
-model plan decision when it has one. Silence is not approval. A skill with only
-the current coordinator and direct commands can continue work already authorized
-by its invocation; the preview does not create another approval gate.
+Offer **Keep defaults**, **Change selected roles**, or **Use another profile**
+when a selection is needed. A direct request to “use defaults and run” permits
+the unchanged resolved setup within source sharing authority and accepted receipt
+limits. Show that setup and proceed. An explicit model request uses those exact
+choices within the same authority. Reuse prior approval only when scope and all
+selected controls still match. Preserve invocation authority that a skill grants,
+such as `interview-me --auto`. Otherwise obtain one concrete selection before
+workers start, using the caller's model plan decision when it has one. Silence
+is not approval.
 
 An override received before dispatch wins. Save a replacement selection for
 unresolved work and keep completed evidence intact. Keep the required separate

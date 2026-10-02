@@ -5,43 +5,51 @@ description: Implement and review one approved coding task through exact model r
 
 # Implement And Review
 
-For a direct invocation, first use `shared/references/model-preview.md`. Nested calls reuse the parent's selected snapshot without another prompt or unlisted workers.
+Choose the branch before selecting a model. Coordinator work and deterministic checks proceed within invocation authority. For a worker dispatch, use `shared/references/model-preview.md` to obtain or reuse one approved route snapshot. Nested skills, runners, repairs, and resumes consume that snapshot. They send its exact model and effort and do not select another route or worker.
 
-Model IDs, effort support, and task defaults come only from
-`shared/model-routing.json`. Resolve the relevant route before preview or
-approval; preserve the exact saved route during dispatch, retry, and resume.
+For a worker dispatch, model IDs, effort support, and task defaults come only
+from `shared/model-routing.json`. Preserve the exact saved route during
+dispatch, retry, and resume.
 
 Build one task to its **acceptance contract** with the exact approved implementation and review routes. The next consumer is `implement-tasks` or the user. A worker result is evidence for integration. It must not mark a task queue complete. The parent marks a task complete only after integration checks pass with no unresolved acceptance or blocking defect.
 
-The routing plan binds the implementation and independent review model, effort control, native or runner execution, provider routing, capabilities, allowed tools, limits, and exact approved fallback. Use its immutable route snapshot for dispatch and resume; do not reread local preferences or central defaults after selection. Read `shared/references/implementation-routing-plan.schema.json`, `shared/references/task-shaped-model-routing.md`, and `shared/references/host-model-execution.md` before dispatching work. Use the task defaults in the central configuration; do not infer model quality from the current host or an old implementation/review pair.
+The routing plan binds the implementation and independent review model, effort control, native or runner execution, provider routing, capabilities, allowed tools, limits, and exact approved fallback. Use `shared/references/implementation-routing-plan.schema.json`, `shared/references/task-shaped-model-routing.md`, and `shared/references/host-model-execution.md` when forming a new selection. A matching immutable route snapshot is consumed unchanged for dispatch and resume. Record the selected budget before dispatch and retain the plan's call, time, and concurrency limits.
 
 ## Authority
 
 The user request to implement authorizes edits inside the accepted task, its stated verification, and reversible worktree isolation. It does not authorize a commit, push, merge, pull request, deployment, external message, or destructive cleanup. A routing-plan approval authorizes only the recorded routes. Commit-based integration needs separate explicit authority.
 
+Use the supplied or inherited mode. Otherwise use a safe scoped default that fits the invocation authority. Ask only when the choice changes scope, cost, permitted effects, or a material unresolved decision. Silence is not approval.
+
+## Small Change Entry
+
+Use this skill directly for one accepted task when its acceptance contract is complete and no product, data, security, public contract, or dependency decision remains unresolved. This entry uses the same acceptance evidence, immutable route snapshot, privacy controls, source identity checks, budget accounting, and independent final code review. It adds no workflow stage and does not weaken acceptance.
+
 ## Before Writing Code
 
 1. Read the task, acceptance contract, and active project conventions. Inspect the relevant code and tests.
-2. Confirm the task input files still match the routing plan hashes. The launcher enforces this before it writes files, creates worktrees, or starts a worker.
-3. If the task came from `implement-tasks`, use its approved plan. For a standalone task, use the shared preview and its decision rules. A request to use defaults and run or actual approval for the unchanged setup suffices within existing source sharing authority and accepted receipt limits. Otherwise obtain the model plan decision before workers start. Include host and driver capabilities, independent review, session strategy, effort, provider controls, tools, receipt limits, budgets, and exact fallback triggers.
+2. Confirm task input files still match the routing plan hashes before a worker dispatch. The launcher enforces this before it writes files, creates worktrees, or starts a worker.
+3. If the task came from `implement-tasks`, use its approved plan. A standalone task that meets the small change entry uses this skill directly. If the branch dispatches workers, use the shared preview and its decision rules. A request to use defaults and run or approval for the unchanged setup suffices within existing source sharing authority and accepted receipt limits. Otherwise obtain the model plan decision before workers start. Include host and driver capabilities, independent review, session strategy, effort, provider controls, tools, receipt limits, budgets, and exact fallback triggers.
 4. Start with one track. Add a second track only when their scopes and contracts are independent. Worktree isolation is reversible and needs no separate approval. Commit-based integration remains separately authorized.
 
 Never call `models-consensus` from this skill. A user who wants more opinions invokes that workflow separately.
 
 ## Apply Engineering Practices at Their Trigger
 
-1. Use `coding-design-plan` when the implementation shape or boundary is still unresolved. Use the task's settled decisions as inputs.
-2. Use `design-gate` only for a nonlocal boundary that has no selected lens conclusions already.
-3. Use `diagnose` before implementation when the available failure evidence does not establish the cause.
-4. Use `tdd` for a behavior change. For untested legacy behavior, use `safe-incremental-coding` to make a **characterization test** before changing it.
-5. Use `clean-code` when touched code has a concrete smell or needs refactoring. Use `test-lens` when a test choice needs judgment about real behavior, seams, mocks, or brittle coverage. Apply a domain lens only when the task triggers it: data paths, interfaces, distributed systems, domain logic, agent control flow, or a framework-specific UI concern.
-6. Use `coding-review-simplify` after the task is green when a behavior-preserving simplification would help the next reader.
+Apply methods in the assigned coordinator or implementer context. Loading a method or routine design lens does not dispatch a worker. Inherited lens findings remain constraints. A routine lens is read only while it evaluates the task. Select at most three lenses, and recheck only a blocking lens after its design surface changes. Dispatch a selected independent specialist only when a material risk or unresolved question requires it and the approved snapshot names its route. The final code review remains independent from the implementer.
+
+1. Apply `coding-design-plan` when the implementation shape or boundary is still unresolved. Use the task's settled decisions as inputs.
+2. Apply `design-gate` only for a nonlocal boundary with no selected lens conclusions. It selects at most three lenses.
+3. Apply `diagnose` before implementation when the available failure evidence does not establish the cause.
+4. Apply `tdd` for a behavior change. For untested legacy behavior, apply `safe-incremental-coding` to make a **characterization test** before changing it.
+5. Apply `clean-code` when touched code has a concrete smell or needs refactoring. Apply `test-lens` when a test choice needs judgment about real behavior, seams, mocks, or brittle coverage. Apply a domain lens only when the task triggers it: data paths, interfaces, distributed systems, domain logic, agent control flow, or a framework specific UI concern.
+6. Apply `coding-review-simplify` after the task is green when a **behavior-preserving** simplification would help the next reader.
 
 The implementation brief must state the task scope, acceptance contract, relevant lens conclusions, and that no git or external action is allowed. The launcher prepends the approved task contract to derived implementation and review notes. Derived notes cannot replace it.
 
 ## Launch the Approved Routes
 
-Use the launcher from this skill's directory. It requires an approved plan, validates canonical task content hashes and route digests, and records the approved reviewer in the manifest. A dry run can preview a complete draft plan but never writes, creates a worktree, or starts a worker.
+Use the launcher only for a worker dispatch. It requires an approved plan, validates canonical task content hashes and route digests, and records the approved reviewer in the manifest. A dry run can preview a complete draft plan but never writes, creates a worktree, or starts a worker. It dispatches only the plan's exact model, effort, tools, privacy controls, source identity checks, and budget limits.
 
 Prefer native delegation when the host exposes the exact model, effort, isolation,
 and tools. Use an external runner for a foreign model, an unsupported native

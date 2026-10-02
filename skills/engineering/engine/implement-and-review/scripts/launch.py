@@ -36,6 +36,7 @@ ACTIVE_REVIEW_STATUSES = {"starting", "running", "awaiting_native_dispatch", "or
 MAX_REVIEW_CYCLES = 3
 MAX_EVIDENCE_RECOVERIES = 1
 STATUS_LINE = re.compile(r"\*\*Status:\*\* (?:ready-for-agent|in-progress|done|blocked)\Z")
+DRAFT_STATUS_LINE = re.compile(r"\s*\*\*Status:\*\*\s*draft\s*\Z")
 WRITE_BOUNDARY = """
 
 Execution boundary
@@ -844,6 +845,11 @@ def cmd_launch(args: argparse.Namespace) -> int:
         for track, source in briefs.items():
             route = routing["routes"][track]["implementer"]
             contract = routing["scope_inputs"][route["input_path"]]
+            if not args.dry_run and any(
+                DRAFT_STATUS_LINE.fullmatch(line)
+                for line in contract["path"].read_text(encoding="utf-8").splitlines()
+            ):
+                raise ValueError(f"task contract is still a draft: {contract['path']}; promote it before launch")
             rendered, binding = render_bound_brief(contract, source, WRITE_BOUNDARY, "Derived implementation notes")
             binding["input_measurement"] = measure_rendered(rendered, route.get("context_budget"))
             prepared[track] = {
@@ -1937,15 +1943,20 @@ def cmd_resume_native(args: argparse.Namespace) -> int:
     except (ValueError, OSError, UnicodeError) as error:
         fail(f"could not prepare a bound implementation follow-up: {error}")
     previous_attempts = entry.get("resume_attempts", 0)
-    if not isinstance(previous_attempts, int) or previous_attempts < 0:
+    if type(previous_attempts) is not int or previous_attempts < 0:
         fail("implementation record has an invalid native resume count")
-    if previous_attempts >= MAX_REVIEW_CYCLES + MAX_EVIDENCE_RECOVERIES:
+    try:
+        limits = recovery_limits(manifest, args.track)
+    except ValueError as error:
+        fail(f"implementation recovery plan is no longer valid: {error}")
+    ceiling = limits["review_cycles"] + limits["evidence_recoveries"]
+    if previous_attempts >= ceiling:
         manifest["status"] = "ceiling_hit"
         manifest["phase"] = f"{args.track}_implementation_followup"
         save_manifest(manifest, path)
         fail(
             "native implementation follow-up ceiling reached for "
-            f"{args.track}: {MAX_REVIEW_CYCLES + MAX_EVIDENCE_RECOVERIES}"
+            f"{args.track}: {ceiling}"
         )
     attempt = previous_attempts + 1
     bound_brief = Path(manifest["artifact_dir"]) / f"{args.track}-implementation-resume-{attempt}-brief.md"
