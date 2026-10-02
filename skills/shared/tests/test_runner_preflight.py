@@ -77,7 +77,7 @@ class RunnerPreflightTests(unittest.TestCase):
         self.assertTrue(result["blocked"])
 
     def test_discovery_checks_model_minimum_without_provider_call(self):
-        spec = next(s for s in discover_runners.SEAT_SPECS if s.seat == "opus-5-5")
+        spec = next(s for s in discover_runners.SEAT_SPECS if s.seat == "opus")
         with patch.object(discover_runners.shutil, "which", return_value="/mock/claude"), patch.object(discover_runners.subprocess, "run", return_value=subprocess.CompletedProcess([], 0, "2.1.275", "")) as run:
             result = discover_runners.probe_seat(spec, "no", 1)
         self.assertFalse(result.available)
@@ -86,7 +86,7 @@ class RunnerPreflightTests(unittest.TestCase):
         self.assertEqual(run.call_count, 1)
 
     def test_native_transport_does_not_imply_compatibility(self):
-        spec = next(s for s in discover_runners.SEAT_SPECS if s.seat == "opus-5-5")
+        spec = next(s for s in discover_runners.SEAT_SPECS if s.seat == "opus")
         with patch.object(discover_runners.subprocess, "run") as run:
             result = discover_runners.probe_seat(spec, "yes", 1).to_dict()
         self.assertTrue(result["available"])
@@ -136,13 +136,13 @@ class RunnerPreflightTests(unittest.TestCase):
 
     def test_compatibility_resolves_exact_model_from_central_seat(self):
         config = copy.deepcopy(preflight.load_config())
-        original = config["models"]["opus-5-5"]["model"]
-        config["models"]["opus-5-5"]["model"] = "fixture-model-revision"
+        original = config["models"]["opus"]["model"]
+        config["models"]["opus"]["model"] = "fixture-model-revision"
         updated = preflight.claude_compatibility("fixture-model-revision", "2.1.275", config=config)
         self.assertEqual(updated["status"], "false")
-        self.assertEqual(updated["requirement_seat"], "opus-5-5")
+        self.assertEqual(updated["requirement_seat"], "opus")
         self.assertEqual(preflight.claude_compatibility(original, "2.1.275", config=config)["status"], "unknown")
-        sibling = config["models"]["opus"]["model"]
+        sibling = config["models"]["sonnet"]["model"]
         self.assertEqual(preflight.claude_compatibility(sibling, "2.1.275", config=config)["status"], "unknown")
 
     def test_compatibility_rejects_missing_or_wrong_runner_seat(self):

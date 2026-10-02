@@ -233,8 +233,8 @@ class CodexFamilyAliasAndDiscoveryTests(unittest.TestCase):
     def test_codex_family_aliases_resolve_before_cli_availability(self):
         expected_models = {
             "astra": "gpt-6-astra",
-            "sol": "gpt-6-sol",
-            "terra": "gpt-6-terra",
+            "sol": "gpt-6.1-sol",
+            "terra": "gpt-5.6-terra",
             "luna": "gpt-6-luna",
         }
         codex = RUNNER_SCRIPTS["codex"]

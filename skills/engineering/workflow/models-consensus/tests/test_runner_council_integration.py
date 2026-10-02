@@ -129,5 +129,58 @@ class RunnerCouncilIntegrationTests(unittest.TestCase):
         self.assertEqual(final["council"]["retries"], 1)
 
 
+class CodexCouncilIntegrationTests(unittest.TestCase):
+    def setUp(self):
+        fixture = fixtures.CouncilStateTests(methodName="runTest")
+        fixture.setUp()
+        self.addCleanup(fixture.temporary.cleanup)
+        wrapper = Path(council.ledger.__file__).resolve().parents[2] / "engineering/seats/codex-runner/scripts/run_codex.py"
+        spec = importlib.util.spec_from_file_location("codex_council_integration", wrapper)
+        runner = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(runner)
+        preview = fixture.document["preview"]
+        preview["tool_profile"] = "repo_read_only"
+        for execution in preview["execution"]:
+            execution.update(runner="codex", allowed_tools=[], tool_evidence="configured")
+        fixture.reset()
+        self.fixture, self.runner = fixture, runner
+        self.binary_dir = fixture.root / "bin"
+        self.binary_dir.mkdir()
+
+    def invoke(self, call, servers, message):
+        fixture = self.fixture
+        executable = self.binary_dir / "codex"
+        executable.write_text("#!/bin/sh\n"
+                              "for arg do [ \"$arg\" = mcp ] && { printf '%s\\n' " + shlex.quote(json.dumps(servers)) + "; exit 0; }; done\n"
+                              "while [ $# -gt 0 ]; do [ \"$1\" = --output-last-message ] && out=$2; shift; done\n"
+                              "printf 'session id: 01a0fd8b-e1d6-73d2-8f4d-68dcca02f4a4\\n' >&2\n"
+                              "printf '%s' " + shlex.quote(message) + " > \"$out\"\n")
+        executable.chmod(0o755)
+        model = fixture.document["preview"]["roles"][0]["requested_model"]
+        metadata = json.loads(Path(fixture.read()["call_ledger"]["calls"][call]["council"]["dispatch"]["path"]).read_text())
+        with patch.dict(os.environ, {"PATH": str(self.binary_dir) + ":/usr/bin:/bin"}, clear=True):
+            envelope = self.runner.run_codex("Use the supplied brief.", working_dir=str(fixture.root), model=model, effort="high",
+                                             role="researcher", tool_profile="repo_read_only", disable_fallback=True,
+                                             metadata_json=json.dumps(metadata))
+        receipt = fixture.root / (call + ".wrapper.json")
+        receipt.write_text(json.dumps(envelope))
+        return receipt, envelope
+
+    def test_configured_codex_isolation_completes_an_approved_step(self):
+        self.fixture.reserve()
+        receipt, envelope = self.invoke("call-1", [], json.dumps(answer()))
+        self.assertTrue(envelope["success"], envelope)
+        self.assertEqual(envelope["tool_profile_receipt"]["status"], "configured")
+        self.assertEqual(self.fixture.reconcile(receipt)["status"], "valid")
+        self.assertEqual(self.fixture.read()["call_ledger"]["contexts"]["opening-0"], "01a0fd8b-e1d6-73d2-8f4d-68dcca02f4a4")
+
+    def test_enabled_server_never_reaches_the_model(self):
+        self.fixture.reserve()
+        receipt, envelope = self.invoke("call-1", [{"name": "extra", "enabled": True}], json.dumps(answer()))
+        self.assertFalse(envelope["success"])
+        self.assertEqual(envelope["tool_profile_receipt"]["status"], "violated")
+        self.assertNotEqual(self.fixture.reconcile(receipt)["status"], "valid")
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

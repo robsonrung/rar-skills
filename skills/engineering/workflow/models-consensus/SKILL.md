@@ -38,7 +38,7 @@ The preview must show every planned and conditional call:
 | Host and session | Checked host or runner, per-role session policy, and whether the role can resume by its recorded id |
 | Serving receipt | `required` or `explicitly allowed unverified`, with status, source, and observed model for every seat |
 | Budget | Base call count, conditional calls, validation-retry ceiling, maximum calls, advisory response cap, and any reported usage or elapsed-time limits |
-| Tools | The shared read-only tool profile |
+| Tools | The shared read-only tool profile. A Codex runner seat needs `repo_read_only` with `tool_evidence: configured` and `allowed_tools: []` in its execution entry, shown as "Codex: read-only isolation configured, startup tools not observable"; see [references/runner-invocations.md](references/runner-invocations.md) |
 | Evidence | Which native or runner checks passed and that serving-model receipts are still pending |
 
 Use **seat fidelity**: an approved seat is that exact requested-model label, receipt requirement, execution path, effort, and role continuity policy. Every runner call uses `--disable-fallback`; a native route has no runner fallback. If a selected seat, model label, receipt requirement, host, execution path, effort, role, or session policy changes after the preview, stop and show a revised preview. A pending receipt becoming verified for the approved model is new evidence and needs no new approval. An observed model mismatch or an unmet required receipt blocks that route; never weaken the receipt requirement to continue. Do not substitute, downgrade, add a seat, switch mode, or degrade to personas without new approval.

@@ -415,6 +415,37 @@ class CouncilStateTests(unittest.TestCase):
             self.reserve()
             self.assertEqual(self.reconcile(self.receipt(tool_profile_receipt=proof))["status"], "blocked_receipt")
 
+    def use_read_only_profile(self, evidence):
+        self.document["preview"]["tool_profile"] = "repo_read_only"
+        for execution in self.document["preview"]["execution"]:
+            execution["allowed_tools"] = []
+            if evidence:
+                execution["tool_evidence"] = evidence
+        self.reset()
+
+    def configured_proof(self, **changes):
+        proof = {"profile": "repo_read_only", "status": "configured", "evidence": "configured", "sandbox": "read-only",
+                 "observed_tools": None, "observed_mcp_servers": [], "errors": []}
+        proof.update(changes)
+        return proof
+
+    def test_configured_tool_evidence_needs_explicit_plan_approval(self):
+        for evidence, proof, status in ((None, self.configured_proof(), "blocked_receipt"),
+                                        ("configured", self.configured_proof(), "valid"),
+                                        ("configured", self.configured_proof(observed_mcp_servers=["extra"]), "blocked_receipt"),
+                                        ("configured", self.configured_proof(sandbox="workspace-write"), "blocked_receipt"),
+                                        ("configured", self.configured_proof(observed_mcp_servers=None), "blocked_receipt")):
+            with self.subTest(evidence=evidence, proof=proof):
+                self.use_read_only_profile(evidence)
+                self.reserve()
+                receipt = self.receipt(tool_profile="repo_read_only", tool_profile_receipt=proof)
+                self.assertEqual(self.reconcile(receipt)["status"], status)
+
+    def test_configured_tool_evidence_is_limited_to_repo_read_only(self):
+        self.document["preview"]["execution"][0]["tool_evidence"] = "configured"
+        with self.assertRaisesRegex(ValueError, "configured tool evidence"):
+            self.reset()
+
     def test_dispatch_context_without_actual_session_is_not_completion_evidence(self):
         self.reserve()
         self.reconcile(self.receipt(success=False))

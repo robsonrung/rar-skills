@@ -59,6 +59,12 @@ ROLE_INSTRUCTIONS = {
 # Roles that modify the workspace; every other role defaults to a read-only sandbox.
 WRITE_ROLES = {"implementer"}
 
+# Codex cannot remove its shell tool, so `no_tools` is unavailable. `repo_read_only`
+# is configured, not observed: codex exec reports no startup tool inventory.
+TOOL_PROFILES = {"repo_read_only", "write"}
+READ_ONLY_OVERRIDES = ("features.plugins=false", "features.apps=false", 'web_search="disabled"')
+SERVER_NAME = re.compile(r"^[A-Za-z0-9_-]+$")
+
 # Direct calls and approved plans share the same maintained capabilities.
 DEFAULT_MODEL = default_model("codex", ROUTING_CONFIG)
 MODEL_ALIASES = model_aliases("codex", ROUTING_CONFIG)
@@ -199,6 +205,53 @@ def resolve_restrict_tools(
     return bool(role) and role not in WRITE_ROLES
 
 
+def list_mcp_servers(overrides: list[str], working_dir: str | None) -> list[dict] | None:
+    command = ["codex"]
+    for override in overrides:
+        command.extend(["-c", override])
+    command.extend(["mcp", "list", "--json"])
+    try:
+        result = subprocess.run(command, capture_output=True, text=True, timeout=60, cwd=working_dir,
+                                check=False, stdin=subprocess.DEVNULL)
+        servers = json.loads(result.stdout) if result.returncode == 0 else None
+    except (OSError, subprocess.TimeoutExpired, json.JSONDecodeError):
+        return None
+    if not isinstance(servers, list) or not all(isinstance(s, dict) and isinstance(s.get("name"), str) for s in servers):
+        return None
+    return servers
+
+
+def read_only_isolation(working_dir: str | None) -> tuple[list[str], dict[str, Any]]:
+    """Configure repo_read_only and list the MCP servers Codex would start with it."""
+    overrides = list(READ_ONLY_OVERRIDES)
+    receipt: dict[str, Any] = {
+        "profile": "repo_read_only", "status": "unverified", "evidence": "configured",
+        "sandbox": "read-only", "overrides": overrides, "observed_tools": None,
+        "observed_mcp_servers": None, "errors": [], "detail": None,
+    }
+    servers = list_mcp_servers(overrides, working_dir)
+    if servers is None:
+        receipt["detail"] = "Could not list Codex MCP servers before launch."
+        return overrides, receipt
+    for server in servers:
+        if server.get("enabled") is not False:
+            if not SERVER_NAME.match(server["name"]):
+                receipt["detail"] = f"Cannot disable MCP server with name {server['name']!r}."
+                return overrides, receipt
+            overrides.append(f"mcp_servers.{server['name']}.enabled=false")
+    servers = list_mcp_servers(overrides, working_dir)
+    if servers is None:
+        receipt["detail"] = "Could not list Codex MCP servers with the read-only overrides."
+        return overrides, receipt
+    receipt["observed_mcp_servers"] = [s["name"] for s in servers if s.get("enabled") is not False]
+    if receipt["observed_mcp_servers"]:
+        receipt["status"] = "violated"
+        receipt["errors"].append("Startup MCP servers are not empty.")
+    else:
+        receipt["status"] = "configured"
+    return overrides, receipt
+
+
 def extract_session_id(*streams: str) -> str | None:
     for stream in streams:
         if not stream:
@@ -324,6 +377,14 @@ def run_codex(*args: Any, **kwargs: Any) -> dict[str, Any]:
     via the CLI or imported and called programmatically."""
     requested_model = kwargs.get("model") if "model" in kwargs else (args[3] if len(args) > 3 else None)
     result = _run_codex(*args, **kwargs)
+    metadata = kwargs.get("metadata_json") if "metadata_json" in kwargs else (args[11] if len(args) > 11 else None)
+    if metadata:
+        try:
+            parsed = json.loads(metadata)
+            if isinstance(parsed, dict):
+                result["dispatch_metadata"] = parsed
+        except (TypeError, ValueError):
+            pass  # Metadata is optional context, not execution authority.
     return normalize_envelope(result, requested_runner="codex", requested_model=requested_model)
 
 
@@ -350,8 +411,13 @@ def _run_codex(
     add_dirs: list[str] | None = None,
     images: list[str] | None = None,
     disable_fallback: bool = False,
+    tool_profile: str | None = None,
 ) -> dict[str, Any]:
     resuming = bool(resume or resume_last)
+    if tool_profile == "repo_read_only":
+        restrict_tools = True
+    elif tool_profile == "write":
+        allow_write = True
     resolved_model = resolve_model(model)
     resolved_effort = resolve_effort(resolved_model, effort)
     restrict_effective = resolve_restrict_tools(role, restrict_tools, allow_write, sandbox, full_auto)
@@ -370,6 +436,13 @@ def _run_codex(
 
     if working_dir and not Path(working_dir).expanduser().is_dir():
         return error_result(f"Working directory does not exist: {working_dir}")
+
+    if tool_profile == "no_tools":
+        return error_result("Codex cannot remove its shell tool; the no_tools profile is unavailable for codex.")
+    if tool_profile is not None and tool_profile not in TOOL_PROFILES:
+        return error_result(f"Unknown tool profile: {tool_profile}")
+    if tool_profile == "repo_read_only" and (allow_write or full_auto or sandbox not in (None, "read-only")):
+        return error_result("repo_read_only cannot be combined with write access.")
 
     # Relative input paths resolve against --working-dir (not the process cwd),
     # with ~ expanded — matching gemini-runner's documented behavior.
@@ -484,6 +557,7 @@ def _run_codex(
         "restrict_tools": restrict_effective,
         "full_auto": full_auto,
         "resume": "--last" if resume_last else resume,
+        "tool_profile": tool_profile,
     }
 
     if shutil.which("codex") is None:
@@ -496,7 +570,7 @@ def _run_codex(
                 "return_code": -2,
                 **meta,
             }
-        if not disable_fallback:
+        if not disable_fallback and tool_profile is None:
             fallback_runner = ROUTING_CONFIG["runners"]["codex"]["fallback_runner"]
             fallback_script = _skill_dir(f"{fallback_runner}-runner") / "scripts" / f"run_{fallback_runner}.py"
             if fallback_script.is_file():
@@ -524,6 +598,17 @@ def _run_codex(
             **meta,
         }
 
+    if tool_profile == "repo_read_only":
+        overrides, meta["tool_profile_receipt"] = read_only_isolation(working_dir)
+        if meta["tool_profile_receipt"]["status"] != "configured":
+            cleanup_last_message()
+            reason = meta["tool_profile_receipt"]["detail"] or "; ".join(meta["tool_profile_receipt"]["errors"])
+            return {"success": False, "stdout": "", "stderr": f"Read-only isolation failed: {reason}",
+                    "return_code": -3, **meta}
+        for override in reversed(overrides):
+            command[-1:-1] = ["--config", override]
+        meta["command"] = " ".join(shlex.quote(part) for part in command)
+
     try:
         result = subprocess.run(
             command,
@@ -532,6 +617,7 @@ def _run_codex(
             timeout=timeout,
             cwd=working_dir,
             check=False,
+            stdin=subprocess.DEVNULL,
         )
 
         return {
@@ -734,6 +820,13 @@ def main():
         help="Do not route to another runner if Codex CLI is unavailable",
     )
     parser.add_argument(
+        "--tool-profile",
+        choices=sorted(TOOL_PROFILES | {"no_tools"}),
+        default=None,
+        help="repo_read_only: read-only sandbox, plugins, apps, web search and MCP servers disabled, "
+             "with a configured tool receipt. no_tools is rejected because Codex keeps its shell tool.",
+    )
+    parser.add_argument(
         "--output-file",
         type=str,
         default=None,
@@ -800,6 +893,7 @@ def main():
         add_dirs=args.add_dir,
         images=args.image,
         disable_fallback=args.disable_fallback,
+        tool_profile=args.tool_profile,
     )
 
     output_file = None

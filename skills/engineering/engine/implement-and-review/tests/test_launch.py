@@ -420,7 +420,7 @@ class LauncherTests(unittest.TestCase):
         route = self.route(
             "pi-review",
             "reviewer",
-            "openai/gpt-6-terra",
+            "openai/gpt-5.6-terra",
             runner="pi",
             seat="pi",
         )
@@ -581,7 +581,7 @@ class LauncherTests(unittest.TestCase):
         reviewer = self.route(
             "review-api",
             "reviewer",
-            "gpt-6-terra",
+            "gpt-5.6-terra",
             mode="native",
             effort="medium",
             effort_control="native",
@@ -605,19 +605,19 @@ class LauncherTests(unittest.TestCase):
         launcher.persist_native_receipt(manifest, implementer, "implementation", None, implementation_receipt, None)
         review_receipt = {
             **implementation_receipt,
-            "configured_model": "gpt-6-terra",
-            "effective_model": "gpt-6-terra",
+            "configured_model": "gpt-5.6-terra",
+            "effective_model": "gpt-5.6-terra",
             "configured_effort": "medium",
             "effective_effort": "medium",
             "model_receipt": {
                 "status": "verified",
                 "source": "native_event",
-                "observed_model": "gpt-6-terra",
+                "observed_model": "gpt-5.6-terra",
             },
             "native_execution": {
                 **implementation_receipt["native_execution"],
                 "role": "reviewer",
-                "configured_model": "gpt-6-terra",
+                "configured_model": "gpt-5.6-terra",
                 "configured_effort": "medium",
                 "tool_policy": "read-only",
                 "call_id": "review-call",
@@ -712,7 +712,7 @@ class LauncherTests(unittest.TestCase):
         self.assertEqual(snapshot["error"], "completed runner job has no successful result")
 
     def test_runner_context_keeps_two_review_turns_stable_across_polls(self) -> None:
-        reviewer = self.route("review-api", "reviewer", "claude-opus-5", runner="claude", seat="opus", effort="xhigh")
+        reviewer = self.route("review-api", "reviewer", "claude-opus-5-5", runner="claude", seat="opus", effort="xhigh")
         manifest = {
             "task_id": "task1",
             "tracks": {},
@@ -769,7 +769,7 @@ class LauncherTests(unittest.TestCase):
                 "action": "use",
                 "seat": "opus",
                 "runner": "claude",
-                "model": "claude-opus-5",
+                "model": "claude-opus-5-5",
                 "model_verification": "required",
                 "effort": "xhigh",
                 "effort_control": "runner",
@@ -800,7 +800,7 @@ class LauncherTests(unittest.TestCase):
                 "action": "use",
                 "seat": "opus",
                 "runner": "claude",
-                "model": "claude-opus-5",
+                "model": "claude-opus-5-5",
                 "model_verification": "required",
                 "effort": "xhigh",
                 "effort_control": "runner",
@@ -817,7 +817,7 @@ class LauncherTests(unittest.TestCase):
                     "context_id": "fallback-review-session",
                     "role": "reviewer",
                     "task_id": "task1",
-                    "configured_model": "claude-opus-5",
+                    "configured_model": "claude-opus-5-5",
                     "configured_effort": "xhigh",
                     "status": "completed",
                 }

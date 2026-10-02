@@ -27,6 +27,7 @@ An approved workflow supplies the exact model, effort, role, tool mode, and rece
 ## Runtime boundaries
 
 - Use the local authenticated `codex` CLI in exec mode. Analysis roles default to a read-only sandbox.
+- `--tool-profile repo_read_only` also disables plugins, apps, web search, and MCP servers, and records a `configured` tool receipt. `codex exec` reports no startup tools, so this receipt attests configuration, not observation. User Codex hooks still run; they are not model tools. Codex cannot run `no_tools`.
 - `--allow-write`, an explicit sandbox, or `--full-auto` can change that boundary only within the caller's authority. Full auto requires approval for an unattended run.
 - Prompt and file context may be sent to the configured provider. Set `--working-dir` to the task's repository or package.
 - The wrapper forwards model and effort. Current headless output does not prove the serving model; a configured label alone gives an unverified receipt.

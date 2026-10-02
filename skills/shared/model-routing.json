@@ -157,16 +157,16 @@
       "effort_scaling_evidence": "AutomationBench and FrontierCode v1.1 effort curves, checked 2026-09-22: pass rate rises monotonically with effort."
     },
     "sol": {
-      "model": "gpt-6-sol",
+      "model": "gpt-6.1-sol",
       "runner": "codex",
       "family": "gpt",
       "effort_profile": "extended",
       "aliases": [],
       "effort_scaling": "monotonic",
-      "effort_scaling_evidence": "AutomationBench effort curve, checked 2026-09-22: smooth monotonic climb; weak below medium effort."
+      "effort_scaling_evidence": "AutomationBench effort curve for gpt-6-sol, checked 2026-09-22: smooth monotonic climb; weak below medium effort. Not yet re-measured for gpt-6.1-sol, whose catalog default effort is low; always route an explicit effort of medium or higher."
     },
     "terra": {
-      "model": "gpt-6-terra",
+      "model": "gpt-5.6-terra",
       "runner": "codex",
       "family": "gpt",
       "effort_profile": "extended",
@@ -191,25 +191,18 @@
       "effort_scaling_evidence": "Artificial Analysis Intelligence Index v4.3.2 and FrontierCode v1.1, checked 2026-09-22: flat-to-declining returns above high effort."
     },
     "opus": {
-      "model": "claude-opus-5",
-      "runner": "claude",
-      "family": "claude",
-      "effort_profile": "standard",
-      "aliases": [],
-      "effort_scaling": "flat",
-      "effort_scaling_evidence": "AutomationBench effort curve, checked 2026-09-22: near-flat, noisy returns across effort levels."
-    },
-    "opus-5-5": {
       "model": "claude-opus-5-5",
       "runner": "claude",
       "family": "claude",
       "effort_profile": "standard",
-      "aliases": [],
+      "aliases": [
+        "opus-5-5"
+      ],
       "effort_scaling": "non-monotonic",
       "effort_scaling_evidence": "AutomationBench and FrontierCode v1.1 effort curves, checked 2026-09-22: scales strongly to medium, then non-monotonic with poor returns past medium; cap at high and never route max."
     },
     "sonnet": {
-      "model": "claude-sonnet-5",
+      "model": "claude-sonnet-5-5",
       "runner": "claude",
       "family": "claude",
       "effort_profile": "standard",
@@ -477,13 +470,6 @@
     },
     {
       "seat": "opus",
-      "execution_path": "claude_runner",
-      "probe_cli": "claude",
-      "depends_on": [],
-      "tier": "default"
-    },
-    {
-      "seat": "opus-5-5",
       "execution_path": "claude_runner",
       "probe_cli": "claude",
       "depends_on": [],
@@ -944,7 +930,7 @@
         },
         "claude": {
           "implementer": {
-            "seat": "opus-5-5",
+            "seat": "opus",
             "effort": "medium"
           },
           "reviewer": {
@@ -993,7 +979,7 @@
         },
         "claude": {
           "implementer": {
-            "seat": "opus-5-5",
+            "seat": "opus",
             "effort": "medium"
           },
           "reviewer": {
@@ -1397,7 +1383,7 @@
             "effort": "high"
           },
           "reviewer": {
-            "seat": "opus-5-5",
+            "seat": "opus",
             "effort": "high"
           }
         },
@@ -1417,7 +1403,7 @@
             "effort": "high"
           },
           "reviewer": {
-            "seat": "opus-5-5",
+            "seat": "opus",
             "effort": "high"
           }
         }
@@ -1446,7 +1432,7 @@
             "effort": "high"
           },
           "reviewer": {
-            "seat": "opus-5-5",
+            "seat": "opus",
             "effort": "high"
           }
         },
@@ -1466,7 +1452,7 @@
             "effort": "high"
           },
           "reviewer": {
-            "seat": "opus-5-5",
+            "seat": "opus",
             "effort": "high"
           }
         }
@@ -1493,7 +1479,7 @@
             "effort": "high"
           },
           "reviewer": {
-            "seat": "opus-5-5",
+            "seat": "opus",
             "effort": "high"
           }
         },
@@ -1513,7 +1499,7 @@
             "effort": "high"
           },
           "reviewer": {
-            "seat": "opus-5-5",
+            "seat": "opus",
             "effort": "high"
           }
         }
@@ -1540,7 +1526,7 @@
             "effort": "xhigh"
           },
           "reviewer": {
-            "seat": "opus-5-5",
+            "seat": "opus",
             "effort": "high"
           }
         },
@@ -1560,7 +1546,7 @@
             "effort": "xhigh"
           },
           "reviewer": {
-            "seat": "opus-5-5",
+            "seat": "opus",
             "effort": "high"
           }
         }
@@ -1653,7 +1639,7 @@
         },
         "claude": {
           "reviewer": {
-            "seat": "opus-5-5",
+            "seat": "opus",
             "effort": "high"
           }
         },
@@ -1665,7 +1651,7 @@
         },
         "saver": {
           "reviewer": {
-            "seat": "opus-5-5",
+            "seat": "opus",
             "effort": "high"
           }
         }
@@ -1684,7 +1670,7 @@
         },
         "claude": {
           "reviewer": {
-            "seat": "opus-5-5",
+            "seat": "opus",
             "effort": "high"
           }
         },
@@ -1696,7 +1682,7 @@
         },
         "saver": {
           "reviewer": {
-            "seat": "opus-5-5",
+            "seat": "opus",
             "effort": "high"
           }
         }
@@ -2077,7 +2063,7 @@
             "effort": "high"
           },
           "reviewer": {
-            "seat": "opus-5-5",
+            "seat": "opus",
             "effort": "high"
           }
         }
@@ -2370,9 +2356,9 @@
         "accessed": "2026-09-19"
       },
       "V2": {
-        "title": "Provider release and August pricing correction",
-        "url": "https://www.anthropic.com/news/claude-sonnet-5",
-        "accessed": "2026-09-19"
+        "title": "Provider models overview",
+        "url": "https://platform.claude.com/docs/en/about-claude/models/overview",
+        "accessed": "2026-10-02"
       },
       "V3": {
         "title": "Provider model page",
@@ -2381,13 +2367,13 @@
       },
       "V4": {
         "title": "Provider model page",
-        "url": "https://developers.openai.com/api/docs/models/gpt-6-terra",
+        "url": "https://developers.openai.com/api/docs/models/gpt-5.6-terra",
         "accessed": "2026-09-19"
       },
       "V5": {
         "title": "Provider model page",
-        "url": "https://developers.openai.com/api/docs/models/gpt-6-sol",
-        "accessed": "2026-09-19"
+        "url": "https://developers.openai.com/api/docs/models/gpt-6.1-sol",
+        "accessed": "2026-10-02"
       },
       "V6": {
         "title": "Provider model page",

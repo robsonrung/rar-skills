@@ -110,7 +110,7 @@ class InstallDriftTests(unittest.TestCase):
 
     def test_approved_route_requires_explicit_effort(self):
         config = load_config()
-        route = {"roles": {"reviewer": {"seat": "opus-5-5", "model": "claude-opus-5-5",
+        route = {"roles": {"reviewer": {"seat": "opus", "model": "claude-opus-5-5",
                                          "runner": "claude", "effort": None}}}
         original = copy.deepcopy(route)
         self.assertTrue(install_drift.verify_route(route, config)["blocked"])

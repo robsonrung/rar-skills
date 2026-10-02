@@ -114,6 +114,10 @@ def plan_from(document):
             require(isinstance(allowed, list) and all(isinstance(t, str) for t in allowed), "approved runner tool names are required")
             require(isinstance(servers, list) and all(isinstance(t, str) for t in servers), "approved server names must be a list")
             require(preview["tool_profile"] != "no_tools" or not allowed and not servers, "no_tools cannot allow tools or servers")
+            evidence = route_execution.get("tool_evidence", "observed")
+            require(evidence in {"observed", "configured"}, "tool evidence must be observed or configured")
+            require(evidence == "observed" or preview["tool_profile"] == "repo_read_only" and not servers,
+                    "configured tool evidence is limited to repo_read_only without MCP servers")
         route = {"id": context_key, "task_id": frozen["session_id"], "model": role["requested_model"],
                  "effort": role["effort"], "effort_control": role["effort_control"], "seat": role["seat"],
                  "role": role.get("context_role", stage), "execution": {k: v for k, v in route_execution.items() if k != "call"},
@@ -398,6 +402,15 @@ def bind(state, call_id, event_path):
 
 def runner_tool_error(receipt, route):
     proof = receipt.get("tool_profile_receipt")
+    if isinstance(proof, dict) and proof.get("status") == "configured":
+        # Codex reports no startup tools; the approved plan must accept its configured isolation.
+        if route["execution"].get("tool_evidence") != "configured":
+            return "runner tool policy is configured, not observed, and the plan requires observed evidence"
+        if proof.get("profile") != route["tool_policy"] or proof.get("errors") != []:
+            return "runner tool proof differs from approved profile"
+        if proof.get("sandbox") != "read-only" or proof.get("observed_mcp_servers") != []:
+            return "runner read-only isolation is incomplete"
+        return None
     if not isinstance(proof, dict) or proof.get("status") != "verified":
         return "runner tool policy lacks verified startup evidence"
     if proof.get("profile") != route["tool_policy"] or proof.get("errors") != []:

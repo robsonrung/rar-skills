@@ -226,7 +226,7 @@ class ModelRoutingContractTests(unittest.TestCase):
     def test_saver_pairs_cheap_implementers_with_frontier_reviewers(self):
         config = model_routing.load_config()
         cheap = {"glm", "deepseek-flash"}
-        frontier_reviewers = {"astra", "opus-5-5"}
+        frontier_reviewers = {"astra", "opus"}
         reviewed = 0
         for route in config["routes"].values():
             family = route["families"].get("saver")
@@ -244,7 +244,7 @@ class ModelRoutingContractTests(unittest.TestCase):
 
     def test_opus_5_5_seat_and_effort_scaling_metadata(self):
         config = model_routing.load_config()
-        seat = config["models"]["opus-5-5"]
+        seat = config["models"]["opus"]
         self.assertEqual(seat["model"], "claude-opus-5-5")
         self.assertEqual(seat["runner"], "claude")
         self.assertEqual(seat["effort_scaling"], "non-monotonic")
@@ -256,7 +256,7 @@ class ModelRoutingContractTests(unittest.TestCase):
         self.assertEqual(config["models"]["fable"]["effort_scaling"], "flat-above-high")
         self.assertEqual(config["models"]["astra"]["effort_scaling"], "monotonic")
         roles = model_routing.resolve_route("sensitive-implementation", "claude")["roles"]
-        self.assertEqual((roles["reviewer"]["seat"], roles["reviewer"]["effort"]), ("opus-5-5", "high"))
+        self.assertEqual((roles["reviewer"]["seat"], roles["reviewer"]["effort"]), ("opus", "high"))
         roles = model_routing.resolve_route("deep-analysis", "claude")["roles"]
         self.assertEqual((roles["worker"]["seat"], roles["worker"]["effort"]), ("fable", "high"))
 

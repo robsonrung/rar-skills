@@ -16,7 +16,7 @@ Initialize the approved plan and reserve the attempt with `council_state.py` as 
 4. Use an analysis role only: `planner`, `codereviewer`, `synthesizer`, `adversarial`, `challenger`, or `researcher`.
 5. Stay read-only. Do not pass a write permission, full-auto flag, or `implementer` role.
 
-For a runner call, also use `--disable-fallback`, the previewed `runner_role`, and the exact tool profile. Keep the council stage in dispatch metadata; it is separate from the adapter role. Use structured output that includes startup tool evidence. A successful envelope without verified tool inventory cannot complete a council step. For a native call, record the
+For a runner call, also use `--disable-fallback`, the previewed `runner_role`, and the exact tool profile. Keep the council stage in dispatch metadata; it is separate from the adapter role. Use structured output that includes startup tool evidence. A successful envelope without verified tool inventory cannot complete a council step, except under configured evidence below. For a native call, record the
 host's worker or task context id and configured model and effort. A native
 parent session is not a separate worker. The approved preflight chooses native
 or runner transport. A native transport that fails after approval does not
@@ -31,6 +31,10 @@ authorize a runner transport. Stop and show a revised preview.
 | `research_read_only` | Use approved read-only research tools and list sources |
 
 All opening seats use the same profile. Any route that cannot enforce it is unavailable for this run.
+
+### Configured tool evidence
+
+`codex exec` reports no startup tool inventory. A Codex seat can join a `repo_read_only` council only when its execution entry sets `tool_evidence: configured` and the call passes `--tool-profile repo_read_only`. The runner then enforces a read-only sandbox, disables plugins, apps, web search, and MCP servers, and confirms through `codex mcp list` that no server stays enabled before launch. Show this in the preview Evidence row as "Codex: read-only isolation configured, startup tools not observable". It is a weaker guarantee than observed startup tools, so the user approves it per seat. Codex seats cannot run `no_tools` or `research_read_only` councils.
 
 ## Receipt and validation
 

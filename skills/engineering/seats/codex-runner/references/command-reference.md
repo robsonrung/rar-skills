@@ -33,6 +33,7 @@ Before composing non-trivial prompts (reviews, implementations, research seats),
 | `--sandbox`, `-s` | Codex sandbox mode override | CLI default |
 | `--restrict-tools` | Force `--sandbox read-only` | True for analysis roles |
 | `--allow-write` | Opt an analysis role out of the read-only default | False |
+| `--tool-profile repo_read_only` | Read-only sandbox; disable plugins, apps, web search, and every MCP server `codex mcp list` reports; attach a `configured` tool receipt. Refuses to launch when isolation cannot be confirmed. `no_tools` is rejected because Codex keeps its shell tool | None |
 | `--full-auto` | Pass Codex full auto mode for an explicitly approved unattended run | False |
 | `--approval-policy`, `-a` | Codex approval policy override | None |
 | `--skip-git-repo-check` | Allow runs outside a Git repo | False |
