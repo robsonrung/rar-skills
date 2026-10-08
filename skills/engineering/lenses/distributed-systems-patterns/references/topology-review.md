@@ -25,7 +25,7 @@ Load only the family the table selected:
 
 ## Pattern brief
 
-Use `assets/pattern-brief.md` from this skill directory.
+For a standalone invocation, use `assets/pattern-brief.md` from this skill directory. An interview contributes fields to its existing decision record; a design-gate call uses the canonical gate result instead of this brief. Preserve relevant constraints and evidence in that result.
 
 Pattern brief, required fields (protocol — omitting one means the brief is not done):
 

@@ -28,9 +28,11 @@ Apply only the relevant lenses. Report findings with file and line, the rule, an
 
 The selected method contains its standalone output format. Lead with the highest-impact finding and distinguish evidence from an unresolved domain decision.
 
-Under design-gate, remain read-only and return its contract: `verdict: proceed|revise`, `blocking_findings`, `advisory_findings`, and `required_changes`. Preserve actual invariants and integration boundaries; cosmetic preferences are advisory.
+Under design-gate, remain read-only and use the caller's canonical gate result. Preserve actual invariants and integration boundaries; cosmetic preferences are advisory.
 
 ## Detailed references
 
 - [references/context-patterns.md](references/context-patterns.md): load before classifying a context relationship or when the finding needs its full definition.
 - [references/decision-trees.md](references/decision-trees.md): load for borderline pattern classification or in-depth aggregate, value-object, and event checks.
+
+In an interview, contribute the decision, rationale, constraints, and source references to the existing decision record. Standalone report and implementation mechanics do not apply at that stage.

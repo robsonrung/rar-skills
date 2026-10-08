@@ -46,7 +46,7 @@ A design-gate or implement-and-review frontend invocation uses read-only review 
 
 ## Gate output
 
-When a caller asks for a proceed-or-revise verdict (a design gate or equivalent), return exactly: `verdict` (`proceed`|`revise`), `blocking_findings`, `advisory_findings`, `required_changes`. Block on a load-bearing composition or correctness miss (hot state in a layout, defeated memo treated as real, fetch race, missing boundary on a render path). Do not block on an unmeasured "expensive" calculation.
+When a caller asks for a proceed-or-revise verdict (a design gate or equivalent), use the caller's canonical gate result. Block on a load-bearing composition or correctness miss (hot state in a layout, defeated memo treated as real, fetch race, missing boundary on a render path). Do not block on an unmeasured "expensive" calculation.
 
 ## Shared constraints
 

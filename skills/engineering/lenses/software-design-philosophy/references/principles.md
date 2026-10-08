@@ -21,7 +21,7 @@ Read on `design`, and on `improve` when the change is a new or reshaped interfac
 9. **Different layer, different abstraction** — adjacent layers that share an abstraction are a missing boundary. Pass-through methods and pass-through variables are the usual evidence.
 10. **Pull complexity downward** — when complexity is unavoidable, the module absorbs it. Do not export config knobs the module could decide. Do not over-pull a policy the module cannot know.
 11. **Define errors out of existence** — redesign so the error is a normal case (delete a missing range succeeds; unset returns the default). Then mask low, aggregate, or crash. Do not thread recovery through every caller.
-12. **Design it twice** — two or three _meaningfully different_ shapes, compared on interface simplicity and the three symptoms (change amplification, cognitive load, unknown unknowns). Skipping this on a public interface is a process defect.
+12. **Design it twice**: for a consequential unresolved interface, compare two or three meaningfully different shapes on interface simplicity, change amplification, cognitive load, and unknown unknowns. A settled public interface does not require new alternatives without contrary evidence.
 13. **Comments describe what is not obvious** — an **earned comment**. Repeating tokens is a red flag.
 14. **Design for ease of reading, not ease of writing** — the writer pays once; readers pay forever. Cleverness that saves keystrokes fails this.
 15. **Increments are abstractions, not features** — each change should leave behind a deeper module, not a new special case. This is how **stay strategic** looks in a pull request.
@@ -29,7 +29,7 @@ Read on `design`, and on `improve` when the change is a new or reshaped interfac
 
 ## How to apply them
 
-On `design`, you must hit 4, 12, and 13 (deep, twice, comments first). Hit 11 if the interface has error cases. Hit 16 if the user cannot say what is important.
+On `design`, assess depth at the changed interface. Apply 12 only when a consequential interface decision remains open, and 13 when an authorized code change needs an interface comment. Preserve relevant invariants, error behavior, and compatibility. Apply 16 when the important constraint is unclear. Interview and gate calls retain their decision-only output.
 
 On `improve`, prefer 15 over adding a feature-shaped branch. If you cannot leave a deeper abstraction, say so and keep the change **smallest coherent shape**.
 
@@ -39,7 +39,7 @@ Name the principle you used in the brief. Do not list all sixteen.
 
 From the official 2nd-edition extract (Stanford, ch. 6). Over-specialization is often the largest source of extra complexity. A general-purpose interface is usually _simpler, deeper, and smaller_ than a special-purpose one — even if the class is only ever used one way.
 
-Answer all three before locking an interface. A miss on any one is a reason to **design it twice** again.
+Use these checks for a new or changed interface. A miss calls for a focused correction; use **design it twice** when it exposes a consequential unresolved choice.
 
 1. **Simplest interface that covers today's needs?** Fewer methods with the same capability usually means more general methods — only while each method's own API stays simple. `backspace` + `delete` + `deleteSelection` is three methods for one job; one `delete(start, end)` is the general form.
 2. **How many call sites will this method have?** One planned call site is a red flag that the method is too special-purpose. Put that knowledge in the caller.

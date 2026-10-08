@@ -89,7 +89,19 @@ Link immutable integration records from the current feature `run-state.json`:
 }
 ```
 
-This field stores evidence locators, not a second task status. The controller checks task and route bindings, contract identity, immutable snapshot checksum, and `review_evidence.assess(snapshot, base)`. For new ledger-managed integration, the review must match a completed exact approved reviewer route with its own scope ID and the released task's contract as `input_path`. A launcher-managed review can supply compatible manifest evidence when its approved independent reviewer and snapshot match the current combined source. A direct review-record write alone cannot prove independent execution. The snapshot must describe the relevant combined source state, with all applicable acceptance and interaction requirements. A copied `done` label or worker success cannot release dependents. Stale source, changed contracts, failed checks, missing observations, and blocking findings require integration work. Reuse evidence only through the shared verifier's existing transfer and recheck rules.
+This field stores evidence locators, not a second task status. The controller checks task and route bindings, contract identity, immutable snapshot checksum, and `review_evidence.assess(snapshot, base)`. For new ledger-managed integration, the review must match a completed exact approved reviewer route with its own scope ID and the released task's contract as `input_path`. A launcher-managed review can supply compatible manifest evidence when its approved independent reviewer and snapshot match the current combined source. A direct review-record write alone cannot prove independent execution. The snapshot must describe the relevant combined source state, with all applicable acceptance and interaction requirements. A copied `done` label or worker success cannot release dependents. Stale source, changed contracts, failed checks, missing observations, and blocking findings require integration work.
+
+For exact independent changes approved before the original review, the entry
+can add `carry_forward: {path, sha256}` from the shared `carry-forward` command.
+Keep the original snapshot and reviewer dispatch links. The controller checks
+the immutable checkpoint, current target source, complete declared dependency
+closure, current environment evidence, and passing required captures through
+`assess_carry_forward`. Read the carry forward protocol in
+`shared/references/review-evidence.md` before choosing this path. An unlisted or
+affected change still requires integration review. Matching file paths or hashes
+does not establish independence. Pending calls retain ownership, and approved
+call budgets still apply. Carry forward releases dependencies only; final
+combined review remains required.
 
 ## Project the next wave
 

@@ -25,4 +25,11 @@ If an existing worktree or branch has the chosen name, the launcher stops unless
 
 Integrate only after each track meets its acceptance contract and the user has authorized the required git action. Verify the combined result after integration. If a seam or high-risk boundary needs a broader review, use the user-selected `full-review` plan after the combined checks are green.
 
+Retain each worker's final snapshot, original captures, and independent review.
+Run `select-checks` against the combined snapshot with the original worker snapshot
+in `--from-snapshot` and its capture map in `--checks` before verification. Execute
+affected, missing, or required fresh checks; transfer a prior capture only through
+the shared assessment protocol. Passing task checks cannot replace review of
+changed interactions or the combined acceptance contract.
+
 Do not delete worktrees or branches after a run unless that cleanup was explicitly requested. Report their paths so the user can inspect them.

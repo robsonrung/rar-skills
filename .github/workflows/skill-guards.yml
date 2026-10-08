@@ -53,6 +53,7 @@ jobs:
       - name: Persistent call ledger and context packets
         run: |
           python3 skills/shared/tests/test_run_state.py
+          python3 skills/shared/tests/test_workflow_comparison.py
           python3 skills/shared/tests/test_context_packet.py
       - name: Structured Claude receipts
         run: python3 skills/engineering/seats/claude-runner/tests/test_run_claude.py

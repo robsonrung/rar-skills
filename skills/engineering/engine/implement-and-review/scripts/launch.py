@@ -681,6 +681,7 @@ def render_bound_brief(
     source: Path,
     boundary: str,
     note_label: str,
+    continuation: dict[str, Any] | None = None,
 ) -> tuple[str, dict[str, Any]]:
     """Bind derived worker notes to the approved task contract they cannot replace."""
     contract_path = contract["path"]
@@ -692,17 +693,28 @@ def render_bound_brief(
         verify(packet_path, source)
     elif len(note_text.encode("utf-8")) > DEFAULT_MAX_BYTES:
         raise ValueError(f"derived brief exceeds {DEFAULT_MAX_BYTES} bytes; link evidence or supply a bounded context packet")
+    contract_body = f"Task contract begins\n{contract_text.rstrip()}\nTask contract ends"
+    input_kind = "full"
+    if continuation is not None:
+        continuation_body = (
+            "Confirmed same-task same-role continuation\n"
+            + json.dumps(continuation, sort_keys=True)
+            + "\nKeep the accepted contract already in this context. Apply only the changed "
+            "facts, findings, and evidence locators below. If that context is unavailable, "
+            "stop and request full reconstruction before acting."
+        )
+        if len(continuation_body.encode("utf-8")) < len(contract_body.encode("utf-8")):
+            contract_body = continuation_body
+            input_kind = "continuation"
     rendered = f"""Approved task contract
 Source: {contract_path}
 Canonical content SHA-256: {contract['content_sha256']}
 
-The task contract below controls scope and acceptance. The {note_label.lower()}
+The accepted task contract controls scope and acceptance. The {note_label.lower()}
 may add execution detail only. If it conflicts with the contract, stop and
 report the conflict.
 
-Task contract begins
-{contract_text.rstrip()}
-Task contract ends
+{contract_body}
 
 {note_label}
 Source: {source}
@@ -713,6 +725,8 @@ SHA-256: {file_digest(source)}
     return rendered.rstrip() + boundary + "\n", {
         "contract_path": str(contract_path),
         "contract_content_sha256": contract["content_sha256"],
+        "input_kind": input_kind,
+        **({"continuation_proof": continuation} if continuation is not None else {}),
         "derived_path": str(source),
         "derived_sha256": file_digest(source),
         **({"context_packet": str(packet_path), "context_packet_sha256": file_digest(packet_path)} if packet_path.exists() else {}),
@@ -1085,6 +1099,74 @@ def resumable_context(manifest: dict[str, Any], route: dict[str, Any]) -> dict[s
     if context.get("status") != "completed":
         raise ValueError(f"route {route['id']} has a {context.get('status')!r} context and cannot resume it")
     return context
+
+
+def confirmed_native_continuation(
+    manifest: dict[str, Any],
+    route: dict[str, Any],
+    contract: dict[str, Any],
+    context: dict[str, Any] | None,
+) -> dict[str, Any] | None:
+    """Verify the completed input and receipt before omitting its accepted contract."""
+    if route["mode"] != "native" or context is None:
+        return None
+    mismatch = context_identity_error(context, route, manifest["task_id"], "native")
+    if mismatch:
+        raise ValueError(mismatch)
+    try:
+        if context["status"] != "completed" or validate_native_spec(route) is None:
+            raise ValueError("native continuation needs a confirmed completed role context")
+        receipt_path = Path(context["receipt_ref"])
+        if file_digest(receipt_path) != context["receipt_sha256"]:
+            raise ValueError("native continuation receipt changed")
+        receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
+        if not isinstance(receipt, dict) or not isinstance(receipt.get("native_execution"), dict):
+            raise ValueError("native continuation receipt lacks execution proof")
+        execution = receipt["native_execution"]
+        if receipt.get("success") is not True or receipt_error(route, receipt):
+            raise ValueError("native continuation has no valid successful route receipt")
+        for field, value in {
+            "context_id": context["context_id"],
+            "completed_turn": context["last_completed_turn"],
+            "input_revision": context["last_input_revision"],
+        }.items():
+            if execution.get(field) != value:
+                raise ValueError(f"native continuation receipt {field} changed")
+        track = manifest["tracks"][route["track"]]
+        implementation = track.get("implementation", {})
+        records = [(implementation, implementation if "brief_binding" in implementation else track)]
+        records.extend((record.get("launch", {}), record) for record in manifest.get("reviews", [])
+                       if record.get("track") == route["track"])
+        matches = [(entry, record) for entry, record in records
+                   if entry.get("native_dispatch", {}).get("call_id") == execution.get("call_id")]
+        if len(matches) != 1:
+            raise ValueError("native continuation needs one recorded completed call")
+        entry, record = matches[0]
+        dispatch = entry["native_dispatch"]
+        mismatch = native_execution_error(route, receipt, manifest["task_id"], dispatch)
+        if mismatch:
+            raise ValueError(mismatch)
+        if dispatch.get("parent_history") != "none" or not execution.get("input_revision"):
+            raise ValueError("native continuation lacks isolated input proof")
+        if canonical_digest(entry.get("effective_route") or entry.get("selected_route")) != canonical_digest(route):
+            raise ValueError("native continuation approved route changed")
+        binding = record["brief_binding"]
+        if (binding["contract_path"] != str(contract["path"])
+                or binding["contract_content_sha256"] != contract["content_sha256"]):
+            raise ValueError("native continuation accepted contract changed")
+        if content_digest(contract["path"]) != contract["content_sha256"]:
+            raise ValueError("native continuation current contract changed")
+        if file_digest(Path(dispatch["input_path"])) != execution["input_revision"]:
+            raise ValueError("native continuation completed input changed")
+        return {
+            "task_id": manifest["task_id"], "context_id": context["context_id"],
+            "completed_turn": execution["completed_turn"],
+            "previous_input_revision": execution["input_revision"],
+            "receipt": {"path": str(receipt_path), "sha256": context["receipt_sha256"]},
+            "approved_route": route,
+        }
+    except (KeyError, TypeError, OSError, json.JSONDecodeError) as error:
+        raise ValueError("native continuation proof is missing; reconstruct with the full contract") from error
 
 
 def reject_context_owned_by_another_route(
@@ -1590,12 +1672,15 @@ def cmd_review(args: argparse.Namespace) -> int:
     except ValueError as error:
         fail(str(error))
     implementation_ready(track, working_dir)
+    recovery_reason = getattr(args, "context_recovery_reason", None)
     try:
         prior_snapshot = poll_once(manifest)
         if persist_terminal_runner_contexts(manifest, prior_snapshot) and not args.dry_run:
             save_manifest(manifest, path)
         route = persistent_effective_route(manifest, approved_route)
-        resume_context = resumable_context(manifest, route)
+        if recovery_reason and route["mode"] != "native":
+            raise ValueError("review context reconstruction requires a native route")
+        resume_context = None if recovery_reason else resumable_context(manifest, route)
     except ValueError as error:
         fail(str(error))
     active_review = active_review_record(manifest, args.track, prior_snapshot)
@@ -1608,7 +1693,8 @@ def cmd_review(args: argparse.Namespace) -> int:
         fail("review brief is missing or not a file")
     try:
         rendered, binding = render_bound_brief(
-            routing["scope_inputs"][route["input_path"]], brief, REVIEW_BOUNDARY, "Derived review notes"
+            routing["scope_inputs"][route["input_path"]], brief, REVIEW_BOUNDARY, "Derived review notes",
+            confirmed_native_continuation(manifest, route, routing["scope_inputs"][route["input_path"]], resume_context),
         )
     except (ValueError, OSError, UnicodeError) as error:
         fail(f"could not prepare a bound review brief: {error}")
@@ -1635,7 +1721,7 @@ def cmd_review(args: argparse.Namespace) -> int:
         "\nStructured review evidence\n"
         f"Snapshot: {source_binding['path']}\n"
         f"Snapshot file SHA-256: {source_binding['sha256']}\n"
-        "Read shared/references/review-evidence.md for the result contract. "
+        "Read shared/references/reviewer-response.md for the result contract. "
         "Return the result JSON as your entire final response. Cover every snapshot "
         "changed path and use only captured check results. Do not write evidence files; "
         "the coordinator records your response.\n"
@@ -1661,6 +1747,8 @@ def cmd_review(args: argparse.Namespace) -> int:
         "routing_plan": manifest.get("routing_plan", {}).get("path"),
         "input_revision": input_revision,
         "call_id": native_call_id(route, "review", cycle, 1),
+        "context_recovery": bool(recovery_reason),
+        "context_recovery_reason": recovery_reason,
     }
     record = {
         "track": args.track,
@@ -1860,6 +1948,10 @@ def cmd_record_native(args: argparse.Namespace) -> int:
         mismatch = native_execution_error(effective_route, receipt, manifest["task_id"], dispatch)
         if mismatch:
             fail(f"native receipt does not match the dispatched native call: {mismatch}")
+        record = (entry if "brief_binding" in entry else track) if args.phase == "implementation" else candidates[0]
+        if (record.get("brief_binding", {}).get("input_kind") == "continuation"
+                and receipt["native_execution"]["context_id"] != dispatch.get("context_id")):
+            fail("compact continuation cannot bind a replacement context; dispatch full reconstruction first")
     try:
         persisted = persist_native_receipt(
             manifest,
@@ -1938,6 +2030,9 @@ def cmd_resume_native(args: argparse.Namespace) -> int:
             source,
             WRITE_BOUNDARY,
             "Derived implementation follow-up",
+            None if recovery_reason else confirmed_native_continuation(
+                manifest, effective_route, routing["scope_inputs"][effective_route["input_path"]], context
+            ),
         )
         binding["input_measurement"] = measure_rendered(rendered, effective_route.get("context_budget"))
     except (ValueError, OSError, UnicodeError) as error:
@@ -2226,6 +2321,7 @@ def build_parser() -> argparse.ArgumentParser:
     review.add_argument("--review-brief", required=True)
     review.add_argument("--review-snapshot", required=True, help="prepared source and required-evidence snapshot")
     review.add_argument("--evidence-packet", help="captured evidence packet to validate before spending a review cycle")
+    review.add_argument("--context-recovery-reason", help="reconstruct a confirmed lost native reviewer with its full contract")
     review.add_argument("--cycle", type=int, help="must equal the next persisted review cycle")
     review.add_argument("--timeout", type=int, default=1800)
     review.add_argument("--dry-run", action="store_true")

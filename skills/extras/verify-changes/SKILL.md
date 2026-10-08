@@ -21,7 +21,7 @@ Produce captured evidence for the repository's required gates and the requested 
 
 Read [references/command-discovery.md](references/command-discovery.md). Prefer the repository's named scripts and read-only CI configuration over reconstructed commands. Record detected build systems and command sources in `commandSurface`.
 
-Resolve the base from `origin/HEAD`, code-host metadata, then `main`. Include staged and unstaged changes for the current worktree. Use native affected-package support when available. Without it, identify safe package or file checks from the repository's commands; use whole-repository checks when required or when a narrower valid check is unavailable. Record `workspacesScoped.supported: false` when native scoping is absent.
+Reuse the explicit caller base and the approved source snapshot's base before default discovery. When both are supplied, require the resolved commit and intended comparison scope to agree; a mismatch or an unresolvable supplied base blocks affected checks until corrected. Only when neither supplies a base, resolve `origin/HEAD`, code-host metadata, then `main`. Save the selected ref, resolved commit, selection source, and supplied snapshot reference in `scope.json` inside the returned `evidenceDir`. Name that scope-record path in the human report. Keep base metadata in this separate artifact; do not add undeclared properties to `checks-schema.json` results. Include committed, staged, and unstaged changes for the current worktree. A branch diff alone is incomplete. Preserve the snapshot's scope; prepare a new snapshot when current edits change it. Use native affected-package support when available. Without it, identify safe package or file checks from the repository's commands; use whole-repository checks when required or when a narrower valid check is unavailable. Record `workspacesScoped.supported: false` when native scoping is absent.
 
 ## Execute the selected checks
 
@@ -86,4 +86,4 @@ Return the machine result matching `references/checks-schema.json`, a human tabl
 - `FAIL`: an executed required check failed or timed out.
 - `SKIP`: no check was verified, or a required check could not run and has no valid supplied evidence.
 
-Name skipped work and the coverage limit. A partial check set is not proof that the whole repository passes. Keep long output in the evidence directory and only its decisive tail in the report.
+Name the selected base and its captured scope record, skipped work, and the coverage limit. A partial check set is not proof that the whole repository passes. Keep long output in the evidence directory and only its decisive tail in the report.

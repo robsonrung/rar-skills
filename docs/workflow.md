@@ -54,8 +54,9 @@ ask the user for material decisions that source cannot settle.
 
 Record settled decisions, assumptions, exclusions, security choices, and
 observable success conditions in
-`.ai-workflow/work/<slug>/decision-record.md`. It becomes `ready-for-prd` when
-the interview closes.
+`.ai-workflow/work/<slug>/decision-record.md`. Give settled decisions stable IDs
+and keep one source index with path, locator, authority, and content revision.
+It becomes `ready-for-prd` when the interview closes.
 
 With `--auto`, resolve the product or technical interview roles from the central
 configuration and retain two isolated contexts through the rounds. The
@@ -71,8 +72,10 @@ an experiment. Test mechanics belong in task design or implementation.
 
 Receive a `ready-for-prd` decision record and write
 `.ai-workflow/work/<slug>/prd.md` as `draft`. Preserve settled behavior, scope,
-design and security decisions, rollout limits, and observable outcomes. Return
-a material conflict or missing decision to the interview.
+design and security decisions, rollout limits, and observable outcomes. Link
+those outcomes and constraints to decision IDs and the source index. Recheck
+missing, changed, or disputed sources. Return a material conflict or missing
+decision to the interview.
 
 The user reviews the specification before it becomes `approved`. PRD approval
 defines the product contract. It does not approve a task queue or worker routes.
@@ -82,7 +85,10 @@ defines the product contract. It does not approve a task queue or worker routes.
 Receive an approved PRD. Write each complete Slice Contract once in
 `tasks/T<N>-<slug>.md`, initially as `draft`. Keep stable IDs, acceptance,
 verified command definitions, gate findings, security classification, rollback,
-review focus, dependencies, and write ownership in that file.
+review focus, dependencies, and write ownership in that file. Design lenses and
+the gate use the canonical result schema in the task contract. Keep blocking
+and advisory finding IDs, dispositions, and evidence through rechecks. Reuse
+settled shared decisions; classify each slice's design and security risks.
 
 `tasks-draft.md` is a compact index with task links and scheduling metadata.
 `queue.json` provides machine-readable dependencies, ownership, concurrency,
@@ -124,6 +130,12 @@ receipt, and follow-up requirements. Use an approved runner for a foreign or
 unsupported route. Keep implementer, reviewer, and integration contexts
 separate. Reuse each context only for its own task and role.
 
+First calls and context reconstruction receive the full accepted contract. A
+confirmed native continuation can receive its contract identity plus changed
+facts, findings, and evidence locators. The launcher validates the prior input,
+receipt, completed turn, task, role, route, and contract before omitting that
+text. Missing proof requires full reconstruction; it cannot reset consumed limits.
+
 Use the [read-only queue controller](../skills/engineering/workflow/implement-tasks/references/queue-controller.md)
 to project `ready`, `blocked`, and `required_integration` work from bound
 contracts, task manifests, the call ledger, and verified integration evidence.
@@ -144,6 +156,14 @@ combined-state evidence. An extra integration reviewer call needs its separately
 approved scope and reserved allowance. Use the engine's
 [isolation and integration contract](../skills/engineering/engine/implement-and-review/references/worktree-and-integration.md)
 for workspaces and integration authority.
+
+For dependency release, the queue can use an immutable `carry_forward` link to
+the original independent review. Its declared dependency inputs must remain
+unchanged, and later content must exactly match prospective changes that reviewer
+approved. A current target snapshot, environment assessment, and passing evidence
+packet bind the new state. Unknown dependencies, changed acceptance, unapproved
+content, or failed evidence block reuse. This proof releases dependencies only;
+final delivery still requires review of the current combined source.
 
 ## Engineering methods and review
 
@@ -166,10 +186,17 @@ start a council.
 
 ## Capture and reuse verification
 
+Discover check IDs and capture commands before implementation. The implementer
+captures the last passing required checks against the final unchanged source and
+returns the original snapshot and result paths. The coordinator uses those
+captures with `select-checks` before running further verification.
+
 The [shared evidence contract](../skills/shared/references/review-evidence.md)
 binds source, requirements, dependencies, environment, command definitions,
 coverage, and findings in immutable records. `verify-changes` executes the
-selected repository commands directly. The shared `select-checks` helper returns
+selected repository commands directly. It inherits the caller or approved
+snapshot base, rejects a conflict, and discovers a default only when neither
+supplies one. Captured scope includes committed, staged, and unstaged changes. The shared `select-checks` helper returns
 `run`, `reuse`, or a candidate `transfer` from declared inputs and changed paths.
 
 Run affected checks and every declared or requested fresh check. Retain matching
@@ -185,8 +212,11 @@ integrity. All required units must reference one current compatible snapshot.
 Repair can replace the snapshot within the same approved contract while keeping
 consumed limits.
 
-Give that packet to the independent reviewer, preserve its actual response, and
-run the shared verifier before claiming readiness. `pre-pr-review` uses the same
+Give that packet and the focused [reviewer response contract](../skills/shared/references/reviewer-response.md)
+to the independent reviewer. It owns source coverage, findings, observations,
+and retained conclusions. The coordinator owns evidence preparation, capture,
+transfer, and verification. Preserve the actual response and run the shared
+verifier before claiming readiness. `pre-pr-review` uses the same
 verifier to reuse valid coverage and close only the remaining gaps. A status map,
 prose pass, worker success, or council recommendation is insufficient. Required
 runtime gates remain separate from business behavior. Missing browser evidence
@@ -238,6 +268,23 @@ organizer evidence establishes `conditional-not-needed`. A caller's reason
 alone cannot skip a judge. Report answer confidence and verified diversity
 confidence separately. The council remains read-only and cannot implement or
 approve its recommendation.
+
+## Measure the complete workflow
+
+Compare recorded runs with the read-only `shared/scripts/workflow_comparison.py`
+helper and the [run-state measurement contract](../skills/shared/references/run-state-contract.md#compare-workflow-cost).
+Use the same source start revision, acceptance cases, requirements, and runtime
+identity. Keep workflow elapsed time separate from summed worker duration,
+approval waiting, and coordinator usage. Include failures, repairs, repeated
+commands, token categories, actual reported cost, and missed defects. Unknown
+measurements stay unknown; cached input is not free.
+
+Cost deltas require passed acceptance and equal observed defect counts under
+matching identities. Missing observations block comparison. Lower cost does not
+establish equivalent quality. The [measurement report](workflow-measurement.md)
+records the source baseline, deterministic checks, and limits. No full workflow
+provider performance benchmark was run for these changes, and route defaults
+remain unchanged.
 
 ## Delivery boundary and limits
 

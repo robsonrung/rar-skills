@@ -56,16 +56,9 @@ Makes code less obvious: event-driven control flow with hidden callbacks, generi
 
 Chapter 21 (full text in the official Stanford extract). Structure the system around what matters. Emphasize those things; hide the rest.
 
-On every `improve` or `design` of any size:
+Use **decide what matters** when the changed design leaves its important constraints unclear. Name the relevant invariants, error behavior, and compatibility needs, then give that knowledge a clear owner. Keep a local fix local when those choices are already settled. Compare alternatives only for a consequential unresolved interface.
 
-1. **What matters here?** Name two to four things. Prefer items with **leverage**: one interface or invariant that solves many problems (`insert`/`delete` of a range, not `backspace`). An invariant is leverage — once you know it, you can predict the structure in many situations.
-2. **If it is not obvious, hypothesize.** State "I think X is what matters most," build under that assumption, then record why it was right or which clue you missed. That is how taste is trained.
-3. **Minimize that set.** Fewer constructor parameters; defaults for common usage; hide the rest inside the module; handle an exception at one low place; compute a config instead of exposing a knob. Information hidden in a module does not matter outside it.
-4. **Emphasize only those**, three ways:
-   - _prominence_ — they appear where people look (interface, names, hot methods)
-   - _repetition_ — the idea shows up more than once
-   - _centrality_ — the rest of the structure is organized around them
-5. **De-emphasize the rest** — hide it, make it rare, keep it off the system's spine.
+Emphasize those constraints in the interface, names, and structure. Hide details callers do not need. If evidence cannot establish a material constraint, record the uncertainty instead of treating an assumption as settled.
 
 Two mistakes (both defects):
 

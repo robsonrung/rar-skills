@@ -56,6 +56,263 @@ class ReviewEvidenceTests(unittest.TestCase):
     def command(self, program):
         self.plan["checks"] = [{"id": "check", "command": [sys.executable, "-c", program], "cwd": ".", "timeout_seconds": 5}]
 
+    def scoped_review(self, *, checks=False, findings=None, observations=None):
+        content = self.artifacts / "prospective-notes.txt"
+        content.write_text("Independent meeting notes.\n")
+        self.plan["review_scope"] = {
+            "inputs": ["app.txt"], "complete": True,
+            "reason": "The fixture reads only app.txt; notes have no readers or build role.",
+            "changes": [{"path": "notes.txt", "content": evidence.evidence_link(content),
+                         "reason": "These exact notes do not change behavior or acceptance."}],
+        }
+        if checks:
+            self.command("print('pass')")
+            self.plan["checks"][0]["fresh"] = True
+        self.requirements.write_text(json.dumps(self.plan))
+        original = evidence.prepare(self.root, self.base, self.contract, self.requirements,
+                                    self.artifacts / "review", artifact_dir=self.artifacts)
+        result = self.response(original)
+        result["scope_approval"] = evidence.digest(self.plan["review_scope"])
+        if checks:
+            result["checks"] = {"check": str(evidence.run_check(original, "check"))}
+        result["findings"] = findings or []
+        result["observations"] = observations or []
+        self.record(original, result)
+        return original, content
+
+    def checkpoint_inputs(self, original, content, *, run_checks=True, retain_findings=True):
+        (self.root / "notes.txt").write_bytes(content.read_bytes())
+        target = evidence.prepare(self.root, self.base, self.contract, self.requirements,
+                                  self.artifacts / "target",
+                                  artifact_dir=self.artifacts, previous_reviews=[original.parent / "review.json"] if retain_findings else [])
+        if run_checks:
+            for row in self.plan["checks"]:
+                evidence.run_check(target, row["id"])
+        packet = evidence.prepare_packet(target, self.artifacts / "packet.json", observations=[])
+        assessment = self.transfer_assessment(original, target)
+        return target, assessment, packet
+
+    def test_scoped_checkpoint_releases_dependency_without_a_second_review(self):
+        original, content = self.scoped_review(checks=True)
+        contract = evidence.response_contract(original)
+        self.assertEqual(contract["review_scope"], self.plan["review_scope"])
+        self.assertEqual(contract["scope_approval"], evidence.digest(self.plan["review_scope"]))
+        target, assessment, packet = self.checkpoint_inputs(original, content)
+        path = self.artifacts / "carry.json"
+        command = [sys.executable, str(Path(evidence.__file__)), "carry-forward",
+                   "--from-snapshot", str(original), "--to-snapshot", str(target),
+                   "--assessment", str(assessment), "--packet", str(packet), "--output", str(path)]
+        completed = subprocess.run(command, capture_output=True, text=True)
+        self.assertEqual(completed.returncode, 0, completed.stdout + completed.stderr)
+        self.assertEqual(json.loads(completed.stdout)["carry_forward"], evidence.evidence_link(path))
+        repeated = subprocess.run(command, capture_output=True, text=True)
+        self.assertEqual(repeated.returncode, 0, repeated.stdout + repeated.stderr)
+        self.assertEqual(json.loads(repeated.stdout), json.loads(completed.stdout))
+        result = evidence.assess_carry_forward(evidence.evidence_link(path), original, self.base)
+        self.assertEqual(result["status"], "ready")
+        self.assertEqual(result["scope"], "dependency-release-only")
+        self.assertEqual(result["changed_paths"], ["notes.txt"])
+        self.assertFalse((target.parent / "review.json").exists())
+        with self.assertRaisesRegex(ValueError, "stale"):
+            evidence.assess(original, self.base)
+        with self.assertRaises(OSError):
+            evidence.assess(target, self.base)
+
+    def test_scoped_checkpoint_requires_explicit_original_reviewer_approval(self):
+        original, _ = self.scoped_review()
+        response = self.response(original)
+        with self.assertRaisesRegex(ValueError, "invalid review result fields"):
+            evidence.validate_result(response, evidence.load_record(original), original)
+        response["scope_approval"] = "different"
+        with self.assertRaisesRegex(ValueError, "reviewer must approve"):
+            evidence.validate_result(response, evidence.load_record(original), original)
+
+    def test_legacy_review_cannot_gain_a_scope_after_review(self):
+        original = self.prepare()
+        self.record(original, self.response(original))
+        content = self.artifacts / "prospective-notes.txt"
+        content.write_text("Notes")
+        target, assessment, packet = self.checkpoint_inputs(original, content)
+        with self.assertRaisesRegex(ValueError, "no approved carry forward scope"):
+            evidence.carry_forward(original, target, assessment, packet, self.artifacts / "carry.json")
+
+    def test_scope_rejects_unknown_dependencies_overlap_and_omitted_check_inputs(self):
+        _, _ = self.scoped_review()
+        invalid = copy.deepcopy(self.plan)
+        invalid["review_scope"]["complete"] = False
+        with self.assertRaisesRegex(ValueError, "unknown dependencies"):
+            evidence.validate_requirements(invalid, self.root.resolve())
+        invalid = copy.deepcopy(self.plan)
+        invalid["review_scope"]["inputs"].append("notes.txt")
+        with self.assertRaisesRegex(ValueError, "overlap"):
+            evidence.validate_requirements(invalid, self.root.resolve())
+        invalid = copy.deepcopy(self.plan)
+        invalid["checks"] = [{"id": "test", "command": ["true"], "cwd": ".", "timeout_seconds": 1,
+                              "inputs": ["dependency.txt"]}]
+        with self.assertRaisesRegex(ValueError, "omits declared"):
+            evidence.validate_requirements(invalid, self.root.resolve())
+
+    def test_scoped_checkpoint_blocks_dependency_and_unlisted_changes(self):
+        original, content = self.scoped_review()
+        for name in ("app.txt", "config.json", "schema.sql", "runtime.txt", "public-api.txt", "other-notes.txt"):
+            with self.subTest(name=name):
+                path = self.root / name
+                previous = path.read_bytes() if path.exists() else None
+                path.write_text("new content")
+                target = evidence.prepare(self.root, self.base, self.contract, self.requirements,
+                                          self.artifacts / name,
+                                          artifact_dir=self.artifacts, previous_reviews=[original.parent / "review.json"])
+                packet = evidence.prepare_packet(target, self.artifacts / f"{name}.packet", observations=[])
+                with self.assertRaisesRegex(ValueError, "dependency inputs changed|outside the approved scope"):
+                    evidence.carry_forward(original, target, self.transfer_assessment(original, target), packet,
+                                           self.artifacts / "carry.json")
+                if previous is None:
+                    path.unlink()
+                else:
+                    path.write_bytes(previous)
+
+    def test_scoped_checkpoint_requires_exact_content_and_mode(self):
+        original, content = self.scoped_review()
+        for label, text, mode in (("text", "Unreviewed notes", 0o644),
+                                  ("mode", content.read_text(), 0o755)):
+            with self.subTest(label=label):
+                notes = self.root / "notes.txt"
+                notes.write_text(text)
+                notes.chmod(mode)
+                target = evidence.prepare(self.root, self.base, self.contract, self.requirements,
+                                          self.artifacts / label, artifact_dir=self.artifacts, previous_reviews=[original.parent / "review.json"])
+                packet = evidence.prepare_packet(target, self.artifacts / f"{label}.packet", observations=[])
+                with self.assertRaisesRegex(ValueError, "exact approved change"):
+                    evidence.carry_forward(original, target, self.transfer_assessment(original, target), packet,
+                                           self.artifacts / "carry.json")
+
+    def test_checkpoint_rechecks_integrity_and_current_source(self):
+        original, content = self.scoped_review(checks=True)
+        target, assessment, packet = self.checkpoint_inputs(original, content)
+        path = evidence.carry_forward(original, target, assessment, packet, self.artifacts / "carry.json")
+        link = evidence.evidence_link(path)
+        (self.root / "notes.txt").write_text("Later change")
+        with self.assertRaisesRegex(ValueError, "stale"):
+            evidence.assess_carry_forward(link, original, self.base)
+        (self.root / "notes.txt").write_bytes(content.read_bytes())
+        self.git("add", "notes.txt")
+        with self.assertRaisesRegex(ValueError, "stale"):
+            evidence.assess_carry_forward(link, original, self.base)
+        self.git("reset", "-q", self.base, "--", "notes.txt")
+        (target.parent / "checks/check/stdout.log").write_text("Changed capture")
+        with self.assertRaisesRegex(ValueError, "log checksum"):
+            evidence.assess_carry_forward(link, original, self.base)
+
+    def test_checkpoint_rejects_source_changes_during_packet_validation(self):
+        original, content = self.scoped_review()
+        target, assessment, packet = self.checkpoint_inputs(original, content)
+        path = evidence.carry_forward(original, target, assessment, packet, self.artifacts / "carry.json")
+        load_packet = evidence.load_packet
+
+        def change_after_validation(*args, **kwargs):
+            result = load_packet(*args, **kwargs)
+            (self.root / "app.txt").write_text("Changed during validation")
+            return result
+
+        with mock.patch.object(evidence, "load_packet", side_effect=change_after_validation):
+            with self.assertRaisesRegex(ValueError, "stale"):
+                evidence.assess_carry_forward(evidence.evidence_link(path), original, self.base)
+
+    def test_checkpoint_rejects_nonobject_environment_assessment(self):
+        original, content = self.scoped_review()
+        target, assessment, packet = self.checkpoint_inputs(original, content)
+        assessment.write_text("[]")
+        with self.assertRaisesRegex(ValueError, "assessment must be an object"):
+            evidence.carry_forward(original, target, assessment, packet, self.artifacts / "carry.json")
+        result = subprocess.run([sys.executable, str(Path(evidence.__file__)), "carry-forward",
+                                 "--from-snapshot", str(original), "--to-snapshot", str(target),
+                                 "--assessment", str(assessment), "--packet", str(packet),
+                                 "--output", str(self.artifacts / "carry.json")], capture_output=True, text=True)
+        self.assertEqual(result.returncode, 2, result.stderr)
+        self.assertEqual(json.loads(result.stdout)["status"], "blocked")
+        self.assertIn("assessment must be an object", json.loads(result.stdout)["error"])
+
+    def test_checkpoint_cannot_clear_blocking_findings_or_drop_prior_review(self):
+        finding = {"id": "F1", "path": "app.txt", "severity": "P2", "status": "open", "evidence": "Still broken."}
+        original, content = self.scoped_review(findings=[finding])
+        target, assessment, packet = self.checkpoint_inputs(original, content)
+        with self.assertRaisesRegex(ValueError, "original review is not ready"):
+            evidence.carry_forward(original, target, assessment, packet, self.artifacts / "carry.json")
+
+    def test_checkpoint_requires_finding_binding_even_for_resolved_findings(self):
+        original, content = self.scoped_review()
+        target, assessment, packet = self.checkpoint_inputs(original, content, retain_findings=False)
+        with self.assertRaisesRegex(ValueError, "retain its original findings"):
+            evidence.carry_forward(original, target, assessment, packet, self.artifacts / "carry.json")
+
+    def test_checkpoint_cannot_reuse_a_required_fresh_check(self):
+        original, content = self.scoped_review(checks=True)
+        (self.root / "notes.txt").write_bytes(content.read_bytes())
+        target = evidence.prepare(self.root, self.base, self.contract, self.requirements, self.artifacts / "target",
+                                  artifact_dir=self.artifacts, previous_reviews=[original.parent / "review.json"])
+        with self.assertRaisesRegex(ValueError, "check source does not match"):
+            evidence.prepare_packet(target, self.artifacts / "packet.json",
+                                    checks={"check": str(original.parent / "checks/check/result.json")}, observations=[])
+        with self.assertRaisesRegex(ValueError, "fresh checks cannot transfer"):
+            evidence.transfer_check(original, target, original.parent / "checks/check/result.json",
+                                    self.transfer_assessment(original, target))
+
+    def test_checkpoint_rejects_environment_or_scope_evidence_changes(self):
+        original, content = self.scoped_review()
+        target, assessment, packet = self.checkpoint_inputs(original, content)
+        data = json.loads(assessment.read_text())
+        del data["runtime"]
+        assessment.write_text(json.dumps(data))
+        with self.assertRaisesRegex(ValueError, "runtime evidence"):
+            evidence.carry_forward(original, target, assessment, packet, self.artifacts / "carry.json")
+        assessment = self.transfer_assessment(original, target)
+        content.write_text("Different proposed content")
+        with self.assertRaisesRegex(ValueError, "scoped change content checksum"):
+            evidence.carry_forward(original, target, assessment, packet, self.artifacts / "carry.json")
+
+    def test_checkpoint_requires_fresh_unscoped_observations(self):
+        self.plan["observations"] = ["browser"]
+        capture = self.artifacts / "browser-before.txt"
+        capture.write_text("Observed passing browser flow before notes.")
+        observation = {"id": "browser", "result": "pass", "evidence": [evidence.evidence_link(capture)]}
+        original, content = self.scoped_review(observations=[observation])
+        (self.root / "notes.txt").write_bytes(content.read_bytes())
+        target = evidence.prepare(self.root, self.base, self.contract, self.requirements, self.artifacts / "target",
+                                  artifact_dir=self.artifacts, previous_reviews=[original.parent / "review.json"])
+        packet = evidence.prepare_packet(target, self.artifacts / "old-observation.json", observations=[observation])
+        assessment = self.transfer_assessment(original, target)
+        with self.assertRaisesRegex(ValueError, "fresh observation captures"):
+            evidence.carry_forward(original, target, assessment, packet, self.artifacts / "carry.json")
+        fresh = self.artifacts / "browser-after.txt"
+        fresh.write_text("Observed passing browser flow on target.")
+        observation["evidence"] = [evidence.evidence_link(fresh)]
+        packet = evidence.prepare_packet(target, self.artifacts / "new-observation.json", observations=[observation])
+        checkpoint = evidence.carry_forward(original, target, assessment, packet, self.artifacts / "carry.json")
+        self.assertEqual(evidence.assess_carry_forward(evidence.evidence_link(checkpoint), original, self.base)["status"], "ready")
+
+    def test_checkpoint_rejects_new_environment_contract_and_base(self):
+        original, content = self.scoped_review()
+        (self.root / "notes.txt").write_bytes(content.read_bytes())
+        different_plan = self.artifacts / "different-requirements.json"
+        value = copy.deepcopy(self.plan)
+        value["context"]["runtime"] = "Different runtime"
+        different_plan.write_text(json.dumps(value))
+        different_contract = self.artifacts / "different-contract.md"
+        different_contract.write_text("A different acceptance contract")
+        self.git("commit", "--allow-empty", "-qm", "Changed base")
+        for label, contract, requirements, base in (
+            ("environment", self.contract, different_plan, self.base),
+            ("contract", different_contract, self.requirements, self.base),
+            ("base", self.contract, self.requirements, "HEAD"),
+        ):
+            with self.subTest(label=label):
+                target = evidence.prepare(self.root, base, contract, requirements, self.artifacts / label,
+                                          artifact_dir=self.artifacts, previous_reviews=[original.parent / "review.json"])
+                packet = evidence.prepare_packet(target, self.artifacts / f"{label}.packet", observations=[])
+                with self.assertRaisesRegex(ValueError, "contract or requirements changed|base, index"):
+                    evidence.carry_forward(original, target, self.transfer_assessment(original, target), packet,
+                                           self.artifacts / "carry.json")
+
     def test_ready_requires_a_recorded_review(self):
         path = self.prepare()
         with self.assertRaises(OSError):

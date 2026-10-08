@@ -5,15 +5,15 @@ description: "Choose or review distributed topology and event-stream patterns. U
 
 # Distributed Systems Patterns
 
-Read-only pattern skill. Do not implement unless the user asks after the brief.
+Read-only pattern skill. Use the caller's stage and output contract. Implementation requires an authorized implementation request.
 
 Two bodies of knowledge, one skill. The **topology routes** are grounded in Burns, _Designing Distributed Systems_: containers plus an orchestrator give a shared language for reusable distributed pieces — name the pattern, then reuse or compose it. The **event-driven route** is grounded in Bellemare: a durable, replayable **data communication layer** of schematized event streams, not point-to-point messages that vanish after consume. Do not invent a one-off topology the catalog already names, and do not call a delete-after-consume queue an event architecture.
 
 ## Outcome
 
 - **Result:** a brief with one named pattern (or an explicit compose of two), or — on the event-driven route — one verdict, plus the next concrete move.
-- **Next consumer:** the user, or `design-gate` / `coding-design-plan` after they accept the brief.
-- **Done:** every required brief field is filled; the pattern is from the selected method's catalog; every load-bearing claim cites repo evidence or is marked `assumed`; at least one rejected alternative is named; the next move is one action.
+- **Next consumer:** the user for a standalone brief, or the calling workflow through its existing decision or gate contract.
+- **Done:** every required field of the selected output contract is filled; the pattern is from the selected method's catalog; every load-bearing claim cites repo evidence or is marked `assumed`; a consequential unresolved choice includes a rejected alternative; the next move is one action.
 - **Intent:** stop four failures — reinventing a named primitive; applying a multi-node pattern when a **coscheduled pair** would do (or an election when a singleton would do); adopting event-driven microservices when a modular monolith is cheaper; and building them without a **data communication layer** (implicit schemas, shared DBs, CDC as the destination).
 
 ## Select the route
@@ -57,9 +57,9 @@ If there is no repo, use the user's constraints (SLA, data size, request shape; 
 
 ## Delivery
 
-Topology routes emit the pattern brief from `assets/pattern-brief.md`; the event-driven route emits the decision brief from `assets/edm-decision-brief.md`. Emit inline. Write a file only when the user asks to record it, or when the project's active instructions already require ADRs for this class of decision — then follow that convention, otherwise `docs/decisions/dds-YYYYMMDD-<slug>.md` (topology) or `docs/decisions/edm-YYYYMMDD-<slug>.md` (event-driven).
+For a standalone invocation, topology routes emit the pattern brief from `assets/pattern-brief.md`; the event-driven route emits the decision brief from `assets/edm-decision-brief.md`. Emit inline. Write a file only when the user asks to record it, or when the project's active instructions already require ADRs for this class of decision — then follow that convention, otherwise `docs/decisions/dds-YYYYMMDD-<slug>.md` (topology) or `docs/decisions/edm-YYYYMMDD-<slug>.md` (event-driven).
 
-When invoked as a design-gate lens, also return `verdict: proceed|revise`, `blocking_findings`, `advisory_findings`, `required_changes`. Any of these is `revise`: a single-node pattern that is not a **coscheduled pair**; replicated serving without **readiness, not liveness**; a shard with no key; an election that failed **need a master**; FaaS used for long-running or warm-memory work; scatter/gather with unbounded leaves; a missing **data communication layer**; a second writer on a public stream; CDC-as-destination on a core entity.
+In an interview, write the decision, operating cost, evidence, and relevant constraints into the existing decision record. Under `design-gate`, use the caller's canonical gate result instead of either standalone brief. Put relevant pattern constraints and the event-driven verdict in findings or `review_focus`; the gate's `verdict` remains `proceed|revise`. Any of these is `revise`: a single-node pattern that is not a **coscheduled pair**; replicated serving without **readiness, not liveness**; a shard with no key; an election that failed **need a master**; FaaS used for long-running or warm-memory work; scatter/gather with unbounded leaves; a missing **data communication layer**; a second writer on a public stream; CDC-as-destination on a core entity.
 
 ## Focused references
 

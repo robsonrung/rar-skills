@@ -13,7 +13,7 @@ The two leitwörter below are what you name as you work: a **threat-model-lite**
 
 Run this inside the requirements interview. Resolve repository facts from evidence and return only unresolved security decisions to the interview's frontier. These questions share its five-question limit; do not send a second question batch. Record the answers in the decision record. `to-prd` carries them into the PRD's Security Decisions section.
 
-Reuse recorded decisions. Use a safe scoped default only for a nonmaterial detail. Ask only when the answer changes access, data handling, scope, cost, permitted effect, or an unresolved security decision. Silence is not approval.
+Reuse recorded decisions by their stable IDs and source-index references. Each slice still evaluates its own deep-pass triggers; a shared decision is not a shared risk classification. Use a safe scoped default only for a nonmaterial detail. Ask only when the answer changes access, data handling, scope, cost, permitted effect, or an unresolved security decision. Silence is not approval.
 
 1. **Actors & auth**: who can invoke this? What roles/permissions gate each action? What happens for unauthenticated or wrong-role access?
 2. **Untrusted input**: what data arrives from users or external systems? Where is it validated, and what is rejected?
@@ -46,7 +46,7 @@ For the stage boundary, read `shared/references/workflow-stage-routing.md`: inte
 
 ## Output contract
 
-At spec time, return the answered checklist as `security_decisions` for the PRD. At planning time, return per-slice `security: deep|standard` with the matched trigger. At verify time, return the prioritization instruction handed to `full-review`.
+At spec time, write answered decision fields under stable decision IDs in the existing decision record, with source authority, locators, and content revisions. Return these references as `security_decisions` for the PRD. At planning time, return per-slice `security: deep|standard` with the matched trigger. At verify time, return the prioritization instruction handed to `full-review`.
 
 ## Gotchas
 

@@ -44,6 +44,6 @@ record; do not repeat a full review for a prose correction.
 ## Evidence preparation
 
 For a structured review, run `review_evidence.py response-contract` and `prepare-packet` before
-dispatch. Pass the packet path and hash. Ask the reviewer for semantic assessment and findings,
+dispatch. Pass the packet path and hash, bound diff, source snapshot identity, requirement references, and focused locators. Verify read access in the selected worker; let it load source on demand. Use full embedding only when read capability is absent and approved sharing allows it. Missing context remains a coverage gap. Ask the reviewer for semantic assessment and findings,
 not copied file hashes. Do not dispatch a brief whose observation list conflicts with the prepared
 contract. Rechecks retain prior findings and examine changed behavior plus affected callers.

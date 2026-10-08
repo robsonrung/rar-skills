@@ -292,7 +292,7 @@ class TaskQueueTests(unittest.TestCase):
         result = subprocess.run(["git", *args], cwd=self.root, capture_output=True, text=True)
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
-    def current_integration(self, task_id: str, plan: Path) -> tuple[Path, dict, dict]:
+    def current_integration(self, task_id: str, plan: Path, *, review_scope=None) -> tuple[Path, dict, dict]:
         self.manifest(task_id, plan)
         requirements = self.artifacts / "requirements.json"
         requirements.write_text(json.dumps({
@@ -311,6 +311,7 @@ class TaskQueueTests(unittest.TestCase):
             }],
             "observations": [],
             "exclusions": {},
+            **({"review_scope": review_scope} if review_scope else {}),
         }), encoding="utf-8")
         snapshot_path = review_evidence.prepare(
             self.root,
@@ -328,6 +329,7 @@ class TaskQueueTests(unittest.TestCase):
             "checks": {"app-baseline": str(check)},
             "observations": [],
             "summary": "Current combined review is ready.",
+            **({"scope_approval": review_evidence.digest(review_scope)} if review_scope else {}),
         }
         execution = {"success": True, "agent_message": json.dumps(response)}
         review_evidence.record_review(snapshot_path, response, execution)
@@ -590,6 +592,75 @@ class TaskQueueTests(unittest.TestCase):
         self.assertEqual(stale["active"][0]["id"], "T1")
         self.assertEqual(stale["blocked"][0]["id"], "T2")
         self.assertTrue(stale["required_integration"])
+
+    def test_scoped_carry_forward_releases_dependency_and_preserves_dispatch_and_ownership(self) -> None:
+        config = self.queue_config(
+            ["T1", "T2"], dependencies={"T2": ["T1"]}, concurrency={"max_active": 1, "isolation": "working-tree"}
+        )
+        (self.root / "app.txt").write_text("baseline\n")
+        plan = self.routing_plan(["T1", "T2"])
+        self.commit_source()
+        notes = self.artifacts / "prospective-notes.txt"
+        notes.write_text("Independent notes.\n")
+        scope = {"inputs": ["app.txt"], "complete": True,
+                 "reason": "The fixture reads app.txt only. Notes have no runtime or build role.",
+                 "changes": [{"path": "notes.txt", "content": review_evidence.evidence_link(notes),
+                              "reason": "Reviewed exact notes content and confirmed no effect on task acceptance."}]}
+        original, integration, calls = self.current_integration("T1", plan, review_scope=scope)
+        (self.root / "notes.txt").write_bytes(notes.read_bytes())
+        ledger = self.ledger(plan, calls=calls, integration={"T1": integration})
+        stale = queue.schedule(config, plan, ledger, self.root)
+        self.assertEqual([row["id"] for row in stale["blocked"]], ["T2"])
+        target = review_evidence.prepare(self.root, "HEAD", self.root / "tasks/T1-example.md",
+                                         self.artifacts / "requirements.json", self.artifacts / "checkpoint",
+                                         artifact_dir=self.artifacts, previous_reviews=[original.parent / "review.json"])
+        review_evidence.run_check(target, "app-baseline")
+        packet = review_evidence.prepare_packet(target, self.artifacts / "packet.json", observations=[])
+        probe = self.artifacts / "environment.txt"
+        probe.write_text("Current runtime and dependencies inspected; no services or base changes.")
+        row = {"reason": "Current environment matches the captured fixture.", "evidence": [review_evidence.evidence_link(probe)]}
+        assessment = self.artifacts / "assessment.json"
+        assessment.write_text(json.dumps({"from_snapshot_sha256": review_evidence.file_hash(original),
+                                         "to_source_id": review_evidence.load_record(target)["source_id"],
+                                         **{key: row for key in ("runtime", "dependencies", "external_state", "base_interactions")}}))
+        checkpoint = review_evidence.carry_forward(original, target, assessment, packet, self.artifacts / "carry.json")
+        integration["carry_forward"] = review_evidence.evidence_link(checkpoint)
+        ledger = self.ledger(plan, calls=calls, integration={"T1": integration})
+        ready = queue.schedule(config, plan, ledger, self.root)
+        self.assertEqual(ready["integrated"], ["T1"])
+        self.assertEqual([row["id"] for row in ready["ready"]], ["T2"])
+        self.assertEqual(len(calls), 1)
+        self.assertFalse((target.parent / "review.json").exists())
+
+        for changed_calls in ({}, {**calls, "pending": {"status": "pending", "intent": {"route": self.route("T1", "implementer")}}}):
+            ledger = self.ledger(plan, calls=changed_calls, integration={"T1": integration})
+            blocked = queue.schedule(config, plan, ledger, self.root)
+            self.assertEqual([row["id"] for row in blocked["active"]], ["T1"])
+            self.assertEqual([row["id"] for row in blocked["blocked"]], ["T2"])
+
+        limits = {"total_role_calls": 1, **{route["id"]: 4 for route in json.loads(plan.read_text())["routes"]}}
+        ledger = self.ledger(plan, calls=calls, integration={"T1": integration}, limits=limits)
+        exhausted = queue.schedule(config, plan, ledger, self.root)
+        self.assertEqual(exhausted["integrated"], ["T1"])
+        self.assertEqual([row["id"] for row in exhausted["blocked"]], ["T2"])
+        self.assertIn("total_role_calls", exhausted["blocked"][0]["reasons"][0])
+
+        malformed_assessment = self.artifacts / "malformed-assessment.json"
+        malformed_assessment.write_text("[]")
+        payload = review_evidence.load_record(checkpoint)
+        payload["assessment"] = review_evidence.evidence_link(malformed_assessment)
+        malformed = review_evidence.write_record(self.artifacts / "malformed-checkpoint.json", payload)
+        malformed_integration = {**integration, "carry_forward": review_evidence.evidence_link(malformed)}
+        ledger = self.ledger(plan, calls=calls, integration={"T1": malformed_integration})
+        rejected = queue.schedule(config, plan, ledger, self.root)
+        self.assertEqual([row["id"] for row in rejected["blocked"]], ["T2"])
+        self.assertIn("assessment must be an object", rejected["required_integration"][0]["reasons"][0])
+
+        ledger = self.ledger(plan, calls=calls, integration={"T1": integration})
+        (self.root / "app.txt").write_text("Affected dependency\n")
+        affected = queue.schedule(config, plan, ledger, self.root)
+        self.assertEqual([row["id"] for row in affected["blocked"]], ["T2"])
+        self.assertTrue(affected["required_integration"])
 
     def test_pending_call_retains_ownership_after_a_ready_integration_snapshot(self) -> None:
         config = self.queue_config(

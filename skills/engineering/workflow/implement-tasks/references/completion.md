@@ -10,6 +10,13 @@ record for the combined source state and intended PR base. If integration makes
 a task snapshot stale, use its report as context and assess affected interactions
 against a new combined snapshot. Task completion labels alone are insufficient.
 
+A verified carry forward checkpoint can release task dependencies under the
+original review's exact approved scope. It preserves that task's historical
+review and current acceptance evidence, but cannot pass final combined `verify`.
+Include its target changes and original findings in the final current combined
+review. Do not require a duplicate task review solely because its checkpoint
+already passed dependency release.
+
 Capture the feature's acceptance results. Reuse task results only when the relevant code, dependencies, environment, and contract still match and no fresh run is required; run missing or affected checks on the combined state. For several tasks, call `full-review` once on the combined change, focused on integration seams, shared contracts, migration order, and gaps in task reviews. Use the approved integration route and its separate persistent context; it does not replace task-level independent review. Use the approved reviewer plan and `security_focus=true` when a task has deep security exposure.
 
 A single task with a complete scoped review does not need a duplicate full panel. Reuse task evidence when the code and assumptions still match. After a fix, rerun affected checks and review changed paths; broaden only when the change or a failure requires it. Never weaken acceptance checks to obtain a pass.

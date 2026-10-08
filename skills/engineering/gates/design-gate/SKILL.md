@@ -12,8 +12,8 @@ For the workflow stage boundaries and the practical skills that follow this gate
 ## Workflow
 
 1. Identify the stage and the surfaces from the plan, Slice Contract, or changed scope. In `to-tasks`, this is the one routing pass for the slice. Before implementation, use the inherited lens flags; re-route only when the slice's design surface changed.
-2. Select lenses from the routing table. Multiple rows can match; cap at three. Keep the three most central to the change's risk. No matching row on a local change means no gate.
-3. Apply each selected lens in the current coordinator or implementer as a read only procedure. An independent specialist needs a material risk or unresolved question. Before dispatch, use `shared/references/model-preview.md` to reuse or obtain one concrete approved route snapshot. Give it the plan or design problem, the files and boundaries in scope, and this gate response: `verdict`, `blocking_findings`, `advisory_findings`, and `required_changes`. This response replaces a lens's standalone edit or implementation route. The independent final code review remains a separate workflow requirement.
+2. Select lenses for the actual unresolved decision or changed risk, not a keyword such as module, service, or React. Reuse settled shared decisions by ID when their scope and evidence match; classify this slice's risks separately. Apply at most three inline lenses, selecting the central risks. A further material risk needs a bounded specialist under an approved route or remains an explicit blocker; the cap cannot erase required coverage. No matching row on a local change means no gate.
+3. Apply each selected lens in the current coordinator or implementer as a read only procedure. An independent specialist needs a material risk or unresolved question. Before dispatch, use `shared/references/model-preview.md` to reuse or obtain one concrete approved route snapshot. Give it the plan or design problem, the files and boundaries in scope, and the canonical gate result defined below. This response replaces a lens's standalone brief, edit, or implementation route. The independent final code review remains a separate workflow requirement.
 4. Merge. Any `revise` with a concrete, load-bearing finding makes the gate verdict `revise`. Cosmetic or speculative findings are advisory.
 5. On `revise`, state the required plan changes as a short numbered list. When lenses expose a real unresolved trade-off, set `verdict: revise`, set `decision_required`, and stop. Never call `models-consensus` from this skill. The user may invoke it separately when more opinions are useful.
 
@@ -21,17 +21,19 @@ For the workflow stage boundaries and the practical skills that follow this gate
 
 | Change touches | Lens skill(s) |
 | --- | --- |
-| Overall shape of a new system, service, or subsystem | `macro-architecture`, `software-design-philosophy` |
-| Module/service boundaries, cross-context integration, naming vs business language | `domain-driven-design`, `macro-architecture` |
+| Unresolved overall system style | `macro-architecture` |
+| Business vocabulary, bounded context, or relationship between domain contexts | `domain-driven-design` |
+| Service decomposition or service/data ownership | `macro-architecture` |
+| Local module placement, cohesion, or dependency direction | `architecture-lens` |
 | Business-logic structure inside one context (aggregates, invariants, events) | `domain-driven-design` |
 | Code structure choices, extensibility, sprawling conditionals | `design-patterns` |
-| Layer placement, cohesion, dependency direction, scope creep | `architecture-lens` |
+| Scope pressure or competing local structures with a real trade-off | `architecture-lens` |
 | Module/class/API interface design — depth, information hiding, interface complexity | `software-design-philosophy` |
 | Stored state, databases, queues, caches, migrations, retries, concurrency, external APIs | `data-systems-coding-lens` |
 | Container/process topology of a distributed app — sidecars, ambassadors, adapters, load-balanced replicas, sharding, scatter/gather, FaaS fit, ownership election, work queues, batch workflows | `distributed-systems-patterns` |
 | Event streams as a source of truth — adopting or migrating to event-driven microservices, Kafka/Pulsar/Kinesis topics, event schemas, choreography vs orchestration, CDC/outbox data liberation | `distributed-systems-patterns` (event-driven route), `data-systems-coding-lens` |
 | The thing being built **is** an agent — an LLM tool-calling loop, a multi-agent pipeline, or a long-running autonomous run needing durable state, mid-run approval, or replay | `agent-architecture-lens` |
-| React components, hooks, contexts, rendering performance, state placement | `advanced-react` |
+| React state placement, rendering, effects, or asynchronous behavior | `advanced-react` |
 | New or reworked user-facing flow, information hierarchy, or design system | `ui-ux-pro-max` |
 | Two or more competing approaches with real trade-offs | `architecture-lens` |
 
@@ -41,16 +43,7 @@ No row matches and the change is not architecturally significant → the change 
 
 ## Output contract
 
-Return:
-
-1. `verdict`: `proceed` or `revise`.
-2. `lenses_run`: which lenses were applied or dispatched and why each was selected.
-3. `blocking_findings`: load-bearing findings requiring plan changes (empty when `proceed`).
-4. `advisory_findings`: non-blocking observations worth carrying into implementation.
-5. `required_changes`: numbered plan amendments (only when `revise`).
-6. `decision_required`: the unresolved trade-off and its owner, or `none`.
-
-In a Slice Contract, carry `lenses_run`, `verdict`, `blocking_findings`, `advisory_findings`, `required_changes`, `decision_required`, and the security flag from `security-gate`. Resolve blocking findings before task approval. The implementation engine receives those constraints; it does not replay every lens.
+Read `shared/references/gate-result.md` and return its canonical gate result. Preserve blocking and advisory finding IDs, status, resolution evidence, and review focus when merging or rechecking. Resolve blocking findings and material decisions before task approval. Carry security classification separately from `security-gate`. The implementation engine receives these constraints; it does not replay every lens.
 
 ## Gotchas
 

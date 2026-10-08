@@ -113,7 +113,9 @@ Name the cost when recommending structure — this is what lets the lens return 
 
 The graph is more reliable precisely because it does not trust the model with orchestration. That reliability is paid for in engineering hours.
 
-## Output contract
+Under `design-gate`, use the caller's canonical gate result. This replaces standalone output and edit mechanics. Carry lens-specific conclusions in findings or `review_focus`, with stable finding IDs. In an interview, contribute decision fields to the existing decision record.
+
+## Standalone output contract
 
 Return:
 

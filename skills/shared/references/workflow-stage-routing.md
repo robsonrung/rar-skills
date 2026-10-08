@@ -9,7 +9,7 @@ approved snapshot. Independent final code review remains required.
 
 ## 1. Interview Me: discover decisions that change the next question
 
-The interview produces a decision record. It may use a broad lens when that lens changes the next question or prevents a false assumption. Use another only when the first decision makes it necessary. It does not run `design-gate`, implementation practices, a review panel, or every matching lens.
+The interview produces a decision record with stable decision IDs and one compact source index containing path, locator, authority, and content revision. It may use a broad lens when that lens changes the next question or prevents a false assumption. Use another only when the first decision makes it necessary. It does not run `design-gate`, implementation practices, a review panel, or every matching lens.
 
 | Decision needed now | Procedure to apply | What the interview records |
 | --- | --- | --- |
@@ -21,12 +21,12 @@ The interview produces a decision record. It may use a broad lens when that lens
 | User-facing flow or durable design-system direction | `ui-ux-pro-max` | User flow, accessibility constraint, and design direction |
 | Exposed auth, data, input, tenancy, secrets, or abuse surface | `security-gate` threat-model-lite | Security decisions for the PRD |
 
-The user may decide no broad design work is needed. Record that fact and continue. A question whose answer can be learned from the repository is not an interview question.
+Interview lenses contribute decision fields to that existing record. Their standalone brief, code, test, and comment mechanics do not apply at this stage. The user may decide no broad design work is needed. Record that fact and continue. A question whose answer can be learned from the repository is not an interview question.
 
 ## 2. To PRD: preserve settled choices
 
 The PRD turns the decision record into one specification. Reuse its source locators
-and revisions; recheck only changed or disputed facts. It does not open fresh
+and revisions by decision ID; recheck missing, changed, or disputed sources. It does not open fresh
 architecture choices, invoke a council, or repeat an interview. When a decision
 needed for implementation is missing, settle that decision with the user.
 
@@ -34,8 +34,8 @@ The PRD carries outcomes, constraints, security decisions, and observable succes
 
 ## 3. To Tasks: turn one PRD into executable slices
 
-For each slice, apply `design-gate` once. It selects at most three relevant lenses
-and records their findings, required changes, and verdict in the Slice Contract.
+For each slice, apply `design-gate` once. It selects at most three relevant inline lenses
+and records the canonical gate result from [gate-result.md](gate-result.md) in the Slice Contract. Preserve blocking and advisory finding IDs and review focus. Reuse settled shared decisions when their scope and evidence match; classify each slice's design and security risks separately.
 Recheck only a blocking lens after the design changes. Apply `security-gate` to
 record `security: deep` or `security: standard`. Reuse these findings in implementation.
 
@@ -72,11 +72,11 @@ The implementation engine starts from the approved Slice Contract. It uses the i
 
 ## Small accepted task
 
-Use standalone `implement-and-review` for one accepted task with a complete
+Select this entry first when the user supplies one accepted task. Use standalone `implement-and-review` for one accepted task with a complete
 acceptance contract and no unresolved product, data, security, public contract,
 or dependency decision. This is an entry to the existing engine, not another
 stage. Keep scoped implementation, required checks, and independent final review.
-If a material decision remains open, settle it through the applicable stage first.
+Bind the accepted task and its source evidence, then reuse a matching approved execution route or obtain the required route approval. For a PRD queue requested with execution, offer the existing combined task and model preview before approval. A task-only response grants no model authority. If a material decision remains open, settle it through the applicable stage first.
 
 ## Completion rule
 

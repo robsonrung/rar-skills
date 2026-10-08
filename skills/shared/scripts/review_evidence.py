@@ -151,6 +151,28 @@ def input_identity(source, paths):
     return {name: source["files"].get(name, {"kind": "absent"}) for name in paths}
 
 
+def validate_review_scope(scope, root):
+    """Bind a complete dependency declaration and exact prospective changes."""
+    require(isinstance(scope, dict) and set(scope) == {"inputs", "complete", "reason", "changes"},
+            "review scope needs inputs, complete, reason, and changes")
+    validate_inputs(scope["inputs"], root)
+    require(scope["complete"] is True, "unknown dependencies cannot use scoped carry forward")
+    require(isinstance(scope["reason"], str) and scope["reason"].strip(), "review scope needs a dependency closure assessment")
+    changes = scope["changes"]
+    require(isinstance(changes, list) and 0 < len(changes) <= 32, "review scope needs 1 to 32 exact changes")
+    paths = []
+    for row in changes:
+        require(isinstance(row, dict) and set(row) == {"path", "content", "reason"}, "invalid scoped change")
+        paths.append(row["path"])
+        require(isinstance(row["reason"], str) and row["reason"].strip(), "scoped change needs an independence assessment")
+        link = row["content"]
+        require(isinstance(link, dict) and set(link) == {"path", "sha256"}
+                and Path(link["path"]).is_absolute() and file_hash(link["path"]) == link["sha256"],
+                "scoped change content checksum mismatch")
+    validate_inputs(paths, root)
+    require(not set(paths).intersection(scope["inputs"]), "scoped changes overlap review dependencies")
+
+
 def fresh_observations(old, snapshot):
     before, after = old["requirements"]["value"], snapshot["requirements"]["value"]
     if context_identity(before["context"]) != context_identity(after["context"]):
@@ -166,7 +188,7 @@ def fresh_observations(old, snapshot):
 
 
 def validate_requirements(value, root):
-    require(isinstance(value, dict) and {"context", "checks", "observations", "exclusions"} <= set(value) <= {"context", "checks", "observations", "exclusions", "observation_inputs"}, "requirements need context, checks, observations, and exclusions")
+    require(isinstance(value, dict) and {"context", "checks", "observations", "exclusions"} <= set(value) <= {"context", "checks", "observations", "exclusions", "observation_inputs", "review_scope"}, "requirements need context, checks, observations, and exclusions")
     require(isinstance(value["context"], dict) and bool(value["context"]), "context must describe the current runtime and external state")
     context_identity(value["context"])
     require(isinstance(value["checks"], list), "checks must be a list")
@@ -190,6 +212,12 @@ def validate_requirements(value, root):
     for paths in scopes.values():
         validate_inputs(paths, root)
     require(isinstance(value["exclusions"], dict) and all(isinstance(k, str) and isinstance(v, str) and v.strip() for k, v in value["exclusions"].items()), "exclusions need path and reason")
+    if "review_scope" in value:
+        scope = value["review_scope"]
+        validate_review_scope(scope, root)
+        declared = {p for check in value["checks"] for p in check.get("inputs", [])}
+        declared.update(p for paths in scopes.values() for p in paths)
+        require(declared <= set(scope["inputs"]), "review scope omits declared check or observation dependencies")
 
 
 def prepare(root, base, contract, requirements, output, artifact_dir=None, previous_reviews=()):
@@ -201,6 +229,12 @@ def prepare(root, base, contract, requirements, output, artifact_dir=None, previ
     source = source_state(root, base, artifact_dir)
     scopes = [check["inputs"] for check in plan["checks"] if "inputs" in check]
     scopes.extend(plan.get("observation_inputs", {}).values())
+    if "review_scope" in plan:
+        scopes.append(plan["review_scope"]["inputs"])
+        for row in plan["review_scope"]["changes"]:
+            require(not (root / row["path"]).is_relative_to(artifact_dir), "scoped changes cannot be evidence artifacts")
+            require(not (root / row["path"]).exists() or row["path"] in source["files"],
+                    "scoped changes cannot be ignored source")
     for paths in scopes:
         for name in paths:
             require(not (root / name).exists() or name in source["files"],
@@ -219,7 +253,8 @@ def prepare(root, base, contract, requirements, output, artifact_dir=None, previ
     return write_record(output / "snapshot.json", payload)
 
 
-def current_snapshot(path, base=None):
+def snapshot_record(path):
+    """Validate frozen metadata without claiming that historical source is current."""
     snapshot = load_record(path)
     require(snapshot.get("snapshot_path", str(Path(path).resolve())) == str(Path(path).resolve()), "snapshot path differs from its prepared bundle")
     require(snapshot["schema_version"] == VERSION and snapshot["source_id"] == digest(snapshot["source"]), "invalid source snapshot")
@@ -228,7 +263,13 @@ def current_snapshot(path, base=None):
         observed = contract_hash(snapshot[key]["path"]) if key == "contract" else file_hash(snapshot[key]["path"])
         require(observed == snapshot[key]["sha256"], f"{key} changed since review preparation")
     require(read_json(snapshot["requirements"]["path"]) == snapshot["requirements"]["value"], "captured requirements differ from their source")
+    validate_requirements(snapshot["requirements"]["value"], Path(snapshot["source"]["root"]))
     previous_findings(snapshot)
+    return snapshot
+
+
+def current_snapshot(path, base=None):
+    snapshot = snapshot_record(path)
     source = source_state(snapshot["source"]["root"], base or snapshot["base_ref"], snapshot["artifact_dir"])
     old = snapshot["source"]
     changed = sorted(p for p in set(old["files"]) | set(source["files"]) if old["files"].get(p) != source["files"].get(p))
@@ -331,7 +372,13 @@ def previous_findings(snapshot):
 
 
 def validate_result(result, snapshot, snapshot_path):
-    require(isinstance(result, dict) and set(result) == {"snapshot_sha256", "coverage", "findings", "checks", "observations", "summary"}, "invalid review result fields")
+    fields = {"snapshot_sha256", "coverage", "findings", "checks", "observations", "summary"}
+    scope = snapshot["requirements"]["value"].get("review_scope")
+    if scope:
+        fields.add("scope_approval")
+    require(isinstance(result, dict) and set(result) == fields, "invalid review result fields")
+    if scope:
+        require(result["scope_approval"] == digest(scope), "reviewer must approve the exact dependency scope and prospective changes")
     require(result["snapshot_sha256"] == file_hash(snapshot_path), "review is bound to a different snapshot")
     require(isinstance(result["summary"], str) and result["summary"].strip(), "review summary is missing")
     plan = snapshot["requirements"]["value"]
@@ -405,6 +452,9 @@ def expand_response(raw, snapshot, snapshot_path, depth=0):
         return raw
     fields = {"mode", "snapshot_sha256", "previous_review", "reuse_assessment", "affected_paths",
               "coverage", "findings", "checks", "observations", "summary"}
+    scope = snapshot["requirements"]["value"].get("review_scope")
+    if scope:
+        fields.add("scope_approval")
     require(set(raw) == fields and raw["mode"] in {"recheck", "addendum"}, "invalid incremental review fields")
     require(raw["snapshot_sha256"] == file_hash(snapshot_path), "review is bound to a different snapshot")
     require(raw["previous_review"] in snapshot["previous_reviews"], "incremental review must reference a bound prior review")
@@ -420,6 +470,10 @@ def expand_response(raw, snapshot, snapshot_path, depth=0):
     prior = previous["result"]
     result = copy.deepcopy(prior)
     result.update(snapshot_sha256=raw["snapshot_sha256"], summary=raw["summary"])
+    if scope:
+        result["scope_approval"] = raw["scope_approval"]
+    else:
+        result.pop("scope_approval", None)
     rows = {row["path"]: row for row in prior["coverage"] if row["path"] in allowed}
     require(isinstance(raw["coverage"], list), "coverage must be a list")
     updates = {}
@@ -499,8 +553,13 @@ def validate_transfer(check, target, definition):
     for key in ("definition", "exit_code", "duration_ms", "timed_out", "source_changed", "logs", "context_id"):
         require(check[key] == original[key], "transferred check changed captured facts")
     assessment = read_json(links["assessment"]["path"])
+    require(isinstance(assessment, dict), "environment assessment must be an object")
     require(assessment.get("from_snapshot_sha256") == links["snapshot"]["sha256"]
             and assessment.get("to_source_id") == target["source_id"], "transfer assessment binding differs")
+    validate_environment_assessment(assessment)
+
+
+def validate_environment_assessment(assessment):
     for key in ("runtime", "dependencies", "external_state", "base_interactions"):
         row = assessment.get(key)
         require(isinstance(row, dict) and set(row) == {"reason", "evidence"}
@@ -639,7 +698,9 @@ def response_contract(snapshot_path):
     if len(snapshot["previous_reviews"]) == 1:
         _, old = prior_review(snapshot["previous_reviews"][0])
         fresh = fresh_observations(old, snapshot)
+    scope = snapshot["requirements"]["value"].get("review_scope")
     return {"snapshot_sha256": file_hash(snapshot_path), "previous_reviews": snapshot["previous_reviews"],
+            **({"scope_approval": digest(scope), "review_scope": scope} if scope else {}),
             "coverage_paths": snapshot["source"]["changed_paths"],
             "check_ids": [c["id"] for c in snapshot["requirements"]["value"]["checks"]],
             "observation_ids": snapshot["requirements"]["value"]["observations"],
@@ -666,6 +727,11 @@ def record_review(snapshot_path, result, execution):
 def assess(snapshot_path, base):
     snapshot_path = Path(snapshot_path).resolve()
     snapshot = current_snapshot(snapshot_path, base)
+    return assess_record(snapshot_path, snapshot)
+
+
+def assess_record(snapshot_path, snapshot):
+    """Check a review's original evidence; callers enforce current source separately."""
     record = load_record(snapshot_path.parent / "review.json")
     require(record["schema_version"] == VERSION and record["snapshot_sha256"] == file_hash(snapshot_path), "review snapshot mismatch")
     result = record["result"]
@@ -684,6 +750,78 @@ def assess(snapshot_path, base):
     failed_observations = [x["id"] for x in result["observations"] if x["result"] != "pass"]
     status = "needs-work" if open_findings or failed_checks or failed_observations else "ready"
     return {"status": status, "snapshot_sha256": file_hash(snapshot_path), "open_findings": open_findings, "failed_checks": failed_checks, "failed_observations": failed_observations}
+
+
+def validate_carry_forward(payload, from_snapshot, base):
+    require(isinstance(payload, dict) and set(payload) == {"schema_version", "snapshot", "review", "target", "assessment", "evidence_packet"}
+            and payload["schema_version"] == VERSION, "invalid carry forward checkpoint")
+    for key in ("snapshot", "review", "target", "assessment", "evidence_packet"):
+        link = payload[key]
+        require(isinstance(link, dict) and set(link) == {"path", "sha256"}
+                and Path(link["path"]).is_absolute() and file_hash(link["path"]) == link["sha256"],
+                f"carry forward {key} checksum mismatch")
+    from_snapshot = Path(from_snapshot).resolve()
+    require(payload["snapshot"] == evidence_link(from_snapshot), "carry forward belongs to another original snapshot")
+    require(payload["review"] == evidence_link(from_snapshot.parent / "review.json"), "carry forward review binding differs")
+    old = snapshot_record(from_snapshot)
+    require(assess_record(from_snapshot, old)["status"] == "ready", "original review is not ready")
+    scope = old["requirements"]["value"].get("review_scope")
+    require(scope is not None, "original review has no approved carry forward scope")
+    target_path = Path(payload["target"]["path"])
+    target = current_snapshot(target_path, base)
+    require(old["contract"] == target["contract"] and old["requirements"] == target["requirements"],
+            "carry forward contract or requirements changed")
+    require(target["previous_reviews"] == [payload["review"]], "carry forward must retain its original findings")
+    before, after = old["source"], target["source"]
+    require(all(before[key] == after[key] for key in ("root", "base", "index_sha256"))
+            and old["artifact_dir"] == target["artifact_dir"], "carry forward root, base, index, or artifact directory changed")
+    require(input_identity(before, scope["inputs"]) == input_identity(after, scope["inputs"]),
+            "carry forward dependency inputs changed")
+    changed = {name for name in set(before["files"]) | set(after["files"])
+               if before["files"].get(name) != after["files"].get(name)}
+    allowed = {row["path"]: row for row in scope["changes"]}
+    require(changed and changed <= set(allowed), "carry forward contains changes outside the approved scope")
+    for name in changed:
+        expected = {"kind": "file", "sha256": allowed[name]["content"]["sha256"], "executable": False}
+        require(after["files"].get(name) == expected, "carry forward content differs from the exact approved change")
+        require(before["files"].get(name, {}).get("kind") not in {"symlink", "deleted"},
+                "carry forward cannot replace symbolic links or deleted entries")
+    assessment = read_json(payload["assessment"]["path"])
+    require(isinstance(assessment, dict), "environment assessment must be an object")
+    require(assessment.get("from_snapshot_sha256") == payload["snapshot"]["sha256"]
+            and assessment.get("to_source_id") == target["source_id"], "carry forward environment assessment binding differs")
+    validate_environment_assessment(assessment)
+    packet = load_packet(payload["evidence_packet"], target, target_path)
+    for definition in target["requirements"]["value"]["checks"]:
+        require(validate_check(packet["checks"][definition["id"]], target, definition), "carry forward check did not pass")
+    require(all(row["result"] == "pass" for row in packet["observations"]), "carry forward observation did not pass")
+    prior_observations = {row["id"]: row for row in load_record(payload["review"]["path"])["result"]["observations"]}
+    fresh = fresh_observations(old, target)
+    for row in packet["observations"]:
+        if row["id"] in fresh:
+            prior_paths = {link["path"] for link in prior_observations[row["id"]]["evidence"]}
+            require(all(link["path"] not in prior_paths for link in row["evidence"]),
+                    "carry forward requires fresh observation captures")
+    current_snapshot(target_path, base)
+    return {"status": "ready", "snapshot_sha256": payload["snapshot"]["sha256"],
+            "target": payload["target"], "changed_paths": sorted(changed), "scope": "dependency-release-only"}
+
+
+def carry_forward(from_snapshot, to_snapshot, assessment, packet, output):
+    """Keep original review approval separate from current dependency-release evidence."""
+    payload = {"schema_version": VERSION, "snapshot": evidence_link(from_snapshot),
+               "review": evidence_link(Path(from_snapshot).parent / "review.json"),
+               "target": evidence_link(to_snapshot), "assessment": evidence_link(assessment),
+               "evidence_packet": evidence_link(packet)}
+    validate_carry_forward(payload, from_snapshot, load_record(to_snapshot)["base_ref"])
+    return write_record(output, payload)
+
+
+def assess_carry_forward(link, from_snapshot, base):
+    require(isinstance(link, dict) and set(link) == {"path", "sha256"}
+            and Path(link["path"]).is_absolute() and file_hash(link["path"]) == link["sha256"],
+            "carry forward checkpoint checksum mismatch")
+    return validate_carry_forward(load_record(link["path"]), from_snapshot, base)
 
 
 def main():
@@ -706,6 +844,9 @@ def main():
     transfer_parser = commands.add_parser("transfer-check", help="reuse a passing check on identical content with explicit environment evidence")
     for name in ("from-snapshot", "to-snapshot", "check", "assessment"):
         transfer_parser.add_argument("--" + name, required=True)
+    carry_parser = commands.add_parser("carry-forward", help="capture dependency release for exact changes approved by the original reviewer")
+    for name in ("from-snapshot", "to-snapshot", "assessment", "packet", "output"):
+        carry_parser.add_argument("--" + name, required=True)
     packet_parser = commands.add_parser("prepare-packet", help="validate and hash all captured evidence before reviewer dispatch")
     for name in ("snapshot", "output", "observations"):
         packet_parser.add_argument("--" + name, required=True)
@@ -737,6 +878,8 @@ def main():
             result = {"review": str(record_review(args.snapshot, json.loads(execution.get("agent_message", "")), execution))}
         elif args.action == "transfer-check":
             result = {"check": str(transfer_check(args.from_snapshot, args.to_snapshot, args.check, args.assessment))}
+        elif args.action == "carry-forward":
+            result = {"carry_forward": evidence_link(carry_forward(args.from_snapshot, args.to_snapshot, args.assessment, args.packet, args.output))}
         else:
             result = assess(args.snapshot, args.base)
         print(json.dumps(result))

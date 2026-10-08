@@ -44,7 +44,7 @@ Cross-module decisions get one comment in the owning module. Duplicating them is
 
 Write the interface comment before the body (ch. 15). Delayed comments are bad comments: you have forgotten what was not obvious.
 
-The comment is the design. If you cannot write a short, precise interface comment, the module is not **deep** yet — **design it twice** again.
+A short, precise interface comment tests whether the module is **deep**. If the contract is hard to describe, identify the missing invariant or boundary. Use **design it twice** only when that exposes a consequential unresolved interface.
 
 Do not put the design in the commit log. Readers of the code will not see it (ch. 16.3).
 
@@ -55,7 +55,7 @@ A name is an abstraction. It should create an image of the thing (ch. 14).
 - **Precise** — `data` / `obj` / `info` / `manager` fail. If you cannot pick a precise name, the entity is doing two jobs (**hard to pick name**).
 - **Consistent** — same word, same meaning, everywhere. Two words for one thing is obscurity.
 - **No extra words** — drop filler (`Data`, `Info`, `Object`) that does not change the image.
-- **Most information in fewest words** — list candidate words, keep the few that convey the most (ch. 21; this _is_ **design it twice** for a name).
+- **Most information in fewest words**: choose precise words that expose the abstraction (ch. 21). A local rename does not require alternative designs.
 - Bad names cause bugs. Treat a vague public name as a defect, not style.
 
 `clean-code` owns local rename mechanics. This file owns the test: does the name make the abstraction obvious, and does a hard-to-pick name mean the entity should be reshaped?

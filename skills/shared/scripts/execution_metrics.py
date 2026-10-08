@@ -11,13 +11,19 @@ def number(value):
 
 
 def normalize_metrics(result):
+    if not isinstance(result, dict):
+        result = {}
     if isinstance(result.get("metrics"), dict):
         return {key: number(result["metrics"].get(key)) for key in FIELDS}
     usage = result.get("usage") or {}
     if not isinstance(usage, dict):
         usage = {}
     provider_cache = "cache_read_input_tokens" in usage or "cache_creation_input_tokens" in usage
-    cached = number(usage.get("cache_read_input_tokens" if provider_cache else "cached_input_tokens"))
+    input_details = usage.get("input_tokens_details") or {}
+    if not isinstance(input_details, dict):
+        input_details = {}
+    cached = number(usage.get("cache_read_input_tokens" if provider_cache else "cached_input_tokens",
+                              input_details.get("cached_tokens")))
     written = number(usage.get("cache_creation_input_tokens" if provider_cache else "cache_write_input_tokens"))
     inputs = number(usage.get("input_tokens"))
     if provider_cache:
@@ -26,7 +32,7 @@ def normalize_metrics(result):
     if not isinstance(details, dict):
         details = {}
     return dict(zip(FIELDS, (inputs, cached, written, number(usage.get("output_tokens")),
-                            number(usage.get("reasoning_output_tokens", details.get("thinking_tokens"))),
+                            number(usage.get("reasoning_output_tokens", details.get("reasoning_tokens", details.get("thinking_tokens")))),
                             number(result.get("duration_ms")), number(result.get("total_cost_usd")))))
 
 

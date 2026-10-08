@@ -18,7 +18,7 @@ The coordinator alone drafts this PRD. It preserves settled choices and does not
 
 ## Work
 
-1. Confirm that the decision record status is `ready-for-prd`. Read the record and reuse its source locators and revisions. Respect **already decided** choices. Recheck an original source only when the record lacks a locator or revision, or when a fact has changed or is disputed.
+1. Confirm that the decision record status is `ready-for-prd`. Read the record and reuse its stable decision IDs and compact source index, including authority, locators, and content revisions. Respect **already decided** choices. Recheck an original source only when the record lacks a locator or revision, or when a fact has changed or is disputed.
 
 2. Return a material missing decision or source conflict to `interview-me`. State the exact question, conflicting evidence, and source locators. Do not create an approvable PRD from a guess.
 
@@ -31,6 +31,7 @@ The coordinator alone drafts this PRD. It preserves settled choices and does not
    5. Security decisions, or `No exposed security surface`.
    6. Rollout and rollback constraints.
    7. Out of scope items, assumptions, and remaining risks.
+   8. Decision IDs for the outcomes and constraints, linked to the decision record and its source index. Keep the index in that record rather than copying source content into the PRD.
 
 4. Use the domain glossary and familiar user terms from the decision record. Define a new term once. When a rule remains ambiguous, add a short scenario that names the actor, record, and outcome. Include a prototype snippet only when it is the decision and prose cannot state it precisely.
 

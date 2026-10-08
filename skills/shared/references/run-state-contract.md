@@ -197,13 +197,83 @@ it cannot alter a previously approved route or historical receipt.
 
 ## Compare workflow cost
 
-Before claiming a speed or token improvement, compare the same starting revision,
-requirements, and independent acceptance checks on a routine UI change, a
-permission-sensitive mutation, and a concurrency change. Count all calls and repairs
-per accepted result, not only the final successful call. Report unknown measurements
-and missed defects. Offline protocol tests prove mechanics, not model quality or a
-percentage saving. Obtain approval for any new paid comparison routes and bounds;
-reuse existing approval when it already covers that exact comparison.
+Use **the ledger, not the transcript** for measurements. Keep the existing call
+ledger and add optional `workflow_measurement` metadata to that run state. The
+read-only `shared/scripts/workflow_comparison.py --baseline <before.json>
+--candidate <after.json>` compares two recorded runs. It launches no calls,
+updates no state, and grants no acceptance or approval. Exit 0 means matching,
+complete measurement inputs; it does not mean acceptance passed. Exit 1 means
+invalid, mismatched, or incomplete inputs. Input read errors return exit 2.
+
+Bind each pair before execution with `workflow_measurement.identity`:
+
+| Field | Required identity |
+| --- | --- |
+| `case_id` | Same task and fixture in both runs |
+| `case_kind` | `bounded-fix`, `routine-feature`, `ui`, `permissions`, or `migration-concurrency` |
+| `source_start_revision` | Full source commit ID; use the same starting code in both runs |
+| `requirements_sha256` | SHA256 of the unchanged acceptance contract |
+| `checks_sha256` | SHA256 of the independent acceptance cases, command definitions, and fault probes |
+| `environment_sha256` | SHA256 of recorded runtime, dependency, fixture, and external-state facts |
+
+Record the baseline and candidate workflow resource revisions with existing
+execution provenance. They are expected to differ. The source start revision,
+requirements, checks, and environment must match. The helper compares these
+identities; the caller must verify their evidence and fingerprints. Missing
+identity, acceptance, or defect observations block all deltas. Both runs must
+finish execution and report passed acceptance and equal missed-defect counts
+before deltas are shown. A failed acceptance result, unequal defect count, mismatched identity, or defect observation window
+returns `mismatched`; malformed data returns `invalid`.
+
+Keep whole workflow `started_at` and `completed_at` on the existing state.
+`updated_at` is not a completion timestamp. Available ledger `reserved_at` and
+`completed_at` events must fall within the known workflow bounds; completion
+cannot precede reservation. `call_timing` reports checked and unknown event
+counts. Missing events make timing validation incomplete; they do not supply
+invented timestamps. Malformed status values and inconsistent event times return
+`invalid`. Optional measurement fields are:
+
+| Field | Measurement |
+| --- | --- |
+| `worker_calls_complete` | Explicit `true` only when the ledger includes every worker call, including failed calls and repairs |
+| `coordinator_receipts` | All coordinator usage receipts, separate from worker ledger calls; null or absent means unknown |
+| `approval_wait_intervals` | Recorded objects with `started_at` and `completed_at`; overlapping waits count once |
+| `repair_call_ids` | Unique ledger call IDs used for repairs; absent means unknown |
+| `command_keys` | One stable command and working-directory identity per actual execution, including failures; repeated keys count repeated executions |
+| `acceptance` | `{ "passed": true, "evidence": "<independent acceptance report>" }`, or null |
+| `missed_defects` | `{ "count": 0, "evidence": "<defect assessment>", "observation_window": "<shared observation protocol>" }`, or null |
+
+An empty list means observed none. Use null or omit a field when capture is
+incomplete. Coordinator receipts must cover the full run without duplicating
+worker calls. Use the same command identity scheme for both runs. Repeated
+commands are counts, not proof of wasted work; a repair can require another run.
+A defect count of zero means none found by the recorded protocol, not proof that
+none exist.
+
+`workflow_elapsed_ms` is the time between workflow start and completion. Worker
+`duration_ms.measured_sum` is the sum of call durations and can exceed elapsed
+time when workers overlap. Approval waiting and coordinator duration are separate.
+Do not infer either from gaps between worker calls. Usage reports measured sums,
+measured-call counts, and unknown-call counts for input, cached input, cache writes,
+output, reasoning output, duration, and reported cost. Cached input remains part
+of total input and is not free. Report actual receipt cost; do not infer a price
+or treat missing cost as zero. `total_reported_cost_usd` requires complete worker
+coverage, resolved calls, and complete worker and coordinator cost receipts.
+
+Deltas are candidate minus baseline. A metric with missing call measurements has
+no delta; partial measured sums remain visible. Incomplete capture returns
+`incomplete`. `observed_acceptance_match` only compares reported passed acceptance
+and equal missed-defect counts under matched identities. Evidence still needs
+independent review. `quality_equivalence` remains `not-established`, including
+when the candidate costs less. Offline tests prove arithmetic and refusal rules,
+not execution quality or percentage savings.
+
+A performance claim needs bounded, repeated comparisons across all five case
+kinds, including acceptance failures and missed defects. Record host, routes,
+models, receipt limits, repairs, and all calls per accepted result. Obtain approval
+for new paid comparison routes and bounds; reuse existing approval when it covers
+that exact comparison. Keep route defaults unchanged until the evidence supports
+a change.
 
 ## Completion without transcript reconstruction
 

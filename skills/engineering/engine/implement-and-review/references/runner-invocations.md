@@ -51,6 +51,12 @@ approved `input_path`, verifies its canonical content hash, and puts that task
 contract before the notes. A note cannot replace the approved task contract.
 The manifest records both source digests.
 
+Before dispatch, discover the required commands and stable check IDs. Include the
+requirements file, base, capture location, and shared `prepare` and `run-check`
+instructions in the implementation notes as described in `evidence-strategy.md`.
+The worker captures its last green checks after its final edit and returns original
+snapshot and result paths with logs and required failing regression evidence.
+
 A canonical task with a standalone `**Status:** draft` declaration cannot launch,
 including spaces or tabs around the declaration or status value, even with an
 approved routing plan. Promote the task before dispatch. A dry run can
@@ -77,9 +83,16 @@ non-dry launch rejects a plan without recorded approval.
 
 ## Launch review
 
-First follow `shared/references/review-evidence.md`: prepare a new snapshot and
-requirements file, then capture required checks. Use the task's recorded base
-and approved contract path. Exclude the launcher's generated artifact directory
+The coordinator follows `shared/references/review-evidence.md`: confirm the worker's
+final snapshot and environment, then run `select-checks` with its original captures
+and `--from-snapshot <worker-snapshot>`. For an unchanged handoff, pass the same
+worker snapshot to `--snapshot` and `--from-snapshot`.
+If a selected fresh run or retry already has a result there, prepare a new target
+snapshot and select again against the original worker snapshot before execution.
+Keep reusable original captures and write fresh results only in the new directory.
+Prepare a new snapshot when source or relevant context changed. Execute all affected,
+fresh, missing, or invalid checks and assess explicit transfer candidates. Use the
+task's recorded base and approved contract path. Exclude the launcher's generated artifact directory
 when it is inside the worktree. The snapshot binds actual source and index
 state; `input_revision` continues to identify the review brief.
 
@@ -117,7 +130,9 @@ python3 "$SKILL_DIR/scripts/launch.py" evidence-recovery \
 
 ## Receipts and native routes
 
-The reviewer returns the shared evidence JSON contract. After its native receipt
+The reviewer loads `shared/references/reviewer-response.md` and returns its exact
+JSON contract after independently assessing source and evidence. The coordinator
+keeps the full evidence operations manual. After the native receipt
 is recorded, or its runner job completes, capture that exact response:
 
 ```bash
@@ -201,6 +216,17 @@ reviewer recheck; it retains the reviewer session and counts the next review
 cycle. Native follow-ups also have a hard bound; they do not extend the approved
 review cycle or evidence recovery allowances.
 
+Compact native followups carry the canonical contract identity, exact approved
+route, completed context and receipt references, changed facts, findings, evidence
+locators, and execution boundary. The launcher checks the saved input hash and
+contract binding against the completed receipt, task, role, context, and route.
+After validating that proof, it uses the smaller full or compact rendering and
+records the selected `input_kind`. A short contract can remain inline on resume;
+continuation proof is retained in the binding metadata for either rendering.
+First dispatch, runner calls, and reconstruction carry the full contract. Missing
+or changed continuation proof blocks before dispatch or reservation. A context
+ID alone does not prove that the accepted contract is still present.
+
 The native implementation followup limit is the approved reviewer route's
 `recovery.review_cycles` plus `recovery.evidence_recoveries`. Plans without
 `recovery` keep the limit of four followups. The manifest saves `resume_attempts`
@@ -209,8 +235,10 @@ and context reconstruction. A retry while a call is pending cannot reserve
 another followup. Review cycles and evidence recoveries retain their separate
 counts and limits; the followup bound does not grant either reservation.
 
-If a native context is confirmed lost, use `--context-recovery-reason` on the
-documented continuation or receipt command. Reconstruct only the same role from
+If a native context is confirmed lost, use `--context-recovery-reason` on
+`resume-native` or `review` before dispatch. The handoff requests reconstruction
+with the full contract. Record the replacement through `record-native`, which
+retains that recovery reason. Reconstruct only the same role from
 its artifacts under the unchanged route. Record the previous and replacement
 IDs. A recovery reason does not authorize a new model, scope, or tool policy.
 An uncertain pending call must be reconciled before reconstruction.

@@ -12,13 +12,13 @@ Pattern choice follows from subdomain type:
 - **Supporting** — bespoke but simple, mostly CRUD/validation around core. Keep it cheap.
 - **Generic** — solved problems you'd buy/integrate (auth, PDF, connectors). Don't hand-roll a domain model.
 
-If the _language_ is mostly CRUD ("create/update/list X"), it's simple. If it's processes, rules, and invariants ("escalate", "settle", "reconcile", "void", "authorize", "allocate"), it's complex. Place domain models in shared domain/entities code, not in route/HTTP handlers; don't leave money/audit logic as a bare transaction script.
+If the _language_ is mostly CRUD ("create/update/list X"), it's simple. If it's processes, rules, and invariants ("escalate", "settle", "reconcile", "void", "authorize", "allocate"), it's complex. Place domain models in shared domain/entities code, not in route/HTTP handlers; verify that its chosen model enforces the required integrity and history guarantees. Money or audit needs alone do not rule out a transaction script.
 
 ### Lens B1 — Business-logic pattern decision tree (Ch. 10)
 
-Walk top-down; stop at the first match. Bias: **use the simplest pattern that works**, escalate only when forced.
+Assess integrity and history requirements first, then choose by evidence. Bias: **use the simplest pattern that works**. Money, audit, or analytics needs trigger this assessment, not an automatic pattern change.
 
-1. **Tracks money / needs a consistent audit log / needs deep behavioral analytics?** → **Event-sourced domain model** (state is a stream of events; requires CQRS to query).
+1. **Integrity or history requirement the current model cannot satisfy?** State the exact invariant, history/replay need, and evidence of the gap. Compare transactions, constraints, immutable audit records, or a ledger before event sourcing. Select an **event-sourced domain model** only when authoritative event history and reconstruction meet that requirement and schema evolution, replay side effects, and read projections have accepted owners and costs.
 2. **Else — business logic genuinely complex** (rules, invariants, algorithms)? → **Domain model** (aggregates + value objects; ports & adapters; testing pyramid).
 3. **Else — complex data structures** but logic is procedural validation? → **Active record** (objects encapsulate DB mapping; layered + service layer; testing diamond).
 4. **Else** → **Transaction script** (a procedure per operation; minimal layers; lean on end-to-end tests).
@@ -51,7 +51,7 @@ The signal is **pain**: adding a rule keeps getting harder, inconsistencies/dupl
 
 - **Transaction script → active record:** data handling got gnarly; encapsulate the structures.
 - **Active record → domain model:** rules/invariants multiplying. Extract value objects, then make setters private — the compile errors show the real transaction boundaries.
-- **Domain model → event-sourced:** the business now needs full history / audit / time-travel.
+- **Domain model → event-sourced:** evidence shows that the current model and a simpler history mechanism cannot meet a required integrity, history, or reconstruction guarantee. Audit needs alone do not establish this gap.
 
 Don't over-escalate: a stable, simple supporting subdomain does **not** need a domain model just because it's "important." Migration also runs downward — a demoted subdomain should be simplified back down.
 

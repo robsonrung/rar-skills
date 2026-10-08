@@ -16,7 +16,7 @@ When a finding is one of the named slop categories, use the shared vocabulary fr
 
 Treat these as candidate high severity only when the changed code has exact evidence and a concrete consequence:
 
-1. The PR pushes a file from below 1000 lines to above 1000 lines.
+1. File growth introduces a concrete cohesion, ownership, or safe-change risk. Crossing 1000 lines is a cue to inspect, not a finding by itself.
 2. The PR adds ad hoc special cases into an already busy flow.
 3. The PR scatters feature checks across shared code instead of putting the concept behind a clear boundary.
 4. The PR adds wrappers, identity helpers, or generic mechanisms that increase indirection without reducing complexity.
@@ -38,7 +38,7 @@ Ask these before approving maintainability sensitive changes:
 7. Is optionality or casting hiding a contract that should be explicit?
 8. Is independent work serialized in a way that makes orchestration harder to reason about?
 9. Are related updates non atomic when one transaction, one command, or one state transition would be cleaner?
-10. Did file size cross a healthy boundary because the new code was appended instead of decomposed?
+10. Does file growth expose a concrete cohesion or change ownership problem?
 
 ## What To Flag
 
@@ -46,7 +46,7 @@ Flag only when the changed code introduces:
 
 1. A complicated implementation where a clearer framing could delete large pieces of complexity.
 2. Refactors that move complexity around without reducing the number of concepts a reader must hold.
-3. File growth across the 1000 line threshold.
+3. File growth that creates a concrete risk or violates an explicit repository gate.
 4. New one off booleans, nullable modes, flags, or feature checks in unrelated flows.
 5. Feature specific logic leaking into general purpose modules.
 6. Generic magic that hides a simple data shape.
@@ -83,14 +83,14 @@ Prefer remedies that remove complexity instead of decorating it:
 A structural finding must include:
 
 1. The exact changed line range where complexity is introduced.
-2. A concrete indicator such as a new branch, flag, wrapper, cast, file length threshold, layer leak, duplicated block, or partial update sequence.
+2. A concrete indicator such as a new branch, flag, wrapper, cast, layer leak, duplicated block, partial update sequence, or explicit repository size-gate violation.
 3. The future change cost: what becomes harder, riskier, or more coupled.
 4. The simpler framing, stated as a specific refactor path.
 5. Validation to run after the refactor, usually the nearest tests plus any relevant typecheck, lint, or build command.
 
 ## Severity Guidance
 
-Use `HIGH` when the structure is likely to block future safe changes, crosses the 1000 line threshold without justification, leaks feature logic into shared code, or makes state consistency harder to reason about.
+Use `HIGH` for a demonstrated risk that can block safe changes, violate shared ownership, or compromise state consistency. File length alone is neither HIGH nor a blocker. An explicit repository size gate still applies; cite that rule and classify the finding by its actual consequence.
 
 Use `MEDIUM` when the issue is real and actionable but localized.
 

@@ -31,6 +31,7 @@ Use this skill directly for one accepted task when its acceptance contract is co
 2. Confirm task input files still match the routing plan hashes before a worker dispatch. The launcher enforces this before it writes files, creates worktrees, or starts a worker.
 3. If the task came from `implement-tasks`, use its approved plan. A standalone task that meets the small change entry uses this skill directly. If the branch dispatches workers, use the shared preview and its decision rules. A request to use defaults and run or approval for the unchanged setup suffices within existing source sharing authority and accepted receipt limits. Otherwise obtain the model plan decision before workers start. Include host and driver capabilities, independent review, session strategy, effort, provider controls, tools, receipt limits, budgets, and exact fallback triggers.
 4. Start with one track. Add a second track only when their scopes and contracts are independent. Worktree isolation is reversible and needs no separate approval. Commit-based integration remains separately authorized.
+5. Discover required verification commands and stable check IDs before dispatch. Give the implementer the requirements file, capture commands, intended base, artifact location, and required failing regression evidence through [references/evidence-strategy.md](references/evidence-strategy.md).
 
 Never call `models-consensus` from this skill. A user who wants more opinions invokes that workflow separately.
 
@@ -45,7 +46,7 @@ Apply methods in the assigned coordinator or implementer context. Loading a meth
 5. Apply `clean-code` when touched code has a concrete smell or needs refactoring. Apply `test-lens` when a test choice needs judgment about real behavior, seams, mocks, or brittle coverage. Apply a domain lens only when the task triggers it: data paths, interfaces, distributed systems, domain logic, agent control flow, or a framework specific UI concern.
 6. Apply `coding-review-simplify` after the task is green when a **behavior-preserving** simplification would help the next reader.
 
-The implementation brief must state the task scope, acceptance contract, relevant lens conclusions, and that no git or external action is allowed. The launcher prepends the approved task contract to derived implementation and review notes. Derived notes cannot replace it.
+The implementation brief must state the task scope, acceptance contract, relevant lens conclusions, and execution boundary. The launcher includes the full approved contract on first calls and reconstruction. After validating a persistent native continuation, the launcher uses the smaller full or compact rendering. Compact input binds the same contract by identity and sends changed facts, findings, and evidence locators. Derived notes cannot change acceptance. See `shared/references/context-packets.md` for required continuation proof.
 
 ## Launch the Approved Routes
 
@@ -73,7 +74,7 @@ resumes that role, then records its actual receipt with `record-native`. A hando
 is not execution. Read [references/runner-invocations.md](references/runner-invocations.md)
 for native capabilities, receipt fields, `resume-native`, and runner continuation.
 
-When implementation finishes, read `shared/references/review-evidence.md`. Prepare the source snapshot and required check plan, then capture the selected checks and observations. Build the evidence packet with `prepare-packet`; correct missing captures or invalid references before dispatch. Prepare a focused review brief with the acceptance contract, snapshot, check result paths, and the task's named risk. Launch the exact reviewer recorded in the plan:
+The implementer captures its last green required checks on the final unchanged source and returns the snapshot and original result paths. The coordinator reads `shared/references/review-evidence.md`, confirms current source and environment, and uses `select-checks` with `--from-snapshot <worker-snapshot>` and the original capture map before running verification. For unchanged source and context, pass the same worker snapshot to `--snapshot`. Reuse only validated captures; execute every affected, fresh, or missing check. Build the complete evidence packet with `prepare-packet` and resolve invalid references before dispatch. Give the independent reviewer `shared/references/reviewer-response.md`, the snapshot, check result paths, prior findings, and named risk. Launch the exact reviewer recorded in the plan:
 
 ```bash
 SKILL_DIR="<absolute path of this skill directory>";
@@ -108,7 +109,7 @@ from `report.md`. Legacy reviews without these records cannot establish readines
 
 1. Apply valid findings through the same approved implementer route and its recorded context. Persist each review/fix cycle before dispatch. The default is three cycles; use the reviewer route's approved `recovery.review_cycles` when present. If evidence is missing, reserve recovery within the approved allowance before dispatch. Exhaustion of the approved recovery or cycle allowance stops the task. Retain the implementer and reviewer until their fixes, rechecks, and evidence work are complete.
 2. Use `full-review` only when the user selected it in the reviewer plan. Recommend it when the change crosses a seam, carries high risk, or needs feature-level reconciliation. Its scope and routes must remain proportional to the task.
-3. Capture the required task acceptance results. Reuse earlier passing results only when the relevant code, dependencies, environment, and acceptance contract still match and the caller permits reuse. Run missing or affected checks after changes. **Only captured command results count as evidence.**
+3. Validate the required task acceptance captures with `select-checks`. Keep validated `reuse` references, execute `run` entries, and assess explicit `transfer` candidates before transfer. Required fresh checks always run. Preserve failing regression evidence. **Only captured command results count as evidence**; prose cannot be converted into a capture after execution.
 4. Write a short report under `.ai-workflow/impl-review/<session-id>/<task-id>/report.md` when that directory is available. Include acceptance, implementation and reviewer receipts, role context references, any context loss or reconstruction, changed paths, and unresolved risks. Reconcile a pending call before retrying; context loss never resets counters or changes the approved model.
 
 ## Output Contract

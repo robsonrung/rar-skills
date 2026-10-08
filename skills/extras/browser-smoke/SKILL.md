@@ -94,7 +94,7 @@ If no available driver meets this contract, stop with `SKIP` and name the missin
 
 ### 2. Identify the changed routes
 
-For a PR, get its changed files from the code host. Otherwise resolve the default branch in this order: local `origin/HEAD`, code-host metadata, then `main`. Diff the requested branch against that branch. When the request targets the current worktree, include staged and unstaged changes too.
+Reuse the explicit caller base and the approved source snapshot's base first. When both exist, require agreement on the resolved commit and intended comparison scope; a mismatch or an unresolvable supplied base is a scope blocker, not a reason to use the default. Without either, use the PR's target base from the code host; for other requests, resolve local `origin/HEAD`, code-host metadata, then `main`. Record the selected ref, resolved commit, selection source, and supplied snapshot reference in the run report with the browser evidence. Keep base metadata outside shared observation rows; their fields remain `id`, `result`, and `evidence`. Diff the requested branch against that base. For a current-worktree request, include committed, staged, and unstaged changes, even when a PR diff is available. Prepare a new snapshot if those edits change the approved source scope.
 
 Map each changed file to the routes that render it. Resolve the actual URL from project routing before dispatch; do not infer a route from a component name. A layout or shared style change needs at least the root page and each directly affected route. A change with no browser-facing route is `SKIP` with that reason.
 
@@ -155,7 +155,7 @@ Return this table and a result:
 
 Use `PASS` only when every exercised route passed. Use `FAIL` when a route failed. Use `PARTIAL` when some routes passed and others were skipped. Use `SKIP` when no route was exercised.
 
-Name the tested scope, server URL, selected driver, console-error count, human
+Name the selected base and resolved commit, tested scope, server URL, selected driver, console-error count, human
 confirmations, and untested routes. Return each shared observation row and its
 evidence path with the table. Never claim that a route passed without captured
 browser state.

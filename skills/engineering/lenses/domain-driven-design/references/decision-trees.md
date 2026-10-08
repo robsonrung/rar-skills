@@ -1,29 +1,18 @@
 # DDD Tactical — Decision Trees & Checklists
 
-Deep-dive reference for the `domain-driven-design` skill (tactical part — Part B). [tactical-review.md](tactical-review.md) carries the operational lenses; this file keeps only the verbatim figures and the details that go beyond them. Source: _Learning Domain-Driven Design_, Vlad Khononov (O'Reilly, 2021), Chapters 5–11 — Ch. 6 (aggregates & value objects), Ch. 9 (event publishing), Ch. 10 (pattern & architecture decision trees, Figs. 10-3/10-4/10-7), Ch. 11 (evolving patterns).
+Deep-dive reference for the `domain-driven-design` skill (tactical part — Part B). [tactical-review.md](tactical-review.md) carries the operational lenses; this file keeps the adapted pattern decision and the detailed correctness checks. Source: _Learning Domain-Driven Design_, Vlad Khononov (O'Reilly, 2021), Chapters 5–11 — Ch. 6 (aggregates & value objects), Ch. 9 (event publishing), Ch. 10 (pattern & architecture decision trees, Figs. 10-3/10-4/10-7), Ch. 11 (evolving patterns).
 
-## Business-logic pattern decision tree — verbatim (Ch. 10, Fig. 10-3 / 10-7)
+## Business-logic pattern decision
 
-```
-Does the subdomain track money / monetary transactions,
-require a consistent audit log, or need deep behavioral analytics?
-│
-├─ YES ─────────────────────────────► Event-Sourced Domain Model  (→ CQRS)
-│
-└─ NO → Is the business logic complex
-        (intricate rules, invariants, algorithms — not just input validation)?
-        │
-        ├─ YES ─────────────────────► Domain Model  (→ Ports & Adapters, testing pyramid)
-        │
-        └─ NO → Does it involve complex data structures
-                (non-trivial mapping to storage)?
-                │
-                ├─ YES ─────────────► Active Record  (→ layered + service layer,
-                │                                       testing diamond)
-                │
-                └─ NO ──────────────► Transaction Script  (→ minimal layers,
-                                                            reversed testing pyramid)
-```
+Money, audit, and behavioral analytics needs first require an integrity and history assessment. Name the required invariants, retention, reconstruction, and replay behavior. Inspect whether the current model can meet them through transactions, constraints, an immutable audit record, or a ledger.
+
+Only evidence that those mechanisms cannot meet the requirement opens an event-sourcing choice. Record the gap, why authoritative event history resolves it, and the costs of schema evolution, replay safety, and read projections. Otherwise retain the current model or choose by business-logic complexity:
+
+1. Complex rules or invariants: domain model.
+2. Complex data mapping with procedural validation: active record.
+3. Simple operations: transaction script.
+
+Use the smallest coherent shape that satisfies the actual guarantees. A financial field or audit-log request alone does not select event sourcing.
 
 The architecture/testing mapping that follows from each pattern is Ch. 10, Fig. 10-4 — see [tactical-review.md](tactical-review.md), Lens B2.
 
@@ -79,5 +68,5 @@ Flag:
 
 - "This is getting painful" ⇒ reassess the subdomain _type_, not just the pattern.
 - Transaction script → active record: stop hitting the DB directly once the structures are encapsulated.
-- Domain model → event-sourced: generate past transitions and model explicit migration events to backfill history.
+- Domain model → event-sourced: proceed only after the requirement gap is established. Preserve known history and identify unknown history; do not invent past transitions. Use explicit migration events for the supported starting state.
 - Migrations also run the other way (core → supporting) — then it's fine to _simplify_ a domain model back down. Don't treat escalation as one-directional.

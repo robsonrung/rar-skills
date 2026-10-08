@@ -38,7 +38,7 @@ recorded receipt policy before the result enters the decision record.
 
 ## Role protocol
 
-Create two isolated role contexts. They exchange only the persisted decision record, question packets, answer packets, and cited repository evidence. Use source locators and revisions. Exclude secrets, unrelated personal data, and full transcripts from role packets. Do not merge their conversations or call a later response an independent opinion.
+Create two isolated role contexts. They exchange only the persisted decision record, question packets, answer packets, and cited repository evidence. Use the entry file's stable decision IDs and compact source index in both question and answer packets. Carry source IDs, authority, locators, and content revisions; include only new or changed rows on later turns. Exclude secrets, unrelated personal data, and full transcripts from role packets. Do not merge their conversations or call a later response an independent opinion.
 
 | Role | Job | Inputs | Required output |
 | --- | --- | --- | --- |
@@ -217,8 +217,7 @@ Set `decision-record.md` to `ready-for-prd` only when all of these are true:
 1. Every frontier branch has a `user-supplied`, `repository-evidence`,
    `automated-inference`, `nonmaterial-default`, or `out-of-scope` result.
 2. No `awaiting-human` material decision remains.
-3. Each automatic result records its source category, evidence paths or
-   locators, assumptions, and the role execution reference.
+3. Each automatic result retains its decision ID, source category, indexed evidence with authority and content revisions, assumptions, and role execution reference.
 4. Every `automated-inference` states why the supplied scope permits it and why
    it is not an invented user preference or approval.
 5. Role route and receipt limits are recorded accurately in the run state.

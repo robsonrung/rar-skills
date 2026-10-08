@@ -12,7 +12,7 @@ Sub-route from the ask and the repo, then stay on it:
 
 Verdicts: `adopt` | `hybrid` | `hold` | `review-fix` | `migrate-slice`.
 
-**Adopt gate** — run on `new-system` and `migrate` before any design; read `references/edm-adopt-or-not.md` before naming the verdict. **`hold`** if any of these is true: the org will not treat streams as the **single source of truth** (the monolith DB stays authoritative and streams are a dump); the microservice tax (broker, schema registry, deploy/reset tooling, ownership) will not be paid centrally in the planning horizon; no second team or product needs the same domain data in near real time; the work is request-shaped (auth, fetch-a-profile, third-party HTTP) with no shareable narrative. `adopt` or `hybrid` only when shared domain data is locked in an implementation _and_ the tax will be paid; **`hybrid` is the default** when adopting — request-response stays for UIs, auth, and third parties. On `hold`, write the brief and stop. Do not design topics.
+**Adopt gate** — run on `new-system` and `migrate` before any design; read `references/edm-adopt-or-not.md` before naming the verdict. **`hold`** if any of these is true: the org will not treat streams as the **single source of truth** (the monolith DB stays authoritative and streams are a dump); the microservice tax (broker, schema registry, deploy/reset tooling, ownership) will not be paid centrally in the planning horizon; no second team or product needs the same domain data in near real time; the work is request-shaped (auth, fetch-a-profile, third-party HTTP) with no shareable narrative. `adopt` or `hybrid` only when shared domain data is locked in an implementation _and_ the tax will be paid; **`hybrid` is the default** when adopting — request-response stays for UIs, auth, and third parties. On `hold`, return the selected caller output and stop adoption design. Do not design topics.
 
 - **`new-system`** — after a non-hold gate, read `references/edm-event-contracts.md`, then `references/edm-implementation-styles.md`. Design the **data communication layer** first (streams, schemas, writers), then pick one implementation style per bounded context.
 - **`existing-edm`** — read `references/edm-review-and-migrate.md` and walk the smell catalog against repo evidence. For every contract finding, load `references/edm-event-contracts.md` before prescribing a fix. Verdict is `review-fix` unless the system already satisfies the catalog.
@@ -20,7 +20,7 @@ Verdicts: `adopt` | `hybrid` | `hold` | `review-fix` | `migrate-slice`.
 
 ## Decision brief
 
-Use `assets/edm-decision-brief.md` from this skill directory.
+For a standalone invocation, use `assets/edm-decision-brief.md` from this skill directory. An interview contributes fields to its existing decision record; a design-gate call uses the canonical gate result instead of this brief. Preserve relevant constraints and evidence in that result.
 
 Decision brief (event-driven), required fields:
 

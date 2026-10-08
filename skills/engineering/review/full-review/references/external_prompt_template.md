@@ -1,7 +1,7 @@
 # External review prompts
 
 Use this template only for a worker selected by the approved route snapshot. Read
-`references/review-dispatch.md` and
+[review-dispatch.md](review-dispatch.md) and
 [`host-model-execution.md`](../../../../shared/references/host-model-execution.md)
 to validate the snapshot's transport and tools. The dispatch contract owns the seat, model,
 effort, execution path,
@@ -10,6 +10,12 @@ select another route or worker. The same
 prompt can go to a native role or an external runner.
 
 Assign one lens to each selected route. If two routes inspect the same change, give them non-overlapping category emphasis. Do not add a seat because a runner happens to be available. Use the exact native model in an isolated role context when the host supports it. Use a runner only for a foreign or unsupported route, and keep that runner session for later rechecks of the same role.
+
+## Source delivery
+
+Use the bound diff or diff locator, source snapshot identity, requirement references, and focused source locators as the default packet. Verify that the selected worker can read those exact artifacts through its declared tools. Inspect complete files and affected callers on demand when the lens requires that context; a path without working read access is not coverage.
+
+The context policies below define inspection scope, not mandatory prompt embedding. Keep full source out of the initial prompt when reads work. Without read capability, embed the required diff and complete relevant source within approved source-sharing limits. If that material is unavailable or cannot fit, report a coverage gap; do not approve from a truncated packet. Rechecks carry changed inputs and retained finding IDs under the same bound scope.
 
 ## Base Template
 
@@ -61,10 +67,12 @@ Repo rules:
 
 ````
 
-Diff:
-```diff
-{diff}
-````
+Bound review inputs:
+{source_snapshot_identity}
+{requirements_reference}
+{diff_or_bound_diff_locator}
+{focused_source_locators}
+{read_capability_or_embedded_source}
 
 </context>
 
@@ -103,7 +111,7 @@ Prioritize bugs reproducible by a focused test. Skip security, performance, and 
 </focus_emphasis>
 
 <context_window_policy>
-Tight slice. The diff plus 30 lines of surrounding context is enough.
+Start with the diff and focused surrounding source. Read further when guards, callers, or contracts could change a finding.
 </context_window_policy>
 ````
 
@@ -128,7 +136,7 @@ Cross-file regressions only. Do not report a bug fully contained in the diff thr
 </focus_emphasis>
 
 <context_window_policy>
-Wide. Receive the full content of every touched file plus the top N dependents (callers/callees) as identified by the orchestrator. Use grep/repo-read tools when granted.
+Inspect every touched file and affected callers/callees through the verified read tools, starting from bound locators. Without read capability, use the required embedded source. Keep missing context visible as a coverage gap.
 </context_window_policy>
 ```
 
@@ -150,7 +158,7 @@ Stay inside `{category_emphasis}`. Do not turn an unrelated observation into a f
 </focus_emphasis>
 
 <context_window_policy>
-Whole diff, no extended context. Speed matters.
+Inspect the whole diff. Read affected source on demand when needed to confirm or refute a finding.
 </context_window_policy>
 ```
 
@@ -204,7 +212,7 @@ be closed. Do not add style comments or speculative hardening.
 </focus_emphasis>
 
 <context_window_policy>
-Receive the whole touched files for the highest-risk paths plus their immediate
+Inspect the whole touched files for the highest-risk paths plus their immediate
 callers, callees, guards, and focused tests. Do not sweep unrelated files.
 </context_window_policy>
 ```
@@ -221,7 +229,7 @@ Apply `references/structural_quality_review.md` end to end:
 1. Branch explosion clusters.
 2. Wrong-layer ownership and boundary leaks.
 3. Unnecessary wrappers, cast-heavy contracts, partial-update sequences.
-4. Unhealthy file growth past the 1000-line threshold.
+4. File growth that introduces a concrete cohesion, ownership, or safe-change risk. Length alone is an inspection cue.
 5. Clear code judo simplifications missed by the patch.
 </what_to_look_for>
 
@@ -275,13 +283,15 @@ Return JSON: { "refuted": true | false, "rationale": "one to three sentences", "
 
 ### `{extended_context}`
 
-Lens-driven. The orchestrator populates this slot when the lens's `<context_window_policy>` requires more than the diff (cross_file_consistency, security_runtime, precision_root_cause, structural_maintainability). For `logic_state` and `broad_sweep`, leave empty.
+Populate with bound source locators when the lens needs more than the diff. The reviewer reads the relevant files through verified tools. Embed their contents only without read capability. Even a narrow lens must inspect additional source when it could confirm or refute a finding.
 
 ```text
 Extended context:
-- Whole content of touched files: [file list]
-- Top dependents (callers/callees) the orchestrator identified: [file list]
-- Adjacent config/middleware: [file list]
+- Source snapshot and content revision: [bound identity]
+- Touched files: [paths and focused locators]
+- Affected callers/callees: [paths and locators]
+- Adjacent config/middleware: [paths and locators]
+- Read capability: [verified tool access, or embedded source when unavailable]
 ````
 
 ### `{area_rules}`

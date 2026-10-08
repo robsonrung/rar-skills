@@ -1,70 +1,42 @@
-# Incremental review responses
+# Incremental review coordination
 
-Use after an initial structured review. Prepare a new snapshot with the latest
-review bound by `--previous-review`. The reviewer reads the actual change and
-assesses which earlier conclusions still hold. Do not infer semantic independence
-from identical file hashes.
+Use after an initial structured review. Give the reviewer
+[reviewer-response.md](reviewer-response.md) for the complete response contract,
+including recheck, addendum, evidence packet, and conditional scope approval fields.
+The coordinator uses [review-evidence.md](review-evidence.md) for capture and
+verification commands.
 
-```json
-{
-  "mode": "recheck",
-  "snapshot_sha256": "current snapshot file hash",
-  "previous_review": {"path": "/absolute/prior/review.json", "sha256": "file hash"},
-  "reuse_assessment": "State why retained coverage and observations still apply, including affected callers.",
-  "affected_paths": ["src/caller.ts"],
-  "coverage": [
-    {"path": "src/changed.ts", "outcome": "reviewed", "reason": "Evidence for the changed behavior."},
-    {"path": "src/caller.ts", "outcome": "reviewed", "reason": "Evidence for the affected interaction."}
-  ],
-  "findings": [],
-  "checks": {},
-  "observations": [],
-  "summary": "Focused recheck result."
-}
-```
+Prepare a new snapshot with the latest review bound by `--previous-review`.
+The reviewer must inspect the actual change and assess retained coverage and
+evidence. File equality alone cannot establish semantic independence. A changed
+acceptance contract requires a full review under the updated approved plan.
 
-Supply fresh coverage for changed files, affected callers, new scope, and changed
-exclusions. Other coverage is inherited only with the reviewer's explicit reuse
-assessment. `findings` contains new findings and changed dispositions with the
-normal five fields. Omitted findings retain their previous status, including open
-status. IDs, paths, and severity cannot change. A new contract needs a full review.
+Before executing checks, use `select-checks` with the current snapshot in
+`--snapshot`, the original capture snapshot in `--from-snapshot`, and original
+result paths in `--checks`. For unchanged source and context, both snapshot
+arguments refer to the same file. Execute `run` entries, keep validated
+`reuse` references, and complete the assessment and `transfer-check` protocol for
+transfer candidates. Unknown dependencies use whole source scope. Required fresh
+checks always run. Retain raw failures and required failing regression evidence.
+Unscoped observations require new captures after any source content change;
+changed environment identity or declared observation inputs also require fresh
+observations.
 
-`checks` and `observations` contain replacement or additional entries. The complete
-normalized record must still satisfy the current requirements. Old check results
-must match source and context or pass the explicit transfer protocol. A changed environment identity requires fresh observations. Version 2 context notes do not change identity. Declared observation input changes also require fresh evidence. Changed code also requires new browser
-observations where the old behavior or runtime no longer represents the change.
+Use `response-contract` for current coverage, findings, observations, and any scope
+approval. Prepare a complete evidence packet before dispatch. A complete packet
+replaces prior checks and observations; inline updates merge with prior evidence.
+Neither removes unresolved findings. Exported validation packets use the same
+capture contract and still require independent coverage and findings. Generic
+status files and historical prose cannot become captured evidence.
 
-Use `review_evidence.py select-checks` with the current snapshot, prior snapshot,
-and original check paths before a recheck. Execute its `run` entries, keep its
-validated `reuse` references, and complete the existing assessment and
-`transfer-check` for `transfer` candidates. Unknown check dependencies require
-whole source scope. `fresh: true` and explicit fresh IDs always require execution.
-Unscoped browser observations require new captures after any source content
-change. Preserve raw failures and browser results when preparing a replacement
-packet; a new reviewer response cannot turn a failed or skipped capture into a pass.
+Confirmed persistent native rechecks use a compact continuation input after the
+launcher validates context and accepted contract identity. Initial or reconstructed
+reviewer contexts receive the full contract. Response format and input size are
+separate: every expanded review must still cover the whole current snapshot.
+A factual prose correction uses `addendum` only on unchanged source and requirements
+and cannot change findings or evidence. It consumes a normal approved reviewer call.
 
-Validation packets exported through `validation_control.py evidence-packet`
-use the same captured check and observation contract. They still need the
-reviewer's coverage and findings. Generic validation status files and historical
-prose cannot supply execution evidence for an incremental review.
-
-For a factual correction to review prose, use `mode: addendum`. Source and
-requirements must be unchanged. Coverage, affected paths, checks, and observations
-must be empty. A finding's evidence or the summary can be corrected, but no finding
-can be added, removed, closed, or lowered. This is a reviewer call under the existing
-approved limits, not a free extra cycle or a source fix.
-
-The helper preserves the raw execution response and stores its expanded result.
-Verification re-expands the response against immutable prior records. The conductor
-must never edit the reviewer's words to pass validation.
-
-When two reviewers report one defect, group their IDs in the correction brief and
-fix the common cause once. Retain both findings and each reviewer's resolution in
-the evidence records. A shared correction does not let one reviewer erase the
-other's finding. Reviewers may still identify new supported defects in a recheck.
-
-Before dispatch, use `response-contract` to determine the current required observations.
-Use a prepared `evidence_packet` in place of `checks` and `observations` when complete references
-are available. This preserves all coverage and findings without asking the reviewer to copy hashes.
-
-A complete evidence packet replaces prior checks and observations. Inline updates continue to merge with prior evidence. Neither form removes unresolved findings.
+The helper preserves the actual response and re-expands it against immutable prior
+records. Never edit reviewer words to pass validation. For a common defect reported
+by multiple reviewers, group finding IDs in one repair brief while retaining each
+reviewer's independent resolution. Run the verifier before reporting completion.

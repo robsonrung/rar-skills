@@ -26,9 +26,11 @@ Use current code, runtime evidence, and the user's constraints. The **smallest c
 
 ## Authority and output
 
-A decision or review request returns the selected method's recommendation. Implement only when the user's request authorizes implementation. Under design-gate, stay read-only and return `verdict: proceed|revise`, `blocking_findings`, `advisory_findings`, and `required_changes`.
+A decision or review request returns the selected method's recommendation. Implement only when the user's request authorizes implementation. Under design-gate, stay read-only and use the caller's canonical gate result.
 
 Use **all three or no ADR**: hard to reverse, surprising without context, and a real tradeoff. **Record on settle** using the existing ADR convention when all three apply. The decomposition method contains the fallback path and helper command.
+
+In an interview, contribute the decision, rationale, constraints, and source references to the existing decision record. Standalone report and implementation mechanics do not apply at that stage.
 
 ## Focused knowledge
 

@@ -61,7 +61,9 @@ from task ID to an immutable review snapshot link::
 The controller ignores prose status as completion evidence. It releases a
 dependent only after ``review_evidence.assess`` reports ``ready`` for this
 snapshot, the snapshot binds the task contract, and the current combined source
-still matches the snapshot.
+still matches the snapshot. An optional ``carry_forward`` checksum link can
+instead prove dependency release through the original review's approved exact
+changes. It preserves the original reviewer binding and is not final acceptance.
 
 Legacy Markdown queues with ``# T<N>:`` headings are accepted for inspection.
 They default to one active task and require the same routing and evidence gates
@@ -1163,14 +1165,17 @@ def integration_assessment(
     try:
         import review_evidence
 
-        snapshot = review_evidence.current_snapshot(snapshot_path, base)
+        checkpoint = entry.get("carry_forward")
+        snapshot = (review_evidence.snapshot_record(snapshot_path) if checkpoint is not None
+                    else review_evidence.current_snapshot(snapshot_path, base))
         if Path(snapshot["source"]["root"]).resolve() != root:
             return ["integration snapshot belongs to another source root"]
         if Path(snapshot["contract"]["path"]).resolve() != task.contract_path:
             return ["integration snapshot is bound to another task contract"]
         if snapshot["contract"]["sha256"] != review_evidence.contract_hash(task.contract_path):
             return ["task contract changed after integration review"]
-        assessment = review_evidence.assess(snapshot_path, base)
+        assessment = (review_evidence.assess_carry_forward(checkpoint, snapshot_path, base) if checkpoint is not None
+                      else review_evidence.assess(snapshot_path, base))
         if assessment.get("status") != "ready":
             return ["integration review is not ready"]
         review_path = snapshot_path.parent / "review.json"

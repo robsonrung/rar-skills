@@ -20,12 +20,15 @@ Write `tasks/T<N>-<slug>.md` before approval:
 <verified commands, observable behavior, and relevant failure sequences>
 
 ## Gates
-1. Lenses run: <names or none>
-2. Verdict: proceed | revise
-3. Required changes and resolved findings: <items or none>
-4. Decision required: <question or none>
-5. Security: deep | standard; trigger: <matched trigger>
-6. Test lens: <conclusion when it resolved a real choice, otherwise none>
+Lenses run: <lenses_run>
+Verdict: proceed | revise
+Blocking findings: <blocking_findings with IDs, status, evidence, and resolution>
+Advisory findings: <advisory_findings with IDs, status, evidence, and resolution>
+Required changes: <required_changes linked to finding IDs or none>
+Decision required: <decision_required or none>
+Review focus: <review_focus>
+Security: deep | standard; trigger: <matched trigger>
+Test lens: <conclusion when it resolved a real choice, otherwise none>
 
 ## Rollback note
 <rollback path>
@@ -41,6 +44,12 @@ Write `tasks/T<N>-<slug>.md` before approval:
 ```
 
 Use a new ID for a split or a replacement. Deletion leaves an ID gap. Keep every acceptance, gate, security, rollback, review, and ownership field when revising an unstarted draft. Approval cannot clear an unresolved finding or decision by changing its label.
+
+## Canonical gate result
+
+Read `shared/references/gate-result.md` for the canonical fields and finding contract. Use the task Markdown labels shown above; the queue controller requires the exact `Verdict:`, `Decision required:`, and `Security:` labels. These labels serialize the shared schema.
+
+Carry the gate's `review_focus` into Expected review focus by reference and add only task-specific risks there. Legacy task fields remain readable; fill missing fields when revising an unstarted draft, without rewriting a started contract.
 
 ## Compact index
 

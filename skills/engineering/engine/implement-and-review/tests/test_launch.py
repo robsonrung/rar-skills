@@ -769,6 +769,185 @@ class LauncherTests(unittest.TestCase):
         with contextlib.redirect_stdout(io.StringIO()):
             self.assertEqual(launcher.cmd_record_native(self.record_native_arguments(manifest_path, receipt_path)), 0)
 
+    def test_confirmed_native_repairs_use_compact_input_with_exact_byte_measurement(self):
+        self.task.write_text("Acceptance: preserve this required case.\n" * 400)
+        _, manifest_path, args = self.completed_native_implementation("compact")
+        manifest = json.loads(manifest_path.read_text())
+        first = Path(manifest["tracks"]["api"]["brief"]).read_text()
+        self.assertIn(self.task.read_text().rstrip(), first)
+        for turn in (2, 3):
+            with contextlib.redirect_stdout(io.StringIO()):
+                launcher.cmd_resume_native(args)
+            entry = json.loads(manifest_path.read_text())["tracks"]["api"]["implementation"]
+            prompt = Path(entry["brief"]).read_text()
+            self.assertNotIn(self.task.read_text().rstrip(), prompt)
+            self.assertIn(launcher.content_digest(self.task), prompt)
+            self.assertIn("impl-context", prompt)
+            self.assertIn('"approved_route"', prompt)
+            self.assertIn(launcher.WRITE_BOUNDARY.strip(), prompt)
+            self.assertIn(Path(args.follow_up).read_text().strip(), prompt)
+            self.assertLess(len(prompt.encode()), len(first.encode()) // 2)
+            self.assertEqual(entry["brief_binding"]["input_kind"], "continuation")
+            self.assertEqual(entry["brief_binding"]["input_measurement"]["utf8_bytes"], len(prompt.encode()))
+            self.complete_native_followup(manifest_path, "impl-context", turn)
+
+    def test_short_contract_continuation_uses_smaller_full_input(self):
+        _, manifest_path, args = self.completed_native_implementation("short-contract")
+        contract = {"path": self.task, "content_sha256": launcher.content_digest(self.task)}
+        full, _ = launcher.render_bound_brief(
+            contract, Path(args.follow_up), launcher.WRITE_BOUNDARY, "Derived implementation follow-up")
+        with contextlib.redirect_stdout(io.StringIO()):
+            launcher.cmd_resume_native(args)
+        entry = json.loads(manifest_path.read_text())["tracks"]["api"]["implementation"]
+        self.assertEqual(Path(entry["brief"]).read_text(), full)
+        self.assertEqual(entry["brief_binding"]["input_kind"], "full")
+        self.assertEqual(entry["brief_binding"]["continuation_proof"]["context_id"], "impl-context")
+        self.assertEqual(entry["native_dispatch"]["context_action"], "resume")
+        self.assertEqual(entry["native_dispatch"]["context_id"], "impl-context")
+        self.assertEqual(entry["brief_binding"]["input_measurement"]["utf8_bytes"], len(full.encode()))
+
+    def test_valid_full_followup_is_not_blocked_by_larger_continuation(self):
+        _, manifest_path, args = self.completed_native_implementation("full-within-budget")
+        source = Path(args.follow_up)
+        source.write_text("x")
+        contract = {"path": self.task, "content_sha256": launcher.content_digest(self.task)}
+        full, _ = launcher.render_bound_brief(
+            contract, source, launcher.WRITE_BOUNDARY, "Derived implementation follow-up")
+        source.write_text("x" * (23950 - len(full.encode()) + 1))
+        full, _ = launcher.render_bound_brief(
+            contract, source, launcher.WRITE_BOUNDARY, "Derived implementation follow-up")
+        self.assertEqual(len(full.encode()), 23950)
+        with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+            self.assertEqual(launcher.cmd_resume_native(args), 0)
+        entry = json.loads(manifest_path.read_text())["tracks"]["api"]["implementation"]
+        self.assertEqual(Path(entry["brief"]).read_text(), full)
+        self.assertEqual(entry["brief_binding"]["input_kind"], "full")
+        self.assertEqual(entry["brief_binding"]["input_measurement"]["utf8_bytes"], 23950)
+        self.assertEqual(entry["native_dispatch"]["context_action"], "resume")
+
+    def test_native_continuation_rejects_missing_or_changed_proof_before_dispatch(self):
+        _, manifest_path, args = self.completed_native_implementation("proof")
+        original = manifest_path.read_text()
+        for mutation in ("receipt", "context", "role", "contract", "input", "route", "missing"):
+            with self.subTest(mutation=mutation):
+                manifest = json.loads(original)
+                context = manifest["native_contexts"]["impl-api"]
+                binding = manifest["tracks"]["api"]["brief_binding"]
+                first_path = Path(manifest["tracks"]["api"]["brief"])
+                first_bytes = first_path.read_bytes()
+                if mutation == "receipt":
+                    context["receipt_sha256"] = "0" * 64
+                elif mutation == "context":
+                    context["context_id"] = "another-context"
+                elif mutation == "role":
+                    context["role"] = "reviewer"
+                elif mutation == "contract":
+                    binding["contract_content_sha256"] = "0" * 64
+                elif mutation == "input":
+                    first_path.write_text("Replaced accepted input")
+                elif mutation == "route":
+                    manifest["tracks"]["api"]["implementation"]["effective_route"]["effort"] = "max"
+                else:
+                    del context["receipt_ref"]
+                manifest_path.write_text(json.dumps(manifest))
+                before = manifest_path.read_bytes()
+                with mock.patch.object(launcher, "dispatch_route") as dispatch, \
+                     contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+                    with self.assertRaises(SystemExit):
+                        launcher.cmd_resume_native(args)
+                dispatch.assert_not_called()
+                self.assertEqual(manifest_path.read_bytes(), before)
+                first_path.write_bytes(first_bytes)
+        manifest_path.write_text(original)
+
+    def test_native_recovery_and_fresh_context_keep_full_contract(self):
+        _, manifest_path, args = self.completed_native_implementation("full-recovery")
+        manifest = json.loads(manifest_path.read_text())
+        del manifest["native_contexts"]["impl-api"]["receipt_ref"]
+        manifest_path.write_text(json.dumps(manifest))
+        args.context_recovery_reason = "Host confirmed context was lost"
+        with contextlib.redirect_stdout(io.StringIO()):
+            launcher.cmd_resume_native(args)
+        entry = json.loads(manifest_path.read_text())["tracks"]["api"]["implementation"]
+        self.assertIn(self.task.read_text().strip(), Path(entry["brief"]).read_text())
+        self.assertEqual(entry["brief_binding"]["input_kind"], "full")
+        self.assertEqual(entry["native_dispatch"]["context_action"], "reconstruct")
+        self.assertIsNone(entry["native_dispatch"]["context_id"])
+        route = self.route("review-api", "reviewer", "claude-fable-5-1")
+        contract = {"path": self.task, "content_sha256": launcher.content_digest(self.task)}
+        self.assertIsNone(launcher.confirmed_native_continuation(manifest, route, contract, None))
+
+    def test_native_continuation_rejects_changed_current_contract(self):
+        _, manifest_path, args = self.completed_native_implementation("changed-acceptance")
+        before = manifest_path.read_bytes()
+        self.task.write_text("Acceptance: changed requirement")
+        with mock.patch.object(launcher, "dispatch_route") as dispatch, \
+             contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+            with self.assertRaises(SystemExit):
+                launcher.cmd_resume_native(args)
+        dispatch.assert_not_called()
+        self.assertEqual(manifest_path.read_bytes(), before)
+
+    def test_compact_receipt_cannot_claim_reconstruction_after_dispatch(self):
+        self.task.write_text("Acceptance: retain every case.\n" * 100)
+        _, manifest_path, args = self.completed_native_implementation("late-recovery")
+        with contextlib.redirect_stdout(io.StringIO()):
+            launcher.cmd_resume_native(args)
+        before = manifest_path.read_bytes()
+        dispatch = json.loads(before)["tracks"]["api"]["implementation"]["native_dispatch"]
+        receipt_path = self.root / "replacement.json"
+        receipt_path.write_text(json.dumps(self.native_receipt(dispatch, context_id="replacement", completed_turn=1)))
+        record_args = self.record_native_arguments(manifest_path, receipt_path)
+        record_args.context_recovery_reason = "Host reported context lost after dispatch"
+        with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+            with self.assertRaises(SystemExit):
+                launcher.cmd_record_native(record_args)
+        self.assertEqual(manifest_path.read_bytes(), before)
+
+    def test_native_reviewer_first_recheck_and_recovery_packets(self):
+        self.task.write_text("Acceptance: retain every case.\n" * 100)
+        path = self.native_plan()
+        plan = json.loads(path.read_text())
+        reviewer = plan["routes"][1]
+        reviewer.update(mode="native", effort_control="native", native=plan["routes"][0]["native"])
+        plan["approval"]["routes_digest"] = launcher.canonical_digest(launcher.normalized_routes(plan["routes"]))
+        path.write_text(json.dumps(plan))
+        with contextlib.redirect_stdout(io.StringIO()):
+            launcher.cmd_launch(self.launch_arguments(path, "review-packets"))
+        manifest_path = self.manifest_for("review-packets")
+        self.complete_native_followup(manifest_path, "impl-context", 1)
+        args = Namespace(manifest=str(manifest_path), session_id=None, task_id=None, working_dir=None,
+                         track="api", review_brief=str(self.brief), review_snapshot="snapshot.json",
+                         cycle=None, timeout=1, dry_run=False, context_recovery_reason=None)
+        for cycle in (1, 2, 3):
+            if cycle == 3:
+                args.context_recovery_reason = "Host confirmed reviewer context lost"
+            with mock.patch.object(launcher, "review_source_binding", return_value={"path": "snapshot.json", "sha256": "fixture"}), \
+                 mock.patch.object(launcher.evidence_module(), "response_contract", return_value={"coverage_paths": ["changed.py"]}), \
+                 contextlib.redirect_stdout(io.StringIO()):
+                launcher.cmd_review(args)
+            record = json.loads(manifest_path.read_text())["reviews"][-1]
+            prompt = Path(record["brief"]).read_text()
+            self.assertEqual(self.task.read_text().strip() in prompt, cycle != 2)
+            self.assertIn("shared/references/reviewer-response.md", prompt)
+            self.assertNotIn("shared/references/review-evidence.md", prompt)
+            self.assertIn("changed.py", prompt)
+            self.assertIn(launcher.REVIEW_BOUNDARY.strip(), prompt)
+            self.assertEqual(record["brief_binding"]["input_measurement"]["utf8_bytes"], len(prompt.encode()))
+            dispatch = record["launch"]["native_dispatch"]
+            self.assertEqual(dispatch["context_action"], {1: "start", 2: "resume", 3: "reconstruct"}[cycle])
+            receipt = self.native_receipt(dispatch, context_id="review-context" if cycle != 3 else "recovered-review", completed_turn=cycle if cycle != 3 else 1)
+            receipt.update(effective_runner=reviewer["runner"], configured_model=reviewer["model"], effective_model=reviewer["model"])
+            receipt["model_receipt"]["observed_model"] = reviewer["model"]
+            receipt["native_execution"].update(role="reviewer", configured_model=reviewer["model"], tool_policy="read-only")
+            receipt_path = self.root / "review-receipt.json"
+            receipt_path.write_text(json.dumps(receipt))
+            record_args = self.record_native_arguments(manifest_path, receipt_path)
+            record_args.phase, record_args.cycle = "review", cycle
+            with contextlib.redirect_stdout(io.StringIO()):
+                launcher.cmd_record_native(record_args)
+        self.assertEqual(json.loads(manifest_path.read_text())["attempts"]["review_cycles"]["api"], 3)
+
     def test_native_followups_use_lower_and_higher_approved_limits(self):
         for review_cycles, evidence_recoveries in ((1, 1), (5, 2)):
             with self.subTest(review_cycles=review_cycles, evidence_recoveries=evidence_recoveries):

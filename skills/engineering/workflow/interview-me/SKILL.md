@@ -43,7 +43,7 @@ This step ends at the decision record. `to-prd` writes the draft PRD. Do not pla
 
    2. In `--auto` mode, use the bounded round protocol in [references/auto-mode.md](references/auto-mode.md). Do not ask the user between automatic rounds unless only material unknowns remain.
 
-4. **Record on settle.** Write each answer, nonmaterial default, or descoped item into the decision record as it settles. Never use a default to bypass a material decision. In `--auto` mode, keep the provenance, evidence, assumptions, and role execution reference that [references/auto-mode.md](references/auto-mode.md) requires. When a term becomes canonical, update the glossary entry. For an architectural decision, apply **all three or no ADR**: it must be hard to reverse, surprising without context, and a real tradeoff. Write a qualifying ADR from `references/adr-template.md` when it settles.
+4. **Record on settle.** Assign each frontier decision a stable ID (`D1`, `D2`, onward) and retain it through questions, answers, PRD outcomes, and task references. Write each answer, nonmaterial default, or descoped item into the decision record as it settles. Use the Decision record evidence fields below in both modes. Never use a default to bypass a material decision. In `--auto` mode, keep the provenance, evidence, assumptions, and role execution reference that [references/auto-mode.md](references/auto-mode.md) requires. When a term becomes canonical, update the glossary entry. For an architectural decision, apply **all three or no ADR**: it must be hard to reverse, surprising without context, and a real tradeoff. Write a qualifying ADR from `references/adr-template.md` when it settles.
 
 5. Recompute the frontier after every user reply or automatic answer batch. If only a runnable experiment can settle a decision and that answer changes the PRD, use `to-prototype`, record its answer, and continue with independent questions in a later round. Do not prototype a fact the repository already answers.
 
@@ -61,6 +61,14 @@ Write a short kebab case feature slug, reusing an existing one when present. Sta
 6. Glossary entries and ADRs written, with their paths.
 7. Any prototype answer that shaped a decision.
 8. In `--auto` mode, a provenance entry for each automatic choice: its source category, evidence paths or locators, stated assumptions, and role execution reference. Include the active run ID and state path while the run is unfinished. Keep `awaiting-human` items open.
+
+### Decision evidence
+
+Use one compact source index in the decision record. Each source row contains `source_id`, `path` (or durable message/artifact URI), `locator` (section, symbol, range, or message ID), `authority` (user instruction, approved decision, repository fact, or inference), and `content_revision` (immutable revision or content digest). A branch name or timestamp alone is not a content revision. Record a captured result path and digest for command evidence. For a user answer, retain its exact message reference and a digest of the relevant text.
+
+Each decision contains `decision_id`, outcome, status, rationale, applicable scope, source IDs, and explicit assumptions. Keep material unknowns open. Automatic choices also retain their source category and role execution reference. A source row describes authority; it cannot grant authority that the source lacks.
+
+On correction or conflict, preserve the ID and earlier evidence, append the new source revision, and state which choice it supersedes. Reuse **already decided** choices while their scope, authority, and sources still match. Recheck missing, changed, or disputed evidence before using the affected decision. Interview lenses return decision fields in this record; they do not require separate briefs, code edits, or interface comments.
 
 ## Acceptance contract
 

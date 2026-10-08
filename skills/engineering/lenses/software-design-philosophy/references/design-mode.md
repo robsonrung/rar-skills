@@ -1,6 +1,8 @@
 # Design Mode
 
-State the abstraction in one sentence (what the caller gets to _not_ know). Then **design it twice**. Functionality matches today's needs; the interface does not — it is _somewhat general_. Over-specialization is the usual source of extra complexity: do not put `backspace`/`deleteKey`/`deleteSelection` on the text module. Answer the three questions in [principles.md](principles.md) before coding. Pull complexity down; define errors out of existence; write the interface comment _before_ the body so a caller need not read the implementation. Read [principles.md](principles.md), then [comments-and-names.md](comments-and-names.md).
+State the abstraction in one sentence: what can the caller safely ignore? Use **design it twice** only for a consequential unresolved interface. Reuse settled choices and examine new evidence that challenges them. Apply the interface checks in [principles.md](principles.md) to the changed boundary, including its invariants, error behavior, and compatibility.
+
+Keep the interface somewhat general for current needs. For example, one range deletion can cover backspace and selection deletion without separate text APIs. Pull complexity into the module when it owns that knowledge. Preserve errors the caller must handle. When implementation is authorized and an interface comment is needed, use [comments-and-names.md](comments-and-names.md) before the body. An interview records decision fields only; a gate returns its canonical result.
 
 ## Standalone output
 

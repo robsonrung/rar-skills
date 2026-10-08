@@ -7,6 +7,8 @@ description: Choose or review a reusable UI design system. Use when selecting sh
 
 Use the **design system** as the shared rules for tokens, components, and interactions. Reuse the project's system for maintenance and review. Generate recommendations only when a system is missing or the user requests a new direction.
 
+Under `design-gate`, use the caller's canonical gate result. This replaces standalone output and edit mechanics. Carry lens-specific conclusions in findings or `review_focus`, with stable finding IDs. In an interview, contribute decision fields to the existing decision record.
+
 ## Select the work
 
 1. **Review an existing interface:** Compare the affected screens and interactions with the selected system. Return findings without editing unless the user requests fixes. A database search is optional.

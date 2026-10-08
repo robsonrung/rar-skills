@@ -43,7 +43,7 @@ user decisions before sending the packet; a checksum cannot resolve their meanin
 
 The task launcher applies a separate default ceiling of **24,000 UTF-8 bytes** to the exact
 final text for implementation, review, and native followups. This includes the full task
-contract, derived notes, source locators, execution boundaries, appended review requirements,
+contract or validated continuation identity, derived notes, source locators, execution boundaries, appended review requirements,
 and evidence packet references. It never truncates required instructions or acceptance rules.
 
 The check runs before worktree creation or worker dispatch and before a review cycle or native
@@ -84,6 +84,18 @@ packet as its initial input; keep source files available on demand. For native d
 uses `fork_turns: none` for creation. Do not fork the coordinator's full conversation.
 
 Reuse the recorded context for that task's repairs and rechecks. Send only changed facts and
-relevant evidence in the derived followup. Reconstruct a lost context from that role's artifacts
-under the existing recovery protocol. A new task starts a new context; changing the context must
+relevant evidence in the derived followup. The launcher omits repeated acceptance text only
+for a completed native context with matching task, role, exact approved route, canonical
+contract path and hash, original receipt and hash, completed turn, and prior input hash.
+It carries these bindings, the approved route, and exact execution boundaries in the compact
+input. After proof validation, it selects the smaller UTF-8 rendering of the full contract
+and compact continuation. Short contracts can remain inline during a context resume.
+The manifest records the selected `input_kind` and continuation proof. Reviewer input still carries the current snapshot, full required coverage, prior findings,
+and packet locators. The complete rendered input remains subject to the same byte limit.
+
+Missing or changed proof blocks continuation. Use the explicit recovery reason only after
+confirming context loss; recovery sends the full acceptance contract. Initial calls, fresh roles,
+runner calls, and reconstructed contexts retain the full contract. If the host has lost retained
+history, report that loss before acting on compact input. A receipt attests to host context;
+it cannot inspect hidden history. A new task starts a new context; changing the context must
 never reset call or retry counters. These rules do not authorize additional workers or user-owned tasks.

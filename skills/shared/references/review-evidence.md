@@ -77,26 +77,11 @@ For browser observations, save actual driver output or screenshots and their SHA
 
 ## Reviewer response
 
-Give the independent reviewer the snapshot path, its file SHA-256, requirements, prior findings, and check result paths. For an initial review, its complete final response is one JSON object with these exact fields. For a recheck or a prose-only correction, use [incremental-review.md](incremental-review.md) to retain prior coverage without repeating it:
-
-```json
-{
-  "snapshot_sha256": "SHA-256 of snapshot.json",
-  "coverage": [
-    {"path": "src/example.ts", "outcome": "reviewed", "reason": "Checked behavior and affected callers."}
-  ],
-  "findings": [],
-  "checks": {"tests": "/absolute/path/to/checks/tests/result.json"},
-  "observations": [],
-  "summary": "No defect found."
-}
-```
-
-The normalized record needs exactly one coverage row for every changed path. An incremental response supplies only changed or affected coverage; the helper expands the bound prior record. `outcome` is `reviewed` or `excluded`. Excluded paths and reasons must exactly match requirements. Missing, duplicate, or extra rows are invalid.
-
-Each finding has exactly `id`, `path`, `severity`, `status`, and `evidence`. IDs are unique within a review. Severity is P0, P1, P2, or P3. Status is `open`, `fixed`, `rejected`, `deferred`, or `disputed`. Evidence explains the defect or supports its resolution. Carry prior finding IDs into rechecks and record their resolution. The reviewer must assess that resolution; the validator cannot infer it from code. Map full-review severity CRITICAL to P0, HIGH to P1, MEDIUM to P2, and LOW to P3.
-
-Each observation has exactly `id`, `result`, and `evidence`. Result is `pass`, `fail`, or `skipped`. Evidence is a nonempty list of objects with absolute `path` and file `sha256`. Observation IDs must match requirements.
+Give the independent reviewer the current snapshot path and file hash,
+requirements, prior findings, check paths, and `response-contract` output.
+The reviewer reads [reviewer-response.md](reviewer-response.md) for the exact
+response fields, coverage and finding rules, packet substitution, scope approval,
+rechecks, and prose corrections. Keep its response unchanged when recording it.
 
 ## Record and verify
 
@@ -117,7 +102,7 @@ The verifier returns JSON and an exit code: 0 for `ready`, 1 for `needs-work`, a
 
 Readiness requires complete coverage, passing required checks and observations, no open or disputed finding, and no deferred P0, P1, or P2. Deferred P3 findings need a reason in their evidence. There is no approval field to override these rules.
 
-A changed source, index, intended base, contract, requirement, or evidence file blocks implicit reuse. An explicit transfer can reuse a captured check on identical content; it never silently transfers review acceptance. The error lists changed source paths where available. Review affected paths and interactions, then create a new snapshot and result. Preserve old records. A reviewer can retain earlier coverage after assessing the effects of later changes; matching individual file hashes cannot prove semantic independence.
+A changed source, index, intended base, contract, requirement, or evidence file blocks implicit reuse. An explicit transfer can reuse a captured check on identical content. The bounded carry forward protocol below can release task dependencies; it cannot establish final combined acceptance. The error lists changed source paths where available. Review affected paths and interactions, then create a new snapshot and result. Preserve old records. A reviewer can retain earlier coverage after assessing the effects of later changes; matching individual file hashes cannot prove semantic independence.
 
 Legacy Markdown reports remain context. They cannot establish deterministic readiness without a current structured record. Human reports link to snapshots, review records, captured checks, and verifier output.
 
@@ -165,11 +150,9 @@ readiness until the required unit packets are combined into a complete packet.
 For the task launcher, pass `review --evidence-packet <packet.json>` to validate the packet before
 reserving a review cycle. The launcher adds required response coverage to the bound review brief.
 
-The reviewer can replace its `checks` and `observations` fields with the returned
-`evidence_packet: {path, sha256}` reference. All judgment fields remain required. The helper
-expands the exact packet, preserves the original response, and checks every referenced file again.
-A packet does not prove that an observation passed. Preserve the observed result and require the
-reviewer to assess it. Never edit a reviewer response to repair a hash or close a finding.
+Pass the complete packet reference to the reviewer. Its substitution and
+assessment rules are in [reviewer-response.md](reviewer-response.md). The helper
+preserves the original response and rechecks every referenced capture.
 
 ## Structured context and scoped inputs
 
@@ -257,3 +240,83 @@ review only when the same verifier accepts current source and evidence. A unit
 pass alone supplies no reviewer judgment. Historical generic validation data
 remains context only; the bridge rejects it instead of adding missing identities
 after the run.
+
+## Carry forward task dependency release
+
+Use this optional protocol only when the original reviewer can approve exact
+prospective changes before its review. It keeps the **scope contract** explicit:
+"The scope contract permits these exact notes because their content has no
+runtime, build, configuration, schema, or public interface effect."
+Path or hash equality alone does not prove semantic independence. Unknown
+or incomplete dependencies keep whole source review. Legacy requirements remain
+strict by default.
+
+Before the original `prepare`, add `review_scope` to requirements:
+
+```json
+{
+  "inputs": ["src/task.py", "tests/task_test.py", "requirements.lock"],
+  "complete": true,
+  "reason": "Complete dependency closure, including callers, configuration, schemas, runtime inputs, and shared boundaries; evidence and rationale for independence.",
+  "changes": [
+    {
+      "path": "notes/session.txt",
+      "content": {"path": "/absolute/prospective-session.txt", "sha256": "file hash"},
+      "reason": "Why these exact bytes cannot affect the reviewed task or its acceptance."
+    }
+  ]
+}
+```
+
+The example is the value of `review_scope`. Resolve actual dependency facts;
+do not copy its claim of completeness. List the complete file dependency
+closure, including declared check and observation inputs. Changes must be
+outside that closure. The helper accepts 1 to 32 exact file changes with captured
+prospective content. It accepts no globs, directories, symlinks, ignored source,
+executable outputs, deletions, or evidence artifacts as changed paths. This is
+not an exclusion list: the reviewer inspects each proposed content file and its
+semantic effects. Relevant dependency, configuration, schema, runtime, public
+or shared boundary changes require review, even if their paths differ.
+
+`response-contract` returns the scope and its digest. The original reviewer
+must supply `scope_approval` with that digest in its actual response. An
+unsupported scope blocks carry forward. The requirements hash, snapshot hash,
+review hash, and approved dispatch bind this decision before later changes.
+No retrospective scope may be attached to an existing review.
+
+After an approved change occurs:
+
+1. Prepare a new target snapshot with the same contract, requirements file,
+   artifact directory, source root, base commit, and index. Bind only the original
+   review with `--previous-review`. Preserve original records and findings.
+2. Capture current environment and base evidence in the same assessment shape
+   used by `transfer-check`: original `from_snapshot_sha256`, target `to_source_id`,
+   and evidence for runtime, dependencies, external state, and base interactions.
+3. Run required fresh and affected checks. Existing check transfer rules still
+   apply; unknown check dependencies require a fresh run after content changes.
+   Prepare a complete target evidence packet. Capture fresh observations when
+   their declared inputs or environment change, or when inputs are unknown.
+4. Run `carry-forward` and store its returned `carry_forward` link in the
+   task's existing integration evidence entry. Keep that entry's original
+   `snapshot`, `base`, and `launch_manifest` bindings.
+
+```bash
+python3 <shared-dir>/scripts/review_evidence.py carry-forward \
+  --from-snapshot <original-snapshot.json> --to-snapshot <current-snapshot.json> \
+  --assessment <current-environment-assessment.json> --packet <current-packet.json> \
+  --output <new-checkpoint.json>
+```
+
+The queue rechecks the checkpoint and all linked evidence on each projection.
+Every source change must match one of the original exact prospective contents.
+All other files, the full declared dependency closure, contract, requirements,
+root, base, index, and environment identity remain bound. Missing or changed
+capture files, failed checks or observations, unresolved original findings,
+missing original reviewer dispatch, and pending calls still block release.
+Budgets and ownership remain under the existing queue and ledger rules.
+
+A checkpoint proves task dependency release only. It creates no reviewer
+response and cannot pass normal `verify` for the target. Final feature completion
+still needs an independent current combined review and acceptance evidence.
+New changes outside the approved scope need ordinary integration review; never
+widen an existing checkpoint or chain it as a new original review.

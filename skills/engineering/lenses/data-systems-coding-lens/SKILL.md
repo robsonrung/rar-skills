@@ -92,6 +92,8 @@ Ask:
 4. Are logs, metrics, and traces enough to debug the real production path?
 5. What old code, data, flag, or job needs cleanup after the rollout?
 
+Under `design-gate`, use the caller's canonical gate result. This replaces standalone output and edit mechanics. Carry lens-specific conclusions in findings or `review_focus`, with stable finding IDs. In an interview, contribute decision fields to the existing decision record.
+
 ## Output Patterns
 
 For implementation work, add a short note before coding when useful:

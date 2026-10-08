@@ -73,6 +73,8 @@ Match the _pressure you named_ to a candidate. This is a starting point, not a v
 
 For the full catalog — each pattern's one-line definition, the smells that suggest it, a structure sketch, related patterns, and **when it's overkill** — read `references/patterns.md`. Read only the entries relevant to the situation; it's organized so you can jump to one pattern.
 
+Under `design-gate`, use the caller's canonical gate result. This replaces standalone output and edit mechanics. Carry lens-specific conclusions in findings or `review_focus`, with stable finding IDs. In an interview, contribute decision fields to the existing decision record.
+
 ## Output shape
 
 When advising on structure, prefer this form so the recommendation is honest and actionable:

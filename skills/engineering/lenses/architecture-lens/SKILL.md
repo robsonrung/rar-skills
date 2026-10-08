@@ -27,9 +27,11 @@ This skill reports findings. A user's request for scoped fixes authorizes those 
 
 For a standalone review, group findings by selected lens with `file:line`, the violated rule, and a concrete fix. For a decision, state the chosen shape, actual tradeoff, and next move. A small decision can use two lines. A clean lens returns `clean`; do not invent findings or a counterpoint to fill a category.
 
-Under `design-gate`, return `verdict` (`proceed` | `revise`), `blocking_findings`, `advisory_findings`, and `required_changes`. A load-bearing issue can require revision; cosmetic preference cannot.
+Under `design-gate`, use the caller's canonical gate result. A load-bearing issue can require revision; cosmetic preference cannot.
 
 Use **all three or no ADR**: hard to reverse, surprising without context, and a real tradeoff. **Record on settle** using [references/adr-template.md](references/adr-template.md) when all three apply. Otherwise preserve the decision in the existing task or review note.
+
+In an interview, contribute the decision, rationale, constraints, and source references to the existing decision record. Standalone report and implementation mechanics do not apply at that stage.
 
 ## Additional references
 

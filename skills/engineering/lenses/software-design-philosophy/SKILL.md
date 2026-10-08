@@ -24,7 +24,7 @@ Use these **leitwörter** to explain an actual design decision:
 - **strategic** — invest a little design now so the next change is cheaper. The opposite is **tactical** ("just make it work") and the **tactical tornado** (the person who ships fastest by leaving a mess).
 - **deep module** — a simple interface hiding a lot of functionality. Cost is the interface; benefit is what it hides. A **shallow module** costs about as much to learn as to inline.
 - **information leakage** — one design decision reflected in two or more modules. That _is_ a **change ownership** failure; give the decision one owner.
-- **design it twice** — for any consequential interface, sketch two or three _meaningfully different_ shapes before coding.
+- **design it twice** — for a consequential unresolved interface, compare two or three meaningfully different shapes before coding. Reuse a settled interface unless new evidence challenges it.
 - **stay strategic** — when modifying existing code, do not tack on a special case that makes the design worse. Fit the change, or improve the design.
 - **decide what matters** — name the few things this situation depends on, minimize that set, and emphasize only those.
 - **reader, not writer** — complexity is judged by the next person to change the code. If it is simple only to you, it is complex.
@@ -42,11 +42,13 @@ Ask **reader, not writer**: would the next developer need a fact absent from the
 
 `review` and all `design-gate` invocations are read-only: findings only, no edits or test runs. `design` and `improve` may edit within the user's request. They do not authorize unrelated refactors.
 
+In an interview, record the boundary decision, rationale, constraints, and source references in the existing decision record. Code edits, interface comments, test mechanics, and standalone reports belong to their later authorized stage.
+
 ## Acceptance contract
 
 Use the selected mode's output fields. Name the official red flag or principle behind each finding. Report real rejected alternatives, or state that no new design choice was required. For edits, identify changed files, behavior-preserving work or exact behavior changes, and checks run or unavailable.
 
-Under `design-gate`, return `verdict` (`proceed` | `revise`), `conceptual_integrity_check`, `blocking_findings`, `advisory_findings`, and `required_changes`. A leaked decision, shallow new public interface, or tactical special case can block when it is load-bearing; cosmetic naming is advisory.
+Under `design-gate`, use the caller's canonical gate result and put the conceptual integrity conclusion in `review_focus`. A leaked decision, shallow new public interface, or tactical special case can block when it is load-bearing; cosmetic naming is advisory.
 
 ## Gotchas
 

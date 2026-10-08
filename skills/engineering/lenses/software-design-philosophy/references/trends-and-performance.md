@@ -19,7 +19,7 @@ Judge any trend, pattern, or rule by: _does it reduce complexity here, or add it
 | Inheritance | A real, stable is-a, interface-only | Implementation inheritance that couples a hierarchy; prefer composition |
 | Agile | Small increments, feedback | Feature-completion that crowds out design. Reserve design moments. |
 | Unit tests | They make design change safe — they are a **strategic** tool | Tests that pin structure instead of **observable behavior** |
-| TDD | When the interface is already clear | Tests-first on an undesigned interface. **Design it twice**, then test. Hand the loop to `tdd`. |
+| TDD | When the interface is already clear | Tests-first on an unresolved consequential interface. **Design it twice** for that choice, then test. Reuse settled interfaces. Hand the loop to `tdd`. |
 | Design patterns | A named pattern removes a real complexity | Pattern-for-its-own-sake. That is `design-patterns`'s "fits" test plus this chapter's veto. |
 | Getters and setters | Rare, when the field _is_ the abstraction | A field wrapped in two shallow methods. Usually **classitis**. |
 

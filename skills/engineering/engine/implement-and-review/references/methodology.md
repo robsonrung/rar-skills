@@ -5,10 +5,15 @@ Runner and native worker routes receive the task brief, not the skill library. B
 ## Always Include
 
 1. The accepted task scope and unchanged-behavior boundary.
-2. The acceptance contract and commands to run.
+2. The full acceptance contract on first dispatch, plus required verification commands and check IDs.
 3. The named task risk and any settled design constraint.
 4. The evidence route from `evidence-strategy.md`.
 5. The execution boundary: no commit, push, merge, pull request, deployment action, or external message.
+
+Give the implementer the requirements file and shared capture instructions before
+dispatch. After its final edit, it prepares a snapshot and captures the last green
+required checks through `run-check`. It returns original snapshot, result, and log
+paths. The coordinator selects reusable captures before independent review.
 
 ## Select by Trigger
 
@@ -34,6 +39,12 @@ Give the approved reviewer:
 2. The changed paths and relevant diff.
 3. Test evidence and any no-test exception.
 4. The named task risk and triggered lens conclusions.
-5. This output shape: `approve` or `needs-attention`; severity-ordered findings with file, line, mechanism, and recommended correction; then remaining risk.
+5. `shared/references/reviewer-response.md`, including its exact JSON fields, packet substitution, incremental responses, and conditional scope approval.
 
 The reviewer is read only and independent from the implementer. It checks **observable behavior**, scope, evidence, and the named risk. It consumes the approved snapshot and does not choose a different model, effort, task scope, or worker.
+
+For confirmed native continuation, send changed facts, finding IDs, evidence
+locators, and the unchanged boundaries through the launcher. The launcher validates
+the prior contract, route, context, receipt, and input before omitting repeated
+contract text. It keeps the full rendering when it is smaller. Fresh or reconstructed roles receive the full contract. A compact
+prompt does not reduce required review coverage or the approved call limits.
