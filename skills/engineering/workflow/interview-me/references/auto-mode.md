@@ -223,8 +223,9 @@ Set `decision-record.md` to `ready-for-prd` only when all of these are true:
 5. Role route and receipt limits are recorded accurately in the run state.
 
 Otherwise retain `draft`, record the open frontier, and present only the next
-material questions or the terminal limit. The next workflow step after a passed
-gate is `to-prd`.
+material questions or the terminal limit. After a passed gate, follow the entry
+file's conditional `to-prd` handoff when the user's existing request includes a
+PRD. An interview-only request stops at the completed decision record.
 
 ## Context budget
 

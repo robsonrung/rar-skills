@@ -26,7 +26,7 @@ Manual mode asks the user the questions in this skill and creates no automatic r
 
 Use `models-consensus` only for an explicitly requested council with its separate approval. The interview does not use a council as a routine escalation.
 
-This step ends at the decision record. `to-prd` writes the draft PRD. Do not plan files, create tasks, or implement code.
+This stage completes at the decision record. In `--auto` mode, when the user's existing request includes a PRD, continue into `to-prd` drafting without another command after the ready-for-PRD gate passes. Preserve the completed decision record and `ready-for-prd` status. Finish the interview ledger and capture its `stage-end`, then pass the same feature measurement path to `to-prd` for its separate `stage-start`. The user's existing PRD request authorizes drafting; explicit PRD approval remains required. An interview-only request stops at the decision record. Manual mode is unchanged. Do not plan files, create tasks, or implement code.
 
 ## Work
 

@@ -1,6 +1,6 @@
 ---
 name: pre-pr-review
-description: Check existing review evidence and complete missing work before opening a pull request. Use for a final development check with scoped fixes; use review-gate for a review report only.
+description: Check existing review evidence and complete missing work before opening a pull request. Use for a final development check with scoped fixes; use full-review for a review report only.
 disable-model-invocation: true
 ---
 
@@ -72,7 +72,7 @@ Resolve only the selected skills by name through the host catalog or collection 
 | Missing browser evidence | Use `browser-smoke` for the affected interface flows. |
 | Confirmed defects or disputed findings | Apply the correction and recheck rules below. |
 | A concrete simplification need | Use `coding-review-simplify` on that scope. Keep the change **behavior-preserving**, including required validation, authorization, and error handling. |
-| No usable review evidence | Run an independent `review-gate` on the task diff as described below. Reuse any valid check results. |
+| No usable review evidence | Run an independent `full-review` on the task diff with the scope described below. Reuse any valid check results. |
 
 Use the existing approved reviewer context for a focused recheck, or `full-review` with a focused scope when no suitable context remains. Select specialists only for exposed risks. The absence of a separate simplification report is not a gap after a complete task review. Do not run simplification just because this skill was invoked.
 
@@ -102,12 +102,19 @@ For browser checks, pass the running local application's URL and port explicitly
 
 ### Review when evidence is unavailable
 
-Run an independent `review-gate` with the task requirements, intended base, and
-current source snapshot. Configure `verify: true` for missing or invalid check
-results and let the gate call `verify-changes`. Use `verify: false` only when all
-required checks already have valid evidence and no fresh run is required. Pass the
-bound evidence packet into the final report. Complete missing browser checks
-separately when needed.
+Use the exact intended base and current source snapshot. Reuse valid check
+results. Use `verify-changes` for missing, invalid, affected, or required fresh
+checks, and `browser-smoke` for missing or affected browser flows. Prepare the
+bound evidence packet before reviewer dispatch.
+
+Run an independent `full-review` through the approved reviewer route. Use
+`focused` scope for a bounded task, while preserving an approved `seam` or `deep`
+scope and required `security_focus` coverage. Give the reviewer the task
+requirements, exact intended base, current source snapshot, bound evidence
+packet, and `shared/references/reviewer-response.md`. Record its complete
+structured response unchanged and require the shared verifier to return exit
+code 0 and `ready` before reporting readiness. Include the packet and verifier
+result in the final report.
 
 Do not repeat commands already covered by an aggregate check. After simplification or a fix, invalidate only the evidence affected by that change.
 

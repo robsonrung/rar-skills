@@ -51,7 +51,8 @@ approved `input_path`, verifies its canonical content hash, and puts that task
 contract before the notes. A note cannot replace the approved task contract.
 The manifest records both source digests.
 
-Before dispatch, discover the required commands and stable check IDs. Include the
+Before preparing implementation notes, read and apply [methodology.md](methodology.md),
+including its conditional cleanup instruction. Discover the required commands and stable check IDs. Include the
 requirements file, base, capture location, and shared `prepare` and `run-check`
 instructions in the implementation notes as described in `evidence-strategy.md`.
 The worker captures its last green checks after its final edit and returns original
@@ -82,6 +83,8 @@ python3 "$SKILL_DIR/scripts/launch.py" launch \
 non-dry launch rejects a plan without recorded approval.
 
 ## Launch review
+
+Before preparing the review brief, read and apply [Review Brief](methodology.md#review-brief).
 
 The coordinator follows `shared/references/review-evidence.md`: confirm the worker's
 final snapshot and environment, then run `select-checks` with its original captures

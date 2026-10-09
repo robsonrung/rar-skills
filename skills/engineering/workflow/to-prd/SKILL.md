@@ -16,6 +16,8 @@ Use `shared/references/workflow-measurement.md` for the feature measurement reco
 
 Receive `.ai-workflow/work/<feature-slug>/decision-record.md` with status `ready-for-prd`. Produce `.ai-workflow/work/<feature-slug>/prd.md` first with status `draft`, then with status `approved` after the user accepts it.
 
+Accept the authorized handoff from `interview-me --auto` when the user's existing request includes a PRD. Reuse its completed decision record and feature measurement path. Start this stage separately and retain explicit user approval of the draft.
+
 The coordinator alone drafts this PRD. It preserves settled choices and does not select a model, resolve a route, or dispatch a worker. Keep the PRD at the decision level. It does not open fresh architecture choices or prescribe files, code, design patterns, or test mechanics. A council needs an explicit user request and its separate approval. A missing material decision or a conflict returns to `interview-me`.
 
 ## Work

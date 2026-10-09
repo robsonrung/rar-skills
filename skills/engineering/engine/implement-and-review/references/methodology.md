@@ -1,6 +1,6 @@
 # Task Brief Methodology
 
-Runner and native worker routes receive the task brief, not the skill library. Bind each brief to the existing approved route snapshot. Put only the practices that the task actually triggers into that brief. Applying a practice or routine lens happens in that role. It does not select a route or launch a nested worker.
+Runner and native worker routes receive the task brief, not the skill library. Bind each brief to the existing approved route snapshot. Read the triggered methods and put their applicable constraints into the brief. Include the conditional cleanup instruction below even when no candidate is known yet. Applying a practice or routine lens happens in that role. It does not select a route or launch a nested worker.
 
 ## Always Include
 
@@ -28,8 +28,11 @@ paths. The coordinator selects reusable captures before independent review.
 | Agent loop, durable state, tool retry, or human gate | Apply `agent-architecture-lens`. |
 | Component composition, UI state, or UI fetch lifecycle | Apply `advanced-react` or `frontend-design`, when the matching framework is present. |
 | New pattern, topology, or architecture boundary | Apply the selected lens conclusion as a fixed constraint. |
+| The task is green and a behavior-preserving simplification would help the next reader | Apply `coding-review-simplify` before the final snapshot and check capture, including when the candidate appears only after implementation. The implementer performs authorized cleanup within the task scope. |
 
-Apply `clean-code` to touched code. Apply `test-lens` when choosing tests needs judgment about real behavior, seams, mocks, or brittle coverage. Keep at most three selected lenses. Carry inherited findings into the brief, and recheck only a blocking lens after its design surface changes. Routine lenses are read only in the assigned role. A material risk or unresolved question can dispatch a selected independent specialist only through the approved snapshot. The task should remain a **native diff**: change only what the acceptance contract needs.
+For the conditional cleanup instruction, resolve `coding-review-simplify` through the host catalog or collection layout. Give the implementer its readable `SKILL.md` path and require it to load the method when the trigger occurs. If the worker cannot read that path, include the method's constraints in the brief. Use existing report fields for cleanup that ran or found a necessary follow-up.
+
+Apply `clean-code` when touched code has a concrete smell or needs refactoring. Apply `test-lens` when choosing tests needs judgment about real behavior, seams, mocks, or brittle coverage. Keep at most three selected lenses. Carry inherited findings into the brief, and recheck only a blocking lens after its design surface changes. Routine lenses are read only in the assigned role. A material risk or unresolved question can dispatch a selected independent specialist only through the approved snapshot. The task should remain a **native diff**: change only what the acceptance contract needs.
 
 ## Review Brief
 
@@ -41,7 +44,7 @@ Give the approved reviewer:
 4. The named task risk and triggered lens conclusions.
 5. `shared/references/reviewer-response.md`, including its exact JSON fields, packet substitution, incremental responses, and conditional scope approval.
 
-The reviewer is read only and independent from the implementer. It checks **observable behavior**, scope, evidence, and the named risk. It consumes the approved snapshot and does not choose a different model, effort, task scope, or worker.
+Include these review constraints in the brief: the reviewer is read only and independent from the implementer. It checks **observable behavior**, scope, evidence, and the named risk. It assesses whether simplification edits are behavior-preserving, whether removed safeguards were required, and whether changed code creates a material maintenance trap. Severity follows the consequence. A confirmed P2 whose fix is outside scope remains blocking pending the existing user decision process; it cannot become a deferred P3 to fit the scope. The reviewer consumes the approved snapshot and does not choose a different model, effort, task scope, or worker.
 
 For confirmed role continuation, send changed facts, finding IDs, evidence
 locators, and the unchanged boundaries through the launcher. The launcher validates

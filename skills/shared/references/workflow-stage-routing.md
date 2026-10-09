@@ -56,6 +56,7 @@ The implementation engine starts from the approved Slice Contract. It uses the i
 | Untested legacy code must change | `safe-incremental-coding` then `tdd` | Build the characterization test net first |
 | Failure is surprising or cause is unknown | `diagnose` | Prove the cause from existing evidence or a bounded probe before fixing |
 | Green refactor, local smell, naming, or comment decision | `clean-code` | Refactor step only |
+| A behavior-preserving simplification would help the next reader | `coding-review-simplify` in the implementer context | After green, before final snapshot and check capture, including candidates found after implementation |
 | Test value, mock boundary, or brittle test needs a decision | `test-lens` | Before writing or keeping that test |
 | Stored state, migration, queue, cache, retry, concurrency, or external API | `data-systems-coding-lens` | Before the affected implementation step and in verification |
 | Domain logic, aggregate, value object, domain event, or context integration | `domain-driven-design` tactical or strategic route | Before the affected implementation step |
