@@ -1,0 +1,7 @@
+# Codex agent interface metadata; consumed by the Codex host, not read at runtime by the model.
+interface:
+  display_name: "Response Unslop"
+  short_description: "Remove AI writing patterns from prose or a reply"
+  default_prompt: "Use $response-unslop to rewrite this text without AI writing patterns, keeping its meaning and tone."
+policy:
+  allow_implicit_invocation: false

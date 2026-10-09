@@ -138,7 +138,7 @@ instructions in each `SKILL.md`. The shared library installs beside them.
 | Review | `architecture-review`, `code-deslop`, `coding-review-simplify`, `full-review` |
 | Delivery | `capture-learning`, `open-pr`, `resolve-pr-feedback`, `session-handoff`, `summarize` |
 | Model seats | `claude-runner`, `codex-runner`, `gemini-runner`, `grok-runner`, `pi-runner` |
-| Independent utilities | `agents-md-craft`, `browser-smoke`, `cmux-cli`, `collaborative-delivery`, `decide-about-disagreements`, `diverse-plan`, `dynamic-harness`, `environment-check`, `fable-mindset`, `knowledge-graph`, `peer-sessions`, `review-gate`, `skill-expert`, `verify-changes` |
+| Independent utilities | `agents-md-craft`, `browser-smoke`, `cmux-cli`, `collaborative-delivery`, `decide-about-disagreements`, `diverse-plan`, `dynamic-harness`, `environment-check`, `fable-mindset`, `knowledge-graph`, `peer-sessions`, `response-unslop`, `review-gate`, `skill-expert`, `verify-changes` |
 | Visualizations | `consensus-summary-html`, `explain-architecture`, `html-explainer` |
 
 ## Install
