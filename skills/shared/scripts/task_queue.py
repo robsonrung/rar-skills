@@ -64,6 +64,9 @@ snapshot, the snapshot binds the task contract, and the current combined source
 still matches the snapshot. An optional ``carry_forward`` checksum link can
 instead prove dependency release through the original review's approved exact
 changes. It preserves the original reviewer binding and is not final acceptance.
+An optional ``batch_review`` snapshot link binds a new independent review of a
+bounded task set. Several entries can share one approved call while retaining
+their original contracts, findings, and validated current acceptance evidence.
 
 Legacy Markdown queues with ``# T<N>:`` headings are accepted for inspection.
 They default to one active task and require the same routing and evidence gates
@@ -78,7 +81,7 @@ import importlib.util
 import json
 import re
 import sys
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from functools import lru_cache
 from pathlib import Path, PurePosixPath
 from typing import Any, Iterable
@@ -504,10 +507,12 @@ def has_exact_status_line(task: Task, status: str) -> bool:
 
 def readiness_gates(task: Task) -> list[str]:
     """Read only gates that must be settled before a ready task can start."""
+    from gate_contract import readiness_errors
+
+    reasons = readiness_errors(task.source_text)
     if task.legacy:
-        return []
+        return reasons
     gates = legacy_section(task.source_text, "Gates")
-    reasons = []
     if not gates:
         return ["task contract has no Gates section"]
     verdicts = [match.group(1).strip().lower() for match in GATE_VERDICT.finditer(gates)]
@@ -923,8 +928,22 @@ def calls_by_task(state: dict[str, Any]) -> dict[str, list[dict[str, Any]]]:
         intent = call.get("intent")
         route = intent.get("route") if isinstance(intent, dict) else None
         task_id = route.get("task_id") if isinstance(route, dict) else None
-        if isinstance(task_id, str):
-            result.setdefault(task_id, []).append(call)
+        owners = {task_id} if isinstance(task_id, str) else set()
+        reference = intent.get("review_snapshot") if isinstance(intent, dict) else None
+        if isinstance(reference, dict) and isinstance(reference.get("path"), str):
+            try:
+                import review_evidence
+                path = Path(reference["path"])
+                require(path.is_absolute() and file_sha256(path) == reference.get("sha256"),
+                        "review snapshot checksum differs while resolving call ownership")
+                snapshot = review_evidence.load_record(path)
+                batch = snapshot["requirements"]["value"].get("batch", {})
+                owners.update(batch.get("tasks", {}))
+            except (ValueError, OSError, KeyError, TypeError) as error:
+                if call.get("status") == "pending":
+                    raise QueueError(f"pending review ownership cannot be resolved: {error}") from error
+        for owner in owners:
+            result.setdefault(owner, []).append(call)
     return result
 
 
@@ -1128,6 +1147,46 @@ def manifest_reviewer_binding(
     return False
 
 
+
+def batch_dispatch_reasons(task, assessment, queue_tasks, state, routing_path, root):
+    import review_evidence
+
+    batch_path = Path(assessment["snapshot"]["path"])
+    batch_snapshot = review_evidence.snapshot_record(batch_path)
+    contracts = {member.id: member.contract_path for member in queue_tasks}
+    for task_id, row in batch_snapshot["requirements"]["value"]["batch"]["tasks"].items():
+        endorsed = review_evidence.load_record(row["snapshot"]["path"])
+        if task_id not in contracts or Path(endorsed["contract"]["path"]) != contracts[task_id]:
+            return ["batch task set differs from canonical queue contracts"]
+    for call in state["call_ledger"]["calls"].values():
+        prior_link = call.get("review")
+        if call.get("status") != "completed" or not isinstance(prior_link, dict):
+            continue
+        prior_path = referenced_path(root, prior_link.get("path", ""))
+        if prior_path == batch_path.parent / "review.json":
+            continue
+        require(file_sha256(prior_path) == prior_link.get("sha256"), "prior review ledger binding changed")
+        prior_record = review_evidence.load_record(prior_path)
+        require(review_evidence.file_hash(prior_record["snapshot_path"]) == prior_record["snapshot_sha256"],
+                "prior batch snapshot binding changed")
+        prior_snapshot = review_evidence.load_record(prior_record["snapshot_path"])
+        prior_batch = prior_snapshot["requirements"]["value"].get("batch")
+        if prior_batch and set(assessment["task_ids"]).intersection(prior_batch["tasks"]):
+            if not any(matching_link(link, prior_path, prior_link["sha256"], root)
+                       for link in batch_snapshot["previous_reviews"]):
+                return ["batch review omits a prior batch review and its findings"]
+    batch_task = replace(task, contract_path=Path(batch_snapshot["contract"]["path"]))
+    batch_review = batch_path.parent / "review.json"
+    eligible_state = {**state, "call_ledger": {**state["call_ledger"], "calls": {
+        key: call for key, call in state["call_ledger"]["calls"].items()
+        if call.get("intent", {}).get("route", {}).get("task_id") not in assessment["task_ids"]
+    }}}
+    if not ledger_reviewer_binding(batch_task, eligible_state, routing_path, batch_path,
+                                   assessment["snapshot"]["sha256"], batch_review,
+                                   file_sha256(batch_review), root):
+        return ["batch review has no approved independent reviewer dispatch binding"]
+    return []
+
 def integration_assessment(
     task: Task,
     state: dict[str, Any],
@@ -1136,6 +1195,8 @@ def integration_assessment(
     routing: dict[str, Any],
     routing_path: Path,
     root: Path,
+    queue_tasks: tuple[Task, ...],
+    batch_cache: dict,
 ) -> list[str]:
     """Return failed closed reasons. An empty list proves current integration readiness."""
     entries = state.get("integration_evidence", {})
@@ -1166,7 +1227,10 @@ def integration_assessment(
         import review_evidence
 
         checkpoint = entry.get("carry_forward")
-        snapshot = (review_evidence.snapshot_record(snapshot_path) if checkpoint is not None
+        batch = entry.get("batch_review")
+        if checkpoint is not None and batch is not None:
+            return ["integration evidence cannot combine carry forward and batch review"]
+        snapshot = (review_evidence.snapshot_record(snapshot_path) if checkpoint is not None or batch is not None
                     else review_evidence.current_snapshot(snapshot_path, base))
         if Path(snapshot["source"]["root"]).resolve() != root:
             return ["integration snapshot belongs to another source root"]
@@ -1174,7 +1238,8 @@ def integration_assessment(
             return ["integration snapshot is bound to another task contract"]
         if snapshot["contract"]["sha256"] != review_evidence.contract_hash(task.contract_path):
             return ["task contract changed after integration review"]
-        assessment = (review_evidence.assess_carry_forward(checkpoint, snapshot_path, base) if checkpoint is not None
+        assessment = (review_evidence.assess_batch(batch, task.id, snapshot_path, base) if batch is not None else
+                      review_evidence.assess_carry_forward(checkpoint, snapshot_path, base) if checkpoint is not None
                       else review_evidence.assess(snapshot_path, base))
         if assessment.get("status") != "ready":
             return ["integration review is not ready"]
@@ -1189,6 +1254,12 @@ def integration_assessment(
             )
         ):
             return ["integration review has no approved reviewer dispatch binding"]
+        if batch is not None:
+            key = (batch["path"], batch["sha256"], base)
+            if key not in batch_cache:
+                batch_cache[key] = batch_dispatch_reasons(task, assessment, queue_tasks, state, routing_path, root)
+            if batch_cache[key]:
+                return batch_cache[key]
     except (ValueError, OSError, KeyError, TypeError, json.JSONDecodeError) as error:
         return [f"integration evidence is invalid or stale: {error}"]
     return []
@@ -1214,6 +1285,7 @@ def classify_tasks(
 ) -> dict[str, TaskState]:
     per_task_calls = calls_by_task(state)
     result = {}
+    batch_cache = {}
     for task in queue.tasks:
         manifest, manifest_issues = load_launch_manifest(
             task, routing[task.id], routing_path, root, queue.isolation
@@ -1226,7 +1298,7 @@ def classify_tasks(
         ]
         failure = manifest_has_terminal_failure(manifest)
         integration_reasons = integration_assessment(
-            task, state, manifest, manifest_issues, routing[task.id], routing_path, root
+            task, state, manifest, manifest_issues, routing[task.id], routing_path, root, queue.tasks, batch_cache
         )
         call_reasons = []
         if pending_calls:
@@ -1343,7 +1415,7 @@ def required_integration(queue: Queue, states: dict[str, TaskState]) -> list[dic
     return required
 
 
-def schedule(
+def _schedule(
     queue_path: str | Path,
     routing_plan_path: str | Path,
     ledger_path: str | Path,
@@ -1428,6 +1500,16 @@ def schedule(
         "required_integration": required_integration(queue, states),
     }
 
+
+
+def schedule(queue_path, routing_plan_path, ledger_path, root=None):
+    import review_evidence
+
+    try:
+        with review_evidence.validation_context():
+            return _schedule(queue_path, routing_plan_path, ledger_path, root)
+    except (ValueError, OSError, KeyError, TypeError) as error:
+        raise QueueError(str(error)) from error
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)

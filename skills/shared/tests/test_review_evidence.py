@@ -92,6 +92,405 @@ class ReviewEvidenceTests(unittest.TestCase):
         assessment = self.transfer_assessment(original, target)
         return target, assessment, packet
 
+    def batch_review(self, *, finding=False, fresh_checks=True, final_check=False, task_failure=False,
+                     reuse_check=False, reuse_observation=False, observation_inputs=None, change_app=True, new_context=None, unchanged_source=False):
+        self.command("from pathlib import Path; assert not Path('schema.sql').exists()" if task_failure else "print('verified')")
+        self.plan["checks"][0]["fresh"] = not reuse_check
+        if reuse_check:
+            self.plan["checks"][0]["inputs"] = ["app.txt"]
+            self.plan["checks"].append({"id": "fresh-check", "command": [sys.executable, "-c", "print('fresh')"],
+                                        "cwd": ".", "timeout_seconds": 5, "fresh": True})
+        self.plan["observations"] = ["browser"]
+        if observation_inputs is not None:
+            self.plan["observation_inputs"] = {"browser": observation_inputs}
+        originals = {}
+        for task_id in ("T1", "T2"):
+            contract = self.artifacts / f"{task_id}.md"
+            contract.write_text(f"# {task_id}: Acceptance\nRequired behavior passes.\n")
+            requirements = self.artifacts / f"{task_id}.requirements.json"
+            requirements.write_text(json.dumps(self.plan))
+            path = evidence.prepare(self.root, self.base, contract, requirements,
+                                    self.artifacts / task_id / "old", artifact_dir=self.artifacts)
+            capture = self.artifacts / f"{task_id}.old-browser.txt"
+            capture.write_text("Actual old observation")
+            response = self.response(path)
+            response["checks"] = {check["id"]: str(evidence.run_check(path, check["id"])) for check in self.plan["checks"]}
+            response["observations"] = [{"id": "browser", "result": "pass", "evidence": [evidence.evidence_link(capture)]}]
+            if finding and task_id == "T1":
+                response["findings"] = [{"id": "T1-P2-1", "path": "app.txt", "severity": "P2", "status": "open", "evidence": "Contract failure."}]
+            self.record(path, response)
+            originals[task_id] = path
+        if not unchanged_source:
+            if change_app:
+                (self.root / "app.txt").write_text("integrated behavior\n")
+            (self.root / "schema.sql").write_text("new schema\n")
+            self.git("add", ".")
+            self.git("commit", "-qm", "Combined fixture")
+        base = self.git("rev-parse", "HEAD").strip()
+        rows = {}
+        if new_context is not None:
+            self.plan["context"] = new_context
+        for task_id, old in originals.items():
+            previous = evidence.load_record(old)
+            target_requirements = previous["requirements"]["path"]
+            if new_context is not None:
+                target_requirements = self.artifacts / f"{task_id}.new-requirements.json"
+                target_requirements.write_text(json.dumps(self.plan))
+            target = evidence.prepare(self.root, base, previous["contract"]["path"], target_requirements,
+                                      self.artifacts / task_id / "current", artifact_dir=self.artifacts,
+                                      previous_reviews=[old.parent / "review.json"])
+            if fresh_checks:
+                for check in self.plan["checks"]:
+                    if reuse_check == "direct" and check["id"] == "check":
+                        continue
+                    if reuse_check and check["id"] == "check":
+                        assessment = self.artifacts / f"{task_id}.transfer.json"
+                        assessment.write_bytes(self.transfer_assessment(old, target).read_bytes())
+                        evidence.transfer_check(old, target, old.parent / "checks/check/result.json", assessment)
+                    else:
+                        evidence.run_check(target, check["id"])
+            capture = self.artifacts / f"{task_id}.{'old' if reuse_observation else 'current'}-browser.txt"
+            if not reuse_observation:
+                capture.write_text("Actual current observation")
+            checks = ({"check": str(old.parent / "checks/check/result.json"),
+                       "fresh-check": str(target.parent / "checks/fresh-check/result.json")} if reuse_check == "direct" else None)
+            packet = evidence.prepare_packet(target, self.artifacts / f"{task_id}.packet.json", checks=checks,
+                                             observations=[{"id": "browser", "result": "pass", "evidence": [str(capture)]}])
+            rows[task_id] = {"snapshot": evidence.evidence_link(target), "prior_review": evidence.evidence_link(old.parent / "review.json"),
+                             "evidence_packet": evidence.evidence_link(packet)}
+        source = evidence.load_record(target)
+        capture = self.artifacts / "environment-capture.txt"
+        capture.write_text("Captured runtime, installed dependencies, schema, configuration, and base interaction checks.")
+        environment = {"to_source_id": source["source_id"], "context_id": evidence.digest(evidence.context_identity(self.plan["context"]))}
+        for key in ("runtime", "dependencies", "external_state", "base_interactions", "configuration", "schema"):
+            environment[key] = {"reason": f"Inspected {key} for combined state", "evidence": [evidence.evidence_link(capture)]}
+        environment_path = self.artifacts / "environment.json"
+        environment_path.write_text(json.dumps(environment))
+        plan = {"context": self.plan["context"], "checks": [], "observations": [], "exclusions": {},
+                "batch": {"tasks": rows, "interactions": ["schema and task behavior"], "environment": evidence.evidence_link(environment_path)}}
+        if final_check:
+            plan["checks"] = [{"id": "feature", "command": [sys.executable, "-c", "raise SystemExit(1)"], "cwd": ".", "timeout_seconds": 5, "fresh": True}]
+        contract = self.artifacts / "batch-contract.md"
+        contract.write_text("Review retained task contracts and their combined interactions for dependency release.\n")
+        requirements = self.artifacts / "batch-requirements.json"
+        requirements.write_text(json.dumps(plan))
+        path = evidence.prepare(self.root, base, contract, requirements, self.artifacts / "batch", artifact_dir=self.artifacts,
+                                previous_reviews=[old.parent / "review.json" for old in originals.values()])
+        response = self.response(path)
+        if final_check:
+            response["checks"] = {"feature": str(evidence.run_check(path, "feature"))}
+        contract = evidence.response_contract(path)
+        response.update(batch_approval=contract["batch_approval"],
+                        endorsements={key: {"snapshot_sha256": row["snapshot_sha256"], "coverage_paths": row["coverage_paths"],
+                                            "acceptance": "Assessed all task requirements on the combined state."}
+                                      for key, row in contract["endorsement_contracts"].items()},
+                        interactions={key: "Assessed schema compatibility and both task callers." for key in plan["batch"]["interactions"]},
+                        findings=list(contract["prior_findings"].values()))
+        return path, originals, response, base
+
+    def test_batch_current_review_endorses_two_contracts_after_source_base_and_index_changes(self):
+        path, originals, response, base = self.batch_review()
+        self.record(path, response)
+        for key, old in originals.items():
+            with self.assertRaisesRegex(ValueError, "stale"):
+                evidence.assess(old, self.base)
+            result = evidence.assess_batch(evidence.evidence_link(path), key, old, base)
+            self.assertEqual(result["status"], "ready")
+            self.assertEqual(result["task_ids"], ["T1", "T2"])
+        self.assertEqual(len(list((self.artifacts / "batch").glob("review.json"))), 1)
+
+    def test_batch_requires_fresh_task_checks_and_its_own_combined_gate(self):
+        with self.assertRaises(OSError):
+            self.batch_review(fresh_checks=False)
+
+    def test_batch_cannot_use_task_passes_to_override_failed_final_combined_check(self):
+        path, originals, response, base = self.batch_review(final_check=True)
+        self.record(path, response)
+        assessment = evidence.assess_batch(evidence.evidence_link(path), "T1", originals["T1"], base)
+        self.assertEqual(assessment["status"], "needs-work")
+        self.assertEqual(assessment["failed_checks"], ["feature"])
+
+    def test_batch_retains_failed_current_task_checks(self):
+        path, originals, response, base = self.batch_review(task_failure=True)
+        self.record(path, response)
+        assessment = evidence.assess_batch(evidence.evidence_link(path), "T1", originals["T1"], base)
+        self.assertEqual(assessment["status"], "needs-work")
+        self.assertEqual(assessment["failed_checks"], ["T1:check", "T2:check"])
+
+    def test_batch_mixes_valid_transfer_fresh_check_and_unchanged_scoped_observation(self):
+        path, originals, response, base = self.batch_review(reuse_check=True, reuse_observation=True,
+                                                            observation_inputs=["app.txt"], change_app=False)
+        self.record(path, response)
+        with evidence.validation_context():
+            self.assertEqual(evidence.assess_batch(evidence.evidence_link(path), "T1", originals["T1"], base)["status"], "ready")
+        row = evidence.load_record(path)["requirements"]["value"]["batch"]["tasks"]["T1"]
+        packet = evidence.load_record(row["evidence_packet"]["path"])
+        self.assertIn("transfer", evidence.load_record(packet["checks"]["check"]))
+        self.assertNotIn("transfer", evidence.load_record(packet["checks"]["fresh-check"]))
+        target = row["snapshot"]["path"]
+        old = originals["T1"]
+        with self.assertRaisesRegex(ValueError, "fresh checks cannot transfer"):
+            evidence.transfer_check(old, target, old.parent / "checks/fresh-check/result.json", self.transfer_assessment(old, target))
+
+    def test_batch_mixes_direct_unchanged_check_reuse_and_required_fresh_check(self):
+        path, originals, response, base = self.batch_review(reuse_check="direct", reuse_observation=True,
+                                                            observation_inputs=["app.txt"], unchanged_source=True)
+        self.record(path, response)
+        with evidence.validation_context():
+            self.assertEqual(evidence.assess_batch(evidence.evidence_link(path), "T1", originals["T1"], base)["status"], "ready")
+        task = evidence.load_record(path)["requirements"]["value"]["batch"]["tasks"]["T1"]
+        packet = evidence.load_record(task["evidence_packet"]["path"])
+        self.assertEqual(packet["checks"]["check"], str(originals["T1"].parent / "checks/check/result.json"))
+        self.assertEqual(evidence.load_record(packet["checks"]["fresh-check"])["snapshot_sha256"], task["snapshot"]["sha256"])
+
+    def test_batch_check_transfer_rejects_changed_declared_dependency(self):
+        with self.assertRaisesRegex(ValueError, "transfer check inputs differ"):
+            self.batch_review(reuse_check=True)
+
+    def test_batch_observation_reuse_rejects_affected_inputs(self):
+        with self.assertRaisesRegex(ValueError, "fresh observation browser: declared observation inputs changed"):
+            self.batch_review(reuse_observation=True, observation_inputs=["app.txt"])
+
+    def test_batch_observation_reuse_rejects_unknown_scope_after_source_change(self):
+        with self.assertRaisesRegex(ValueError, "fresh observation browser: source changed without"):
+            self.batch_review(reuse_observation=True, change_app=False)
+
+    def test_batch_observation_reuse_rejects_environment_identity_change(self):
+        with self.assertRaisesRegex(ValueError, "fresh observation browser: environment identity changed"):
+            self.batch_review(reuse_observation=True, observation_inputs=["app.txt"], change_app=False,
+                              new_context={"runtime": "changed"})
+
+    def next_batch_with_observations(self, *, use_original=False):
+        first, originals, response, base = self.batch_review(observation_inputs=["app.txt"])
+        self.record(first, response)
+        original_batch = evidence.load_record(first)
+        plan = copy.deepcopy(original_batch["requirements"]["value"])
+        (self.root / "unrelated.txt").write_text("Later independent content")
+        for key, row in plan["batch"]["tasks"].items():
+            old_target = evidence.load_record(row["snapshot"]["path"])
+            target = evidence.prepare(self.root, base, old_target["contract"]["path"], old_target["requirements"]["path"],
+                                      self.artifacts / key / "next", artifact_dir=self.artifacts,
+                                      previous_reviews=[row["prior_review"]["path"]])
+            evidence.run_check(target, "check")
+            observations = (evidence.load_record(row["prior_review"]["path"])["result"]["observations"] if use_original else
+                            evidence.load_record(row["evidence_packet"]["path"])["observations"])
+            packet = evidence.prepare_packet(target, self.artifacts / f"{key}.next-packet.json", observations=observations)
+            row["snapshot"], row["evidence_packet"] = evidence.evidence_link(target), evidence.evidence_link(packet)
+        environment = evidence.read_json(plan["batch"]["environment"]["path"])
+        environment["to_source_id"] = evidence.load_record(target)["source_id"]
+        environment_path = self.artifacts / "next-environment.json"
+        environment_path.write_text(json.dumps(environment))
+        plan["batch"]["environment"] = evidence.evidence_link(environment_path)
+        requirements = self.artifacts / "next-batch-requirements.json"
+        requirements.write_text(json.dumps(plan))
+        second = evidence.prepare(self.root, base, original_batch["contract"]["path"], requirements,
+                                  self.artifacts / "next-batch", artifact_dir=self.artifacts,
+                                  previous_reviews=[row["path"] for row in original_batch["previous_reviews"]] + [first.parent / "review.json"])
+        contract = evidence.response_contract(second)
+        result = self.response(second)
+        result.update(batch_approval=contract["batch_approval"], interactions=response["interactions"],
+                      endorsements={key: {"snapshot_sha256": row["snapshot_sha256"], "coverage_paths": row["coverage_paths"],
+                                          "acceptance": "Retained task acceptance and affected callers remain valid."}
+                                    for key, row in contract["endorsement_contracts"].items()})
+        self.record(second, result)
+        return first, second, originals, base
+
+    def test_batch_observations_reuse_latest_endorsed_state_after_unrelated_change(self):
+        first, second, originals, base = self.next_batch_with_observations()
+        with evidence.validation_context():
+            result = evidence.assess_batch(evidence.evidence_link(second), "T1", originals["T1"], base)
+            contract = evidence.response_contract(second)
+        self.assertEqual(result["status"], "ready")
+        self.assertEqual(contract["endorsement_contracts"]["T1"]["fresh_observations"], {})
+        self.assertEqual(contract["endorsement_contracts"]["T1"]["observation_baseline"], evidence.evidence_link(first.parent / "review.json"))
+
+    def test_batch_cannot_reuse_capture_older_than_latest_endorsed_state(self):
+        with self.assertRaisesRegex(ValueError, "latest endorsed capture"):
+            self.next_batch_with_observations(use_original=True)
+
+    def test_batch_rejects_partial_forged_task_endorsements_and_interaction_coverage(self):
+        path, _, response, _ = self.batch_review()
+        snapshot = evidence.load_record(path)
+        mutations = [lambda r: r["endorsements"].pop("T2"),
+                     lambda r: r["endorsements"].update(T3=r["endorsements"]["T2"]),
+                     lambda r: r["endorsements"]["T1"].update(snapshot_sha256="forged"),
+                     lambda r: r["endorsements"]["T1"].update(coverage_paths=[]),
+                     lambda r: r.update(batch_approval="forged"),
+                     lambda r: r.update(interactions={})]
+        for change in mutations:
+            broken = copy.deepcopy(response)
+            change(broken)
+            with self.assertRaises(ValueError):
+                evidence.validate_result(broken, snapshot, path)
+
+    def test_batch_keeps_prior_findings_and_cannot_pass_with_unresolved_findings(self):
+        path, originals, response, base = self.batch_review(finding=True)
+        broken = {**response, "findings": []}
+        with self.assertRaisesRegex(ValueError, "prior findings were dropped"):
+            self.record(path, broken)
+        self.record(path, response)
+        self.assertEqual(evidence.assess_batch(evidence.evidence_link(path), "T1", originals["T1"], base)["status"], "needs-work")
+
+    def test_dense_review_ancestry_validates_each_immutable_node_once(self):
+        links = []
+        for number in range(16):
+            directory = self.artifacts / f"history-{number}"
+            snapshot = evidence.write_record(directory / "snapshot.json", {
+                "source": {}, "source_id": evidence.digest({}), "previous_reviews": list(links),
+            })
+            review = evidence.write_record(directory / "review.json", {
+                "snapshot_path": str(snapshot), "snapshot_sha256": evidence.file_hash(snapshot),
+            })
+            links.append(evidence.evidence_link(review))
+        for count in (8, 12, 16):
+            with evidence.validation_context():
+                with mock.patch.object(evidence, "load_record", wraps=evidence.load_record) as loads:
+                    ancestors = evidence.review_ancestors(links[count - 1])
+                    self.assertEqual(evidence.review_ancestors(links[count - 1]), ancestors)
+            self.assertEqual(ancestors, {(link["path"], link["sha256"]) for link in links[:count - 1]})
+            self.assertLessEqual(loads.call_count, 2 * count)
+
+    def test_review_ancestry_rejects_active_cycle_and_clears_traversal_state(self):
+        snapshot = evidence.write_record(self.artifacts / "cycle/snapshot.json", {
+            "source": {}, "source_id": evidence.digest({}), "previous_reviews": [],
+        })
+        review = evidence.write_record(self.artifacts / "cycle/review.json", {
+            "snapshot_path": str(snapshot), "snapshot_sha256": evidence.file_hash(snapshot),
+        })
+        link = evidence.evidence_link(review)
+        load = evidence.load_record
+        def cyclic_snapshot(path):
+            value = copy.deepcopy(load(path))
+            if Path(path) == snapshot:
+                value["previous_reviews"] = [link]
+            return value
+        with mock.patch.object(evidence, "load_record", side_effect=cyclic_snapshot):
+            with self.assertRaisesRegex(ValueError, "cyclic or excessive review ancestry"):
+                evidence.review_ancestors(link)
+        self.assertEqual(evidence.review_ancestors(link), set())
+
+    def test_batch_history_uses_verified_descendant_resolution_across_three_reviews(self):
+        first, originals, response, base = self.batch_review(finding=True)
+        response["findings"][0].update(status="fixed", evidence="Independent current inspection confirms the repair.")
+        self.record(first, response)
+        snapshot = evidence.load_record(first)
+        reviews = [row["path"] for row in snapshot["previous_reviews"]] + [first.parent / "review.json"]
+        latest = first
+        for number in (2, 3):
+            latest = evidence.prepare(self.root, base, snapshot["contract"]["path"], snapshot["requirements"]["path"],
+                                      self.artifacts / f"batch-{number}", artifact_dir=self.artifacts, previous_reviews=list(reversed(reviews)))
+            current = copy.deepcopy(response)
+            current["snapshot_sha256"] = evidence.file_hash(latest)
+            current["findings"][0]["evidence"] = f"Independent inspection {number} confirms the repaired interaction."
+            self.record(latest, current)
+            reviews.append(latest.parent / "review.json")
+            self.assertEqual(evidence.assess_batch(evidence.evidence_link(latest), "T1", originals["T1"], base)["status"], "ready")
+        self.assertEqual(evidence.response_contract(latest)["prior_findings"]["T1-P2-1"]["status"], "fixed")
+        self.assertEqual(len(reviews), 5)
+
+    def test_batch_history_rejects_a_resolution_not_in_the_actual_response(self):
+        first, _, response, base = self.batch_review(finding=True)
+        self.record(first, response)
+        review_path = first.parent / "review.json"
+        payload = evidence.load_record(review_path)
+        payload["result"]["findings"][0].update(status="fixed", evidence="Forged resolution")
+        review_path.write_text(json.dumps({"payload": payload, "sha256": evidence.digest(payload)}))
+        snapshot = evidence.load_record(first)
+        with self.assertRaisesRegex(ValueError, "result differs from execution"):
+            evidence.prepare(self.root, base, snapshot["contract"]["path"], snapshot["requirements"]["path"],
+                             self.artifacts / "forged-resolution", artifact_dir=self.artifacts,
+                             previous_reviews=[row["path"] for row in snapshot["previous_reviews"]] + [review_path])
+
+    def test_batch_history_rejects_conflicting_unrelated_review_branches(self):
+        first, _, response, base = self.batch_review(finding=True)
+        response["findings"][0].update(status="fixed", evidence="The reviewed repair passes.")
+        self.record(first, response)
+        snapshot = evidence.load_record(first)
+        other = evidence.prepare(self.root, base, snapshot["contract"]["path"], snapshot["requirements"]["path"],
+                                 self.artifacts / "other-branch", artifact_dir=self.artifacts,
+                                 previous_reviews=[row["path"] for row in snapshot["previous_reviews"]])
+        disputed = copy.deepcopy(response)
+        disputed["snapshot_sha256"] = evidence.file_hash(other)
+        disputed["findings"][0].update(status="disputed", evidence="A separate branch disputes the repair.")
+        self.record(other, disputed)
+        with self.assertRaisesRegex(ValueError, "unrelated review branches"):
+            evidence.prepare(self.root, base, snapshot["contract"]["path"], snapshot["requirements"]["path"],
+                             self.artifacts / "conflict", artifact_dir=self.artifacts,
+                             previous_reviews=[first.parent / "review.json", other.parent / "review.json"])
+
+    def test_batch_accepts_new_findings_on_retained_paths_after_base_change(self):
+        path, originals, response, base = self.batch_review()
+        self.assertEqual(evidence.load_record(path)["source"]["changed_paths"], [])
+        response["findings"] = [{"id": "integration-P2-1", "path": "schema.sql", "severity": "P2", "status": "open", "evidence": "New interaction defect."}]
+        self.record(path, response)
+        assessment = evidence.assess_batch(evidence.evidence_link(path), "T1", originals["T1"], base)
+        self.assertEqual(assessment["status"], "needs-work")
+        self.assertEqual(assessment["open_findings"], ["integration-P2-1"])
+        snapshot = evidence.load_record(path)
+        fixed = evidence.prepare(self.root, base, snapshot["contract"]["path"], snapshot["requirements"]["path"],
+                                 self.artifacts / "batch-fixed", artifact_dir=self.artifacts,
+                                 previous_reviews=[row["path"] for row in snapshot["previous_reviews"]] + [path.parent / "review.json"])
+        resolved = copy.deepcopy(response)
+        resolved["snapshot_sha256"] = evidence.file_hash(fixed)
+        resolved["findings"][0].update(status="rejected", evidence="Independent review confirms the schema preserves the required interaction.")
+        self.record(fixed, resolved)
+        self.assertEqual(evidence.assess_batch(evidence.evidence_link(fixed), "T1", originals["T1"], base)["status"], "ready")
+
+    def test_batch_rejects_later_dependency_configuration_schema_runtime_and_index_drift(self):
+        path, originals, response, base = self.batch_review()
+        self.record(path, response)
+        for name in ("lockfile", "config.json", "schema.sql", "runtime.txt", "app.txt"):
+            with self.subTest(name=name):
+                source = self.root / name
+                before = source.read_bytes() if source.exists() else None
+                source.write_text("changed after review")
+                with self.assertRaisesRegex(ValueError, "stale"):
+                    evidence.assess_batch(evidence.evidence_link(path), "T1", originals["T1"], base)
+                if before is None:
+                    source.unlink()
+                else:
+                    source.write_bytes(before)
+        with self.assertRaisesRegex(ValueError, "stale"):
+            evidence.assess_batch(evidence.evidence_link(path), "T1", originals["T1"], self.base)
+        self.git("update-index", "--chmod=+x", "app.txt")
+        with self.assertRaisesRegex(ValueError, "stale"):
+            evidence.assess_batch(evidence.evidence_link(path), "T1", originals["T1"], base)
+
+    def test_batch_rechecks_task_logs_and_fresh_captures(self):
+        path, _, response, _ = self.batch_review()
+        snapshot = evidence.load_record(path)
+        row = snapshot["requirements"]["value"]["batch"]["tasks"]["T1"]
+        packet_path = Path(row["evidence_packet"]["path"])
+        packet = evidence.load_record(packet_path)
+        check = evidence.load_record(packet["checks"]["check"])
+        log = Path(check["logs"][0]["path"])
+        log.write_text("altered log")
+        with self.assertRaisesRegex(ValueError, "log checksum"):
+            self.record(path, response)
+
+    def test_batch_rejects_changed_contract_missing_environment_and_changed_task_set(self):
+        path, _, _, _ = self.batch_review()
+        snapshot = evidence.load_record(path)
+        changed = copy.deepcopy(snapshot)
+        changed["requirements"]["value"]["batch"]["tasks"]["T3"] = changed["requirements"]["value"]["batch"]["tasks"].pop("T2")
+        # A changed task set cannot retain the original response digest.
+        original_contract = evidence.batch_response_contract(snapshot)
+        self.assertNotEqual(original_contract["batch_approval"], evidence.batch_response_contract(changed)["batch_approval"])
+        environment = Path(snapshot["requirements"]["value"]["batch"]["environment"]["path"])
+        original_environment = environment.read_text()
+        value = json.loads(original_environment)
+        value.pop("schema")
+        environment.write_text(json.dumps(value))
+        changed = copy.deepcopy(snapshot)
+        changed["requirements"]["value"]["batch"]["environment"] = evidence.evidence_link(environment)
+        with self.assertRaisesRegex(ValueError, "fresh schema evidence"):
+            evidence.validate_batch(changed)
+        environment.write_text(original_environment)
+        task_snapshot = evidence.load_record(snapshot["requirements"]["value"]["batch"]["tasks"]["T1"]["snapshot"]["path"])
+        Path(task_snapshot["contract"]["path"]).write_text("Changed acceptance")
+        with self.assertRaisesRegex(ValueError, "contract changed"):
+            evidence.validate_batch(snapshot)
+
     def test_scoped_checkpoint_releases_dependency_without_a_second_review(self):
         original, content = self.scoped_review(checks=True)
         contract = evidence.response_contract(original)

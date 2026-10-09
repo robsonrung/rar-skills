@@ -1,86 +1,112 @@
 # Workflow measurement report
 
-The repository now supports a read-only comparison of recorded workflow runs.
-Deterministic tests establish arithmetic, unknown handling, identity checks, and
-safe refusal. No full workflow provider performance benchmark was run. There is
-no measured speed, token, cost, or quality improvement claim.
+Operational measurement now uses the existing run ledger. Capture records early
+workflow start, immutable identity facts, named stages, approval waits, commands
+and evidence, repairs, coordinator receipts, coverage, and terminal observations.
+Deterministic tests check these records through the actual capture and comparison
+CLI. No provider benchmark was run. There is no measured workflow speed, token,
+cost, or quality improvement claim.
 
-Source baseline: `9a8876caf7fa6816197b6528674ea61578537e58`.
-The candidate is the local workflow change set based on that revision. Record
-its final commit or resource hashes before a future runtime comparison. Route
-defaults were not changed by this work.
+Source baseline: `f1d5548c99756490c4ceeb91513f2b4e246c98da`.
+The candidate is the local change set based on that revision. Route defaults are
+unchanged. The local pair below exercises the same candidate helper twice; it does
+not compare execution of the baseline and candidate workflow implementations.
 
 ## Method
 
-Use the existing call ledger and receipt normalization. Add the optional
-measurement metadata described in the
-[run-state contract](../skills/shared/references/run-state-contract.md#compare-workflow-cost).
-The comparison helper reads two run states without creating another ledger,
-starting workers, or changing acceptance state:
+Use [the capture hook](../skills/shared/references/workflow-measurement.md) and the
+[comparison contract](../skills/shared/references/run-state-contract.md#compare-workflow-cost).
+Capture `start` before the first stage with known identity fields. Add facts through
+`identity` events when requirements, checks, and environment become fixed. A bound
+field cannot change. Missing identity blocks comparison deltas. Route approval
+and ledger initialization can occur later without losing early stage or wait times.
+
+Initialization records its ledger boundary. Reservation and reconciliation capture
+call boundaries and receipt usage. Explicit events fill externally observed facts.
+Writes use the existing file lock and atomic replacement. An identical event retry
+keeps its original timestamp. Changed facts under the same ID, invalid timestamps,
+bad evidence hashes, malformed fields, and attempts to reopen a terminal measurement
+are rejected. Measurement leaves acceptance authority and call counters intact.
+
+The receipt normalizer uses the invocation total when available. It does not add
+the final response subtotal again. Cache reads and writes are part of input.
+Failed and resumed invocations retain separate call records. Missing reasoning,
+duration, cost, and native usage remain unknown. The producer reports an aggregate
+field only when every counted request has a valid value for that field. Tests pass
+actual producer totals through receipt reconciliation and comparison, including
+missing cost, missing token fields, absent usage, and invalid numeric values.
+No prices are inferred.
+
+After terminal observation, attest complete coverage only for areas actually
+captured. Partial capture is not evidence of zero activity. Coordinator receipts
+must be distinct from worker receipts. Record independent acceptance and defect
+observations with file hashes. Comparison checks recorded identities and outcomes;
+it cannot certify the quality of their evidence or release work.
 
 ```bash
 python3 skills/shared/scripts/workflow_comparison.py \
   --baseline <baseline-run-state.json> --candidate <candidate-run-state.json>
 ```
 
-Before any future execution, bind the same source start revision, requirements,
-independent acceptance cases, and environment identity for each pair. Cover a
-bounded fix, routine feature, UI change, permission-sensitive change, and
-migration or concurrency change. Use the same fixtures and defect observation
-protocol. Keep baseline and candidate workflow resource revisions distinct in
-execution provenance. Reserve any paid calls only under explicit approved
-routes and limits.
+## Local fixture results
 
-Measure whole workflow elapsed time separately from the sum of worker durations.
-Record approval wait intervals and coordinator usage directly. Count failed calls,
-repairs, and repeated command executions. Include input, cached input, cache write,
-output, reasoning output, and reported cost. Missing values remain unknown;
-cached input remains part of input and is not priced as free. Total reported cost
-requires complete worker and coordinator cost coverage.
+Run the repeatable local fixture through the real CLI:
 
-The helper compares supplied identity hashes; it does not verify the underlying
-acceptance evidence. Inspect that evidence independently. Cost deltas require
-matching identities, passed acceptance in both runs, and equal observed defect
-counts. Missing quality observations block deltas. A matching result remains a
-bounded observation, not proof of equivalent quality or a reason to change routes.
+```bash
+python3 skills/shared/tests/test_workflow_capture.py \
+  --fixture-dir /tmp/workflow-measurement-20261009
+```
 
-## Local results
+Use a fresh directory for another run. It writes both run states, captured command
+output, synthetic receipts and outcome evidence, and `comparison.json`. The pair
+uses actual local timestamps. Worker usage, reported cost, worker duration, and
+outcomes are synthetic test inputs. No provider requests occur.
 
-The synthetic arithmetic fixture records two overlapping worker calls of 8,000 ms
-each within a 10,000 ms workflow. It produces a 16,000 ms worker duration sum and
-10,000 ms elapsed time. Two overlapping approval waits produce 4,000 ms of waiting.
-Worker input totals are 200 tokens, including 160 cached input tokens. Worker cost
-is USD 0.50; a separate coordinator receipt adds USD 0.25. These are fixture values,
-not provider measurements.
+Observed on 2026-10-09:
+
+| Measurement | Baseline fixture | Candidate fixture |
+| --- | ---: | ---: |
+| Whole workflow elapsed, ms | 1085.458 | 1076.649 |
+| Approval wait union, ms | 128.603 | 124.508 |
+| Worker calls | 3 | 3 |
+| Failed calls | 1 | 1 |
+| Repair calls | 1 | 1 |
+| Command executions | 2 | 2 |
+| Repeated command executions | 1 | 1 |
+| Synthetic input tokens, including cache | 300 | 300 |
+| Synthetic worker plus coordinator reported cost, USD | 0.035 | 0.035 |
+| Reasoning tokens | Unknown | Unknown |
+
+Each run captures four stages and overlapping worker calls and approval waits.
+The repeated command is a real second execution. An idempotent command event retry
+adds no execution; evidence reuse adds no event. The comparison reports matching
+identity and outcome observations with status `incomplete`, because the producer
+does not report separate reasoning tokens. Its reasoning delta is null. Its quality
+equivalence remains `not-established`. The elapsed difference reflects this local
+fixture run and supports no workflow performance claim.
 
 | Check | Result |
 | --- | --- |
-| `test_workflow_comparison.py` | 18 tests passed; arithmetic, missing metrics, partial coverage, all five case kinds, identity and quality mismatches, inconsistent ledger event times, malformed statuses, and read-only CLI behavior |
-| `test_run_state.py` | 15 tests passed; existing ledger and normalization consumers |
-| `test_stream_capture.py` | 4 tests passed; receipt capture compatibility |
-| `test_council_state.py` | 39 tests passed; existing usage and budget accounting |
-| `test_skill_paths.py` | 1 test passed; resource path compatibility |
+| `test_workflow_capture.py` | 10 tests passed: actual CLI pair, separate stage authority and receipt deduplication, missing stage data, explicit zero repair coverage, early partial identity binding, conflicts, authority preservation, unknown coverage, evidence checks, concurrent writes, receipt normalization and actual producer partial-request coverage |
+| `test_workflow_comparison.py` | 18 tests passed: arithmetic, unknowns, identity and outcome mismatches, timing, read-only behavior |
+| `test_run_state.py` | 15 tests passed: existing ledger, call budgets, contexts, receipt and normalization consumers |
 
-The measurement tests are included in the existing workflow guards. Missing
-receipts preserve partial measured sums and unknown-call counts. Pending calls,
-missing coordinator usage, and incomplete ledger coverage cannot establish total
-cost. Available ledger reservation and completion times must fit the workflow
-interval and retain their order. Missing event times remain unknown. Malformed
-status values return `invalid` without a traceback. Changed source, requirement,
-check, runtime, or observation identities block
-comparison. Failed acceptance and unequal defect counts block cost deltas.
+The capture tests are registered in the existing workflow guards. They test
+observable behavior, including failure and repair, and do not compare instruction
+wording. Identity mismatch blocks deltas. Missing usage remains visible through
+unknown-call counts.
 
-## Workflow changes and limits
+## Limits
 
-The [workflow guide](workflow.md) describes immutable scoped dependency-release
-proof, reuse of final passing captures, compact confirmed native continuations,
-the focused reviewer response contract, decision and source-index handoffs,
-scoped design routing, and inherited comparison bases. Existing small-task and
-combined approval paths remain available. Independent final review, fresh checks,
-source identity, current evidence, and approval boundaries remain required.
+A runtime performance claim still needs bounded, repeated comparisons across a
+bounded fix, routine feature, UI change, permission change, and migration or
+concurrency change. Bind equal source, requirements, independent checks, runtime
+facts, and defect observation protocol. Record different workflow resource
+revisions in execution provenance. Obtain approval for paid routes and bounds
+only when existing authorization does not cover the proposed experiment.
 
-These are contract and implementation changes. Static file sizes, if collected,
-are bytes or words only; they cannot establish runtime savings. Runtime usage,
-elapsed time, acceptance rates, and missed defects for baseline versus candidate
-remain unmeasured. Installation sync, paid trials, and route changes are outside
-this work.
+Whole workflow elapsed time differs from summed worker duration. Overlapping
+approval waits count once. Repeated commands can be required after repair.
+Missing coordinator usage prevents total cost. A zero defect observation means
+none found under the recorded protocol. It does not prove that no defects exist.
+Independent final review and every required fresh check remain necessary.

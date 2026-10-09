@@ -45,6 +45,7 @@ _SHARED_SCRIPTS = _skills_root() / "shared" / "scripts"
 if str(_SHARED_SCRIPTS) not in sys.path:
     sys.path.insert(0, str(_SHARED_SCRIPTS))
 
+from runner_prompt import measured_run, prompt_context, record_input
 from model_receipt import attach_model_receipt
 from model_routing import default_model, load_config
 
@@ -294,8 +295,9 @@ def build_prompt(
             "Stay in read-only analysis mode. Do not edit files, create commits, "
             "or take write actions unless the prompt explicitly overrides this."
         )
-    if metadata_json:
-        sections.append(f"Execution metadata:\n{metadata_json}")
+    context = prompt_context(metadata_json)
+    if context:
+        sections.append(f"Execution metadata:\n{context}")
     if session_file:
         sections.append(
             "Prior conversation context to continue from:\n"
@@ -540,6 +542,7 @@ def _run_gemini_impl(
     if agy_continue:
         cmd.append("--continue")
     cmd.extend(["--print-timeout", print_timeout_str])
+    record_input(final_prompt)
     cmd.extend(["--print", final_prompt])
 
     cwd = working_dir if working_dir else os.getcwd()
@@ -699,6 +702,7 @@ def _run_gemini_impl(
     return result
 
 
+@measured_run
 def run_gemini(
     prompt: str,
     timeout: int = 3600,
@@ -865,7 +869,7 @@ Examples:
         "--metadata-json",
         type=str,
         default=None,
-        help="JSON string to embed as execution metadata for downstream parsing",
+        help="JSON dispatch data; optional prompt_context selects role context",
     )
     parser.add_argument(
         "--agy-continue",

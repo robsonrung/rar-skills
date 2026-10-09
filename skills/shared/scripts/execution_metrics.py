@@ -15,6 +15,17 @@ def normalize_metrics(result):
         result = {}
     if isinstance(result.get("metrics"), dict):
         return {key: number(result["metrics"].get(key)) for key in FIELDS}
+    # The stream total covers this invocation, including tool turns. The final
+    # message is a subset, so never add it or fall back from an empty total.
+    if "native_usage_total" in result or "native_usage" in result:
+        usage = result.get("native_usage_total", result.get("native_usage"))
+        usage = usage if isinstance(usage, dict) else {}
+        raw, cached, written = (number(usage.get(key)) for key in ("input", "cacheRead", "cacheWrite"))
+        inputs = raw + cached + written if all(v is not None for v in (raw, cached, written)) else None
+        cost = usage.get("cost")
+        cost = cost if isinstance(cost, dict) else {}
+        return dict(zip(FIELDS, (inputs, cached, written, number(usage.get("output")),
+                                None, number(result.get("duration_ms")), number(cost.get("total")))))
     usage = result.get("usage") or {}
     if not isinstance(usage, dict):
         usage = {}

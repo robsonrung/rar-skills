@@ -20,13 +20,9 @@ Write `tasks/T<N>-<slug>.md` before approval:
 <verified commands, observable behavior, and relevant failure sequences>
 
 ## Gates
-Lenses run: <lenses_run>
 Verdict: proceed | revise
-Blocking findings: <blocking_findings with IDs, status, evidence, and resolution>
-Advisory findings: <advisory_findings with IDs, status, evidence, and resolution>
-Required changes: <required_changes linked to finding IDs or none>
-Decision required: <decision_required or none>
-Review focus: <review_focus>
+Decision required: none | <decision ID>
+<one versioned gate-result JSON block from shared/references/gate-result.md>
 Security: deep | standard; trigger: <matched trigger>
 Test lens: <conclusion when it resolved a real choice, otherwise none>
 
@@ -47,7 +43,7 @@ Use a new ID for a split or a replacement. Deletion leaves an ID gap. Keep every
 
 ## Canonical gate result
 
-Read `shared/references/gate-result.md` for the canonical fields and finding contract. Use the task Markdown labels shown above; the queue controller requires the exact `Verdict:`, `Decision required:`, and `Security:` labels. These labels serialize the shared schema.
+Read `shared/references/gate-result.md` for the canonical fields and finding contract. Use the task Markdown labels shown above; the queue controller requires the exact `Verdict:`, `Decision required:`, and `Security:` labels. The versioned JSON holds the complete gate record; these labels must agree with it. Run `shared/scripts/gate_contract.py <task.md>` before approval.
 
 Carry the gate's `review_focus` into Expected review focus by reference and add only task-specific risks there. Legacy task fields remain readable; fill missing fields when revising an unstarted draft, without rewriting a started contract.
 
@@ -63,7 +59,7 @@ The table links canonical contracts and scheduling metadata. Keep acceptance tex
 
 ## Approval binding
 
-Before presenting the queue, capture the current PRD, index, queue configuration, and task identities in an immutable preview. Capture the proposed execution routes only for combined approval. Retain the actual response as evidence; a generated approval sentence, preference, or silence is not a response.
+Before presenting the queue, capture the current PRD, index, queue configuration, and task identities in an immutable preview. Capture the proposed execution routes only for combined approval. Retain the actual response with `shared/references/answer-evidence.md`; a generated approval sentence, preference, or silence is not a response.
 
 Bind each draft's current hash and its prospective ready-state content hash. The prospective text differs only by replacing its exact `**Status:** draft` line with `**Status:** ready-for-agent`. Use the launcher's content normalization for the prospective hash. The launcher excludes an exact ready, in-progress, done, or blocked status line; it retains all acceptance and gate content. Do not change the shared normalization rule to exclude arbitrary status prose.
 

@@ -40,6 +40,7 @@ _SHARED_SCRIPTS = _skills_root() / "shared" / "scripts"
 if str(_SHARED_SCRIPTS) not in sys.path:
     sys.path.insert(0, str(_SHARED_SCRIPTS))
 
+from runner_prompt import measured_run, prompt_context, record_input
 from model_receipt import attach_model_receipt, attach_claude_model_receipt
 from execution_metrics import FIELDS, normalize_metrics
 from model_routing import default_model, load_config, runner_efforts
@@ -267,8 +268,9 @@ def build_prompt(
     sections: list[str] = []
     if role:
         sections.append(f"Role: {role}\n{ROLE_INSTRUCTIONS.get(role, '')}".strip())
-    if metadata_json:
-        sections.append(f"Execution metadata:\n{metadata_json}")
+    context = prompt_context(metadata_json)
+    if context:
+        sections.append(f"Execution metadata:\n{context}")
     if session_file:
         sections.append(
             "Prior conversation context to continue from:\n"
@@ -401,6 +403,7 @@ def bare_mode_has_supported_auth(env: dict[str, str]) -> bool:
     return bool(env.get("ANTHROPIC_API_KEY") or env.get("ANTHROPIC_AUTH_TOKEN"))
 
 
+@measured_run
 def run_claude(*args: Any, **kwargs: Any) -> dict[str, Any]:
     """Public entry point: every exit path (including early validation errors
     and fallback results) returns a fully normalized envelope, whether invoked
@@ -553,6 +556,7 @@ def _run_claude(
     elif continue_last:
         cmd.append("--continue")
 
+    record_input(final_prompt)
     cmd.extend(["-p", final_prompt])
 
     command_display = " ".join(shlex.quote(part) for part in cmd)
@@ -891,7 +895,7 @@ Examples:
         "--metadata-json",
         type=str,
         default=None,
-        help="JSON string to embed as execution metadata for downstream parsing",
+        help="JSON dispatch data; optional prompt_context selects role context",
     )
     parser.add_argument(
         "--disable-fallback",

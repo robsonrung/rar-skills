@@ -292,7 +292,7 @@ class TaskQueueTests(unittest.TestCase):
         result = subprocess.run(["git", *args], cwd=self.root, capture_output=True, text=True)
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
-    def current_integration(self, task_id: str, plan: Path, *, review_scope=None) -> tuple[Path, dict, dict]:
+    def current_integration(self, task_id: str, plan: Path, *, review_scope=None, output=None) -> tuple[Path, dict, dict]:
         self.manifest(task_id, plan)
         requirements = self.artifacts / "requirements.json"
         requirements.write_text(json.dumps({
@@ -318,7 +318,7 @@ class TaskQueueTests(unittest.TestCase):
             "HEAD",
             self.root / "tasks" / f"{task_id}-example.md",
             requirements,
-            self.artifacts / "integration",
+            output or self.artifacts / "integration",
             artifact_dir=self.artifacts,
         )
         check = review_evidence.run_check(snapshot_path, "app-baseline")
@@ -559,6 +559,242 @@ class TaskQueueTests(unittest.TestCase):
         self.assertEqual([item["id"] for item in result["ready"]], ["T1", "T2", "T3", "T4", "T5", "T7"])
         self.assertEqual([item["id"] for item in result["blocked"]], ["T6"])
         self.assertIn("interface:public-api", result["blocked"][0]["reasons"][0])
+
+    def batch_integration(self, *, rename_task=False, members=2):
+        task_ids = [f"T{number}" for number in range(1, members + 2)]
+        config = self.queue_config(task_ids, dependencies={task_ids[-1]: task_ids[:-1]},
+                                   concurrency={"max_active": 1, "isolation": "working-tree"})
+        (self.root / "app.txt").write_text("baseline\n")
+        contract = self.root / "batch-contract.md"
+        contract.write_text("Review both canonical tasks on the combined state and all affected interactions.\n")
+        plan = self.routing_plan(task_ids)
+        route = self.route("integration-batch", "reviewer")
+        route["input_path"] = "batch-contract.md"
+        value = json.loads(plan.read_text())
+        value["routes"].append(route)
+        value["scope"]["inputs"].append({"path": "batch-contract.md", "content_sha256": launcher.content_digest(contract)})
+        value["approval"]["scope_digest"] = launcher.canonical_digest(launcher.normalized_scope_inputs(value["scope"]["inputs"]))
+        value["approval"]["routes_digest"] = launcher.canonical_digest(launcher.normalized_routes(value["routes"]))
+        plan.write_text(json.dumps(value))
+        self.commit_source()
+        self.git("add", "batch-contract.md")
+        self.git("-c", "user.name=Tests", "-c", "user.email=tests@example.invalid", "commit", "-qm", "Batch contract fixture")
+        originals, entries, calls = {}, {}, {}
+        for task_id in task_ids[:-1]:
+            original, entry, call = self.current_integration(task_id, plan, output=self.artifacts / task_id / "prior")
+            originals[task_id], entries[task_id] = original, entry
+            calls[task_id] = call["combined-review"]
+        (self.root / "additional.txt").write_text("ordinary later source change\n")
+        rows = {}
+        for task_id, original in originals.items():
+            old = review_evidence.load_record(original)
+            target = review_evidence.prepare(self.root, "HEAD", old["contract"]["path"], old["requirements"]["path"],
+                                             self.artifacts / task_id / "current", artifact_dir=self.artifacts,
+                                             previous_reviews=[original.parent / "review.json"])
+            review_evidence.run_check(target, "app-baseline")
+            packet = review_evidence.prepare_packet(target, self.artifacts / f"{task_id}.packet.json", observations=[])
+            rows[task_id] = {"snapshot": review_evidence.evidence_link(target), "prior_review": review_evidence.evidence_link(original.parent / "review.json"),
+                             "evidence_packet": review_evidence.evidence_link(packet)}
+        if rename_task:
+            rows["T3"] = rows.pop("T2")
+        target_value = review_evidence.load_record(target)
+        capture = self.artifacts / "environment.txt"
+        capture.write_text("Current environment inspection output")
+        environment = {"to_source_id": target_value["source_id"], "context_id": review_evidence.digest({"runtime": "fixture"})}
+        environment.update({key: {"reason": "Current inspection", "evidence": [review_evidence.evidence_link(capture)]}
+                            for key in ("runtime", "dependencies", "external_state", "base_interactions", "configuration", "schema")})
+        environment_path = self.artifacts / "environment.json"
+        environment_path.write_text(json.dumps(environment))
+        requirements = self.artifacts / "batch-requirements.json"
+        requirements.write_text(json.dumps({"context": {"runtime": "fixture"}, "checks": [], "observations": [], "exclusions": {},
+                                           "batch": {"tasks": rows, "interactions": ["both task callers"], "environment": review_evidence.evidence_link(environment_path)}}))
+        batch = review_evidence.prepare(self.root, "HEAD", contract, requirements, self.artifacts / "batch",
+                                        artifact_dir=self.artifacts, previous_reviews=[path.parent / "review.json" for path in originals.values()])
+        response_contract = review_evidence.response_contract(batch)
+        response = {"snapshot_sha256": review_evidence.file_hash(batch), "checks": {}, "observations": [], "findings": [], "summary": "Combined contracts assessed.",
+                    "coverage": [{"path": path, "outcome": "reviewed", "reason": "Assessed source and callers."} for path in response_contract["coverage_paths"]],
+                    "batch_approval": response_contract["batch_approval"], "interactions": {"both task callers": "Both task acceptance paths remain correct."},
+                    "endorsements": {key: {"snapshot_sha256": row["snapshot_sha256"], "coverage_paths": row["coverage_paths"], "acceptance": "Full task acceptance assessed."}
+                                     for key, row in response_contract["endorsement_contracts"].items()}}
+        review_evidence.record_review(batch, response, {"success": True, "agent_message": json.dumps(response)})
+        calls["batch"] = {"status": "completed", "intent": {"route": route, "review_snapshot": review_evidence.evidence_link(batch)},
+                          "review": review_evidence.evidence_link(batch.parent / "review.json"), "review_status": "ready"}
+        for entry in entries.values():
+            entry["batch_review"] = review_evidence.evidence_link(batch)
+        return config, plan, entries, calls
+
+    def test_one_batch_call_releases_two_retained_tasks_and_a_new_task(self):
+        config, plan, entries, calls = self.batch_integration()
+        projected = queue.schedule(config, plan, self.ledger(plan, calls=calls, integration=entries), self.root)
+        self.assertEqual(projected["integrated"], ["T1", "T2"])
+        self.assertEqual([task["id"] for task in projected["ready"]], ["T3"])
+        self.assertEqual(len(calls), 3)
+
+    def test_batch_projection_record_loads_scale_with_members(self):
+        counts = []
+        for members in (2, 4, 8):
+            case = TaskQueueTests()
+            case.setUp()
+            self.addCleanup(case.doCleanups)
+            config, plan, entries, calls = case.batch_integration(members=members)
+            with mock.patch.object(review_evidence, "load_record", wraps=review_evidence.load_record) as loads:
+                result = queue.schedule(config, plan, case.ledger(plan, calls=calls, integration=entries), case.root)
+            self.assertEqual(len(result["integrated"]), members)
+            counts.append(loads.call_count)
+        self.assertLessEqual(counts[1], counts[0] * 2.5)
+        self.assertLessEqual(counts[2], counts[0] * 5)
+
+    def test_projection_rechecks_cached_source_and_logs_before_return(self):
+        config, plan, entries, calls = self.batch_integration()
+        original = queue.batch_dispatch_reasons
+        batch = review_evidence.load_record(entries["T1"]["batch_review"]["path"])
+        target = Path(batch["requirements"]["value"]["batch"]["tasks"]["T1"]["snapshot"]["path"])
+        log = target.parent / "checks/app-baseline/stdout.log"
+        before = log.read_bytes()
+        for path in (log, self.root / "app.txt"):
+            content = path.read_bytes()
+            def drift(*args):
+                result = original(*args)
+                path.write_bytes(content + b"changed during projection")
+                return result
+            with mock.patch.object(queue, "batch_dispatch_reasons", side_effect=drift):
+                with self.assertRaisesRegex(queue.QueueError, "changed during validation"):
+                    queue.schedule(config, plan, self.ledger(plan, calls=calls, integration=entries), self.root)
+            path.write_bytes(content)
+        self.assertEqual(log.read_bytes(), before)
+        self.assertEqual(queue.schedule(config, plan, self.ledger(plan, calls=calls, integration=entries), self.root)["integrated"], ["T1", "T2"])
+
+    def test_projection_detects_repointed_evidence_symlink(self):
+        config, plan, entries, calls = self.batch_integration()
+        batch = review_evidence.load_record(entries["T1"]["batch_review"]["path"])
+        target = Path(batch["requirements"]["value"]["batch"]["tasks"]["T1"]["snapshot"]["path"])
+        log = target.parent / "checks/app-baseline/stdout.log"
+        matching = self.artifacts / "matching-output.txt"
+        matching.write_bytes(log.read_bytes())
+        changed = self.artifacts / "changed-output.txt"
+        changed.write_bytes(matching.read_bytes() + b"changed capture")
+        duplicate = self.artifacts / "duplicate-output.txt"
+        duplicate.write_bytes(matching.read_bytes())
+        log.unlink()
+        log.symlink_to(matching)
+        ledger = self.ledger(plan, calls=calls, integration=entries)
+        self.assertEqual(queue.schedule(config, plan, ledger, self.root)["integrated"], ["T1", "T2"])
+        original = queue.batch_dispatch_reasons
+        for replacement in (changed, duplicate):
+            with self.subTest(replacement=replacement.name):
+                def repoint(*args):
+                    result = original(*args)
+                    log.unlink()
+                    log.symlink_to(replacement)
+                    return result
+                with mock.patch.object(queue, "batch_dispatch_reasons", side_effect=repoint):
+                    with self.assertRaisesRegex(queue.QueueError, "changed during validation"):
+                        queue.schedule(config, plan, ledger, self.root)
+                log.unlink()
+                log.symlink_to(matching)
+        self.assertEqual(queue.schedule(config, plan, ledger, self.root)["integrated"], ["T1", "T2"])
+
+    def test_pending_or_failed_batch_call_retains_ownership(self):
+        config, plan, entries, calls = self.batch_integration()
+        for status in ("pending", "failed"):
+            calls["batch"]["status"] = status
+            result = queue.schedule(config, plan, self.ledger(plan, calls=calls, integration=entries), self.root)
+            self.assertEqual(result["integrated"], [])
+            self.assertEqual(result["ready"], [])
+            self.assertEqual([task["id"] for task in result["active"]], ["T1", "T2"])
+
+    def test_missing_or_changed_pending_batch_snapshot_blocks_projection(self):
+        config, plan, entries, calls = self.batch_integration()
+        calls["batch"]["status"] = "pending"
+        snapshot = Path(calls["batch"]["intent"]["review_snapshot"]["path"])
+        original = snapshot.read_bytes()
+        for action in ("change", "delete"):
+            if action == "change":
+                snapshot.write_bytes(original + b" ")
+            else:
+                snapshot.unlink()
+            with self.assertRaisesRegex(queue.QueueError, "pending review ownership cannot be resolved"):
+                queue.schedule(config, plan, self.ledger(plan, calls=calls, integration=entries), self.root)
+            snapshot.write_bytes(original)
+
+    def test_batch_requires_approved_dispatch_for_original_and_current_reviews(self):
+        config, plan, entries, calls = self.batch_integration()
+        for missing in ("T1", "batch"):
+            changed = {key: value for key, value in calls.items() if key != missing}
+            result = queue.schedule(config, plan, self.ledger(plan, calls=changed, integration=entries), self.root)
+            self.assertNotIn("T1", result["integrated"])
+            self.assertEqual(result["ready"], [])
+        calls["batch"]["intent"]["route"] = self.integration_reviewer_route("T1")
+        result = queue.schedule(config, plan, self.ledger(plan, calls=calls, integration=entries), self.root)
+        self.assertEqual(result["integrated"], [])
+        self.assertIn("independent reviewer dispatch binding", result["required_integration"][0]["reasons"][0])
+
+    def test_batch_rejects_task_ids_bound_to_another_canonical_contract(self):
+        config, plan, entries, calls = self.batch_integration(rename_task=True)
+        result = queue.schedule(config, plan, self.ledger(plan, calls=calls, integration=entries), self.root)
+        self.assertEqual(result["integrated"], [])
+        self.assertEqual(result["ready"], [])
+        self.assertIn("canonical queue contracts", result["required_integration"][0]["reasons"][0])
+
+    def test_repeated_batch_must_retain_all_recorded_batch_history(self):
+        config, plan, entries, calls = self.batch_integration()
+        first = Path(entries["T1"]["batch_review"]["path"])
+        snapshot = review_evidence.load_record(first)
+        response = review_evidence.load_record(first.parent / "review.json")["result"]
+        previous = [row["path"] for row in snapshot["previous_reviews"]]
+        for number, include_history in ((2, False), (3, True)):
+            if include_history:
+                previous.extend([first.parent / "review.json", second.parent / "review.json"])
+            current = review_evidence.prepare(self.root, "HEAD", snapshot["contract"]["path"], snapshot["requirements"]["path"],
+                                              self.artifacts / f"batch-{number}", artifact_dir=self.artifacts,
+                                              previous_reviews=previous)
+            result = {**response, "snapshot_sha256": review_evidence.file_hash(current)}
+            review_evidence.record_review(current, result, {"success": True, "agent_message": json.dumps(result)})
+            calls[f"batch-{number}"] = {**calls["batch"], "intent": {**calls["batch"]["intent"], "review_snapshot": review_evidence.evidence_link(current)},
+                                         "review": review_evidence.evidence_link(current.parent / "review.json")}
+            for entry in entries.values():
+                entry["batch_review"] = review_evidence.evidence_link(current)
+            projected = queue.schedule(config, plan, self.ledger(plan, calls=calls, integration=entries), self.root)
+            if include_history:
+                self.assertEqual(projected["integrated"], ["T1", "T2"])
+            else:
+                self.assertEqual(projected["integrated"], [])
+                self.assertIn("omits a prior batch review", projected["required_integration"][0]["reasons"][0])
+                second = current
+
+    def test_batch_spends_one_call_and_keeps_total_budget_ceiling(self):
+        config, plan, entries, calls = self.batch_integration()
+        limits = {"total_role_calls": 3, **{row["id"]: 4 for row in json.loads(plan.read_text())["routes"]}}
+        result = queue.schedule(config, plan, self.ledger(plan, calls=calls, integration=entries, limits=limits), self.root)
+        self.assertEqual(result["integrated"], ["T1", "T2"])
+        self.assertEqual(result["ready"], [])
+        self.assertIn("ceiling", " ".join(result["blocked"][0]["reasons"]))
+
+    def test_new_gate_blocking_finding_blocks_approval_preview(self):
+        config = self.queue_config(["T1"])
+        path = self.root / "tasks/T1-example.md"
+        text = path.read_text()
+        gate = {"schema_version": 1, "verdict": "proceed", "lenses_run": [], "decision_required": None,
+                "blocking_findings": [{"id": "G1", "lens": "architecture", "summary": "Unresolved boundary", "evidence": ["src/boundary.py"], "status": "open", "resolution": None}],
+                "advisory_findings": [], "required_changes": [], "review_focus": []}
+        text = text.replace("## Rollback note", "```gate-result\n" + json.dumps(gate) + "\n```\n\n## Rollback note")
+        path.write_text(text)
+        with self.assertRaisesRegex(queue.QueueError, "open blocking finding"):
+            queue.approval_inputs(config, self.root)
+
+    def test_published_legacy_contract_cannot_bypass_explicit_new_gate_blockers(self):
+        legacy = self.root / "tasks-draft.md"
+        legacy.write_text("# Task Queue: Feature\n\n**Status:** approved\n**Parent:** prd.md\n\n# T1: Example\n**Status:** draft\n")
+        path = self.write_task("T1", status="draft")
+        text = path.read_text().replace("## What to build", "**Write paths:** src/T1.py\n**Shared surfaces:** none\n\n## What to build")
+        path.write_text(text)
+        self.assertEqual(queue.approval_inputs(legacy, self.root)["tasks"][0]["status"], "draft")
+        gate = {"schema_version": 1, "verdict": "proceed", "lenses_run": [], "decision_required": None,
+                "blocking_findings": [{"id": "F1", "lens": "architecture", "summary": "Unresolved boundary", "evidence": ["src/T1.py"], "status": "open", "resolution": None}],
+                "advisory_findings": [], "required_changes": [], "review_focus": []}
+        path.write_text(text.replace("## Rollback note", "```gate-result\n" + json.dumps(gate) + "\n```\n\n## Rollback note"))
+        with self.assertRaisesRegex(queue.QueueError, "F1: open blocking finding"):
+            queue.approval_inputs(legacy, self.root)
 
     def test_current_integration_releases_dependency_then_source_drift_blocks_it(self) -> None:
         config = self.queue_config(

@@ -43,7 +43,7 @@ Give the approved reviewer:
 
 The reviewer is read only and independent from the implementer. It checks **observable behavior**, scope, evidence, and the named risk. It consumes the approved snapshot and does not choose a different model, effort, task scope, or worker.
 
-For confirmed native continuation, send changed facts, finding IDs, evidence
+For confirmed role continuation, send changed facts, finding IDs, evidence
 locators, and the unchanged boundaries through the launcher. The launcher validates
 the prior contract, route, context, receipt, and input before omitting repeated
 contract text. It keeps the full rendering when it is smaller. Fresh or reconstructed roles receive the full contract. A compact

@@ -90,13 +90,15 @@ def compare_install(source_root: Path | str, installed_root: Path | str, *,
 
 
 MANIFEST_NAME = ".rar-skills-install.json"
-CRITICAL_FILES = (
+LEGACY_CRITICAL_FILES = (
     "shared/model-routing.json", "shared/runner-compatibility.json",
     "shared/scripts/model_routing.py", "shared/scripts/runner_preflight.py",
     "shared/scripts/preflight_cache.py", "shared/scripts/discover_runners.py",
     "shared/scripts/install_drift.py", "shared/scripts/model_receipt.py",
     "claude-runner/scripts/run_claude.py",
 )
+CRITICAL_FILES = (*LEGACY_CRITICAL_FILES,
+                  "shared/scripts/runner_prompt.py", "shared/scripts/context_packet.py")
 
 
 def critical_path(root: Path | str, relative: str) -> Path:
@@ -136,11 +138,21 @@ def check_loaded_install(installed_root: Path | str | None = None, *,
     if path.exists():
         try:
             manifest = json.loads(path.read_text(encoding="utf-8"), object_pairs_hook=unique_object)
-            if not isinstance(manifest, dict) or manifest.get("schema_version") != 1 or not isinstance(manifest.get("files"), dict) or set(manifest["files"]) != set(CRITICAL_FILES):
+            if not isinstance(manifest, dict) or manifest.get("schema_version") != 1 or not isinstance(manifest.get("files"), dict):
+                raise ValueError("Unsupported or incomplete install manifest")
+            recorded = set(manifest["files"])
+            if recorded == set(CRITICAL_FILES):
+                covered = CRITICAL_FILES
+                report["manifest_coverage"] = "current"
+            elif recorded == set(LEGACY_CRITICAL_FILES):
+                covered = LEGACY_CRITICAL_FILES
+                report["manifest_coverage"] = "legacy"
+                report["reasons"].append("Legacy manifest lacks prompt and budget dependency hashes; refresh it through the installer.")
+            else:
                 raise ValueError("Unsupported or incomplete install manifest")
             source_available = True
             files = {}
-            for relative in CRITICAL_FILES:
+            for relative in covered:
                 saved = manifest["files"][relative]
                 if not isinstance(saved, dict) or not isinstance(saved.get("sha256"), str) or not re.fullmatch(r"[0-9a-f]{64}", saved["sha256"]):
                     raise ValueError("Invalid manifest digest")

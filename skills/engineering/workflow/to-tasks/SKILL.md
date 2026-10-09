@@ -9,6 +9,8 @@ Draft with the current coordinator and direct repository tools. This work needs 
 
 Turn one approved PRD into an executable queue. Each slice is small enough for one focused implementation run and has a checkable acceptance contract.
 
+Use `shared/references/workflow-measurement.md` for the feature measurement record and capture API. Keep each stage's execution ledger and immutable plan intact. Capture `stage-start` for `to-tasks` before drafting, the actual queue approval wait, and `stage-end` after promotion. A combined task and model response is one observed wait. Bind the required-check identity when fixed; unknown values remain absent.
+
 ## Boundary
 
 Receive `.ai-workflow/work/<feature-slug>/prd.md` with status `approved`. Write each canonical `tasks/T<N>-<slug>.md` once with status `draft`. Keep `tasks-draft.md` as the compact approval and dependency index. Approval promotes these same files to `ready-for-agent`; it does not create a second contract copy. Read [references/task-contract.md](references/task-contract.md) for the task fields, index, approval binding, and legacy queues.
@@ -40,7 +42,7 @@ For one already accepted task with a complete acceptance contract, use the stand
    5. Record a `test-lens` conclusion only when it resolved a real test design choice.
    6. State rollback, review focus, product blockers, and write conflicts separately. Name the owner of each shared contract and the condition that releases its consumers. Serialize slices that share a migration, contract, security surface, or likely write scope unless the draft names a merge plan. Settle a narrow shared interface first only when it removes a real blocker; do not invent a foundation phase merely to create parallel work.
 
-5. Write the canonical task files and compact index using the reference. Keep machine scheduling inputs in `queue.json`. Record dependencies and ownership there, but retain complete acceptance and gate fields in each task. Validate the graph and binding with the read-only shared queue controller before approval.
+5. Write the canonical task files and compact index using the reference. Keep machine scheduling inputs in `queue.json`. Record dependencies and ownership there, but retain complete acceptance and gate fields in each task. Validate the versioned gate records with `shared/scripts/gate_contract.py`, then validate the graph and binding with the read-only shared queue controller before approval.
 
 6. Present each ID, title, canonical path, dependency, type, acceptance summary, gate result, security level, and ownership. Resolve material changes before asking for approval. For combined approval, include the exact resolved routes, source sharing, privacy, receipts, capabilities, tools, and budgets in this same preview. A coordinator-only draft does not need an execution preview until the user requests this option or later execution.
 

@@ -47,7 +47,7 @@ runner or the coordinator model.
 4. Load only the reference that matches a selected concern: `references/bug_finders.md`, `references/panel_roles.md`, `references/conditional_specialists.md`, or `references/structural_quality_review.md`. For a requirements document, use only the relevant persona from `references/doc-personas/`. Read `references/review-dispatch.md` only before an actual worker dispatch.
 5. Routine concern lenses are read only in the assigned reviewer context. Dispatch an independent specialist only when a material risk or unresolved question requires it and the approved snapshot names its route. Give every dispatched seat the same scoped context, conventions, and output contract. Preserve **seat fidelity**: an unavailable seat is recorded as unavailable, never replaced silently. Use the exact native model and effort in an isolated persistent subagent or supported task context when the host provides it. Use a runner only for a foreign or unsupported route. Keep each reviewer context for later rechecks, and keep it separate from the implementer and other independent reviewers. Run independent seats concurrently when the host supports it. A final code review remains independent from the implementer.
 6. Verify runtime, security, correctness, compatibility, reliability, and performance findings when execution is possible. Evidence-check structural findings against the changed code. Mark an unverified claim as unverified or lower confidence; do not turn it into a blocker by assertion.
-7. For code, read `references/filtering_pipeline.md` and `references/review_output_schema.json`. For a document, use `references/doc-findings-schema.json`. Deduplicate, retain only evidence-backed findings with a location, then apply the active threshold and cap. **Precision over volume**: do not report cosmetic preference, broad refactor wishes, or pre-existing issues outside scope.
+7. For code, read `references/filtering_pipeline.md` and `references/review_output_schema.json`. For a document, use `references/doc-findings-schema.json`. Deduplicate, retain only evidence-backed findings with a location, then apply the active confidence threshold. Keep every confirmed finding durably; the cap limits only the human summary. **Precision over volume**: do not report cosmetic preference, broad refactor wishes, or pre-existing issues outside scope.
 8. Return the verdict. The default is report-only. When the user or caller has explicitly authorized fixes, record `apply_fixes: true` and apply them within that scope; no second approval or exact user syntax is needed. Review the changed paths before delivery.
 
 ## Security and documents
@@ -63,12 +63,12 @@ use that shared contract for the complete final JSON response. It replaces the
 normal final response below for this mode. Keep the human report separate.
 Use the incremental response protocol from that contract for focused rechecks or prose addenda. The expanded record must account for every snapshot path and retain earlier finding IDs,
 and reference captured check and browser evidence. Map CRITICAL, HIGH, MEDIUM,
-and LOW to P0, P1, P2, and P3. The coordinator records the actual response and
+and LOW to P0, P1, P2, and P3. Every confirmed MEDIUM maps to an open P2 until evidence closes it; a presentation cap cannot remove it. The coordinator records the actual response and
 runs the verifier; execution success is not approval.
 
 For code, return a human report and JSON that matches `references/review_output_schema.json`. For a requirements document, use `references/doc-findings-schema.json` instead. Use `references/review_report_template.md` for the report.
 
-Every code finding includes severity, confidence, category, location, evidence, smallest useful fix, and verification. A document finding uses its section and quoted evidence. End a code report with:
+Every new code finding includes a stable ID, status (`confirmed`, `unverified`, or `refuted`), severity, confidence, category, location, evidence, smallest useful fix, and verification. Rechecks preserve IDs and disposition evidence. A document finding uses its section and quoted evidence. End a code report with:
 
 ```text
 Bugs found: N | Verified: X | Refuted: Y | Verdict: APPROVE|COMMENT|REQUEST_CHANGES

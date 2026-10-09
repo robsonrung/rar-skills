@@ -5,6 +5,9 @@ from __future__ import annotations
 
 import argparse
 import copy
+from contextlib import contextmanager
+from contextvars import ContextVar
+from functools import wraps
 import hashlib
 import json
 import os
@@ -20,25 +23,87 @@ from pathlib import Path
 VERSION = 1
 
 
+
+_VALIDATION = ContextVar("review_validation", default=None)
+
+
+@contextmanager
+def validation_context():
+    """Reuse immutable reads within one projection, then check every live binding."""
+    if _VALIDATION.get() is not None:
+        yield
+        return
+    context = {"cache": {}, "files": {}, "sources": {}}
+    token = _VALIDATION.set(context)
+    try:
+        yield
+    finally:
+        _VALIDATION.reset(token)
+    for path, (expected_hash, expected_target) in context["files"].items():
+        require(str(Path(path).resolve()) == expected_target and file_hash(path) == expected_hash
+                and str(Path(path).resolve()) == expected_target,
+                f"evidence changed during validation: {path}")
+    for args, expected in context["sources"].items():
+        require(source_state(*args) == expected, "source changed during validation")
+
+
+
+def validation_session(function):
+    @wraps(function)
+    def wrapped(*args, **kwargs):
+        with validation_context():
+            return function(*args, **kwargs)
+    return wrapped
+
+def validation_cached(function):
+    @wraps(function)
+    def wrapped(*args, **kwargs):
+        context = _VALIDATION.get()
+        if context is None:
+            return function(*args, **kwargs)
+        key = (function.__name__, json.dumps([args, kwargs], sort_keys=True, default=str))
+        if key not in context["cache"]:
+            context["cache"][key] = function(*args, **kwargs)
+        return context["cache"][key]
+    return wrapped
+
 def digest(value):
     return hashlib.sha256(json.dumps(value, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
 
 
+@validation_cached
 def file_hash(path):
+    locator = Path(path).absolute()
+    context = _VALIDATION.get()
+    target = str(locator.resolve()) if context is not None else None
     hasher = hashlib.sha256()
-    with Path(path).open("rb") as stream:
+    with locator.open("rb") as stream:
         for block in iter(lambda: stream.read(1024 * 1024), b""):
             hasher.update(block)
-    return hasher.hexdigest()
+    value = hasher.hexdigest()
+    if context is not None:
+        key = str(locator)
+        binding = (value, target)
+        require(str(locator.resolve()) == target
+                and (key not in context["files"] or context["files"][key] == binding),
+                f"evidence changed during validation: {path}")
+        context["files"][key] = binding
+    return value
 
 
+@validation_cached
 def contract_hash(path):
+    if _VALIDATION.get() is not None:
+        file_hash(path)
     text = Path(path).read_text().replace("\r\n", "\n").replace("\r", "\n")
     lines = [line for line in text.splitlines() if not re.fullmatch(r"\*\*Status:\*\* (?:ready-for-agent|in-progress|done|blocked)", line)]
     return digest("\n".join(lines))
 
 
+@validation_cached
 def read_json(path):
+    if _VALIDATION.get() is not None:
+        file_hash(path)
     def unique(pairs):
         value = {}
         for key, entry in pairs:
@@ -66,6 +131,7 @@ def write_record(path, payload):
     return path
 
 
+@validation_cached
 def load_record(path):
     record = read_json(path)
     require(isinstance(record, dict) and set(record) == {"payload", "sha256"}, "invalid record envelope")
@@ -91,6 +157,7 @@ def safe_path(root, name):
     return path
 
 
+@validation_cached
 def source_state(root, base_ref, artifact_dir):
     root, artifact_dir = Path(root).resolve(), Path(artifact_dir).resolve()
     actual_root = Path(os.fsdecode(git(root, "rev-parse", "--show-toplevel")).strip()).resolve()
@@ -119,7 +186,11 @@ def source_state(root, base_ref, artifact_dir):
     changed |= names(git(root, "diff", "--no-ext-diff", "--no-renames", "--cached", "--name-only", "-z", base, "--"))
     changed |= untracked
     changed = sorted(p for p in changed if not (root / p).is_relative_to(artifact_dir))
-    return {"root": str(root), "base": base, "files": files, "index_sha256": hashlib.sha256(index).hexdigest(), "changed_paths": changed}
+    value = {"root": str(root), "base": base, "files": files, "index_sha256": hashlib.sha256(index).hexdigest(), "changed_paths": changed}
+    context = _VALIDATION.get()
+    if context is not None:
+        context["sources"][(str(root), base_ref, str(artifact_dir))] = value
+    return value
 
 
 def content_identity(source):
@@ -188,7 +259,7 @@ def fresh_observations(old, snapshot):
 
 
 def validate_requirements(value, root):
-    require(isinstance(value, dict) and {"context", "checks", "observations", "exclusions"} <= set(value) <= {"context", "checks", "observations", "exclusions", "observation_inputs", "review_scope"}, "requirements need context, checks, observations, and exclusions")
+    require(isinstance(value, dict) and {"context", "checks", "observations", "exclusions"} <= set(value) <= {"context", "checks", "observations", "exclusions", "observation_inputs", "review_scope", "batch"}, "requirements need context, checks, observations, and exclusions")
     require(isinstance(value["context"], dict) and bool(value["context"]), "context must describe the current runtime and external state")
     context_identity(value["context"])
     require(isinstance(value["checks"], list), "checks must be a list")
@@ -212,6 +283,8 @@ def validate_requirements(value, root):
     for paths in scopes.values():
         validate_inputs(paths, root)
     require(isinstance(value["exclusions"], dict) and all(isinstance(k, str) and isinstance(v, str) and v.strip() for k, v in value["exclusions"].items()), "exclusions need path and reason")
+    if "batch" in value:
+        validate_batch_shape(value["batch"])
     if "review_scope" in value:
         scope = value["review_scope"]
         validate_review_scope(scope, root)
@@ -249,10 +322,12 @@ def prepare(root, base, contract, requirements, output, artifact_dir=None, previ
         "previous_reviews": [{"path": str(Path(p).resolve()), "sha256": file_hash(p)} for p in previous_reviews],
     }
     previous_findings(payload)
+    validate_batch(payload)
     require(source == source_state(root, base, artifact_dir), "source changed while preparing the snapshot")
     return write_record(output / "snapshot.json", payload)
 
 
+@validation_cached
 def snapshot_record(path):
     """Validate frozen metadata without claiming that historical source is current."""
     snapshot = load_record(path)
@@ -265,6 +340,7 @@ def snapshot_record(path):
     require(read_json(snapshot["requirements"]["path"]) == snapshot["requirements"]["value"], "captured requirements differ from their source")
     validate_requirements(snapshot["requirements"]["value"], Path(snapshot["source"]["root"]))
     previous_findings(snapshot)
+    validate_batch(snapshot)
     return snapshot
 
 
@@ -355,27 +431,72 @@ def validate_check(path, snapshot, definition):
     return check["exit_code"] == 0 and not check["timed_out"] and not check["source_changed"]
 
 
+@validation_session
+@validation_cached
+def review_ancestors(link):
+    """Cache completed ancestry by immutable link; track active traversal separately."""
+    path = str(checked_link(link, "previous review"))
+    visiting = _VALIDATION.get().setdefault("ancestry_active", set())
+    require(path not in visiting and len(visiting) < 100, "cyclic or excessive review ancestry")
+    visiting.add(path)
+    try:
+        record = load_record(path)
+        snapshot_path = Path(record.get("snapshot_path", Path(path).parent / "snapshot.json"))
+        require(file_hash(snapshot_path) == record["snapshot_sha256"], "prior review snapshot mismatch")
+        snapshot = load_record(snapshot_path)
+        require(snapshot["source_id"] == digest(snapshot["source"]), "invalid ancestor snapshot")
+        ancestors = set()
+        for prior in snapshot["previous_reviews"]:
+            ancestors.add((prior["path"], prior["sha256"]))
+            ancestors.update(review_ancestors(prior))
+        return ancestors
+    finally:
+        visiting.remove(path)
+
+
+@validation_session
+@validation_cached
 def previous_findings(snapshot):
-    findings = {}
-    paths = set()
+    candidates, paths, ancestry = {}, set(), {}
     for link in snapshot["previous_reviews"]:
         require(link["path"] not in paths, "duplicate previous review")
         paths.add(link["path"])
-        require(file_hash(link["path"]) == link["sha256"], "previous review checksum mismatch")
+        checked_link(link, "previous review")
         record = load_record(link["path"])
         require(record["schema_version"] == VERSION, "unsupported previous review version")
         for finding in record["result"]["findings"]:
-            key = finding["id"]
-            require(key not in findings or findings[key] == finding, "conflicting prior finding ids; use task-specific ids")
-            findings[key] = finding
+            candidates.setdefault(finding["id"], []).append((link, finding))
+    findings = {}
+    for key, rows in candidates.items():
+        first = rows[0][1]
+        require(all((row["path"], row["severity"]) == (first["path"], first["severity"]) for _, row in rows),
+                "conflicting prior finding ids; path and severity must retain identity")
+        if all(row == first for _, row in rows):
+            findings[key] = first
+            continue
+        winners = []
+        for link, row in rows:
+            identity = (link["path"], link["sha256"])
+            if identity not in ancestry:
+                ancestry[identity] = review_ancestors(link)
+            if all(other == row or (prior["path"], prior["sha256"]) in ancestry[identity] for prior, other in rows):
+                winners.append((link, row))
+        require(winners and all(row == winners[0][1] for _, row in winners),
+                "conflicting prior finding ids on unrelated review branches")
+        # Only an actual validated response can supersede an ancestor resolution.
+        prior_review(winners[0][0])
+        findings[key] = winners[0][1]
     return findings
 
 
+@validation_cached
 def validate_result(result, snapshot, snapshot_path):
     fields = {"snapshot_sha256", "coverage", "findings", "checks", "observations", "summary"}
     scope = snapshot["requirements"]["value"].get("review_scope")
     if scope:
         fields.add("scope_approval")
+    if "batch" in snapshot["requirements"]["value"]:
+        fields.update({"batch_approval", "endorsements", "interactions"})
     require(isinstance(result, dict) and set(result) == fields, "invalid review result fields")
     if scope:
         require(result["scope_approval"] == digest(scope), "reviewer must approve the exact dependency scope and prospective changes")
@@ -398,6 +519,7 @@ def validate_result(result, snapshot, snapshot_path):
     require(isinstance(result["findings"], list), "findings must be a list")
     previous = previous_findings(snapshot)
     finding_paths = seen | {f["path"] for f in previous.values()}
+    finding_paths.update(path for task in validate_batch(snapshot).values() for path in task["coverage_paths"])
     ids = set()
     for finding in result["findings"]:
         require(isinstance(finding, dict) and set(finding) == {"id", "path", "severity", "status", "evidence"}, "invalid finding fields")
@@ -425,8 +547,10 @@ def validate_result(result, snapshot, snapshot_path):
             require(isinstance(entry, dict) and set(entry) == {"path", "sha256"} and Path(entry["path"]).is_absolute()
                     and file_hash(entry["path"]) == entry["sha256"], "observation evidence checksum mismatch")
     require(observed == set(plan["observations"]), "required observations are missing or unknown")
+    validate_batch_result(result, snapshot)
 
 
+@validation_cached
 def prior_review(link, depth=0):
     require(depth < 100, "review reference chain is too deep")
     require(set(link) == {"path", "sha256"} and file_hash(link["path"]) == link["sha256"], "prior review checksum mismatch")
@@ -450,6 +574,7 @@ def expand_response(raw, snapshot, snapshot_path, depth=0):
         raw.update(checks=packet["checks"], observations=packet["observations"])
     if not isinstance(raw, dict) or "mode" not in raw:
         return raw
+    require("batch" not in snapshot["requirements"]["value"], "batch review requires a full current response")
     fields = {"mode", "snapshot_sha256", "previous_review", "reuse_assessment", "affected_paths",
               "coverage", "findings", "checks", "observations", "summary"}
     scope = snapshot["requirements"]["value"].get("review_scope")
@@ -704,7 +829,8 @@ def response_contract(snapshot_path):
             "coverage_paths": snapshot["source"]["changed_paths"],
             "check_ids": [c["id"] for c in snapshot["requirements"]["value"]["checks"]],
             "observation_ids": snapshot["requirements"]["value"]["observations"],
-            "fresh_observation_ids": sorted(fresh), "prior_findings": previous_findings(snapshot)}
+            "fresh_observation_ids": sorted(fresh), "prior_findings": previous_findings(snapshot),
+            **batch_response_contract(snapshot)}
 
 
 def record_review(snapshot_path, result, execution):
@@ -730,6 +856,7 @@ def assess(snapshot_path, base):
     return assess_record(snapshot_path, snapshot)
 
 
+@validation_cached
 def assess_record(snapshot_path, snapshot):
     """Check a review's original evidence; callers enforce current source separately."""
     record = load_record(snapshot_path.parent / "review.json")
@@ -748,9 +875,211 @@ def assess_record(snapshot_path, snapshot):
             failed_checks.append(link["id"])
     open_findings = [f["id"] for f in result["findings"] if f["status"] in {"open", "disputed"} or (f["status"] == "deferred" and f["severity"] != "P3")]
     failed_observations = [x["id"] for x in result["observations"] if x["result"] != "pass"]
+    for task_id, task in validate_batch(snapshot).items():
+        packet = task["packet"]
+        for definition in task["snapshot"]["requirements"]["value"]["checks"]:
+            if not validate_check(packet["checks"][definition["id"]], task["snapshot"], definition):
+                failed_checks.append(f"{task_id}:{definition['id']}")
+        failed_observations.extend(f"{task_id}:{row['id']}" for row in packet["observations"] if row["result"] != "pass")
     status = "needs-work" if open_findings or failed_checks or failed_observations else "ready"
     return {"status": status, "snapshot_sha256": file_hash(snapshot_path), "open_findings": open_findings, "failed_checks": failed_checks, "failed_observations": failed_observations}
 
+
+
+def checked_link(link, label):
+    require(isinstance(link, dict) and set(link) == {"path", "sha256"}
+            and isinstance(link["path"], str) and Path(link["path"]).is_absolute()
+            and file_hash(link["path"]) == link["sha256"], f"{label} checksum mismatch")
+    return Path(link["path"])
+
+
+def validate_batch_shape(batch):
+    require(isinstance(batch, dict) and set(batch) == {"tasks", "interactions", "environment"},
+            "batch needs tasks, interactions, and environment")
+    tasks = batch["tasks"]
+    require(isinstance(tasks, dict) and 1 <= len(tasks) <= 32
+            and all(isinstance(key, str) and re.fullmatch(r"T[1-9][0-9]*", key) for key in tasks),
+            "batch needs 1 to 32 explicit task IDs")
+    for row in tasks.values():
+        require(isinstance(row, dict) and set(row) == {"snapshot", "prior_review", "evidence_packet"},
+                "batch task needs current snapshot, prior review, and evidence packet")
+        for key, link in row.items():
+            checked_link(link, f"batch {key}")
+    interactions = batch["interactions"]
+    require(isinstance(interactions, list) and bool(interactions)
+            and all(isinstance(key, str) and key.strip() for key in interactions)
+            and len(set(interactions)) == len(interactions), "batch needs explicit affected interactions")
+    checked_link(batch["environment"], "batch environment")
+
+
+@validation_cached
+def batch_observation_baseline(snapshot, task_id, original_link, old, prior):
+    """Choose the latest endorsed state through verified review ancestry."""
+    candidates = [(original_link, old, prior["result"]["observations"])]
+    for link in snapshot["previous_reviews"]:
+        if link == original_link:
+            continue
+        record = load_record(checked_link(link, "prior batch review"))
+        require(file_hash(record["snapshot_path"]) == record["snapshot_sha256"], "prior batch snapshot mismatch")
+        previous = load_record(record["snapshot_path"])
+        requirements = previous["requirements"]["value"]
+        if "batch" not in requirements:
+            continue
+        previous_batch = requirements["batch"]
+        require(isinstance(previous_batch, dict) and isinstance(previous_batch.get("tasks"), dict),
+                "invalid prior batch scope")
+        row = previous_batch["tasks"].get(task_id)
+        if row is None:
+            continue
+        target = load_record(checked_link(row["snapshot"], "prior endorsed snapshot"))
+        require(target["contract"] == old["contract"], "prior endorsed task contract differs")
+        packet = load_packet(row["evidence_packet"], target, Path(row["snapshot"]["path"]))
+        candidates.append((link, target, packet["observations"]))
+    latest = candidates[0]
+    if len(candidates) > 1:
+        winners = [candidate for candidate in candidates
+                   if all(other[0] == candidate[0] or (other[0]["path"], other[0]["sha256"]) in review_ancestors(candidate[0])
+                          for other in candidates)]
+        require(len(winners) == 1, "observation reuse has conflicting endorsed branches")
+        latest = winners[0]
+        prior_review(latest[0])
+    history = {}
+    for _, _, observations in candidates:
+        for observation in observations:
+            history.setdefault(observation["id"], set()).update(link["path"] for link in observation["evidence"])
+    return latest, history
+
+
+def observation_freshness_reasons(old, target):
+    before, after = old["requirements"]["value"], target["requirements"]["value"]
+    reasons = {}
+    for key in fresh_observations(old, target):
+        if key not in before["observations"]:
+            reason = "no prior endorsed observation"
+        elif context_identity(before["context"]) != context_identity(after["context"]):
+            reason = "environment identity changed"
+        elif not after.get("observation_inputs", {}).get(key):
+            reason = "source changed without a complete observation input declaration"
+        elif before.get("observation_inputs", {}).get(key) != after["observation_inputs"][key]:
+            reason = "observation input declaration changed"
+        else:
+            reason = "declared observation inputs changed"
+        reasons[key] = reason
+    return reasons
+
+
+@validation_session
+@validation_cached
+def validate_batch(snapshot):
+    """Bind each retained acceptance contract to valid current evidence."""
+    batch = snapshot["requirements"]["value"].get("batch")
+    if batch is None:
+        return {}
+    validate_batch_shape(batch)
+    require(not snapshot["requirements"]["value"]["exclusions"], "batch combined coverage cannot exclude paths")
+    environment = read_json(batch["environment"]["path"])
+    require(isinstance(environment, dict) and environment.get("to_source_id") == snapshot["source_id"]
+            and environment.get("context_id") == digest(context_identity(snapshot["requirements"]["value"]["context"])),
+            "batch environment source or context differs")
+    validate_environment_assessment(environment)
+    for key in ("configuration", "schema"):
+        row = environment.get(key)
+        require(isinstance(row, dict) and set(row) == {"reason", "evidence"}
+                and isinstance(row["reason"], str) and row["reason"].strip()
+                and isinstance(row["evidence"], list) and row["evidence"], f"batch needs fresh {key} evidence")
+        for link in row["evidence"]:
+            checked_link(link, f"batch {key}")
+    tasks, contracts = {}, set()
+    for task_id, row in batch["tasks"].items():
+        target_path = checked_link(row["snapshot"], "batch task snapshot")
+        raw_target = load_record(target_path)
+        require("batch" not in raw_target["requirements"]["value"], "nested batch tasks are not permitted")
+        target = snapshot_record(target_path)
+        prior, old = prior_review(row["prior_review"])
+        old_path = Path(prior["snapshot_path"])
+        require("batch" not in old["requirements"]["value"], "batch prior review must be a task review")
+        assess_record(old_path, snapshot_record(old_path))
+        require(target["contract"] == old["contract"], "batch task acceptance contract changed")
+        require(target["contract"]["path"] not in contracts, "batch repeats a task contract")
+        contracts.add(target["contract"]["path"])
+        require(target["source"] == snapshot["source"] and target["artifact_dir"] == snapshot["artifact_dir"],
+                "batch task source, base, index, or artifact directory differs")
+        require(target["previous_reviews"] == [row["prior_review"]]
+                and row["prior_review"] in snapshot["previous_reviews"], "batch must retain each task prior review")
+        before, after = old["requirements"]["value"], target["requirements"]["value"]
+        require(context_identity(after["context"]) == context_identity(snapshot["requirements"]["value"]["context"]),
+                "batch task environment differs")
+        current_checks = {check["id"]: check for check in after["checks"]}
+        require(all(current_checks.get(check["id"]) == check for check in before["checks"])
+                and set(before["observations"]) <= set(after["observations"]), "batch task requirements were removed or changed")
+        packet = load_packet(row["evidence_packet"], target, target_path)
+        if after["observations"]:
+            baseline, history = batch_observation_baseline(snapshot, task_id, row["prior_review"], old, prior)
+        else:
+            baseline, history = (row["prior_review"], old, []), {}
+        baseline_link, baseline_snapshot, baseline_observations = baseline
+        freshness = observation_freshness_reasons(baseline_snapshot, target)
+        prior_observations = {entry["id"]: entry for entry in baseline_observations}
+        for observation in packet["observations"]:
+            key = observation["id"]
+            reused = any(link["path"] in history.get(key, set()) for link in observation["evidence"])
+            if reused:
+                require(key not in freshness, f"batch needs fresh observation {key}: {freshness.get(key)}")
+                require(observation == prior_observations.get(key), "reused observation differs from the latest endorsed capture")
+        changed = {name for name in set(old["source"]["files"]) | set(target["source"]["files"])
+                   if old["source"]["files"].get(name) != target["source"]["files"].get(name)}
+        coverage = sorted(set(old["source"]["changed_paths"]) | set(target["source"]["changed_paths"]) | changed)
+        tasks[task_id] = {"snapshot": target, "packet": packet, "coverage_paths": coverage,
+                          "observation_baseline": baseline_link, "fresh_observations": freshness}
+    return tasks
+
+
+def batch_response_contract(snapshot):
+    tasks = validate_batch(snapshot)
+    if not tasks:
+        return {}
+    batch = snapshot["requirements"]["value"]["batch"]
+    return {"batch_approval": digest(batch), "batch": batch,
+            "endorsement_contracts": {key: {"snapshot_sha256": batch["tasks"][key]["snapshot"]["sha256"],
+                                              "contract": row["snapshot"]["contract"],
+                                              "coverage_paths": row["coverage_paths"],
+                                              "observation_baseline": row["observation_baseline"],
+                                              "fresh_observations": row["fresh_observations"]} for key, row in tasks.items()}}
+
+
+def validate_batch_result(result, snapshot):
+    tasks = validate_batch(snapshot)
+    if not tasks:
+        return
+    batch = snapshot["requirements"]["value"]["batch"]
+    require(result["batch_approval"] == digest(batch), "reviewer batch approval differs")
+    endorsements = result["endorsements"]
+    require(isinstance(endorsements, dict) and set(endorsements) == set(tasks), "batch endorsements must cover the exact task set")
+    for key, row in endorsements.items():
+        require(isinstance(row, dict) and set(row) == {"snapshot_sha256", "acceptance", "coverage_paths"},
+                "invalid batch endorsement")
+        require(row["snapshot_sha256"] == batch["tasks"][key]["snapshot"]["sha256"], "batch endorsement snapshot differs")
+        require(isinstance(row["acceptance"], str) and row["acceptance"].strip(), "batch endorsement needs an acceptance assessment")
+        require(row["coverage_paths"] == tasks[key]["coverage_paths"], "batch task coverage is incomplete")
+    interactions = result["interactions"]
+    require(isinstance(interactions, dict) and set(interactions) == set(batch["interactions"])
+            and all(isinstance(value, str) and value.strip() for value in interactions.values()),
+            "batch interaction assessment is incomplete")
+
+
+def assess_batch(link, task_id, from_snapshot, base):
+    path = checked_link(link, "batch review snapshot")
+    snapshot = current_snapshot(path, base)
+    tasks = validate_batch(snapshot)
+    require(task_id in tasks, "task is outside the endorsed batch")
+    old_path = Path(from_snapshot).resolve()
+    row = snapshot["requirements"]["value"]["batch"]["tasks"][task_id]
+    require(row["prior_review"] == evidence_link(old_path.parent / "review.json"), "batch task prior review differs")
+    require(tasks[task_id]["snapshot"]["contract"] == snapshot_record(old_path)["contract"], "batch task contract differs")
+    assessment = assess_record(path, snapshot)
+    current_snapshot(path, base)
+    return {**assessment, "snapshot": evidence_link(path), "task_ids": sorted(tasks),
+            "scope": "dependency-release-only"}
 
 def validate_carry_forward(payload, from_snapshot, base):
     require(isinstance(payload, dict) and set(payload) == {"schema_version", "snapshot", "review", "target", "assessment", "evidence_packet"}

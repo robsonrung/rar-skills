@@ -10,6 +10,8 @@ For a direct invocation, use `shared/references/model-preview.md` to choose the 
 
 Turn settled choices into one reviewable PRD. The result is an approved specification that `to-tasks` can translate into executable slices.
 
+Use `shared/references/workflow-measurement.md` for the feature measurement record and capture API. Keep each stage's execution ledger and immutable plan intact. Capture `stage-start` for `to-prd` before drafting, the actual approval wait at request and response, and `stage-end` after approval. Bind the approved requirements identity once it is known through `identity`; preserve earlier observations.
+
 ## Boundary
 
 Receive `.ai-workflow/work/<feature-slug>/decision-record.md` with status `ready-for-prd`. Produce `.ai-workflow/work/<feature-slug>/prd.md` first with status `draft`, then with status `approved` after the user accepts it.
@@ -35,7 +37,7 @@ The coordinator alone drafts this PRD. It preserves settled choices and does not
 
 4. Use the domain glossary and familiar user terms from the decision record. Define a new term once. When a rule remains ambiguous, add a short scenario that names the actor, record, and outcome. Include a prototype snippet only when it is the decision and prose cannot state it precisely.
 
-5. Present the draft path and material choices for review. Revise from the settled record or user corrections. Mark the PRD `approved` only after explicit user acceptance. Silence does not approve it.
+5. Present the draft path and material choices for review. Revise from the settled record or user corrections. Capture the actual acceptance or correction through `shared/references/answer-evidence.md` and reuse its source ID. Mark the PRD `approved` only after explicit user acceptance. Silence does not approve it.
 
 6. The approved PRD is the only input `to-tasks` accepts. The next step is `to-tasks`.
 

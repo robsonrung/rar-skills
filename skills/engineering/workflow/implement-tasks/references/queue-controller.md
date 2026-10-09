@@ -115,3 +115,21 @@ python3 "$SHARED_DIR/scripts/task_queue.py" schedule \
 The result has `ready`, `blocked`, and `required_integration` lists in stable task order. Invalid IDs, missing blockers, self blockers, cycles, malformed bindings, and unsafe ownership fail closed. Only ready contracts with exact approval and verified dependency integration can be selected. Existing task manifests and ledger calls retain active ownership; the approved concurrency cap also limits new selection. The projection checks existing total and route call ceilings, then accounts for the initial implementation calls of each selected task. It does not predict future review or recovery calls.
 
 Read the result immediately before dispatch, then reserve the selected call and its input in the existing ledger before starting it. This projection does not reserve a task or consume a budget. Use one conductor to reserve work; rerun the projection after any ledger, manifest, integration, or source change. Required integration runs through the separately approved integration route and gets its own reserved call. The controller needs no mutation dry run because both commands are read only.
+
+For ordinary later edits, an entry can instead add
+`batch_review: {path, sha256}` linking a current batch snapshot. Several entries
+can share this link. Keep each original task snapshot and dispatch binding;
+set the entry's base to the batch's current intended base. The shared batch
+protocol requires exact canonical task membership, complete valid task evidence,
+prior findings, current environment and interaction assessments, and one actual
+approved independent batch reviewer response. The route binds the batch contract,
+not a member task contract. Its scope ID must differ from every endorsed task.
+One call can release all endorsed tasks, with existing counters and ceilings.
+Pending calls keep every member's ownership; missing pending snapshot evidence
+blocks scheduling until reconciliation. A batch does not replace the final
+feature gate. Read `shared/references/review-evidence.md` before preparation.
+
+Each projection reuses validated immutable batch evidence within that call only.
+Before returning, it rechecks current source, base, index, and all linked file
+hashes. A change during projection blocks its result. No cache survives into the
+next projection.

@@ -102,6 +102,14 @@ role from its checkpoint. Preserve call counts, write ownership, input revision,
 and approval. A changed model or transport follows the workflow's route-change
 rule. If the last call's outcome is uncertain, reconcile it before retrying.
 
+The implementation launcher controls external repairs and reviewer rechecks through
+`resume` and `review`. Compact input requires the completed session, exact route,
+contract and prior input bindings, request and tool policy, and intact receipt.
+Missing proof starts fresh full reconstruction; changed proof and uncertain outcomes block resend. Keep external
+and native contexts separate. The launcher resolves required role resources to
+absolute readable paths and embeds the response contract for native hosts without
+verified shared-file access.
+
 ## Browser and provider capabilities
 
 An external runner does not inherit the host's browser tools or authenticated

@@ -18,7 +18,7 @@ Non-obvious intent: the book inverts the usual "wrap it in `memo`" reflex. State
 Read the repo's `package.json` (and the lockfile if the `react` range is loose). Record four facts before choosing a pattern:
 
 1. **React major** (`react` / `react-dom`).
-2. **Compiler** — present if `babel-plugin-react-compiler` (or the equivalent Vite/Next plugin) is a dependency or the eslint compiler rule is on.
+2. **Compiler**: inspect build configuration and coverage of the affected components. A compiler dependency or lint rule is a detection clue, not proof that those components are compiled.
 3. **Server-state / store** — TanStack Query, SWR, Apollo, RTK Query, Zustand, Jotai, Redux Toolkit, or none.
 4. **UI library** — MUI, Radix, Headless UI, shadcn/ui, Chakra, Ant, or hand-rolled.
 

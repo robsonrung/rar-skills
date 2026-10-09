@@ -10,6 +10,8 @@ For a direct invocation, use `shared/references/model-preview.md` to choose the 
 
 Turn a raw request into a **spec-ready** decision record that `to-prd` can turn into a PRD without reopening requirements. A material decision is spec-ready only when it is confirmed, settled by supplied scope and evidence in `--auto` mode, or out of scope. An explicit default is allowed only for a nonmaterial uncertainty.
 
+Use `shared/references/workflow-measurement.md` for the feature measurement record and capture API. Keep each stage's execution ledger and immutable plan intact. Create the feature measurement record with `start` and only known identity fields before the first round, then capture `stage-start` for `interview-me`. In `--auto`, import the reconciled completed role ledger through `stage-ledger` with its actual path and hash. Capture `stage-end` when the decision record is ready for the PRD, and pass the feature measurement path onward.
+
 ## Boundary
 
 Receive a feature request, an earlier exploration, and repository facts. Produce `.ai-workflow/work/<feature-slug>/decision-record.md` with status `draft` while the interview is open and `ready-for-prd` when the frontier is empty.
@@ -64,7 +66,7 @@ Write a short kebab case feature slug, reusing an existing one when present. Sta
 
 ### Decision evidence
 
-Use one compact source index in the decision record. Each source row contains `source_id`, `path` (or durable message/artifact URI), `locator` (section, symbol, range, or message ID), `authority` (user instruction, approved decision, repository fact, or inference), and `content_revision` (immutable revision or content digest). A branch name or timestamp alone is not a content revision. Record a captured result path and digest for command evidence. For a user answer, retain its exact message reference and a digest of the relevant text.
+Use one compact source index in the decision record. Each source row contains `source_id`, `path` (or durable message/artifact URI), `locator` (section, symbol, range, or message ID), `authority` (user instruction, approved decision, repository fact, or inference), and `content_revision` (immutable revision or content digest). A branch name or timestamp alone is not a content revision. Record a captured result path and digest for command evidence. For a user answer, use `shared/references/answer-evidence.md`: retain an available native locator or an immutable capture of the actual answer with the missing-locator limit. Reuse its source ID and digest.
 
 Each decision contains `decision_id`, outcome, status, rationale, applicable scope, source IDs, and explicit assumptions. Keep material unknowns open. Automatic choices also retain their source category and role execution reference. A source row describes authority; it cannot grant authority that the source lacks.
 

@@ -54,7 +54,7 @@ Map the repo's equivalents first: `<domain module>` (entities, invariants, busin
 
 ## Lens 6 — Scope discipline (expanded checklist)
 
-- [ ] Abstractions have ≥2 real callers or a concrete near-term second use; otherwise inline and wait (YAGNI = the book's "don't boil the ocean").
+- [ ] An abstraction earns its boundary by enforcing a demonstrated invariant, hiding meaningful complexity, or giving a decision clear **change ownership**. One caller can justify that boundary. Inline an extra layer when none applies; speculative reuse alone does not justify it.
 - [ ] The diff matches the stated goal; refactors that crept in are called out separately.
 - [ ] No speculative config flags, plugin points, or generic engines the task didn't need.
 - [ ] If the change is large, is there a smaller vertical slice (the book's MVP artifact) that delivers value now?

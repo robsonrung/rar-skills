@@ -46,7 +46,7 @@ Apply methods in the assigned coordinator or implementer context. Loading a meth
 5. Apply `clean-code` when touched code has a concrete smell or needs refactoring. Apply `test-lens` when a test choice needs judgment about real behavior, seams, mocks, or brittle coverage. Apply a domain lens only when the task triggers it: data paths, interfaces, distributed systems, domain logic, agent control flow, or a framework specific UI concern.
 6. Apply `coding-review-simplify` after the task is green when a **behavior-preserving** simplification would help the next reader.
 
-The implementation brief must state the task scope, acceptance contract, relevant lens conclusions, and execution boundary. The launcher includes the full approved contract on first calls and reconstruction. After validating a persistent native continuation, the launcher uses the smaller full or compact rendering. Compact input binds the same contract by identity and sends changed facts, findings, and evidence locators. Derived notes cannot change acceptance. See `shared/references/context-packets.md` for required continuation proof.
+The implementation brief must state the task scope, acceptance contract, relevant lens conclusions, and execution boundary. The launcher includes the full approved contract on first calls and reconstruction. After validating a persistent role continuation, the launcher uses the smaller full or compact rendering. The ledger retains contract identity and receipt proof. Compact input sends changed facts, findings, and evidence locators. Derived notes cannot change acceptance. See `shared/references/context-packets.md` for required continuation proof.
 
 ## Launch the Approved Routes
 

@@ -180,3 +180,23 @@ and pass its file with `--cursor` on the next wait. One wait checks all targets 
 on a status change or the observation timeout. It does not start or cancel work. A timeout
 is not a failed job. Resume the same handle. Read the result file only for changed terminal state.
 The CLI accepts at most 60 seconds per wait so the caller can provide required progress updates.
+
+## Prompt context and input measurement
+
+`--metadata-json` remains the complete dispatch envelope. An explicit
+`prompt_context` field selects the part needed by the role. An empty object omits
+all envelope metadata from the prompt. Without that field, legacy user metadata remains prompt context except reserved
+provenance, measurements, input and route hashes, call IDs, request receipts, and
+continuation proof. Put any such data needed by the role inside `prompt_context`. Controlled launchers set the field explicitly and retain
+provenance, hashes, receipts, and counters outside the prompt.
+
+Adapters preserve supplied `dispatch_metadata`. After rendering, they return
+`adapter_input_measurement`, including execution failures. The latter measures adapter text bytes
+and its digest separately from launcher input. It does not estimate hidden host
+instructions, tools, retained history, later reads, or image tokens. A launcher
+byte budget also applies after adapter instructions are added and blocks provider
+execution when exceeded. No reduction in provider tokens is claimed without usage.
+
+The install manifest hashes the shared prompt renderer and budget module. A legacy
+manifest still checks every saved file, but requires a refresh through the installer
+to cover these dependencies. Checking integrity never refreshes or rewrites it.

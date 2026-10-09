@@ -76,8 +76,81 @@ class FindingsMechanicsTests(unittest.TestCase):
             finding(severity="LOW", confidence=0.95, line_start=20, line_end=20),
             finding(severity="MEDIUM", confidence=0.8, line_start=30, line_end=30),
         ]}], "--max-non-blockers", "1")
-        self.assertEqual([item["severity"] for item in result["findings"]], ["HIGH", "LOW"])
-        self.assertEqual(result["suppressed_by_cap"], 1)
+        self.assertEqual([item["severity"] for item in result["findings"]], ["HIGH", "MEDIUM", "LOW"])
+        self.assertEqual([item["severity"] for item in result["summary_findings"]], ["HIGH", "LOW"])
+        self.assertEqual(result["suppressed_by_cap"], 0)
+        self.assertEqual(result["summary_omitted_count"], 1)
+
+    def test_six_confirmed_medium_findings_survive_durably(self):
+        comments = [finding(id=f"T1-F{n}", status="confirmed", problem=f"Distinct failure {n}") for n in range(6)]
+        _, result = run_filter([{"source": "reviewer", "comments": comments}])
+        self.assertEqual(len(result["findings"]), 6)
+        self.assertEqual({item["id"] for item in result["findings"]}, {f"T1-F{n}" for n in range(6)})
+        self.assertEqual(len(result["summary_findings"]), 5)
+        self.assertEqual(result["suppressed_findings"], [])
+        self.assertEqual(len(result["summary_omitted_ids"]), 1)
+
+    def test_status_and_ids_survive_filtering_and_cap_changes(self):
+        comments = [finding(id="confirmed"), finding(id="unverified", status="unverified"), finding(id="refuted", status="refuted")]
+        _, result = run_filter([{"source": "reviewer", "comments": comments}], "--max-non-blockers", "0")
+        self.assertEqual([item["id"] for item in result["findings"]], ["confirmed"])
+        self.assertEqual({item["id"] for item in result["suppressed_findings"]}, {"unverified", "refuted"})
+        _, first = run_filter([{"source": "reviewer", "comments": [finding()]}])
+        _, later = run_filter([{"source": "reviewer", "comments": [finding(), finding(problem="Another failure")]}], "--max-non-blockers", "0")
+        self.assertIn(first["findings"][0]["id"], [item["id"] for item in later["findings"]])
+
+    def test_duplicate_identity_survives_confidence_order_changes(self):
+        returns = [{"source": "one", "comments": [finding(id="T1-F1", confidence=0.8)]},
+                   {"source": "two", "comments": [finding(id="T1-F2", confidence=0.9)]}]
+        _, before = run_filter(returns)
+        returns[0]["comments"][0]["confidence"] = 0.95
+        _, after = run_filter(returns)
+        self.assertEqual(before["findings"][0]["id"], after["findings"][0]["id"])
+        self.assertEqual(after["findings"][0]["related_ids"], ["T1-F2"])
+        _, rechecked = run_filter([{"source": "one", "comments": after["findings"]}])
+        self.assertEqual(rechecked["findings"][0]["id"], "T1-F1")
+        self.assertEqual(rechecked["findings"][0]["related_ids"], ["T1-F2"])
+
+    def test_distinct_route_findings_cannot_share_an_id(self):
+        code, result = run_filter([
+            {"source": "reviewer-one", "comments": [finding(id="F1")]},
+            {"source": "reviewer-two", "comments": [finding(id="F1", problem="A missing record causes a crash.")]},
+        ], "--max-non-blockers", "1")
+        self.assertEqual(code, 2)
+        self.assertEqual(result["status"], "failed")
+        self.assertEqual(result["conflicting_id"], "F1")
+        self.assertEqual(result["sources"], ["reviewer-one", "reviewer-two"])
+        self.assertNotIn("summary_findings", result)
+        self.assertNotIn("findings", result)
+
+    def test_alias_collisions_are_rejected_before_filtering(self):
+        for first, second in (
+            (finding(id="F1"), finding(id="F2", related_ids=["F1"])),
+            (finding(id="F1", related_ids=["alias"]), finding(id="F2", related_ids=["alias"])),
+        ):
+            with self.subTest(first=first["id"], alias=second["related_ids"]):
+                second.update(problem="A missing record causes a crash.", confidence=0.4)
+                code, result = run_filter([
+                    {"source": "reviewer-one", "comments": [first]},
+                    {"source": "reviewer-two", "comments": [second]},
+                ])
+                self.assertEqual(code, 2)
+                self.assertEqual(result["status"], "failed")
+                self.assertEqual(result["conflicting_id"], second["related_ids"][0])
+
+    def test_same_id_for_the_same_finding_remains_valid(self):
+        code, result = run_filter([
+            {"source": "reviewer-one", "comments": [finding(id="F1", related_ids=["F1"])]},
+            {"source": "reviewer-two", "comments": [finding(id="F1", confidence=0.9)]},
+        ])
+        self.assertEqual(code, 0)
+        self.assertEqual(len(result["findings"]), 1)
+        self.assertEqual(result["findings"][0]["id"], "F1")
+        self.assertNotIn("related_ids", result["findings"][0])
+
+    def test_security_summary_is_not_capped(self):
+        _, result = run_filter([{"source": "reviewer", "comments": [finding(category="security")]}], "--max-non-blockers", "0")
+        self.assertEqual(len(result["summary_findings"]), 1)
 
     def test_malformed_returns_and_line_values_remain_visible(self):
         code, result = run_filter([{"source": "missing", "comments": None}, {"source": "reviewer", "comments": [finding(line_start=True)]}])

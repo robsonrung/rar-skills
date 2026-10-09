@@ -69,7 +69,10 @@ class LauncherTests(unittest.TestCase):
         self.assertEqual(args[args.index("--output-format") + 1], "stream-json")
         metadata = json.loads(args[args.index("--metadata-json") + 1])
         self.assertEqual(metadata["call_id"], "call-1")
-        self.assertTrue(metadata["execution_provenance"]["resources"])
+        resources = {row["path"]: row["sha256"] for row in metadata["execution_provenance"]["resources"]}
+        for name in ("runner_prompt.py", "context_packet.py"):
+            dependency = launcher.SKILLS_DIR / "shared/scripts" / name
+            self.assertEqual(resources[str(dependency.resolve())], launcher.file_digest(dependency))
 
     def test_source_sharing_is_optional_but_requires_a_complete_scope(self):
         route = self.route("review-api", "reviewer", "claude-fable-5-1", runner="claude", seat="fable")
@@ -515,6 +518,8 @@ class LauncherTests(unittest.TestCase):
         other_route = {**route, "id": "pi-review-other"}
         other = launcher.route_arguments(other_route, self.brief, self.root, "codereviewer", 1, {}, True)
         self.assertNotEqual(other[other.index("--session") + 1], session_id)
+        reconstructed = launcher.route_arguments(route, self.brief.with_name("reconstruction-2.md"), self.root, "codereviewer", 1, {}, True)
+        self.assertNotEqual(reconstructed[reconstructed.index("--session") + 1], session_id)
 
         resumed = launcher.route_arguments(
             route,
@@ -781,9 +786,9 @@ class LauncherTests(unittest.TestCase):
             entry = json.loads(manifest_path.read_text())["tracks"]["api"]["implementation"]
             prompt = Path(entry["brief"]).read_text()
             self.assertNotIn(self.task.read_text().rstrip(), prompt)
-            self.assertIn(launcher.content_digest(self.task), prompt)
-            self.assertIn("impl-context", prompt)
-            self.assertIn('"approved_route"', prompt)
+            self.assertEqual(entry["brief_binding"]["contract_content_sha256"], launcher.content_digest(self.task))
+            self.assertEqual(entry["brief_binding"]["continuation_proof"]["context_id"], "impl-context")
+            self.assertNotIn('"approved_route"', prompt)
             self.assertIn(launcher.WRITE_BOUNDARY.strip(), prompt)
             self.assertIn(Path(args.follow_up).read_text().strip(), prompt)
             self.assertLess(len(prompt.encode()), len(first.encode()) // 2)
@@ -825,7 +830,7 @@ class LauncherTests(unittest.TestCase):
         self.assertEqual(entry["brief_binding"]["input_measurement"]["utf8_bytes"], 23950)
         self.assertEqual(entry["native_dispatch"]["context_action"], "resume")
 
-    def test_native_continuation_rejects_missing_or_changed_proof_before_dispatch(self):
+    def test_native_continuation_reconstructs_missing_proof_but_rejects_route_drift(self):
         _, manifest_path, args = self.completed_native_implementation("proof")
         original = manifest_path.read_text()
         for mutation in ("receipt", "context", "role", "contract", "input", "route", "missing"):
@@ -853,10 +858,19 @@ class LauncherTests(unittest.TestCase):
                 before = manifest_path.read_bytes()
                 with mock.patch.object(launcher, "dispatch_route") as dispatch, \
                      contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
-                    with self.assertRaises(SystemExit):
-                        launcher.cmd_resume_native(args)
-                dispatch.assert_not_called()
-                self.assertEqual(manifest_path.read_bytes(), before)
+                    if mutation != "missing":
+                        with self.assertRaises(SystemExit):
+                            launcher.cmd_resume_native(args)
+                        dispatch.assert_not_called()
+                        self.assertEqual(manifest_path.read_bytes(), before)
+                    else:
+                        dispatch.return_value = {"mode": "native", "status": "awaiting_native_dispatch",
+                            "native_dispatch": {"context_action": "reconstruct"}, "pending": "receipt"}
+                        self.assertEqual(launcher.cmd_resume_native(args), 0)
+                        self.assertIsNone(dispatch.call_args.kwargs["resume_context"])
+                        entry = json.loads(manifest_path.read_text())["tracks"]["api"]["implementation"]
+                        self.assertEqual(entry["brief_binding"]["input_kind"], "full")
+                        self.assertIn(self.task.read_text().strip(), Path(entry["brief"]).read_text())
                 first_path.write_bytes(first_bytes)
         manifest_path.write_text(original)
 
@@ -1143,6 +1157,18 @@ class LauncherTests(unittest.TestCase):
         stable = json.dumps(context, sort_keys=True)
         self.assertFalse(launcher.persist_terminal_runner_contexts(manifest, snapshot))
         self.assertEqual(json.dumps(manifest["runner_contexts"]["review-api"], sort_keys=True), stable)
+        context["status"] = "lost"
+        replacement = dict(manifest["reviews"][1]["launch"], job_id="claude-33333333",
+                           result_file="review-3.json", resume_context_id=None)
+        manifest["reviews"].append({"track": "api", "cycle": 3, "launch": replacement})
+        snapshot["reviews"]["api:3"] = {"success": True, "runner_session_id": "replacement-session"}
+        self.assertTrue(launcher.persist_terminal_runner_contexts(manifest, snapshot))
+        replaced = manifest["runner_contexts"]["review-api"]
+        self.assertEqual(replaced["context_id"], "replacement-session")
+        self.assertEqual(replaced["last_completed_turn"], 3)
+        self.assertEqual(replaced["status"], "completed")
+        self.assertEqual(len(replaced["processed_receipt_refs"]), 3)
+        self.assertFalse(launcher.persist_terminal_runner_contexts(manifest, snapshot))
 
     def test_resumed_runner_route_does_not_start_an_approved_fallback(self) -> None:
         route = self.route(
@@ -1286,7 +1312,7 @@ class LauncherTests(unittest.TestCase):
              mock.patch.object(launcher, "implementation_ready"), \
              mock.patch.object(launcher, "review_source_binding", return_value={"path": "snapshot.json", "sha256": "fixture"}), \
              mock.patch.object(launcher.evidence_module(), "response_contract", return_value={}), \
-             mock.patch.object(launcher, "dispatch_route", side_effect=reject_after_reservation), \
+             mock.patch.object(launcher, "confirmed_continuation", return_value={}),              mock.patch.object(launcher, "dispatch_route", side_effect=reject_after_reservation), \
              mock.patch.object(launcher, "save_manifest"), \
              contextlib.redirect_stdout(io.StringIO()), \
              contextlib.redirect_stderr(io.StringIO()):
@@ -1591,6 +1617,280 @@ class LauncherTests(unittest.TestCase):
                 launcher.cmd_review(arguments)
         dispatch.assert_not_called()
         self.assertEqual(manifest["attempts"]["review_cycles"], {})
+
+    def test_real_review_capture_preflight_precedes_cycle_reservation(self):
+        plan_path, manifest_path, _ = self.completed_native_implementation("captures")
+        for arguments in (["init", "-q"], ["config", "user.email", "test@example.test"],
+                          ["config", "user.name", "Test"], ["add", "task.md", "brief.md", "routing-plan.json"],
+                          ["commit", "-qm", "Initial fixture"]):
+            subprocess.run(["git", "-C", str(self.root), *arguments], check=True, capture_output=True)
+        base = subprocess.check_output(["git", "-C", str(self.root), "rev-parse", "HEAD"], text=True).strip()
+        (self.root / "source.txt").write_text("changed behavior")
+        manifest = json.loads(manifest_path.read_text())
+        manifest["base"] = base
+        launcher.save_manifest(manifest, manifest_path)
+        artifact_dir = manifest_path.parent
+        requirements = artifact_dir / "requirements.json"
+        requirements.write_text(json.dumps({"context": {"runtime": "fixture"},
+            "checks": [{"id": "tests", "command": [launcher.sys.executable, "-c", "print('failed check'); raise SystemExit(1)"],
+                        "cwd": ".", "timeout_seconds": 5}], "observations": ["screen"], "exclusions": {}}))
+        evidence = launcher.evidence_module()
+        snapshot = evidence.prepare(self.root, base, self.task, requirements, artifact_dir / "cycle-1", artifact_dir)
+        args = Namespace(manifest=str(manifest_path), working_dir=None, session_id=None, task_id=None,
+                         track="api", review_brief=str(self.brief), review_snapshot=str(snapshot),
+                         evidence_packet=None, direct_captures=None, dry_run=False, cycle=None, timeout=1)
+        def blocked():
+            with mock.patch.object(launcher, "dispatch_route") as dispatch, contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+                with self.assertRaises(SystemExit):
+                    launcher.cmd_review(args)
+            dispatch.assert_not_called()
+            self.assertEqual(json.loads(manifest_path.read_text())["attempts"]["review_cycles"], {})
+        blocked()
+        direct = artifact_dir / "direct.json"
+        direct.write_text(json.dumps({"checks": {"tests": str(snapshot.parent / "checks/tests/result.json")}, "observations": []}))
+        args.direct_captures = str(direct)
+        blocked()
+        check = evidence.run_check(snapshot, "tests")
+        observed = artifact_dir / "screen.txt"
+        observed.write_text("Captured failure state")
+        observations = [{"id": "screen", "result": "fail", "evidence": [evidence.evidence_link(observed)]}]
+        packet = evidence.prepare_packet(snapshot, artifact_dir / "packet.json", observations=observations)
+        args.direct_captures = None
+        args.evidence_packet = str(packet)
+        log = check.parent / "stdout.log"
+        captured = log.read_bytes()
+        log.write_text("altered log")
+        blocked()
+        log.write_bytes(captured)
+        observed.write_text("altered observation")
+        blocked()
+        observed.write_text("Captured failure state")
+        direct.write_text(json.dumps({"checks": {"tests": str(check)}, "observations": observations}))
+        args.evidence_packet = None
+        args.direct_captures = str(direct)
+        args.dry_run = True
+        with mock.patch.object(launcher, "write_bound_brief", wraps=launcher.write_bound_brief) as write_brief, \
+             contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+            self.assertEqual(launcher.cmd_review(args), 0)
+        rendered = write_brief.call_args.args[0]
+        self.assertIn(str(check), rendered)
+        self.assertIn(str(observed), rendered)
+        self.assertIn(launcher.file_digest(observed), rendered)
+        self.assertIn(launcher.file_digest(check), rendered)
+        self.assertEqual(json.loads(manifest_path.read_text())["attempts"]["review_cycles"], {})
+        args.direct_captures = None
+        args.evidence_packet = str(packet)
+        args.dry_run = False
+        with mock.patch.object(launcher, "fire_runner", return_value={"job_id": "review-12345678"}), contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(launcher.cmd_review(args), 0)
+        current = json.loads(manifest_path.read_text())
+        self.assertEqual(current["attempts"]["review_cycles"]["api"], 1)
+        prompt = Path(current["reviews"][0]["brief"]).read_text()
+        self.assertIn(str((launcher.SKILLS_DIR / "shared/references/reviewer-response.md").resolve()), prompt)
+        self.assertEqual(evidence.load_record(check)["exit_code"], 1)
+
+    def completed_runner_implementation(self, session, *, proof=True):
+        self.task.write_text("Acceptance: preserve every required behavior.\n" * 250)
+        plan_path, implementer, _ = self.plan()
+        result_file = self.root / "runner-result.json"
+        captured = {}
+        def fire(name, arguments, *unused):
+            captured["metadata"] = json.loads(arguments[arguments.index("--metadata-json") + 1])
+            return {"job_id": "codex-12345678", "result_file": str(result_file)}
+        with mock.patch.object(launcher, "fire_runner", side_effect=fire), contextlib.redirect_stdout(io.StringIO()):
+            launcher.cmd_launch(self.launch_arguments(plan_path, session))
+        receipt = {"success": True, "session_id": "exact-role-session", "effective_runner": implementer["runner"],
+                   "configured_model": implementer["model"], "effective_model": implementer["model"],
+                   "effective_effort": implementer["effort"], "restrict_tools": False,
+                   "model_receipt": {"status": "verified", "source": "native_event", "observed_model": implementer["model"]}}
+        if proof:
+            receipt["dispatch_metadata"] = captured["metadata"]
+        result_file.write_text(json.dumps(receipt))
+        manifest_path = self.manifest_for(session)
+        follow_up = self.root / "repair.md"
+        follow_up.write_text("Repair the accepted finding and capture fresh checks.")
+        args = Namespace(manifest=str(manifest_path), working_dir=None, session_id=None, task_id=None,
+                         track="api", follow_up=str(follow_up), context_recovery_reason=None, timeout=1)
+        observed = {(str(self.root), "codex-12345678"): {"status": "completed", "result": receipt}}
+        return manifest_path, args, observed
+
+    def test_runner_repairs_use_receipt_bound_compact_input_and_reserve_before_dispatch(self):
+        manifest_path, args, observed = self.completed_runner_implementation("runner-repair")
+        def fire(name, arguments, *unused):
+            self.assertEqual(arguments[arguments.index("--resume") + 1], "exact-role-session")
+            reserved = json.loads(manifest_path.read_text())
+            self.assertEqual(reserved["tracks"]["api"]["implementation"]["resume_attempts"], 1)
+            self.assertEqual(reserved["runner_contexts"]["impl-api"]["status"], "pending")
+            return {"job_id": "codex-22222222", "result_file": str(self.root / "second-result.json")}
+        with mock.patch.object(launcher.runner_jobs, "observe_many", return_value=observed), \
+             mock.patch.object(launcher, "fire_runner", side_effect=fire), contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(launcher.cmd_resume_native(args), 0)
+        current = json.loads(manifest_path.read_text())
+        entry = current["tracks"]["api"]["implementation"]
+        self.assertEqual(entry["brief_binding"]["input_kind"], "continuation")
+        prompt = Path(entry["brief"]).read_text()
+        self.assertNotIn(self.task.read_text().strip(), prompt)
+        self.assertNotIn("execution_provenance", prompt)
+        self.assertIn("receipt", entry["brief_binding"]["continuation_proof"])
+        pending = {(str(self.root), "codex-22222222"): {"status": "running", "result": {}}}
+        with mock.patch.object(launcher.runner_jobs, "observe_many", return_value=pending), \
+             mock.patch.object(launcher, "fire_runner") as fire, contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+            with self.assertRaises(SystemExit):
+                launcher.cmd_resume_native(args)
+        fire.assert_not_called()
+        self.assertEqual(json.loads(manifest_path.read_text())["tracks"]["api"]["implementation"]["resume_attempts"], 1)
+
+    def test_runner_missing_proof_reconstructs_full_in_fresh_context(self):
+        manifest_path, args, observed = self.completed_runner_implementation("runner-full", proof=False)
+        with mock.patch.object(launcher.runner_jobs, "observe_many", return_value=observed), \
+             mock.patch.object(launcher, "fire_runner", return_value={"job_id": "codex-22222222"}) as fire, contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(launcher.cmd_resume_native(args), 0)
+        entry = json.loads(manifest_path.read_text())["tracks"]["api"]["implementation"]
+        self.assertEqual(entry["brief_binding"]["input_kind"], "full")
+        self.assertIn(self.task.read_text().strip(), Path(entry["brief"]).read_text())
+        arguments = fire.call_args.args[1]
+        self.assertNotIn("--resume", arguments)
+        current = json.loads(manifest_path.read_text())
+        self.assertEqual(current["runner_contexts"]["impl-api"]["status"], "lost")
+        self.assertEqual(entry["resume_attempts"], 1)
+
+    def test_runner_compact_proof_requires_intact_receipt_input_policy_and_role(self):
+        import copy
+        manifest_path, _, observed = self.completed_runner_implementation("runner-proof")
+        manifest = json.loads(manifest_path.read_text())
+        with mock.patch.object(launcher.runner_jobs, "observe_many", return_value=observed):
+            launcher.persist_terminal_runner_contexts(manifest, launcher.poll_once(manifest))
+        entry = manifest["tracks"]["api"]["implementation"]
+        contract = {"path": self.task, "content_sha256": launcher.content_digest(self.task)}
+        route = entry["effective_route"]
+        original_receipt = Path(entry["result_file"]).read_text()
+        original_input = Path(entry["input_path"]).read_text()
+        for role in ("implementer", "reviewer"):
+            current = copy.deepcopy(manifest)
+            call = current["tracks"]["api"]["implementation"]
+            selected = dict(route, role=role)
+            call["effective_route"] = selected
+            call["tool_policy"] = "read-only" if role == "reviewer" else "write"
+            context = current["runner_contexts"][selected["id"]]
+            context.update(role=role, tool_policy=call["tool_policy"])
+            receipt = json.loads(original_receipt)
+            receipt["restrict_tools"] = role == "reviewer"
+            receipt["dispatch_metadata"].update(route_digest=launcher.canonical_digest(selected), tool_policy=call["tool_policy"])
+            Path(call["result_file"]).write_text(json.dumps(receipt))
+            context["receipt_sha256"] = launcher.file_digest(Path(call["result_file"]))
+            if role == "reviewer":
+                current["reviews"] = [{"track": "api", "cycle": 1, "launch": call,
+                    "brief_binding": current["tracks"]["api"]["brief_binding"]}]
+                current["tracks"]["api"]["implementation"] = {}
+            self.assertIsNotNone(launcher.confirmed_continuation(current, selected, contract, context))
+            for mutation in ("receipt", "input", "policy", "route", "session", "history", "contract"):
+                with self.subTest(role=role, mutation=mutation):
+                    changed = copy.deepcopy(receipt)
+                    if mutation == "receipt":
+                        context["receipt_sha256"] = "changed"
+                    elif mutation == "input":
+                        Path(call["input_path"]).write_text("changed bound input")
+                    elif mutation == "policy":
+                        changed["restrict_tools"] = not changed["restrict_tools"]
+                    elif mutation == "session":
+                        changed["session_id"] = "another-role"
+                    elif mutation == "contract":
+                        self.task.write_text("Changed acceptance")
+                    else:
+                        key = "route_digest" if mutation == "route" else "parent_history"
+                        changed["dispatch_metadata"][key] = "changed"
+                    Path(call["result_file"]).write_text(json.dumps(changed))
+                    if mutation != "receipt":
+                        context["receipt_sha256"] = launcher.file_digest(Path(call["result_file"]))
+                    with self.assertRaises(ValueError):
+                        launcher.confirmed_continuation(current, selected, contract, context)
+                    self.task.write_text("Acceptance: preserve every required behavior.\n" * 250)
+                    Path(call["input_path"]).write_text(original_input)
+                    Path(call["result_file"]).write_text(json.dumps(receipt))
+                    context["receipt_sha256"] = launcher.file_digest(Path(call["result_file"]))
+        unsupported = dict(route, runner="gemini")
+        self.assertIsNone(launcher.confirmed_continuation(manifest, unsupported, contract, manifest["runner_contexts"][route["id"]]))
+        context = manifest["runner_contexts"][route["id"]]
+        context["status"] = "pending"
+        with self.assertRaisesRegex(ValueError, "uncertain"):
+            launcher.confirmed_continuation(manifest, route, contract, context)
+
+    def test_runner_launcher_blocks_altered_proof_before_dispatch_or_reservation(self):
+        manifest_path, args, observed = self.completed_runner_implementation("runner-altered")
+        manifest = json.loads(manifest_path.read_text())
+        with mock.patch.object(launcher.runner_jobs, "observe_many", return_value=observed):
+            launcher.persist_terminal_runner_contexts(manifest, launcher.poll_once(manifest))
+        launcher.save_manifest(manifest, manifest_path)
+        before = manifest_path.read_bytes()
+        entry = manifest["tracks"]["api"]["implementation"]
+        receipt_path = Path(entry["result_file"])
+        original_receipt = receipt_path.read_bytes()
+        input_path = Path(entry["input_path"])
+        original_input = input_path.read_bytes()
+        for mutation in ("receipt", "task", "tools", "input"):
+            with self.subTest(mutation=mutation):
+                if mutation == "input":
+                    input_path.write_text("changed input")
+                elif mutation == "receipt":
+                    receipt_path.write_bytes(original_receipt + b"\n")
+                else:
+                    changed = json.loads(original_receipt)
+                    if mutation == "task":
+                        changed["dispatch_metadata"]["task_id"] = "another-task"
+                    else:
+                        changed["restrict_tools"] = True
+                    receipt_path.write_text(json.dumps(changed))
+                with mock.patch.object(launcher.runner_jobs, "observe_many", return_value=observed), \
+                     mock.patch.object(launcher, "fire_runner") as fire, contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+                    with self.assertRaises(SystemExit):
+                        launcher.cmd_resume_native(args)
+                fire.assert_not_called()
+                self.assertEqual(manifest_path.read_bytes(), before)
+                receipt_path.write_bytes(original_receipt)
+                input_path.write_bytes(original_input)
+
+    def test_runner_preparation_failure_keeps_completed_context_and_allows_retry(self):
+        manifest_path, args, observed = self.completed_runner_implementation("runner-write-failure")
+        before = manifest_path.read_bytes()
+        with mock.patch.object(launcher.runner_jobs, "observe_many", return_value=observed), \
+             mock.patch.object(launcher, "write_bound_brief", side_effect=OSError("write denied")), \
+             mock.patch.object(launcher, "fire_runner") as fire, contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+            with self.assertRaises(SystemExit):
+                launcher.cmd_resume_native(args)
+        fire.assert_not_called()
+        self.assertEqual(manifest_path.read_bytes(), before)
+        with mock.patch.object(launcher.runner_jobs, "observe_many", return_value=observed), \
+             mock.patch.object(launcher, "fire_runner", side_effect=OSError("process did not start")), \
+             contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+            with self.assertRaises(SystemExit):
+                launcher.cmd_resume_native(args)
+        current = json.loads(manifest_path.read_text())
+        entry = current["tracks"]["api"]["implementation"]
+        self.assertEqual(entry["resume_attempts"], 1)
+        self.assertEqual(entry["job_id"], "codex-12345678")
+        self.assertEqual(current["runner_contexts"]["impl-api"]["status"], "completed")
+        self.assertEqual(current["steps"][-1]["result"], "not_started")
+        with mock.patch.object(launcher.runner_jobs, "observe_many", return_value=observed), \
+             mock.patch.object(launcher, "fire_runner", return_value={"job_id": "codex-22222222"}), contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(launcher.cmd_resume_native(args), 0)
+        self.assertEqual(json.loads(manifest_path.read_text())["tracks"]["api"]["implementation"]["resume_attempts"], 2)
+
+    def test_runner_unknown_start_keeps_reserved_attempt_and_blocks_resend(self):
+        manifest_path, args, observed = self.completed_runner_implementation("runner-uncertain")
+        with mock.patch.object(launcher.runner_jobs, "observe_many", return_value=observed), \
+             mock.patch.object(launcher, "fire_runner", side_effect=launcher.RunnerLaunchError("unknown start", uncertain=True)), \
+             contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+            with self.assertRaises(SystemExit):
+                launcher.cmd_resume_native(args)
+        entry = json.loads(manifest_path.read_text())["tracks"]["api"]["implementation"]
+        self.assertEqual(entry["resume_attempts"], 1)
+        self.assertIsNone(entry["job_id"])
+        with mock.patch.object(launcher.runner_jobs, "observe_many", return_value={}), \
+             mock.patch.object(launcher, "fire_runner") as fire, contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+            with self.assertRaises(SystemExit):
+                launcher.cmd_resume_native(args)
+        fire.assert_not_called()
+
 
     def update_route_plan(self, path, *, max_bytes=None):
         plan = json.loads(path.read_text())

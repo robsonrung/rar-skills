@@ -17,6 +17,13 @@ Include its target changes and original findings in the final current combined
 review. Do not require a duplicate task review solely because its checkpoint
 already passed dependency release.
 
+A current batch review can endorse several retained task contracts after ordinary
+later edits. Reuse that one actual independent response when its exact task set,
+canonical contracts, required current captures, prior findings, affected interactions, and
+approved dispatch pass the shared batch protocol. It supplies final acceptance
+only if its own approved contract and complete combined evidence also pass this
+feature gate. Task endorsements cannot replace missing feature checks.
+
 Capture the feature's acceptance results. Reuse task results only when the relevant code, dependencies, environment, and contract still match and no fresh run is required; run missing or affected checks on the combined state. For several tasks, call `full-review` once on the combined change, focused on integration seams, shared contracts, migration order, and gaps in task reviews. Use the approved integration route and its separate persistent context; it does not replace task-level independent review. Use the approved reviewer plan and `security_focus=true` when a task has deep security exposure.
 
 A single task with a complete scoped review does not need a duplicate full panel. Reuse task evidence when the code and assumptions still match. After a fix, rerun affected checks and review changed paths; broaden only when the change or a failure requires it. Never weaken acceptance checks to obtain a pass.

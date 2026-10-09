@@ -11,6 +11,7 @@ array. Read from stdin, or from every JSON file in --dir.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import sys
 from pathlib import Path
@@ -40,6 +41,12 @@ def nonempty_string(value: Any) -> bool:
 
 def valid_comment(value: Any) -> bool:
     if not isinstance(value, dict):
+        return False
+    if "id" in value and not nonempty_string(value["id"]):
+        return False
+    if "related_ids" in value and (not isinstance(value["related_ids"], list) or not all(nonempty_string(item) for item in value["related_ids"])):
+        return False
+    if value.get("status", "confirmed") not in ("confirmed", "unverified", "refuted"):
         return False
     if not all(field in value for field in COMMENT_FIELDS):
         return False
@@ -90,16 +97,25 @@ def normalize(comment: dict[str, Any], source: str) -> dict[str, Any]:
         dict.fromkeys(item.strip() for item in value["evidence"] if nonempty_string(item))
     )
     value["source"] = source
+    value["status"] = comment.get("status", "confirmed")
+    if comment.get("related_ids"):
+        value["related_ids"] = list(dict.fromkeys(comment["related_ids"]))
+    if "id" in comment:
+        value["id"] = comment["id"]
+    else:
+        identity = json.dumps(fingerprint(value), ensure_ascii=False).encode("utf-8")
+        value["id"] = "F-" + hashlib.sha256(identity).hexdigest()[:16]
     return value
 
 
-def fingerprint(comment: dict[str, Any]) -> tuple[str, str, str, str, str]:
+def fingerprint(comment: dict[str, Any]) -> tuple[str, ...]:
     return (
         comment["path"],
         f'{comment["line_start"]}-{comment["line_end"]}',
         comment["category"],
         comment["problem"].strip(),
         comment["severity"],
+        comment.get("status", "confirmed"),
     )
 
 
@@ -116,6 +132,8 @@ def order(item: dict[str, Any]) -> tuple[Any, ...]:
 def merge_exact_duplicates(group: list[dict[str, Any]]) -> dict[str, Any]:
     group.sort(key=order)
     merged = dict(group[0])
+    identifiers = sorted({identifier for item in group for identifier in [item["id"], *item.get("related_ids", [])]})
+    merged["id"] = identifiers[0]
     merged["confidence"] = max(item["confidence"] for item in group)
     sources: list[str] = []
     evidence: list[str] = []
@@ -126,6 +144,11 @@ def merge_exact_duplicates(group: list[dict[str, Any]]) -> dict[str, Any]:
         for proof in item["evidence"]:
             if proof not in evidence:
                 evidence.append(proof)
+    aliases = identifiers[1:]
+    if aliases:
+        merged["related_ids"] = aliases
+    else:
+        merged.pop("related_ids", None)
     merged["evidence"] = evidence
     merged["source"] = sources[0]
     if len(sources) > 1:
@@ -162,7 +185,7 @@ def main() -> int:
         "--max-non-blockers",
         type=int,
         default=5,
-        help="Maximum MEDIUM and LOW findings. Default: 5.",
+        help="Maximum non-security MEDIUM and LOW findings in the human summary only. Default: 5.",
     )
     args = parser.parse_args()
 
@@ -183,7 +206,8 @@ def main() -> int:
 
     malformed_returns = 0
     malformed_findings = 0
-    grouped: dict[tuple[str, str, str, str, str], list[dict[str, Any]]] = {}
+    grouped: dict[tuple[str, ...], list[dict[str, Any]]] = {}
+    identities: dict[str, tuple[tuple[str, ...], str]] = {}
 
     for route in payload:
         if not (
@@ -199,33 +223,42 @@ def main() -> int:
                 malformed_findings += 1
                 continue
             normalized = normalize(comment, source)
-            grouped.setdefault(fingerprint(normalized), []).append(normalized)
+            key = fingerprint(normalized)
+            for identifier in [normalized["id"], *normalized.get("related_ids", [])]:
+                previous = identities.get(identifier)
+                if previous is not None and previous[0] != key:
+                    print(json.dumps({
+                        "status": "failed",
+                        "reason": "finding ID or alias refers to distinct findings; supply unique IDs and retain the source mapping",
+                        "conflicting_id": identifier,
+                        "sources": [previous[1], source],
+                    }))
+                    return 2
+                identities[identifier] = (key, source)
+            grouped.setdefault(key, []).append(normalized)
 
     merged = [merge_exact_duplicates(group) for group in grouped.values()]
     below_threshold = [item for item in merged if item["confidence"] < args.threshold]
-    eligible = [item for item in merged if item["confidence"] >= args.threshold]
-    blockers = [item for item in eligible if item["severity"] in ("CRITICAL", "HIGH")]
-    non_blockers = [
-        item for item in eligible if item["severity"] in ("MEDIUM", "LOW")
-    ]
-    blockers.sort(key=order)
-    non_blockers.sort(key=lambda item: (-item["confidence"], *order(item)))
-    retained = blockers + non_blockers[: args.max_non_blockers]
-    suppressed_by_cap = non_blockers[args.max_non_blockers :]
-    retained.sort(key=order)
-    for number, comment in enumerate(retained, 1):
-        comment["id"] = f"F{number}"
+    eligible = [item for item in merged if item["confidence"] >= args.threshold and item["status"] == "confirmed"]
+    excluded = [item for item in merged if item["confidence"] < args.threshold or item["status"] != "confirmed"]
+    always_shown = [item for item in eligible if item["severity"] in ("CRITICAL", "HIGH") or item["category"] == "security"]
+    bounded_summary = [item for item in eligible if item not in always_shown]
+    bounded_summary.sort(key=lambda item: (-item["confidence"], *order(item)))
+    summary = sorted(always_shown + bounded_summary[: args.max_non_blockers], key=order)
+    omitted = bounded_summary[args.max_non_blockers :]
+    retained = sorted(eligible, key=order)
 
     print(
         json.dumps(
             {
                 "status": "complete",
                 "findings": retained,
-                "suppressed_findings": sorted(
-                    below_threshold + suppressed_by_cap, key=order
-                ),
+                "summary_findings": summary,
+                "summary_omitted_ids": [item["id"] for item in omitted],
+                "suppressed_findings": sorted(excluded, key=order),
                 "suppressed_by_confidence": len(below_threshold),
-                "suppressed_by_cap": len(suppressed_by_cap),
+                "suppressed_by_cap": 0,
+                "summary_omitted_count": len(omitted),
                 "malformed_returns": malformed_returns,
                 "malformed_findings": malformed_findings,
             },

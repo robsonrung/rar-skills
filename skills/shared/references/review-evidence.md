@@ -320,3 +320,81 @@ response and cannot pass normal `verify` for the target. Final feature completio
 still needs an independent current combined review and acceptance evidence.
 New changes outside the approved scope need ordinary integration review; never
 widen an existing checkpoint or chain it as a new original review.
+
+## Current batch integration review
+
+Use a batch when ordinary later edits make several task reviews stale. This is
+one new independent review of the current combined change. It can endorse 1 to
+32 explicit task contracts in one call. The **acceptance contract** remains per
+task: "This batch retains both acceptance contracts and checks their affected
+interactions on the current source." Keep the exact carry forward path above for
+its narrower case.
+
+1. Prepare a current snapshot for each retained canonical task. Bind its prior
+   task review with `--previous-review`. Keep its contract, all prior command
+   definitions, and all observation IDs. Additional requirements are allowed.
+   Use one current source root, resolved base, index, artifact directory, and
+   observed environment identity for the batch. A new base or index is allowed
+   because the new reviewer assesses that state.
+2. Use `select-checks` for each current task snapshot. Run affected and explicitly
+   fresh checks. Reuse direct captures only when the normal validator accepts
+   their source, contract, requirements, environment, and command bindings.
+   Transfer other eligible captures through `transfer-check`, with unchanged
+   declared inputs and fresh environment and base evidence. A `fresh: true`
+   check cannot transfer. Prepare each complete evidence packet.
+3. Reuse browser observations only when declared inputs and environment remain
+   valid against the latest endorsed task state. Verified review ancestry selects
+   that state. Unscoped observations need fresh captures after any source content
+   change. Changed inputs, declarations, or environment also need fresh captures.
+   A reused result must equal that latest captured observation; an older capture
+   cannot replace a later endorsement. `response-contract` reports each task's
+   `observation_baseline` and `fresh_observations` reasons.
+4. Capture an environment assessment with `to_source_id`, `context_id` from the
+   current context identity digest, and the four evidence objects used by check
+   transfer. Also include `configuration` and `schema` objects with the same
+   `reason` and nonempty evidence list. Capture actual facts, including an
+   explanation when a surface is absent. Review changed dependencies, runtime,
+   configuration, schema, external state, and base interactions.
+5. Add `batch` to the combined requirements. Its exact fields are `tasks`,
+   `interactions`, and `environment`. `tasks` maps canonical task IDs to objects
+   with `snapshot`, `prior_review`, and `evidence_packet` links. All links use
+   absolute `path` and file `sha256`. `interactions` is a nonempty list of named
+   affected interactions. `environment` links the assessment JSON. Use a full
+   combined coverage scope with no exclusions. Unknown interactions require
+   investigation before dispatch; a filename list cannot establish independence.
+6. Prepare the batch snapshot against its own approved canonical integration
+   contract. Pass every retained prior task review through `--previous-review`.
+   Retain prior batch review records when repeating integration. Capture the
+   batch contract's own checks and observations, then use `response-contract`
+   and [reviewer-response.md](reviewer-response.md) for the full response.
+7. Reserve one approved independent integration reviewer call with this batch
+   snapshot. Its route must bind the batch contract and a separate scope ID.
+   Record the actual response through the existing ledger completion path.
+   Add the same `batch_review: {path, sha256}` snapshot link to each endorsed
+   task's integration evidence entry. Keep the original task `snapshot`,
+   `launch_manifest`, and reviewer bindings. Set `base` to the batch's intended
+   current base. Use either `batch_review` or `carry_forward` in an entry.
+
+The queue verifies every member against its canonical queue contract, both the
+original task dispatch and the new batch dispatch, complete valid evidence,
+prior findings, and the exact task set. It counts the batch as one call under
+existing route and total budgets. Pending calls retain every member's ownership.
+If a pending snapshot is missing or changed, ownership is unknown and scheduling
+blocks until that call is reconciled. Other evidence failures affect only the
+batch's tasks and their dependents. Never fabricate separate reviewer opinions
+from one response.
+
+A later source, base, index, contract, requirements, environment capture, or log
+change invalidates the batch. Preserve every finding ID and severity, including
+new findings on retained paths outside the new base diff. A later batch must bind
+prior batch reviews. When a reviewed descendant resolves an earlier finding,
+verified immutable ancestry selects that resolution while retaining its identity
+and complete history. List order and timestamps have no authority. Conflicting
+unrelated review branches block until explicitly reconciled, never omitted. This helper validates
+captured facts and response identity. The approved execution protocol establishes
+reviewer independence; environment equivalence and acceptance remain review judgments.
+
+Batch dependency release alone is not final feature acceptance. A batch can also
+serve as the final combined review only when its own approved contract and full
+checks, observations, coverage, findings, and current intended base satisfy that
+feature gate. Task endorsements cannot override a failed combined check.

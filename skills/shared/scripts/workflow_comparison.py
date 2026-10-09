@@ -93,6 +93,32 @@ def summarize(state):
     identity = measurement.get("identity", {})
     require(isinstance(identity, dict), "measurement identity must be an object")
     missing = []
+    captured = "events" in measurement
+    if captured:
+        measurement = dict(measurement)
+        coverage = measurement.get("coverage", [])
+        string_list(coverage, "coverage")
+        require(set(coverage) <= {"workers", "coordinator", "commands", "waits", "repairs"}, "invalid coverage area")
+        for group in ("events", "commands", "waits", "stages", "coordinator_calls"):
+            records = measurement.get(group, {})
+            require(isinstance(records, dict) and all(isinstance(item, dict) for item in records.values()),
+                    f"{group} must contain objects")
+        for command in measurement.get("commands", {}).values():
+            require(isinstance(command.get("key"), str) and command["key"].strip(), "command needs key")
+            require(type(command.get("exit_code")) is int, "command needs integer exit_code")
+            elapsed_ms(command.get("started_at"), command.get("completed_at"))
+        for call in measurement.get("coordinator_calls", {}).values():
+            require(isinstance(call.get("receipt"), dict), "coordinator call needs receipt")
+        for area in ("workers", "coordinator", "commands", "waits", "repairs"):
+            if area not in coverage:
+                missing.append("coverage." + area)
+        measurement["command_keys"] = ([c["key"] for c in measurement.get("commands", {}).values()]
+                                       if "commands" in coverage else None)
+        measurement["approval_wait_intervals"] = (list(measurement.get("waits", {}).values())
+                                                  if "waits" in coverage else None)
+        measurement["repair_call_ids"] = measurement.get("repair_call_ids", []) if "repairs" in coverage else None
+        measurement["coordinator_receipts"] = ([c["receipt"] for c in measurement.get("coordinator_calls", {}).values()]
+                                               if "coordinator" in coverage else None)
     for key in IDENTITY_FIELDS:
         value = identity.get(key)
         if value is None:
@@ -113,6 +139,40 @@ def summarize(state):
         missing.append("call_ledger.calls")
     ledger_known = calls is not None
     calls = calls or {}
+    calls = dict(calls)
+    imports = measurement.get("stage_ledgers", {})
+    require(isinstance(imports, dict), "stage_ledgers must be an object")
+    for call in calls.values():
+        require(isinstance(call, dict), "call must be an object")
+        require(isinstance(call.get("receipt_ref", {}), dict), "call receipt_ref must be an object")
+    seen_receipts = {call.get("receipt_ref", {}).get("sha256") for call in calls.values()} - {None}
+    imported_repairs = []
+    imported_repairs_unknown = False
+    for stage, record in imports.items():
+        require(isinstance(record, dict) and isinstance(record.get("calls"), dict), "imported stage calls must be an object")
+        repair_ids = record.get("repair_call_ids")
+        if repair_ids is None:
+            imported_repairs_unknown = True
+        else:
+            string_list(repair_ids, "stage repair_call_ids")
+            require(set(repair_ids) <= record["calls"].keys(), "imported repair IDs must be stage calls")
+        for call_id, call in record["calls"].items():
+            require(isinstance(call, dict), "imported call must be an object")
+            require(isinstance(call.get("receipt_ref"), dict), "imported receipt_ref must be an object")
+            digest = call["receipt_ref"].get("sha256")
+            require(isinstance(digest, str) and re.fullmatch(r"[0-9a-f]{64}", digest), "imported call needs receipt hash")
+            if digest in seen_receipts:
+                continue
+            seen_receipts.add(digest)
+            qualified = f"stage:{stage}:{call_id}"
+            require(qualified not in calls, "imported call identity collides")
+            calls[qualified] = call
+            if repair_ids is not None and call_id in repair_ids:
+                imported_repairs.append(qualified)
+    if imports:
+        ledger_known = True
+        if "call_ledger.calls" in missing:
+            missing.remove("call_ledger.calls")
     for call in calls.values():
         require(isinstance(call, dict), "call must be an object")
         require(isinstance(call.get("status"), str) and call["status"] in {"pending", "completed", "failed"},
@@ -132,7 +192,19 @@ def summarize(state):
     for name, metrics in (("workers", workers), ("coordinator", coordinator_metrics)):
         if metrics is not None:
             missing.extend(f"{name}.{key}" for key in FIELDS if metrics[key]["unknown_calls"])
-    start, end = state.get("started_at"), state.get("completed_at")
+    start, end = measurement.get("started_at", state.get("started_at")), measurement.get("completed_at", state.get("completed_at"))
+    stages = {}
+    require(isinstance(measurement.get("stages", {}), dict), "stages must be an object")
+    for name, interval in measurement.get("stages", {}).items():
+        require(isinstance(interval, dict), "stage must be an object")
+        begin, finish = interval.get("started_at"), interval.get("completed_at")
+        stages[name] = elapsed_ms(begin, finish) if begin and finish else None
+        if stages[name] is None:
+            missing.append("stages." + name)
+        for value in (begin, finish):
+            if value is not None:
+                require(start is None or timestamp(value) >= timestamp(start), "stage precedes workflow start")
+                require(end is None or timestamp(value) <= timestamp(end), "stage follows workflow completion")
     wall = elapsed_ms(start, end) if start is not None and end is not None else None
     timing = call_timing(calls, start, end)
     if timing["unknown_events"]:
@@ -142,6 +214,11 @@ def summarize(state):
         if value is None:
             missing.append(key)
     repairs = measurement.get("repair_call_ids")
+    if repairs is not None:
+        string_list(repairs, "repair_call_ids")
+        repairs = repairs + imported_repairs
+    if imported_repairs_unknown:
+        repairs = None
     if repairs is not None:
         string_list(repairs, "repair_call_ids")
         require(len(set(repairs)) == len(repairs), "repair call IDs must be unique")
@@ -168,15 +245,19 @@ def summarize(state):
             require(isinstance(value.get("observation_window"), str) and value["observation_window"].strip(),
                     "missed defects need an observation_window")
     pending = sum(call["status"] == "pending" for call in calls.values())
-    if state.get("status") not in {"complete", "failed", "ceiling_hit", "cancelled"} or pending:
+    terminal_status = measurement.get("terminal_status", state.get("status"))
+    require(terminal_status is None or (isinstance(terminal_status, str) and terminal_status in {"running", "awaiting_human", "complete", "failed", "ceiling_hit", "cancelled"}), "invalid terminal status")
+    if terminal_status not in {"complete", "failed", "ceiling_hit", "cancelled"} or pending:
         missing.append("terminal_workflow")
     counts_known = ledger_known and measurement.get("worker_calls_complete") is True
+    if captured:
+        counts_known = counts_known and "workers" in measurement.get("coverage", [])
     failed = sum(call["status"] == "failed" for call in calls.values())
     cost_known = counts_known and "terminal_workflow" not in missing and coordinator_metrics is not None
     cost_known = cost_known and not workers["reported_cost_usd"]["unknown_calls"] and not coordinator_metrics["reported_cost_usd"]["unknown_calls"]
     total_cost = (workers["reported_cost_usd"]["measured_sum"] + coordinator_metrics["reported_cost_usd"]["measured_sum"]) if cost_known else None
     return {"identity": {key: identity.get(key) for key in IDENTITY_FIELDS},
-            "workflow_elapsed_ms": wall, "approval_wait_ms": wait,
+            "workflow_elapsed_ms": wall, "approval_wait_ms": wait, "stage_elapsed_ms": stages,
             "call_timing": timing if ledger_known else None,
             "workers": workers, "coordinator": coordinator_metrics, "total_reported_cost_usd": total_cost,
             "measured_worker_calls": len(calls), "worker_calls": len(calls) if counts_known else None,

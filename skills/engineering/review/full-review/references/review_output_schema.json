@@ -181,10 +181,27 @@
               "minLength": 1
             },
             "description": "Other approved routes that raised the same finding. This does not change severity or confidence."
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "confirmed",
+              "unverified",
+              "refuted"
+            ]
+          },
+          "related_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "uniqueItems": true
           }
         },
         "additionalProperties": false
-      }
+      },
+      "description": "Complete durable findings after evidence and confidence filtering. Human summary limits do not remove entries."
     },
     "verdict": {
       "type": "string",

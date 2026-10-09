@@ -56,7 +56,12 @@ Record settled decisions, assumptions, exclusions, security choices, and
 observable success conditions in
 `.ai-workflow/work/<slug>/decision-record.md`. Give settled decisions stable IDs
 and keep one source index with path, locator, authority, and content revision.
-It becomes `ready-for-prd` when the interview closes.
+Capture each supplied answer when it settles a decision, following the
+[answer evidence contract](../skills/shared/references/answer-evidence.md).
+Keep its actual message locator when available. Otherwise retain the exact text
+in an immutable artifact and state the locator limit. Reuse its source identity
+through the PRD and tasks. A correction adds a linked record; it cannot replace
+prior authority. It becomes `ready-for-prd` when the interview closes.
 
 With `--auto`, resolve the product or technical interview roles from the central
 configuration and retain two isolated contexts through the rounds. The
@@ -89,6 +94,12 @@ review focus, dependencies, and write ownership in that file. Design lenses and
 the gate use the canonical result schema in the task contract. Keep blocking
 and advisory finding IDs, dispositions, and evidence through rechecks. Reuse
 settled shared decisions; classify each slice's design and security risks.
+
+New task contracts use one versioned `gate-result` block. Validate it with the
+[gate contract](../skills/shared/references/gate-result.md) before approval.
+The queue repeats this consistency check before promotion or dispatch. Keep
+closed findings and their resolution evidence. A valid record does not prove
+its evidence or grant approval. Started legacy contracts retain their format.
 
 `tasks-draft.md` is a compact index with task links and scheduling metadata.
 `queue.json` provides machine-readable dependencies, ownership, concurrency,
@@ -130,11 +141,19 @@ receipt, and follow-up requirements. Use an approved runner for a foreign or
 unsupported route. Keep implementer, reviewer, and integration contexts
 separate. Reuse each context only for its own task and role.
 
-First calls and context reconstruction receive the full accepted contract. A
-confirmed native continuation can receive its contract identity plus changed
-facts, findings, and evidence locators. The launcher validates the prior input,
-receipt, completed turn, task, role, route, and contract before omitting that
-text. Missing proof requires full reconstruction; it cannot reset consumed limits.
+First calls and context reconstruction receive the full accepted contract.
+Confirmed native and supported runner continuations can receive the contract
+identity, changed facts, findings, and evidence locators. The launcher validates
+the prior input, receipt, completed turn, task, role, route, and contract before
+omitting repeated text. It uses the full rendering when that is smaller.
+Missing proof requires full reconstruction in a fresh role context. Conflicting
+proof blocks dispatch. Recovery keeps the approved route and consumed limits.
+
+Runner dispatch records retain provenance, receipts, hashes, and counters outside
+the role prompt. Explicit `prompt_context` selects required role context. The
+adapter measures the final rendered UTF-8 input and enforces its approved byte
+budget before execution. This measurement excludes host instructions, tool schemas,
+history, later reads, and images; it is not a token count.
 
 Use the [read-only queue controller](../skills/engineering/workflow/implement-tasks/references/queue-controller.md)
 to project `ready`, `blocked`, and `required_integration` work from bound
@@ -165,6 +184,21 @@ packet bind the new state. Unknown dependencies, changed acceptance, unapproved
 content, or failed evidence block reuse. This proof releases dependencies only;
 final delivery still requires review of the current combined source.
 
+For ordinary later changes, one current batch review can endorse several
+canonical task contracts. Preserve each task's acceptance, prior findings,
+review links, and complete current evidence. Bind the batch's own approved
+contract, exact task membership, environment assessment, and affected
+interactions. Use one separate independent integration route and one reserved
+call. Valid check transfers and observation reuse follow the existing evidence
+rules; affected and required fresh checks still run.
+
+The queue validates both original task execution and the current batch review.
+Pending calls keep ownership. Within one projection, immutable batch evidence is
+validated once and reused. Before returning, the queue rechecks source, base,
+index, and linked file hashes. No cache carries into the next projection.
+A batch releases dependencies only. It also satisfies final review only when its
+approved scope and full current evidence meet the complete feature gate.
+
 ## Engineering methods and review
 
 | Moment | Applicable method |
@@ -182,7 +216,13 @@ or unresolved question can require an independent specialist with its own
 approved route and reserved budget. Final code review remains independent.
 Resolve blocking gate findings before task approval. Recheck the lens that
 raised the finding instead of replaying the full gate. Routine reviews do not
-start a council.
+start a council. Framework lenses apply only when that framework is present.
+
+Keep every confirmed finding in the durable review record. A human summary may
+limit displayed findings, but must link the full record and identify omitted
+IDs. A summary limit cannot remove a P2 from the final gate. Review ancestry
+retains finding identity and history; timestamps and list order cannot select
+between conflicting conclusions.
 
 ## Capture and reuse verification
 
@@ -211,6 +251,12 @@ shared evidence shape. Its `evidence-packet` export rechecks source and capture
 integrity. All required units must reference one current compatible snapshot.
 Repair can replace the snapshot within the same approved contract while keeping
 consumed limits.
+
+Before reserving a reviewer cycle, the launcher validates the complete evidence
+packet or explicit direct captures. Missing or changed captures block dispatch.
+Failed checks and observations remain review evidence and cannot satisfy
+readiness. Each reviewer brief includes the absolute response contract path and
+the snapshot's required fields, including on continuation.
 
 Give that packet and the focused [reviewer response contract](../skills/shared/references/reviewer-response.md)
 to the independent reviewer. It owns source coverage, findings, observations,
@@ -271,6 +317,19 @@ approve its recommendation.
 
 ## Measure the complete workflow
 
+Choose one feature measurement state before the first stage. Use the
+[measurement capture hook](../skills/shared/references/workflow-measurement.md)
+at stage, wait, command, repair, and terminal boundaries. Start with known
+identity fields and bind remaining fields once when they become fixed. Later
+route initialization preserves these early observations.
+
+Keep a separate automatic interview route ledger under its own authority.
+After its calls resolve and its owner records terminal status, import its
+completed ledger by hash into the feature state. The import retains the source
+plan and counters. Comparison counts each receipt hash once. Record full
+coverage only when every relevant call and event is captured. Measurement
+completion does not grant acceptance or change execution authority.
+
 Compare recorded runs with the read-only `shared/scripts/workflow_comparison.py`
 helper and the [run-state measurement contract](../skills/shared/references/run-state-contract.md#compare-workflow-cost).
 Use the same source start revision, acceptance cases, requirements, and runtime
@@ -280,9 +339,13 @@ commands, token categories, actual reported cost, and missed defects. Unknown
 measurements stay unknown; cached input is not free.
 
 Cost deltas require passed acceptance and equal observed defect counts under
-matching identities. Missing observations block comparison. Lower cost does not
-establish equivalent quality. The [measurement report](workflow-measurement.md)
-records the source baseline, deterministic checks, and limits. No full workflow
+matching identities and the same defect observation protocol. Missing
+observations block comparison. Lower cost does not establish equivalent quality. The [measurement report](workflow-measurement.md)
+records the source baseline, deterministic checks, and limits. The
+[local runtime validation](workflow-runtime-validation.md) exercises capture
+across separate interview and implementation stages with synthetic receipts.
+Invocation totals take precedence over message subtotals. A missing usage field
+in any counted request stays unknown in the total. No full workflow
 provider performance benchmark was run for these changes, and route defaults
 remain unchanged.
 

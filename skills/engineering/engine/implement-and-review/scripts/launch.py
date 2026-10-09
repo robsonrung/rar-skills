@@ -32,7 +32,7 @@ RUNNER_RESUME_FLAGS = {
     "pi": "--session",
 }
 TERMINAL_JOB_STATUSES = {"completed", "failed", "died", "cancelled", "missing"}
-ACTIVE_REVIEW_STATUSES = {"starting", "running", "awaiting_native_dispatch", "orchestrator-managed"}
+ACTIVE_REVIEW_STATUSES = {"starting", "running", "awaiting_native_dispatch", "orchestrator-managed", "uncertain"}
 MAX_REVIEW_CYCLES = 3
 MAX_EVIDENCE_RECOVERIES = 1
 STATUS_LINE = re.compile(r"\*\*Status:\*\* (?:ready-for-agent|in-progress|done|blocked)\Z")
@@ -160,7 +160,9 @@ def utc_now() -> str:
 
 
 class RunnerLaunchError(RuntimeError):
-    pass
+    def __init__(self, message, *, uncertain=False):
+        super().__init__(message)
+        self.uncertain = uncertain
 
 
 def require_string(value: Any, field: str) -> str:
@@ -455,8 +457,8 @@ def merge_fallback(route: dict[str, Any], alternate: dict[str, Any]) -> dict[str
 
 
 def persistent_pi_session_id(route: dict[str, Any], brief: Path) -> str:
-    """Give a first Pi turn a stable native session identifier without creating it."""
-    route_key = hashlib.sha256(route["id"].encode("utf-8")).hexdigest()[:16]
+    """Allocate a distinct session for each first turn or reconstruction."""
+    route_key = canonical_digest({"route": route["id"], "input_path": str(brief.resolve())})[:16]
     return str(brief.parent / f"pi-session-{route_key}.jsonl")
 
 
@@ -471,7 +473,7 @@ def route_arguments(
     resume_context_id: str | None = None,
 ) -> list[str]:
     from execution_provenance import capture
-    metadata = {**metadata, "execution_provenance": capture([Path(__file__), runner_script(route["runner"])])}
+    metadata = {**metadata, "prompt_context": metadata.get("prompt_context", {}), "execution_provenance": capture([Path(__file__), runner_script(route["runner"]), SKILLS_DIR / "shared/scripts/runner_prompt.py", SKILLS_DIR / "shared/scripts/context_packet.py"])}
     arguments = [
         "--prompt-file", str(brief),
         "--working-dir", str(working_dir),
@@ -526,7 +528,8 @@ def fire_runner(name: str, arguments: list[str], working_dir: Path, dry_run: boo
         job_id = match.group(1) if match else None
     if not job_id:
         raise RunnerLaunchError(
-            f"could not start {name} route. stdout={output[:400]!r} stderr={(result.stderr or '').strip()[:400]!r}"
+            f"could not confirm {name} start. Reconcile before resend. stdout={output[:400]!r} stderr={(result.stderr or '').strip()[:400]!r}",
+            uncertain=summary.get("print_invocation_started") is not False,
         )
     return {
         "job_id": job_id,
@@ -557,6 +560,8 @@ def dispatch_route(
         measurement = actual
     if measurement is not None:
         metadata = {**metadata, "input_measurement": measurement}
+    metadata = {**metadata, "route_digest": canonical_digest(route), "parent_history": "none",
+                "tool_policy": "browser" if route.get("browser") else ("read-only" if read_only else "write")}
     if route["mode"] == "native":
         native = validate_native_spec(route) or {}
         context_id = resume_context.get("context_id") if isinstance(resume_context, dict) else None
@@ -604,6 +609,7 @@ def dispatch_route(
             "selected_route": route,
             "effective_route": route,
             "resume_context_id": resume_context.get("context_id") if isinstance(resume_context, dict) else None,
+            "input_path": str(brief),
             "input_measurement": measurement,
             "parent_history": "none",
             "input_revision": metadata.get("input_revision"),
@@ -612,7 +618,7 @@ def dispatch_route(
         }
     except RunnerLaunchError as primary_error:
         fallback = fallback_route(route)
-        if fallback is None or not use_approved_fallback or resume_context is not None:
+        if primary_error.uncertain or fallback is None or not use_approved_fallback or resume_context is not None:
             raise
         try:
             result = dispatch_route(
@@ -698,8 +704,7 @@ def render_bound_brief(
     if continuation is not None:
         continuation_body = (
             "Confirmed same-task same-role continuation\n"
-            + json.dumps(continuation, sort_keys=True)
-            + "\nKeep the accepted contract already in this context. Apply only the changed "
+            + "Keep the accepted contract already in this context. Apply only the changed "
             "facts, findings, and evidence locators below. If that context is unavailable, "
             "stop and request full reconstruction before acting."
         )
@@ -708,7 +713,6 @@ def render_bound_brief(
             input_kind = "continuation"
     rendered = f"""Approved task contract
 Source: {contract_path}
-Canonical content SHA-256: {contract['content_sha256']}
 
 The accepted task contract controls scope and acceptance. The {note_label.lower()}
 may add execution detail only. If it conflicts with the contract, stop and
@@ -718,7 +722,6 @@ report the conflict.
 
 {note_label}
 Source: {source}
-SHA-256: {file_digest(source)}
 
 {note_text.rstrip()}
 """
@@ -786,7 +789,9 @@ def initial_manifest(
     from execution_provenance import capture
     provenance = capture([Path(__file__), SKILL_ROOT / "SKILL.md",
                           SKILLS_DIR / "shared" / "model-routing.json",
-                          SKILLS_DIR / "shared" / "scripts" / "review_evidence.py"])
+                          SKILLS_DIR / "shared" / "scripts" / "review_evidence.py",
+                          SKILLS_DIR / "shared" / "scripts" / "runner_prompt.py",
+                          SKILLS_DIR / "shared" / "scripts" / "context_packet.py"])
     return {
         "schema_version": 1,
         "skill_provenance": provenance,
@@ -1101,6 +1106,10 @@ def resumable_context(manifest: dict[str, Any], route: dict[str, Any]) -> dict[s
     return context
 
 
+class ContinuationProofMissing(ValueError):
+    pass
+
+
 def confirmed_native_continuation(
     manifest: dict[str, Any],
     route: dict[str, Any],
@@ -1114,8 +1123,10 @@ def confirmed_native_continuation(
     if mismatch:
         raise ValueError(mismatch)
     try:
-        if context["status"] != "completed" or validate_native_spec(route) is None:
+        if context["status"] != "completed":
             raise ValueError("native continuation needs a confirmed completed role context")
+        if validate_native_spec(route) is None:
+            raise ContinuationProofMissing("native capability proof is missing")
         receipt_path = Path(context["receipt_ref"])
         if file_digest(receipt_path) != context["receipt_sha256"]:
             raise ValueError("native continuation receipt changed")
@@ -1165,8 +1176,84 @@ def confirmed_native_continuation(
             "receipt": {"path": str(receipt_path), "sha256": context["receipt_sha256"]},
             "approved_route": route,
         }
-    except (KeyError, TypeError, OSError, json.JSONDecodeError) as error:
-        raise ValueError("native continuation proof is missing; reconstruct with the full contract") from error
+    except (KeyError, FileNotFoundError) as error:
+        raise ContinuationProofMissing("native continuation proof is missing; reconstruct with the full contract") from error
+    except TypeError as error:
+        raise ValueError("native continuation proof is malformed") from error
+
+
+def confirmed_continuation(manifest, route, contract, context):
+    if route["mode"] == "native":
+        return confirmed_native_continuation(manifest, route, contract, context)
+    if context is None or route["runner"] not in RUNNER_RESUME_FLAGS:
+        return None
+    mismatch = context_identity_error(context, route, manifest["task_id"], "runner")
+    if mismatch or context.get("status") != "completed":
+        raise ValueError(mismatch or "runner outcome is uncertain; reconcile before resend")
+    try:
+        if route["runner"] == "pi" and file_digest(Path(context["context_id"])) != context["session_file_sha256"]:
+            raise ValueError("saved role session changed; reconcile before resend")
+        if type(context["last_completed_turn"]) is not int or context["last_completed_turn"] < 1:
+            raise ValueError("runner completed turn is invalid")
+        receipt_path = Path(context["receipt_ref"])
+        if file_digest(receipt_path) != context["receipt_sha256"]:
+            raise ValueError("runner continuation receipt changed")
+        receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
+        if (receipt.get("success") is not True or receipt_error(route, receipt)
+                or receipt.get("session_id") != context["context_id"]):
+            raise ValueError("runner continuation receipt does not prove the approved session and route")
+        track = manifest["tracks"][route["track"]]
+        implementation = track.get("implementation", {})
+        records = [(implementation, implementation if "brief_binding" in implementation else track)]
+        records.extend((record.get("launch", {}), record) for record in manifest.get("reviews", [])
+                       if record.get("track") == route["track"])
+        matches = [(entry, record) for entry, record in records if entry.get("result_file") == str(receipt_path)]
+        if not matches:
+            raise ContinuationProofMissing("completed runner input record is missing")
+        if len(matches) != 1:
+            raise ValueError("runner receipt belongs to more than one call")
+        entry, record = matches[0]
+        metadata = receipt["dispatch_metadata"]
+        expected_policy = "browser" if route.get("browser") else ("read-only" if route["role"] == "reviewer" else "write")
+        for field, value in {"task_id": manifest["task_id"], "route_digest": canonical_digest(route),
+                             "parent_history": "none", "tool_policy": expected_policy,
+                             "input_revision": context["last_input_revision"]}.items():
+            if metadata[field] != value:
+                raise ValueError(f"runner continuation {field} changed")
+        if (entry["tool_policy"] != expected_policy or context["tool_policy"] != expected_policy
+                or entry["parent_history"] != "none"
+                or canonical_digest(entry["effective_route"]) != canonical_digest(route)):
+            raise ValueError("runner continuation isolation, tools, or route changed")
+        if route.get("browser"):
+            if receipt["tool_policy"] != "browser":
+                raise ValueError("runner browser tool policy changed")
+        elif receipt["restrict_tools"] is not (expected_policy == "read-only"):
+            raise ValueError("runner tool policy changed")
+        binding = record["brief_binding"]
+        if (binding["contract_path"] != str(contract["path"])
+                or binding["contract_content_sha256"] != contract["content_sha256"]
+                or content_digest(contract["path"]) != contract["content_sha256"]):
+            raise ValueError("runner accepted contract changed")
+        if file_digest(Path(entry["input_path"])) != metadata["input_revision"]:
+            raise ValueError("runner completed input changed")
+        return {"task_id": manifest["task_id"], "context_id": context["context_id"],
+                "completed_turn": context["last_completed_turn"],
+                "previous_input_revision": metadata["input_revision"],
+                "receipt": {"path": str(receipt_path), "sha256": context["receipt_sha256"]},
+                "approved_route": route}
+    except (KeyError, FileNotFoundError) as error:
+        raise ContinuationProofMissing("runner continuation proof is missing; reconstruct the full contract") from error
+    except TypeError as error:
+        raise ValueError("runner continuation proof is malformed") from error
+
+
+def continuation_input(manifest, route, contract, context, recovery_reason):
+    if recovery_reason:
+        return None, None, recovery_reason
+    try:
+        return confirmed_continuation(manifest, route, contract, context), context, None
+    except ContinuationProofMissing:
+        return None, None, "completed context proof is missing; reconstruct the full contract"
 
 
 def reject_context_owned_by_another_route(
@@ -1333,7 +1420,7 @@ def persist_runner_context(manifest: dict[str, Any], entry: dict[str, Any], snap
         return False
     route = entry.get("effective_route") or entry.get("selected_route")
     session_id = snapshot.get("runner_session_id")
-    if not isinstance(route, dict) or not isinstance(session_id, str) or not session_id:
+    if not isinstance(route, dict) or route.get("mode") != "runner" or route.get("runner") not in RUNNER_RESUME_FLAGS or not isinstance(session_id, str) or not session_id:
         return False
     try:
         validate_route(route)
@@ -1355,12 +1442,14 @@ def persist_runner_context(manifest: dict[str, Any], entry: dict[str, Any], snap
             return False
         if current.get("status") == "broken":
             return False
-        if entry.get("resume_context_id") != current["context_id"]:
+        if current.get("status") == "lost":
+            manifest.setdefault("runner_context_history", []).append(dict(current))
+        elif entry.get("resume_context_id") != current["context_id"]:
             current["status"] = "broken"
             current["break_reason"] = "runner continuation did not use the recorded role session"
             current["processed_receipt_refs"] = [*processed, receipt_ref]
             return True
-        if session_id != current["context_id"]:
+        if current.get("status") != "lost" and session_id != current["context_id"]:
             current["status"] = "broken"
             current["break_reason"] = "runner returned a different session after exact resume"
             current["processed_receipt_refs"] = [*processed, receipt_ref]
@@ -1375,6 +1464,9 @@ def persist_runner_context(manifest: dict[str, Any], entry: dict[str, Any], snap
         "configured_effort": route.get("effort"),
         "tool_policy": entry.get("tool_policy"),
         "receipt_ref": receipt_ref,
+        **({"session_file_sha256": file_digest(Path(session_id))}
+           if route["runner"] == "pi" and Path(session_id).is_file() else {}),
+        **({"receipt_sha256": file_digest(Path(receipt_ref))} if receipt_ref and Path(receipt_ref).is_file() else {}),
         "processed_receipt_refs": ([*current.get("processed_receipt_refs", []), receipt_ref] if isinstance(current, dict) else [receipt_ref]),
         "last_input_revision": entry.get("input_revision"),
         "last_completed_turn": (current.get("last_completed_turn", 0) + 1) if isinstance(current, dict) else 1,
@@ -1643,6 +1735,43 @@ def active_review_record(manifest: dict[str, Any], track_name: str, snapshot: di
     return None
 
 
+def preflight_review_captures(args, snapshot_path, contract):
+    evidence = evidence_module()
+    packet_path = getattr(args, "evidence_packet", None)
+    direct_path = getattr(args, "direct_captures", None)
+    if packet_path and direct_path:
+        raise ValueError("use an evidence packet or direct captures, not both")
+    if packet_path:
+        link = evidence.evidence_link(packet_path)
+        evidence.load_packet(link, evidence.current_snapshot(snapshot_path), snapshot_path)
+        return link, None
+    if direct_path:
+        direct = json.loads(Path(direct_path).read_text(encoding="utf-8"))
+        if (not isinstance(direct, dict) or set(direct) != {"checks", "observations"}
+                or not isinstance(direct["checks"], dict) or not isinstance(direct["observations"], list)):
+            raise ValueError("direct captures need checks and observations")
+        if any(not isinstance(value, str) or not Path(value).is_absolute() for value in direct["checks"].values()):
+            raise ValueError("direct captures need absolute captured check paths")
+        snapshot = evidence.current_snapshot(snapshot_path)
+        packet = {**direct, "snapshot_sha256": file_digest(Path(snapshot_path)),
+                  "check_hashes": {key: file_digest(Path(value)) for key, value in direct["checks"].items()}}
+        evidence.validate_packet(packet, snapshot, snapshot_path)
+        return None, {**direct, "check_hashes": packet["check_hashes"], "source": evidence.evidence_link(direct_path)}
+    if contract.get("check_ids") or contract.get("observation_ids"):
+        raise ValueError("complete captured evidence is required before review; supply --evidence-packet or --direct-captures")
+    return None, None
+
+
+def reviewer_contract_resource(route):
+    resource = (SKILLS_DIR / "shared" / "references" / "reviewer-response.md").resolve()
+    content = resource.read_text(encoding="utf-8")
+    # External adapters permit file reads. Native hosts must prove shared-file access.
+    accessible = route["mode"] == "runner"
+    if accessible:
+        return f"Read {resource} for the result contract. "
+    return f"Result contract source: {resource}\nShared-file access is unconfirmed; use this embedded contract:\n{content}\n"
+
+
 def cmd_review(args: argparse.Namespace) -> int:
     manifest, path = load_manifest(args)
     track = manifest.get("tracks", {}).get(args.track)
@@ -1678,8 +1807,6 @@ def cmd_review(args: argparse.Namespace) -> int:
         if persist_terminal_runner_contexts(manifest, prior_snapshot) and not args.dry_run:
             save_manifest(manifest, path)
         route = persistent_effective_route(manifest, approved_route)
-        if recovery_reason and route["mode"] != "native":
-            raise ValueError("review context reconstruction requires a native route")
         resume_context = None if recovery_reason else resumable_context(manifest, route)
     except ValueError as error:
         fail(str(error))
@@ -1692,9 +1819,10 @@ def cmd_review(args: argparse.Namespace) -> int:
     if not brief.is_file():
         fail("review brief is missing or not a file")
     try:
+        proof, resume_context, recovery_reason = continuation_input(
+            manifest, route, routing["scope_inputs"][route["input_path"]], resume_context, recovery_reason)
         rendered, binding = render_bound_brief(
-            routing["scope_inputs"][route["input_path"]], brief, REVIEW_BOUNDARY, "Derived review notes",
-            confirmed_native_continuation(manifest, route, routing["scope_inputs"][route["input_path"]], resume_context),
+            routing["scope_inputs"][route["input_path"]], brief, REVIEW_BOUNDARY, "Derived review notes", proof,
         )
     except (ValueError, OSError, UnicodeError) as error:
         fail(f"could not prepare a bound review brief: {error}")
@@ -1711,17 +1839,15 @@ def cmd_review(args: argparse.Namespace) -> int:
     try:
         evidence = evidence_module()
         contract = evidence.response_contract(source_binding["path"])
-        packet_path = getattr(args, "evidence_packet", None)
-        packet_link = evidence.evidence_link(packet_path) if packet_path else None
-        if packet_link:
-            evidence.load_packet(packet_link, evidence.current_snapshot(source_binding["path"]), source_binding["path"])
+        packet_link, direct_captures = preflight_review_captures(args, source_binding["path"], contract)
+        response_resource = reviewer_contract_resource(route)
     except (ValueError, OSError, KeyError, TypeError) as error:
         fail(f"review evidence preflight failed: {error}")
     rendered += (
         "\nStructured review evidence\n"
         f"Snapshot: {source_binding['path']}\n"
         f"Snapshot file SHA-256: {source_binding['sha256']}\n"
-        "Read shared/references/reviewer-response.md for the result contract. "
+        f"{response_resource}"
         "Return the result JSON as your entire final response. Cover every snapshot "
         "changed path and use only captured check results. Do not write evidence files; "
         "the coordinator records your response.\n"
@@ -1730,6 +1856,9 @@ def cmd_review(args: argparse.Namespace) -> int:
     if packet_link:
         rendered += "Captured evidence packet: " + json.dumps(packet_link, sort_keys=True) + "\n"
         rendered += "After inspecting the captures, use this evidence_packet reference instead of checks and observations.\n"
+    elif direct_captures is not None:
+        rendered += "Captured direct evidence: " + json.dumps(direct_captures, sort_keys=True) + "\n"
+        rendered += "Inspect these exact captured paths and return checks and observations. Source and check_hashes bind the handoff; omit them from the response.\n"
     try:
         binding["input_measurement"] = measure_rendered(rendered, route.get("context_budget"))
     except ValueError as error:
@@ -1763,6 +1892,10 @@ def cmd_review(args: argparse.Namespace) -> int:
         "launch": {"status": "pending", "selected_route": approved_route},
     }
     context_before_launch: dict[str, Any] | None = None
+    if recovery_reason and route["mode"] == "runner" and not args.dry_run:
+        previous_context = manifest.get("runner_contexts", {}).get(route["id"])
+        if isinstance(previous_context, dict):
+            previous_context["status"] = "lost"
     if resume_context is not None and not args.dry_run:
         context_before_launch = dict(resume_context)
         resume_context["status"] = "pending"
@@ -1788,13 +1921,15 @@ def cmd_review(args: argparse.Namespace) -> int:
             True,
             args.dry_run,
             resume_context=resume_context,
+            use_approved_fallback=not bool(recovery_reason),
         )
     except (RunnerLaunchError, ValueError, OSError, UnicodeError) as error:
-        if context_before_launch is not None and resume_context is not None:
+        uncertain = isinstance(error, RunnerLaunchError) and error.uncertain
+        if not uncertain and context_before_launch is not None and resume_context is not None:
             resume_context.clear()
             resume_context.update(context_before_launch)
-        record["status"] = "failed"
-        record["launch"] = {"status": "failed", "selected_route": route, "error": str(error)}
+        record["status"] = "uncertain" if uncertain else "failed"
+        record["launch"] = {"status": record["status"], "selected_route": route, "error": str(error)}
         manifest["status"] = "failed"
         manifest["phase"] = f"{args.track}_review"
         if not args.dry_run:
@@ -1997,49 +2132,58 @@ def cmd_resume_native(args: argparse.Namespace) -> int:
         fail(f"routing plan is no longer valid: {error}")
     entry = track.get("implementation")
     approved_route = routing["routes"][args.track]["implementer"]
-    if not isinstance(entry, dict) or entry.get("mode") != "native":
-        fail("implementation route is not a completed native route")
+    if not isinstance(entry, dict) or entry.get("mode") not in {"native", "runner"}:
+        fail("implementation has no completed route")
+    if entry["mode"] == "runner":
+        snapshot = poll_once(manifest)
+        observed = snapshot["tracks"][args.track]
+        if observed.get("success") is not True:
+            fail("implementation outcome is not confirmed; reconcile before resend")
+        persist_terminal_runner_contexts(manifest, snapshot)
+        entry["status"] = "completed"
     effective_route = entry.get("effective_route") or entry.get("selected_route")
     try:
         validate_route(effective_route)
     except ValueError as error:
-        fail(f"native route record is invalid: {error}")
-    if effective_route["mode"] != "native" or not any(
+        fail(f"role route record is invalid: {error}")
+    if effective_route["mode"] != entry["mode"] or not any(
         canonical_digest(effective_route) == canonical_digest(candidate) for candidate in route_variants(approved_route)
     ):
-        fail("native route record no longer matches the approved implementation route or fallback")
-    if entry.get("status") != "completed" or not isinstance(entry.get("completion_receipt"), dict):
-        fail("implementation has no completed native receipt to resume")
+        fail("role route record no longer matches the approved implementation route or fallback")
+    if entry.get("status") != "completed" or (entry["mode"] == "native" and not isinstance(entry.get("completion_receipt"), dict)):
+        fail("implementation has no completed receipt to resume")
     try:
         working_dir = track_working_dir(manifest, args.track, track)
-        context = stored_context(manifest, "native_contexts", effective_route, "native")
+        context = stored_context(manifest, "native_contexts" if entry["mode"] == "native" else "runner_contexts", effective_route, entry["mode"])
     except ValueError as error:
         fail(str(error))
     recovery_reason = args.context_recovery_reason
+    if entry["mode"] == "runner" and effective_route["runner"] not in RUNNER_RESUME_FLAGS and not recovery_reason:
+        fail("exact session continuation is unsupported; use full reconstruction under the approved route")
     if context is None and not recovery_reason:
-        fail("implementation has no persistent native context; provide a recorded context recovery reason")
+        fail("implementation has no persistent role context; provide a recorded context recovery reason")
     if context is not None and context.get("status") != "completed" and not recovery_reason:
-        fail("implementation native context is not complete; provide a recovery reason only after confirming it is lost")
+        fail("implementation role context is not complete; provide a recovery reason only after confirming it is lost")
     source_candidate = Path(args.follow_up).expanduser()
     source = (source_candidate if source_candidate.is_absolute() else root / source_candidate).resolve()
     if not source.is_file():
         fail("implementation follow-up is missing or not a file")
     try:
+        proof, dispatch_context, recovery_reason = continuation_input(
+            manifest, effective_route, routing["scope_inputs"][effective_route["input_path"]], context, recovery_reason)
         rendered, binding = render_bound_brief(
             routing["scope_inputs"][effective_route["input_path"]],
             source,
             WRITE_BOUNDARY,
             "Derived implementation follow-up",
-            None if recovery_reason else confirmed_native_continuation(
-                manifest, effective_route, routing["scope_inputs"][effective_route["input_path"]], context
-            ),
+            proof,
         )
         binding["input_measurement"] = measure_rendered(rendered, effective_route.get("context_budget"))
     except (ValueError, OSError, UnicodeError) as error:
         fail(f"could not prepare a bound implementation follow-up: {error}")
     previous_attempts = entry.get("resume_attempts", 0)
     if type(previous_attempts) is not int or previous_attempts < 0:
-        fail("implementation record has an invalid native resume count")
+        fail("implementation record has an invalid resume count")
     try:
         limits = recovery_limits(manifest, args.track)
     except ValueError as error:
@@ -2050,7 +2194,7 @@ def cmd_resume_native(args: argparse.Namespace) -> int:
         manifest["phase"] = f"{args.track}_implementation_followup"
         save_manifest(manifest, path)
         fail(
-            "native implementation follow-up ceiling reached for "
+            "implementation follow-up ceiling reached for "
             f"{args.track}: {ceiling}"
         )
     attempt = previous_attempts + 1
@@ -2070,6 +2214,25 @@ def cmd_resume_native(args: argparse.Namespace) -> int:
     }
     try:
         written = write_bound_brief(rendered, bound_brief, False)
+    except (ValueError, OSError, UnicodeError) as error:
+        fail(str(error))
+    previous_entry = dict(entry)
+    previous_context = dict(context) if context is not None else None
+    if entry["mode"] == "runner":
+        entry.setdefault("runner_dispatch_history", []).append({
+            key: entry.get(key) for key in ("job_id", "result_file", "input_path", "input_revision",
+                                          "brief_binding", "effective_route", "resume_context_id", "status")})
+        entry["resume_attempts"] = attempt
+        entry["status"] = "starting"
+        entry["job_id"] = None
+        entry["result_file"] = None
+        entry["input_path"] = str(bound_brief)
+        entry["input_revision"] = input_revision
+        entry["brief_binding"] = binding
+        if context is not None:
+            context["status"] = "lost" if recovery_reason else "pending"
+        save_manifest(manifest, path)
+    try:
         launch = dispatch_route(
             effective_route,
             written,
@@ -2079,9 +2242,27 @@ def cmd_resume_native(args: argparse.Namespace) -> int:
             metadata,
             False,
             False,
-            resume_context=None if recovery_reason else context,
+            resume_context=dispatch_context,
+            use_approved_fallback=False,
         )
     except (RunnerLaunchError, ValueError, OSError, UnicodeError) as error:
+        if entry["mode"] == "runner":
+            uncertain = isinstance(error, RunnerLaunchError) and error.uncertain
+            if uncertain:
+                entry["status"] = "uncertain"
+                entry["error"] = str(error)
+            else:
+                entry.clear()
+                entry.update(previous_entry)
+                entry["resume_attempts"] = attempt
+                if context is not None and previous_context is not None:
+                    context.clear()
+                    context.update(previous_context)
+            manifest.setdefault("steps", []).append({
+                "step": f"{args.track}_implementation_followup", "attempt": attempt,
+                "result": "uncertain" if uncertain else "not_started", "error": str(error),
+                "input_revision": input_revision, "brief": str(bound_brief)})
+            save_manifest(manifest, path)
         fail(str(error))
     previous_dispatch = entry.get("native_dispatch")
     if isinstance(previous_dispatch, dict):
@@ -2094,17 +2275,17 @@ def cmd_resume_native(args: argparse.Namespace) -> int:
     entry["brief_binding"] = binding
     entry["input_revision"] = input_revision
     entry["resume_attempts"] = attempt
-    entry["native_dispatch"] = launch["native_dispatch"]
+    entry.update(launch)
     entry["completion_receipt"] = None
-    entry["status"] = launch["status"]
-    entry["pending"] = launch["pending"]
+    entry["status"] = launch.get("status", "running")
     if context is not None:
         if recovery_reason:
             context["status"] = "lost"
             context["pending_call_id"] = None
         else:
             context["status"] = "pending"
-            context["pending_call_id"] = launch["native_dispatch"].get("call_id")
+            context["pending_call_id"] = launch.get("native_dispatch", {}).get("call_id")
+            context["pending_job_id"] = launch.get("job_id")
             context["last_input_revision"] = input_revision
     if recovery_reason:
         manifest.setdefault("steps", []).append({
@@ -2117,7 +2298,8 @@ def cmd_resume_native(args: argparse.Namespace) -> int:
     print(json.dumps({
         "track": args.track,
         "status": entry["status"],
-        "native_dispatch": entry["native_dispatch"],
+        "dispatch": launch,
+        **({"native_dispatch": entry["native_dispatch"]} if entry["mode"] == "native" else {}),
     }, indent=2, ensure_ascii=False))
     return 0
 
@@ -2321,7 +2503,8 @@ def build_parser() -> argparse.ArgumentParser:
     review.add_argument("--review-brief", required=True)
     review.add_argument("--review-snapshot", required=True, help="prepared source and required-evidence snapshot")
     review.add_argument("--evidence-packet", help="captured evidence packet to validate before spending a review cycle")
-    review.add_argument("--context-recovery-reason", help="reconstruct a confirmed lost native reviewer with its full contract")
+    review.add_argument("--direct-captures", help="legacy JSON with complete checks and observations, validated before reserving a cycle")
+    review.add_argument("--context-recovery-reason", help="reconstruct a confirmed lost reviewer with its full contract")
     review.add_argument("--cycle", type=int, help="must equal the next persisted review cycle")
     review.add_argument("--timeout", type=int, default=1800)
     review.add_argument("--dry-run", action="store_true")
@@ -2348,8 +2531,8 @@ def build_parser() -> argparse.ArgumentParser:
     )
     record_native.set_defaults(handler=cmd_record_native)
     resume_native = commands.add_parser(
-        "resume-native",
-        help="prepare the next exact implementation turn in its persistent native context",
+        "resume-native", aliases=["resume"],
+        help="prepare the next exact implementation turn in its persistent role context",
     )
     add_manifest_arguments(resume_native)
     resume_native.add_argument("--track", required=True)

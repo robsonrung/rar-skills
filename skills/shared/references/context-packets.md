@@ -42,11 +42,11 @@ user decisions before sending the packet; a checksum cannot resolve their meanin
 ## Check the complete rendered input
 
 The task launcher applies a separate default ceiling of **24,000 UTF-8 bytes** to the exact
-final text for implementation, review, and native followups. This includes the full task
+final text for implementation, review, and role followups. This includes the full task
 contract or validated continuation identity, derived notes, source locators, execution boundaries, appended review requirements,
 and evidence packet references. It never truncates required instructions or acceptance rules.
 
-The check runs before worktree creation or worker dispatch and before a review cycle or native
+The check runs before worktree creation or worker dispatch and before a review cycle or role
 followup is reserved. Oversized input returns the actual size and limit. Shorten derived notes,
 link supporting evidence, or split genuinely independent work within the existing mandate.
 Do not remove acceptance cases or restart a role merely to evade the limit.
@@ -72,8 +72,8 @@ final text. The transport rechecks the file before live dispatch. Dry runs measu
 without creating files or starting workers.
 
 This measures launcher text, not the full provider context. Host instructions, tool schemas,
-adapter-added text, retained role history, and later file reads are unmeasured. `token_count`
-stays null. Use actual execution receipts for input and cached token totals per accepted task.
+retained role history, and later file reads are unmeasured. Adapter text has its own
+`adapter_input_measurement` in the result envelope. `token_count` stays null. Use actual execution receipts for input and cached token totals per accepted task.
 Do not convert bytes to a claimed token saving or count a high cache hit rate as free input.
 
 ## Isolate tasks and retain repairs
@@ -83,19 +83,26 @@ packet as its initial input; keep source files available on demand. For native d
 `parent_history: none` with the host's supported empty-history option. A host with `fork_turns`
 uses `fork_turns: none` for creation. Do not fork the coordinator's full conversation.
 
-Reuse the recorded context for that task's repairs and rechecks. Send only changed facts and
-relevant evidence in the derived followup. The launcher omits repeated acceptance text only
-for a completed native context with matching task, role, exact approved route, canonical
-contract path and hash, original receipt and hash, completed turn, and prior input hash.
-It carries these bindings, the approved route, and exact execution boundaries in the compact
-input. After proof validation, it selects the smaller UTF-8 rendering of the full contract
-and compact continuation. Short contracts can remain inline during a context resume.
-The manifest records the selected `input_kind` and continuation proof. Reviewer input still carries the current snapshot, full required coverage, prior findings,
-and packet locators. The complete rendered input remains subject to the same byte limit.
+Reuse the recorded context for that task's repairs and rechecks. Send changed facts
+and relevant evidence in the derived followup. The launcher can omit repeated
+acceptance text for a completed native or supported external context with a matching
+task, role, exact route, contract identity, intact receipt, and prior bound input.
+External proof also checks the saved session, request policy, tool policy, and
+isolated history. Keep these bindings in **the ledger, not the transcript**:
+"The ledger proves this continuation; the role receives only the repair context."
 
-Missing or changed proof blocks continuation. Use the explicit recovery reason only after
-confirming context loss; recovery sends the full acceptance contract. Initial calls, fresh roles,
-runner calls, and reconstructed contexts retain the full contract. If the host has lost retained
-history, report that loss before acting on compact input. A receipt attests to host context;
-it cannot inspect hidden history. A new task starts a new context; changing the context must
-never reset call or retry counters. These rules do not authorize additional workers or user-owned tasks.
+After proof validation, select the smaller full or compact UTF-8 rendering. The
+manifest stores `input_kind` and continuation proof. Reviewer input still includes
+the current snapshot, all required coverage, prior findings, and capture locators.
+The complete input remains subject to the byte ceiling. Adapters separately measure
+their added role instructions as `adapter_input_measurement` and enforce the same
+approved ceiling before provider execution.
+
+Missing proof restores the full acceptance contract under the original route and
+remaining counters. Proof loss starts a fresh full reconstruction. An altered receipt, session, route,
+policy, contract, or prior input blocks for reconciliation. Confirmed context
+loss uses an explicit recovery reason. Reconcile uncertain outcomes before resend.
+Native and runner contexts cannot be exchanged. Unsupported shared-latest sessions
+never qualify as exact continuation. A new task starts a new context. Context
+replacement cannot reset call or retry counters. These rules do not authorize
+additional workers or user-owned tasks.

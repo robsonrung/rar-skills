@@ -2,6 +2,8 @@
 """Offline routing and installation integrity regression tests."""
 import copy
 import json
+import os
+import subprocess
 import shutil
 import sys
 import tempfile
@@ -102,6 +104,57 @@ class InstallDriftTests(unittest.TestCase):
         for content in ("[]", '{"schema_version": 1, "files": {}}'):
             (self.installed / install_drift.MANIFEST_NAME).write_text(content)
             self.assertTrue(install_drift.check_loaded_install(self.installed)["blocked"])
+
+    def test_prompt_dependency_drift_and_legacy_coverage_are_explicit(self):
+        for relative in ("shared/scripts/runner_prompt.py", "shared/scripts/context_packet.py"):
+            with self.subTest(relative=relative):
+                path = install_drift.write_manifest(self.source, self.installed)
+                original = (self.installed / relative).read_bytes()
+                (self.installed / relative).write_text("changed behavior")
+                report = install_drift.check_loaded_install(self.installed)
+                self.assertTrue(report["blocked"])
+                self.assertIn(relative, " ".join(report["reasons"]))
+                (self.installed / relative).write_bytes(original)
+        current = json.loads(path.read_text())
+        legacy = copy.deepcopy(current)
+        legacy["files"] = {key: value for key, value in current["files"].items()
+                           if key in install_drift.LEGACY_CRITICAL_FILES}
+        path.write_text(json.dumps(legacy))
+        before = path.read_bytes()
+        report = install_drift.check_loaded_install(self.installed)
+        self.assertTrue(report["blocked"])
+        self.assertEqual(report["manifest_coverage"], "legacy")
+        self.assertIn("refresh", " ".join(report["reasons"]))
+        self.assertEqual(set(report["evidence"]["files"]), set(install_drift.LEGACY_CRITICAL_FILES))
+        (self.installed / "shared/scripts/model_receipt.py").write_text("changed old dependency")
+        report = install_drift.check_loaded_install(self.installed)
+        self.assertIn("Loaded file differs", " ".join(report["reasons"]))
+        self.assertEqual(path.read_bytes(), before)
+
+    def test_flat_copy_runs_all_adapters_with_shared_prompt_dependency(self):
+        source = Path(__file__).resolve().parents[3]
+        bundle = Path(self.temp.name) / "flat-copy"
+        shutil.copytree(source / "skills/shared", bundle / "shared", ignore=shutil.ignore_patterns("__pycache__"))
+        names = ("claude", "codex", "gemini", "grok", "pi")
+        for name in names:
+            shutil.copytree(install_drift.runner_script(name, root=source / "skills").parent.parent,
+                            bundle / f"{name}-runner", ignore=shutil.ignore_patterns("__pycache__"))
+        manifest_path = install_drift.write_manifest(source, bundle)
+        self.assertEqual(install_drift.check_loaded_install(bundle)["status"], "match")
+        manifest = json.loads(manifest_path.read_text())
+        self.assertIn("shared/scripts/runner_prompt.py", manifest["files"])
+        self.assertIn("shared/scripts/context_packet.py", manifest["files"])
+        for name in names:
+            with self.subTest(name=name):
+                metadata = {"prompt_context": {}, "execution_provenance": {"resources": ["envelope-only"]}}
+                result = subprocess.run([sys.executable, str(bundle / f"{name}-runner/scripts/run_{name}.py"),
+                    "Review", "--json", "--disable-fallback", "--metadata-json", json.dumps(metadata)],
+                    cwd=self.temp.name, env={**os.environ, "PATH": ""}, text=True, capture_output=True)
+                envelope = json.loads(result.stdout)
+                self.assertEqual(envelope["return_code"], -2, envelope)
+                self.assertEqual(envelope["dispatch_metadata"], metadata)
+                self.assertNotIn("envelope-only", envelope["command"])
+                self.assertEqual(envelope["adapter_input_measurement"]["scope"], "adapter_rendered_input")
 
     def test_null_approved_route_is_not_accepted(self):
         path = self.installed / "approved.json"

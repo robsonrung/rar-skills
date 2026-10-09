@@ -66,7 +66,7 @@ Memo'd list items, or state mysteriously resetting/persisting across renders →
 
 Every consumer of a Context re-renders when the provider `value` changes — and **standard memoization can't stop it**.
 
-- Flag a provider whose `value={{...}}` / `value={[a, b]}` is an **unmemoized inline object/array** — every parent render forces every consumer to re-render. Wrap it in `useMemo` (and callbacks in `useCallback`).
+- Check runtime provider `value` identity and measured consumer work. Confirm compiler coverage before flagging an inline object or array. Add `useMemo` or `useCallback` only when compilation does not stabilize a value that causes unnecessary work; use `context-async.md` for the rule.
 - For multiple unrelated values, **split into multiple providers** so a change to one doesn't re-render consumers of the other. `useState` → `useReducer` helps keep the data and the API in separate stable contexts.
 - No real selectors exist for Context; you can fake them with `React.memo` + HOCs (see cheatsheet ch 7), but if you find yourself doing that, reach for the **external store the repo already has** (per detection above) instead — a real selector API beats a faked one.
 

@@ -42,7 +42,7 @@ Before composing non-trivial prompts (reviews, implementations, research seats),
 | `--resume SESSION_ID` | Natively resume a Codex session by id | None |
 | `--resume-last` | Resume the most recent Codex session; only safe for one non-concurrent role | False |
 | `--session-file` | Append prior workflow context for cross-runner continuation | None |
-| `--metadata-json` | Attach structured execution metadata to the prompt | None |
+| `--metadata-json` | Retain dispatch data; `prompt_context` selects role context | None |
 | `--ephemeral` | Run without persisting session files to disk | False |
 | `--output-schema` | Path to a JSON Schema file for the final response shape | None |
 | `--add-dir` | Additional writable directory (repeatable; not valid with `--resume`) | None |

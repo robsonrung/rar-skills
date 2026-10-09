@@ -146,10 +146,31 @@
           "verification": {
             "type": "string",
             "minLength": 1
+          },
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "confirmed",
+              "unverified",
+              "refuted"
+            ]
+          },
+          "related_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "uniqueItems": true
           }
         },
         "additionalProperties": false
-      }
+      },
+      "description": "Complete durable findings after evidence and confidence filtering. Human summary limits do not remove entries."
     },
     "residual_risks": {
       "type": "array",

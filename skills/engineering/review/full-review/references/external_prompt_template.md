@@ -48,7 +48,7 @@ Review this change set through the lens above. Produce a structured list of high
 5. Provide specific validation in `tests_to_run`.
 6. Avoid nitpicks unless confidence is at least 0.9 and the fix is trivial.
 7. Stay inside your lens. Do not add a finding outside the selected concern.
-8. Return a route result with comments that match the comment shape in `references/review_output_schema.json`.
+8. Return the complete route result with comments that match `references/review_output_schema.json`. Preserve finding IDs and explicit verification status; the human summary cap cannot remove machine entries.
 9. If no issues are found within your lens, return an empty `comments` array with verdict `APPROVE`.
 </grounding_rules>
 

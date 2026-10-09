@@ -26,7 +26,7 @@ verification through [review-evidence.md](review-evidence.md).
 }
 ```
 
-These are the exact fields, with only the conditional scope field and packet
+These are the exact fields, with the conditional scope or batch fields and packet
 substitution below. Use the supplied `response-contract` output for required
 paths, check IDs, observation IDs, fresh observations, and prior findings.
 
@@ -131,3 +131,34 @@ records. Only its final `ready` result establishes readiness: complete coverage,
 passing required checks and observations, no open or disputed finding, and no
 deferred P0, P1, or P2. Deferred P3 findings need a reason. There is no approval
 field that overrides these conditions. Execution success alone is insufficient.
+
+## Batch endorsement
+
+When `response-contract` returns `batch`, inspect every linked canonical task,
+prior review, current evidence packet, environment assessment, and named
+interaction. Use each task's `observation_baseline` and `fresh_observations`
+reasons to assess reuse. Check transfers must preserve the declared dependency,
+command, contract, and environment bindings. Require fresh results for affected
+or explicitly fresh checks and for observations whose inputs or environment
+changed. Unknown observation inputs require fresh captures after source changes.
+Use a full response. Batch recheck and addendum forms are rejected.
+Add these three exact fields to the initial response:
+
+1. `batch_approval`: the supplied digest of the full batch declaration, after
+   assessing its complete scope.
+2. `endorsements`: an object keyed by exactly the declared task IDs. Each value
+   has `snapshot_sha256`, a nonempty `acceptance` assessment of that complete
+   task contract, and the exact sorted `coverage_paths` from its
+   `endorsement_contracts` entry. Inspect those paths, including historical and
+   changed-base interactions outside the current diff. Report unknown scope as
+   a blocker; partial endorsement cannot approve a batch.
+3. `interactions`: an object keyed by exactly the declared interaction names.
+   Each value is your nonempty assessment of that interaction and its evidence.
+
+Keep all prior findings in the shared `findings` array with their stable IDs,
+paths, and severity. Add supported defects on any declared task coverage path,
+even when a new base makes the combined diff empty. An open or disputed finding
+blocks readiness. Assess each resolution from evidence. Endorsement is one
+reviewer's judgment over a bounded task set; it is not several independent
+opinions. The combined contract's own check and observation requirements still
+apply. Dependency release does not establish final feature acceptance by itself.

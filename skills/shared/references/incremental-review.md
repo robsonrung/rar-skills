@@ -40,3 +40,11 @@ The helper preserves the actual response and re-expands it against immutable pri
 records. Never edit reviewer words to pass validation. For a common defect reported
 by multiple reviewers, group finding IDs in one repair brief while retaining each
 reviewer's independent resolution. Run the verifier before reporting completion.
+
+For ordinary later integration across several retained task contracts, use the
+current batch protocol in [review-evidence.md](review-evidence.md). One approved
+independent reviewer can assess the present combined source and explicitly
+endorse the bounded task set. Keep each task's prior findings, full acceptance,
+required current captures, and affected interactions. This uses a full batch response,
+not an addendum or a widened carry forward scope. Final feature acceptance
+still requires its own full combined gate.

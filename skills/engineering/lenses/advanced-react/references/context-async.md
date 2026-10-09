@@ -18,14 +18,14 @@ Read the section that matches the surface. When a material risk or unresolved qu
 
 Context passes data through the tree without prop-wiring the middle. That **prevents** re-renders of components in between. It also **forces** every consumer to re-render when the provider `value` changes — and standard memoization cannot stop that.
 
-Always memoize the provider `value` (and callbacks inside it):
+Check provider `value` identity in the running build. Confirm compiler coverage for this component before adding manual memoization; a dependency or lint rule alone does not prove coverage. If an unstable value causes measured consumer work and compilation does not stabilize it, use a justified manual memo:
 
 ```jsx
 const value = useMemo(() => ({ user, setUser }), [user]);
 return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 ```
 
-An inline `value={{...}}` / `value={[a, b]}` makes every parent render update every consumer.
+An inline object or array is a candidate for an identity check, not a defect by syntax. Compiler-covered values can already be stable. Keep runtime identity, stale closure, race, and error checks even when compilation is enabled. See the [memoization reference](https://react.dev/reference/react/useMemo); memoization is a performance optimization, not a semantic guarantee.
 
 **Split providers** so unrelated values do not co-trigger. `useState` → `useReducer` yields a stable `dispatch`; put state and API in two contexts.
 

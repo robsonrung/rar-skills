@@ -197,6 +197,11 @@ it cannot alter a previously approved route or historical receipt.
 
 ## Compare workflow cost
 
+Capture operational facts with the [measurement hook](workflow-measurement.md).
+It supports early workflow start, stage boundaries, waits, command evidence,
+repairs, coordinator receipts, coverage, and terminal observations in this ledger.
+
+
 Use **the ledger, not the transcript** for measurements. Keep the existing call
 ledger and add optional `workflow_measurement` metadata to that run state. The
 read-only `shared/scripts/workflow_comparison.py --baseline <before.json>
@@ -205,7 +210,9 @@ updates no state, and grants no acceptance or approval. Exit 0 means matching,
 complete measurement inputs; it does not mean acceptance passed. Exit 1 means
 invalid, mismatched, or incomplete inputs. Input read errors return exit 2.
 
-Bind each pair before execution with `workflow_measurement.identity`:
+Bind known facts at workflow start with `workflow_measurement.identity`. Add each
+remaining fact once when it becomes fixed. Every field below is required before
+comparison can produce deltas:
 
 | Field | Required identity |
 | --- | --- |
@@ -225,7 +232,10 @@ finish execution and report passed acceptance and equal missed-defect counts
 before deltas are shown. A failed acceptance result, unequal defect count, mismatched identity, or defect observation window
 returns `mismatched`; malformed data returns `invalid`.
 
-Keep whole workflow `started_at` and `completed_at` on the existing state.
+The capture hook keeps whole workflow `started_at` and `completed_at` under
+`workflow_measurement`, separate from execution authority. Comparison prefers
+these observed bounds and its `terminal_status`. Legacy states can keep whole
+workflow `started_at` and `completed_at` on the existing state.
 `updated_at` is not a completion timestamp. Available ledger `reserved_at` and
 `completed_at` events must fall within the known workflow bounds; completion
 cannot precede reservation. `call_timing` reports checked and unknown event

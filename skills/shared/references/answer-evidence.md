@@ -1,0 +1,11 @@
+# Portable answer evidence
+
+Use **record on settle** when an actual supplied answer settles a decision. Retain its native message locator when the host exposes one. Otherwise capture the exact supplied text in an immutable local artifact and record the missing-locator limit. Never invent a message ID or replace an answer with a generated approval sentence. The artifact preserves evidence; the caller must establish who supplied it and what it authorizes.
+
+Use `shared/scripts/answer_evidence.py capture --help` for the capture command. Supply a UTF-8 file containing the actual answer, `--supplied-by`, `--authority`, and a new `--output` path. Add `--native-locator` only for a real host reference. The helper stores the text, its digest, authority, source ID, and locator limit. Repeating the same capture is idempotent; different content at that path fails. `--dry-run` validates without writing.
+
+Reuse the returned `source_id`, artifact path, `payload.actual_answer` locator, and `content_revision` in the decision record and downstream PRD or task references. Hash the answer at capture, then reuse that identity. A later correction uses a new artifact and `--supersedes <prior-record>`. Preserve the prior decision ID, both source records, and the scope of the correction. A correction cannot silently replace broader prior authority.
+
+For context packets, `packet-source --record <record>` emits the existing `path`, `authority`, and `locator` shape. Actual user instructions and accepted decisions map to `decision`; repository facts and inferences map to `evidence`. Historical records explicitly marked `--superseded` map to `superseded`. The artifact retains the finer source authority. A role answer cannot acquire user authority, and inference cannot become a decision merely because it appears in a packet. The existing packet helper binds the artifact revision and still requires a current decision source.
+
+Store only the relevant supplied answer within the approved local evidence and sharing scope. A host that cannot expose a native locator still has a portable source; its capture does not independently prove message origin. Keep this limit visible when the next consumer requires stronger provenance.

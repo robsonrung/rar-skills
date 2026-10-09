@@ -104,7 +104,7 @@ const ScrollDetector = ({ children }) => {
 ## Ch 8 — Context & performance
 
 - Every consumer re-renders when provider `value` changes; **memoization in consumers can't stop it**.
-- **Always memoize the provider value** (and any callbacks in it):
+- Check runtime provider identity and compiler coverage first. Use manual memoization only for measured unnecessary consumer work that compilation does not prevent:
   ```jsx
   const value = useMemo(() => ({ user, setUser }), [user]);
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

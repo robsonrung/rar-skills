@@ -35,7 +35,7 @@ Use `--working-dir` when the prompt depends on package-local files or generated 
 | `--continue` | Resume the most recent Grok session for this directory; only safe for one non-concurrent role | False |
 | `--background` | Run as a tracked background job and return a job id immediately | False |
 | `--session-file` | Append prior debate or workflow context for cross-runner continuation | None |
-| `--metadata-json` | Attach structured execution metadata to the prompt | None |
+| `--metadata-json` | Retain dispatch data; `prompt_context` selects role context | None |
 | `--disable-fallback` | Accepted for cross-runner parity; grok-runner never falls back (no-op) | False |
 | `--output-file` | Write the full JSON envelope to this file atomically; with `--json`, stdout becomes the compact pointer | None |
 

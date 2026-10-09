@@ -97,7 +97,7 @@ when it is inside the worktree. The snapshot binds actual source and index
 state; `input_revision` continues to identify the review brief.
 
 Prepare the captured evidence packet with `review_evidence.py prepare-packet`. The launcher
-validates the supplied packet before reserving a cycle and includes the required response coverage.
+requires and validates the complete packet before reserving a cycle when checks or observations are required. Intact failing captures remain reviewable. The explicit legacy `--direct-captures <json>` path accepts complete `checks` and `observations` with the same integrity validation. Missing or changed captures block before dispatch or cycle reservation. The response coverage includes all fields from the evidence contract.
 
 The launcher starts review only after the implementation route has a terminal,
 successful result with a valid receipt. It reloads the plan and compares the
@@ -129,6 +129,11 @@ python3 "$SKILL_DIR/scripts/launch.py" evidence-recovery \
 ```
 
 ## Receipts and native routes
+
+The launcher resolves the reviewer response contract to an absolute readable path.
+External adapters use file reads. For a native host without verified shared-file
+access, the brief embeds the contract so the role can use its exact schema.
+
 
 The reviewer loads `shared/references/reviewer-response.md` and returns its exact
 JSON contract after independently assessing source and evidence. The coordinator
@@ -200,37 +205,37 @@ context. Session identity does not verify serving-model identity.
 
 ## Continue the same role
 
-After a completed native implementation needs an in-scope correction, prepare
+After a completed implementation needs an in-scope correction, prepare
 the next turn in its recorded context:
 
 ```bash
-python3 "$SKILL_DIR/scripts/launch.py" resume-native \
+python3 "$SKILL_DIR/scripts/launch.py" resume \
   --manifest <launch-manifest.json> \
   --track <track-name> \
   --follow-up <correction-notes.md>
 ```
 
-Send the returned handoff through the host's follow-up tool, then use
+For native routes, send the returned handoff through the host's follow-up tool, then use
 `record-native --phase implementation` for the new result. Use `review` for each
 reviewer recheck; it retains the reviewer session and counts the next review
-cycle. Native follow-ups also have a hard bound; they do not extend the approved
+cycle. External routes dispatch through the same command; `resume-native` remains a compatible alias. Followups have a hard bound; they do not extend the approved
 review cycle or evidence recovery allowances.
 
-Compact native followups carry the canonical contract identity, exact approved
-route, completed context and receipt references, changed facts, findings, evidence
-locators, and execution boundary. The launcher checks the saved input hash and
-contract binding against the completed receipt, task, role, context, and route.
-After validating that proof, it uses the smaller full or compact rendering and
-records the selected `input_kind`. A short contract can remain inline on resume;
-continuation proof is retained in the binding metadata for either rendering.
-First dispatch, runner calls, and reconstruction carry the full contract. Missing
-or changed continuation proof blocks before dispatch or reservation. A context
-ID alone does not prove that the accepted contract is still present.
+Compact followups send changed facts, findings, evidence locators, and the execution
+boundary. The ledger retains the canonical contract identity, exact approved route,
+completed context, receipt hash, and prior bound input. External proof also binds
+request policy, tool policy, isolated history, and the actual saved session. A context
+ID alone cannot authorize compact input. Native and runner contexts remain separate.
+After proof validation, the launcher uses the smaller full or compact rendering and
+records `input_kind`. First calls and reconstructed contexts receive the full contract.
+Missing proof starts fresh full reconstruction under the original route and remaining counters.
+Altered receipt, session, route, policy, contract, or prior input blocks for reconciliation.
+An uncertain outcome must be reconciled before another dispatch.
 
-The native implementation followup limit is the approved reviewer route's
+The implementation followup limit is the approved reviewer route's
 `recovery.review_cycles` plus `recovery.evidence_recoveries`. Plans without
 `recovery` keep the limit of four followups. The manifest saves `resume_attempts`
-before returning a handoff for host dispatch. The count persists across resume
+before external dispatch or returning a handoff for host dispatch. The count persists across resume
 and context reconstruction. A retry while a call is pending cannot reserve
 another followup. Review cycles and evidence recoveries retain their separate
 counts and limits; the followup bound does not grant either reservation.
@@ -244,13 +249,12 @@ IDs. A recovery reason does not authorize a new model, scope, or tool policy.
 An uncertain pending call must be reconciled before reconstruction.
 
 `poll` captures successful runner `session_id` values in
-`runner_contexts[route_id]`; reviewer rechecks use that exact session when the
-adapter supports it. For an implementation fix through an external runner, pass
-the recorded ID through that runner's continuation command with the exact
-approved options and `--disable-fallback`, then capture its result in the task
-ledger. Read the runner's continuation reference. Pi needs a unique session path
-from the first call. A runner with no exact resume support needs a disclosed
-same-role reconstruction; never use a global latest-session selector.
+`runner_contexts[route_id]`; reviewer rechecks and implementation repairs use that
+exact session when the adapter supports it. Use the launcher for both roles so
+input binding, receipts, and counters remain intact. A runner with no exact resume
+support uses full reconstruction with a recorded reason. Global latest-session
+selectors cannot identify independent roles. The file-based adapter must retain
+its allocated session file before compact continuation is eligible.
 
 ## Poll and cleanup
 

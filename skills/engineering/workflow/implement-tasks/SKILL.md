@@ -16,6 +16,8 @@ Turn an approved queue into a verified change. Be a **thin conductor**: own mode
 
 The feature sequence is `interview-me` → `to-prd` → `to-tasks` → `implement-tasks`. Receive the approved PRD and canonical task queue under `.ai-workflow/work/<feature-slug>/`. For one bounded, specified change with clear acceptance and no unresolved product, security, public contract, data ownership, or dependency decisions, use the existing standalone `implement-and-review` path. It keeps exact model approval and independent review without creating a feature PRD or task graph. Missing material decisions return to the appropriate earlier stage.
 
+Use `shared/references/workflow-measurement.md` for the feature measurement record and capture API. Keep each stage's execution ledger and immutable plan intact. Capture `stage-start` for `implement-tasks` before preparation, any actual model approval wait, reserved repair calls, and `stage-end` after integration and required checks. Reused combined approval adds no new wait. Reuse the feature measurement path and bind remaining known identity fields once. Import completed separate stage ledgers with `stage-ledger` before terminal capture; the local implementation ledger is counted directly. Declare worker coverage only when local and required imported records cover all calls.
+
 ## Select the current phase
 
 | Phase | Required work and reference |

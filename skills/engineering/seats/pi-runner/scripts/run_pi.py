@@ -16,6 +16,7 @@ AGENTS.md/CLAUDE.md context-file discovery are always disabled, so the prompt
 import argparse
 import hashlib
 import json
+import math
 import os
 import shlex
 import shutil
@@ -51,6 +52,7 @@ _SHARED_SCRIPTS = _skills_root() / "shared" / "scripts"
 if str(_SHARED_SCRIPTS) not in sys.path:
     sys.path.insert(0, str(_SHARED_SCRIPTS))
 
+from runner_prompt import measured_run, prompt_context, record_input
 from model_receipt import attach_model_receipt
 from model_routing import default_model, load_config, runner_efforts, seat_models, validate_selection
 from provider_routing import validate_provider_routing
@@ -337,8 +339,10 @@ def compact_stream(stdout: str) -> str:
 
 
 def total_native_usage(stdout: str) -> dict:
-    """Count each completed assistant request once, including tool turns."""
+    """Count completed assistant requests once; incomplete fields stay unknown."""
     totals: dict[str, Any] = {}
+    token_keys = ("input", "output", "cacheRead", "cacheWrite", "totalTokens")
+    cost_keys = ("input", "output", "cacheRead", "cacheWrite", "total")
     for line in stdout.splitlines():
         try:
             event = json.loads(line)
@@ -349,17 +353,20 @@ def total_native_usage(stdout: str) -> dict:
         message = event.get("message", {})
         if not isinstance(message, dict) or message.get("role") != "assistant":
             continue
+        if not totals:
+            totals = {key: 0 for key in token_keys}
+            totals["cost"] = {key: 0 for key in cost_keys}
         usage = message.get("usage")
-        if not isinstance(usage, dict):
-            continue
-        for key in ("input", "output", "cacheRead", "cacheWrite", "totalTokens"):
-            if type(usage.get(key)) in (int, float):
-                totals[key] = totals.get(key, 0) + usage[key]
-        if isinstance(usage.get("cost"), dict):
-            costs = totals.setdefault("cost", {})
-            for key in ("input", "output", "cacheRead", "cacheWrite", "total"):
-                if type(usage["cost"].get(key)) in (int, float):
-                    costs[key] = costs.get(key, 0) + usage["cost"][key]
+        usage = usage if isinstance(usage, dict) else {}
+        costs = usage.get("cost")
+        costs = costs if isinstance(costs, dict) else {}
+        for source, target, keys in ((usage, totals, token_keys), (costs, totals["cost"], cost_keys)):
+            for key in keys:
+                value = source.get(key)
+                if type(value) not in (int, float) or (type(value) is float and not math.isfinite(value)) or value < 0:
+                    target[key] = None
+                elif target[key] is not None:
+                    target[key] += value
     return totals
 
 
@@ -401,8 +408,9 @@ def build_prompt(
             "A browser test assignment does not authorize product repairs."
         )
 
-    if metadata_json:
-        sections.append(f"Execution metadata:\n{metadata_json}")
+    context = prompt_context(metadata_json)
+    if context:
+        sections.append(f"Execution metadata:\n{context}")
 
     if session_file:
         sections.append(
@@ -428,6 +436,7 @@ def build_prompt(
     return "\n\n".join(section for section in sections if section.strip())
 
 
+@measured_run
 def run_pi(*args: Any, **kwargs: Any) -> dict[str, Any]:
     """Public entry point: every exit path (including early validation errors)
     returns a fully normalized envelope, whether invoked via the CLI or
@@ -605,6 +614,7 @@ def _run_pi(
     elif tool_mode == TOOL_MODE_BROWSER:
         command.extend(["--tools", "read,bash"])
 
+    record_input(final_prompt + ("\n\n" + system_prompt if system_prompt else ""))
     if not controlled:
         command.append(final_prompt)
 
@@ -918,7 +928,7 @@ Examples:
         "--metadata-json",
         type=str,
         default=None,
-        help="JSON string to embed as execution metadata",
+        help="JSON dispatch data; optional prompt_context selects role context",
     )
     parser.add_argument(
         "--output-schema",
