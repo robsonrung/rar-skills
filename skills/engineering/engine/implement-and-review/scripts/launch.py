@@ -1840,14 +1840,34 @@ def preflight_review_captures(args, snapshot_path, contract):
     return None, None
 
 
-def reviewer_contract_resource(route):
+def reviewer_contract_resource(contract, mode="auto"):
+    """Embed the canonical sections needed by this response on every transport."""
+    if mode not in {"auto", "full", "recheck", "addendum"}:
+        raise ValueError("unknown reviewer response mode")
+    previous = contract.get("previous_reviews", [])
+    batch = "batch" in contract
+    if mode == "auto":
+        mode = "recheck" if previous and not batch else "full"
+    if mode in {"recheck", "addendum"} and (not previous or batch):
+        raise ValueError("incremental response needs a bound prior review and cannot endorse a batch")
+    selected = ["Initial response", "Evidence packet substitution"]
+    if mode in {"recheck", "addendum"}:
+        selected.append("Recheck")
+    if mode == "addendum":
+        selected.append("Prose correction")
+    selected.append("Completion")
+    if batch:
+        selected.append("Batch endorsement")
     resource = (SKILLS_DIR / "shared" / "references" / "reviewer-response.md").resolve()
-    content = resource.read_text(encoding="utf-8")
-    # External adapters permit file reads. Native hosts must prove shared-file access.
-    accessible = route["mode"] == "runner"
-    if accessible:
-        return f"Read {resource} for the result contract. "
-    return f"Result contract source: {resource}\nShared-file access is unconfirmed; use this embedded contract:\n{content}\n"
+    parts = re.split(r"^## (.+)\n", resource.read_text(encoding="utf-8"), flags=re.MULTILINE)
+    sections = dict(zip(parts[1::2], parts[2::2]))
+    missing = set(selected) - sections.keys()
+    if missing:
+        raise ValueError("reviewer contract sections missing: " + ", ".join(sorted(missing)))
+    content = parts[0] + "".join(f"## {name}\n{sections[name]}" for name in selected)
+    return (f"Result contract source: {resource}\nResponse mode: {mode}. "
+            "Use these selected sections; no full manual read is needed. "
+            "A changed acceptance contract requires the full response.\n" + content + "\n")
 
 
 def cmd_review(args: argparse.Namespace) -> int:
@@ -1920,7 +1940,8 @@ def cmd_review(args: argparse.Namespace) -> int:
         evidence = evidence_module()
         contract = evidence.response_contract(source_binding["path"])
         packet_link, direct_captures = preflight_review_captures(args, source_binding["path"], contract)
-        response_resource = reviewer_contract_resource(route)
+        response_mode = getattr(args, "response_mode", "auto")
+        response_resource = reviewer_contract_resource(contract, response_mode)
     except (ValueError, OSError, KeyError, TypeError) as error:
         fail(f"review evidence preflight failed: {error}")
     rendered += (
@@ -1928,14 +1949,17 @@ def cmd_review(args: argparse.Namespace) -> int:
         f"Snapshot: {source_binding['path']}\n"
         f"Snapshot file SHA-256: {source_binding['sha256']}\n"
         f"{response_resource}"
-        "Return the result JSON as your entire final response. Cover every snapshot "
+        "Return the result JSON as your entire final response. The expanded record must cover every snapshot "
         "changed path and use only captured check results. Do not write evidence files; "
         "the coordinator records your response.\n"
     )
     rendered += "Required response coverage: " + json.dumps(contract, sort_keys=True) + "\n"
+    if response_mode == "addendum":
+        rendered += "Inspect the supplied evidence, but return empty checks and observations for this prose correction; do not substitute an evidence_packet.\n"
     if packet_link:
         rendered += "Captured evidence packet: " + json.dumps(packet_link, sort_keys=True) + "\n"
-        rendered += "After inspecting the captures, use this evidence_packet reference instead of checks and observations.\n"
+        if response_mode != "addendum":
+            rendered += "After inspecting the captures, use this evidence_packet reference instead of checks and observations.\n"
     elif direct_captures is not None:
         rendered += "Captured direct evidence: " + json.dumps(direct_captures, sort_keys=True) + "\n"
         rendered += "Inspect these exact captured paths and return checks and observations. Source and check_hashes bind the handoff; omit them from the response.\n"
@@ -2586,6 +2610,8 @@ def build_parser() -> argparse.ArgumentParser:
     review.add_argument("--evidence-packet", help="captured evidence packet to validate before spending a review cycle")
     review.add_argument("--direct-captures", help="legacy JSON with complete checks and observations, validated before reserving a cycle")
     review.add_argument("--context-recovery-reason", help="reconstruct a confirmed lost reviewer with its full contract")
+    review.add_argument("--response-mode", choices=("auto", "full", "recheck", "addendum"), default="auto",
+                        help="select response instructions; auto includes recheck rules when prior evidence is bound")
     review.add_argument("--cycle", type=int, help="must equal the next persisted review cycle")
     review.add_argument("--timeout", type=int, default=1800)
     review.add_argument("--dry-run", action="store_true")

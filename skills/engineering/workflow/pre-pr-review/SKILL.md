@@ -24,49 +24,60 @@ If no task changes exist, report `no-changes` and stop before review. An unreada
 
 ## 1. Check existing evidence
 
-Read the available task reports, integration report, residual findings, and
-referenced review and verification evidence. Inspect the existing run state and
-approved model plan when present. A report path or completion label alone is not
-proof of coverage.
+Start with artifact locators in the run state or caller input: the approved plan,
+queue, ledger, final snapshot, review record, and evidence packet. Inspect only the
+records needed to select and run the current verifier. Read detailed task reports,
+integration reports, and review narratives only to locate missing records or
+investigate a gap reported below. A report path or completion label is not proof.
 
-For a feature run with a bound `review_policy`, read
-`shared/references/feature-review.md`. Verify its final combined evidence and
-actual independent reviewer receipt. Routine `implemented` task results are
-provisional and cannot establish readiness. A current final feature gate can
-supply the complete review evidence; a separate routine task review or cleanup
-report is not a missing step. Reuse that gate when its source, contract, check
-plan, environment, and intended base still match.
+For a feature run with a bound `review_policy`, read the `Final acceptance`
+section of `shared/references/feature-review.md`. Run the read-only
+`shared/scripts/task_queue.py schedule` with the bound `--queue`,
+`--routing-plan`, `--ledger`, and project `--root`. Require
+`feature_review.status` to be `ready`; a successful command exit alone is not
+acceptance. This validates task implementation evidence as well as the final
+combined review, approved independent reviewer receipt, and absence of pending
+calls. The helper's `final_review_ready` alone is insufficient. Routine
+`implemented` task results are provisional. A current final feature gate supplies
+the combined review; separate routine task reviews and cleanup reports are not
+missing steps. Read other policy sections only for a reported policy or evidence
+gap.
 
-For a validation run, read the initial `review_snapshot` from its validation plan
+For a validation run, locate the initial `review_snapshot` in its validation plan
 and the checked packet exported through `validation_control.py evidence-packet`.
-Each latest required unit can use a scoped packet for its own planned IDs. The
-exported packet merges that evidence and must cover the complete shared scope from
-one current snapshot compatible with the initial scope. Its declared statuses must
-agree with captured command results and browser observations. A generic status map,
-controller summary, or prose report is context only. It cannot be upgraded into
-shared evidence or reused as readiness after the fact.
+The packet must combine the latest required units into the complete shared scope
+from one current snapshot compatible with the initial scope. Its statuses must
+agree with captured commands and browser observations. A generic status map,
+controller summary, or prose report cannot establish readiness. A valid packet
+supplies captured facts, not independent reviewer judgment.
 
-Read `shared/references/review-evidence.md`. The validation packet preserves
-captured facts, but it does not replace reviewer judgment. Run the shared verifier
-on the current combined review record with the intended PR base; use the launcher's
-`verify-review` for a task record. Require exit code 0 and `ready` before reusing
-that record for readiness. Missing or stale structured evidence is a gap. Legacy
-Markdown reports can guide a focused review but cannot establish deterministic
-readiness.
+Use the current combined review record and intended PR base with the shared
+verifier in `shared/references/review-evidence.md`; use the launcher's
+`verify-review` for a task record. Require exit code 0 and `ready`. Reuse the
+feature queue assessment above when it already verifies the same combined record
+against that intended base; do not run the same verifier twice. Missing or stale
+structured evidence is a gap. Legacy Markdown reports can guide a focused review
+but cannot establish deterministic readiness.
 
-Compare that evidence with the current task diff, intended base, requirements,
-relevant dependencies, and environment. Include uncommitted edits and changes made
-after review. A different commit alone does not invalidate evidence when the
-relevant content and assumptions still match. Missing or unverifiable evidence
-leaves a gap.
+Before reuse, confirm that the verified source, intended base, acceptance
+contract, check plan, relevant dependencies, and environment match the current
+change, including uncommitted and post-review edits. Refresh runtime and external
+context. When those facts cannot be confirmed, require fresh checks. Honor any
+caller requirement for fresh runs and keep distinct environments separate. A
+commit change alone does not invalidate matching content and assumptions. Never
+repair stale evidence by editing hashes or copying approval labels.
 
-Record which evidence is valid and which work is missing: task review, integration review, required checks, browser flows, or finding resolution. Task reviews do not prove that the combined change was reviewed. For multiple tasks, confirm coverage of shared contracts, migration order, and interactions between tasks.
+Apply the acceptance contract to the verified records: complete combined coverage,
+including shared contracts, migration order, and task interactions; passing
+required checks and affected interface flows; no open or disputed findings; no
+deferred P0, P1, or P2; and a reason for each deferred P3. If all conditions hold,
+return `ready` with evidence references. Do not load detailed reports, simplify
+code, dispatch reviewers, probe routes, or repeat checks in this branch.
 
-This workflow permits reuse of matching evidence unless the caller requires fresh runs. When the acceptance contract is already met, return `ready` with the evidence references. Do not simplify code, start reviewers, probe model routes, or repeat checks in that case.
-
-Refresh runtime and external context before reuse. If those facts cannot be
-confirmed, run fresh checks. Never convert a stale result to ready by editing
-its hashes or copying an approval label.
+Otherwise, record the specific gaps: task or integration review, required checks,
+browser flows, finding resolution, or unverifiable bindings. Read only the
+reports, source context, and captures needed to resolve those gaps. Preserve
+valid coverage for the remaining scope and continue below.
 
 ## 2. Close only the gaps
 
@@ -119,7 +130,9 @@ Run an independent `full-review` through the approved reviewer route. Use
 `focused` scope for a bounded task, while preserving an approved `seam` or `deep`
 scope and required `security_focus` coverage. Give the reviewer the task
 requirements, exact intended base, current source snapshot, bound evidence
-packet, and `shared/references/reviewer-response.md`. Record its complete
+packet, and the initial response sections of `shared/references/reviewer-response.md`
+(introduction, `Initial response`, `Evidence packet substitution`, and `Completion`).
+Include `Batch endorsement` only for a declared batch. Record its complete
 structured response unchanged and require the shared verifier to return exit
 code 0 and `ready` before reporting readiness. Include the packet and verifier
 result in the final report.

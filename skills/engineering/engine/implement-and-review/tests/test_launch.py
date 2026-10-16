@@ -918,6 +918,40 @@ class LauncherTests(unittest.TestCase):
                 launcher.cmd_record_native(record_args)
         self.assertEqual(manifest_path.read_bytes(), before)
 
+    def test_reviewer_contract_selects_only_applicable_sections(self):
+        prior = {"previous_reviews": [{"path": "/prior/review.json", "sha256": "fixture"}]}
+        cases = [
+            ({}, "auto", False, False, False),
+            (prior, "auto", True, False, False),
+            (prior, "full", False, False, False),
+            (prior, "recheck", True, False, False),
+            (prior, "addendum", True, True, False),
+            ({**prior, "batch": {}}, "auto", False, False, True),
+        ]
+        for contract, mode, recheck, addendum, batch in cases:
+            with self.subTest(mode=mode, contract=contract):
+                prompt = launcher.reviewer_contract_resource(contract, mode)
+                for common in ("Initial response", "Evidence packet substitution", "Completion"):
+                    self.assertIn(f"## {common}\n", prompt)
+                for name, expected in (("Recheck", recheck), ("Prose correction", addendum),
+                                       ("Batch endorsement", batch)):
+                    self.assertEqual(f"## {name}\n" in prompt, expected)
+                self.assertIn("scope_approval", prompt)
+                self.assertIn("changed acceptance contract requires", prompt)
+
+    def test_reviewer_contract_rejects_unbound_or_batch_incremental_mode(self):
+        for mode in ("recheck", "addendum"):
+            for contract in ({}, {"previous_reviews": [{}], "batch": {}}):
+                with self.subTest(mode=mode, contract=contract), self.assertRaisesRegex(ValueError, "bound prior"):
+                    launcher.reviewer_contract_resource(contract, mode)
+        with self.assertRaisesRegex(ValueError, "unknown reviewer response mode"):
+            launcher.reviewer_contract_resource({}, "unknown")
+
+    def test_reviewer_contract_fails_if_a_selected_section_is_missing(self):
+        with mock.patch.object(Path, "read_text", return_value="# Contract\n\n## Initial response\nExample\n"):
+            with self.assertRaisesRegex(ValueError, "sections missing"):
+                launcher.reviewer_contract_resource({})
+
     def test_native_reviewer_first_recheck_and_recovery_packets(self):
         self.task.write_text("Acceptance: retain every case.\n" * 100)
         path = self.native_plan()
@@ -936,8 +970,12 @@ class LauncherTests(unittest.TestCase):
         for cycle in (1, 2, 3):
             if cycle == 3:
                 args.context_recovery_reason = "Host confirmed reviewer context lost"
+                args.response_mode = "addendum"
+            response_contract = {"coverage_paths": ["changed.py"]}
+            if cycle > 1:
+                response_contract["previous_reviews"] = [{"path": "/prior/review.json", "sha256": "fixture"}]
             with mock.patch.object(launcher, "review_source_binding", return_value={"path": "snapshot.json", "sha256": "fixture"}), \
-                 mock.patch.object(launcher.evidence_module(), "response_contract", return_value={"coverage_paths": ["changed.py"]}), \
+                 mock.patch.object(launcher.evidence_module(), "response_contract", return_value=response_contract), \
                  contextlib.redirect_stdout(io.StringIO()):
                 launcher.cmd_review(args)
             record = json.loads(manifest_path.read_text())["reviews"][-1]
@@ -946,6 +984,10 @@ class LauncherTests(unittest.TestCase):
             self.assertIn("shared/references/reviewer-response.md", prompt)
             self.assertNotIn("shared/references/review-evidence.md", prompt)
             self.assertIn("changed.py", prompt)
+            self.assertEqual("## Recheck\n" in prompt, cycle > 1)
+            self.assertEqual("## Prose correction\n" in prompt, cycle == 3)
+            self.assertNotIn("## Batch endorsement\n", prompt)
+            self.assertIn("## Completion\n", prompt)
             self.assertIn(launcher.REVIEW_BOUNDARY.strip(), prompt)
             self.assertEqual(record["brief_binding"]["input_measurement"]["utf8_bytes"], len(prompt.encode()))
             dispatch = record["launch"]["native_dispatch"]

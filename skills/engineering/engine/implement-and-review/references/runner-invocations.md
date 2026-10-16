@@ -142,14 +142,15 @@ python3 "$SKILL_DIR/scripts/launch.py" evidence-recovery \
 
 ### Review receipts
 
-The launcher resolves the reviewer response contract to an absolute readable path.
-External adapters use file reads. For a native host without verified shared-file
-access, the brief embeds the contract so the role can use its exact schema.
+The launcher embeds the selected sections of `shared/references/reviewer-response.md`
+for both native and runner routes. `--response-mode auto` includes recheck rules
+when prior evidence is bound; batches use a full response. Select `full` to
+request a complete response or `addendum` for a prose correction with unchanged
+source and requirements. Each mode retains the common evidence and completion
+rules. Fresh and reconstructed contexts receive all selected sections.
 
-
-The reviewer loads `shared/references/reviewer-response.md` and returns its exact
-JSON contract after independently assessing source and evidence. The coordinator
-keeps the full evidence operations manual. After the native receipt
+The reviewer uses that exact JSON contract after independently assessing source
+and evidence. The coordinator keeps the evidence operations manual. After the native receipt
 is recorded, or its runner job completes, capture that exact response:
 
 ```bash
