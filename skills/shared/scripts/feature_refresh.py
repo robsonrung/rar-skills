@@ -33,15 +33,20 @@ def atomic_record(path, payload):
 
 
 def original_capture(snapshot_path, check_path):
-    """Follow one transfer to its original execution; reject altered captures."""
+    """Follow coverage and transfer links to the original passing execution."""
     check = evidence.load_record(check_path)
+    evidence.require(evidence.validate_check(check_path, evidence.snapshot_record(snapshot_path), check["definition"]),
+                     "capture is not passing")
+    if check.get("kind") == "coverage":
+        check_path = evidence.checked_link(check["aggregate"], "covered aggregate")
+        check = evidence.load_record(check_path)
     if "transfer" in check:
-        evidence.validate_check(check_path, evidence.snapshot_record(snapshot_path), check["definition"])
-        snapshot_path = evidence.checked_link(check["transfer"]["snapshot"], "original snapshot")
         check_path = evidence.checked_link(check["transfer"]["check"], "original check")
+        check = evidence.load_record(check_path)
+    snapshot_path = check["snapshot_path"]
     old = evidence.snapshot_record(snapshot_path)
-    check = evidence.load_record(check_path)
-    evidence.require("transfer" not in check and evidence.validate_check(check_path, old, check["definition"]),
+    evidence.require("transfer" not in check and check.get("kind") != "coverage"
+                     and evidence.validate_check(check_path, old, check["definition"]),
                      "capture is not a passing original execution")
     return Path(snapshot_path).resolve(), Path(check_path).resolve()
 
@@ -197,35 +202,50 @@ def refresh(policy_path, root, base, ledger_path, output, environment_path, *, e
         for key in selected:
             snapshot_path = prepared[key]
             directory = snapshot_path.parent
-            checks, actions = {}, []
+            checks, actions, available = {}, [], {}
+            snapshot = evidence.current_snapshot(snapshot_path)
+            rows = []
             for definition in requirements[key]["checks"]:
                 check_id = definition["id"]
-                chosen = None
+                row = {"id": check_id, "action": "run", "reason": "no passing captured check supplied"}
                 for old_path, capture in pool.get(evidence.digest(definition), []):
                     try:
-                        selection = evidence.select_checks(snapshot_path, old_path, {check_id: str(capture)})
-                        row = next(row for row in selection["checks"] if row["id"] == check_id)
-                        if row["action"] in {"reuse", "transfer"}:
-                            chosen = (old_path, capture, row["action"])
+                        selection = evidence.select_checks(snapshot_path, old_path, {check_id: str(capture)},
+                                                           selected=[check_id])
+                        candidate = selection["checks"][0]
+                        if candidate["action"] in {"reuse", "transfer"}:
+                            row = candidate
+                            available[check_id] = (old_path, capture)
                             break
                     except (ValueError, OSError, KeyError, TypeError):
                         continue
-                if chosen:
-                    old_path, capture, action = chosen
+                rows.append(row)
+            rows = evidence.apply_check_coverage(snapshot, rows)
+            definitions = {row["id"]: row for row in requirements[key]["checks"]}
+            # Capture aggregate commands before deriving their covered check records.
+            ordered = [row for row in rows if row["action"] != "covered"]
+            ordered.extend(row for row in rows if row["action"] == "covered")
+            for row in ordered:
+                check_id, action = row["id"], row["action"]
+                definition = definitions[check_id]
+                if action == "covered":
+                    capture = evidence.cover_check(snapshot_path, check_id, checks[row["covered_by"]])
+                elif action in {"reuse", "transfer"}:
+                    old_path, capture = available[check_id]
                     if action == "transfer":
                         assessment = {**environment, "from_snapshot_sha256": evidence.file_hash(old_path)}
                         assessment_path = directory / (check_id + ".environment.json")
                         assessment_path.write_text(json.dumps(assessment, indent=2) + "\n")
                         capture = evidence.transfer_check(old_path, snapshot_path, capture, assessment_path)
                 else:
-                    action = "run"
                     capture = evidence.run_check(snapshot_path, check_id)
                     result["captures"].append(evidence.evidence_link(capture))
                     evidence.require(evidence.validate_check(capture, evidence.current_snapshot(snapshot_path), definition),
                                      f"{key} check {check_id} failed")
                     pool.setdefault(evidence.digest(definition), []).append((snapshot_path, capture))
                 checks[check_id] = str(capture)
-                actions.append({"id": check_id, "action": action, "capture": evidence.evidence_link(capture)})
+                actions.append({"id": check_id, "action": action, "capture": evidence.evidence_link(capture),
+                                **({"covered_by": row["covered_by"]} if action == "covered" else {})})
             packet = evidence.prepare_packet(snapshot_path, directory / "packet.json", checks=checks, observations=[])
             entry = copy.deepcopy(entries[key])
             for stale_field in ("carry_forward", "batch_review"):

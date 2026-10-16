@@ -34,6 +34,8 @@ def check_plan(policy, root):
     evidence.require(not {"batch", "review_scope", "critical_scope"}.intersection(requirements),
                      "feature check plan cannot contain a batch or prospective review scope")
     checks = {row["id"] for row in requirements["checks"]}
+    evidence.require(all(set(row.get("covers", {}).get("checks", [])) <= checks for row in requirements["checks"]),
+                     "feature aggregate coverage names an unknown check")
     flags = plan["required_checks"]
     evidence.require(isinstance(flags, dict) and set(flags) == checks
                      and all(type(flag) is bool for flag in flags.values()) and any(flags.values()),
@@ -199,6 +201,7 @@ def requirements(path, root, task_id=None):
         value.pop("observation_inputs", None)
         if "reuse_scope" in policy["tasks"][task_id]:
             value["critical_scope"] = copy.deepcopy(policy["tasks"][task_id]["reuse_scope"])
+    # Preserve command declarations; coverage applies only between selected IDs.
     value["checks"] = [row for row in value["checks"] if row["id"] in ids]
     value["check_contract"] = check_contract(path, root)
     return value

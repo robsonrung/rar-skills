@@ -83,6 +83,7 @@ jobs:
       - name: Review evidence integrity
         run: |
           python3 skills/shared/tests/test_review_evidence.py
+          python3 skills/shared/tests/test_check_coverage.py
           python3 skills/shared/tests/test_feature_review.py
           python3 skills/shared/tests/test_feature_refresh.py
       - name: Review finding integrity

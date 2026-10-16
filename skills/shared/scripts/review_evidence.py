@@ -307,7 +307,7 @@ def validate_requirements(value, root):
     require(isinstance(value["checks"], list), "checks must be a list")
     ids = set()
     for check in value["checks"]:
-        require(isinstance(check, dict) and {"id", "command", "cwd", "timeout_seconds"} <= set(check) <= {"id", "command", "cwd", "timeout_seconds", "inputs", "fresh"}, "invalid check definition")
+        require(isinstance(check, dict) and {"id", "command", "cwd", "timeout_seconds"} <= set(check) <= {"id", "command", "cwd", "timeout_seconds", "inputs", "fresh", "environment", "covers"}, "invalid check definition")
         require(type(check.get("fresh", False)) is bool, "fresh must be a boolean")
         if "inputs" in check:
             validate_inputs(check["inputs"], root)
@@ -317,6 +317,7 @@ def validate_requirements(value, root):
         require(isinstance(check["command"], list) and bool(check["command"]) and all(isinstance(x, str) and x for x in check["command"]), "command must be a nonempty argument list")
         require(safe_path(root, check["cwd"]).resolve().is_relative_to(root), "check cwd escapes source root")
         require(type(check["timeout_seconds"]) is int and 0 < check["timeout_seconds"] <= 3600, "invalid check timeout")
+    validate_coverage_declarations(value["checks"], root)
     observations = value["observations"]
     require(isinstance(observations, list) and all(isinstance(x, str) and x for x in observations), "invalid observation ids")
     require(len(set(observations)) == len(observations), "duplicate observation ids")
@@ -343,6 +344,95 @@ def validate_requirements(value, root):
         require(declared <= set(scope["inputs"]), "critical scope omits declared dependencies")
 
 
+
+def validate_coverage_declarations(definitions, root):
+    """Require explicit repository evidence; command names establish no coverage."""
+    by_id = {row["id"]: row for row in definitions}
+    for definition in definitions:
+        if "environment" in definition:
+            require(isinstance(definition["environment"], str) and definition["environment"].strip(),
+                    "check environment must be a nonempty identity")
+        if "covers" not in definition:
+            continue
+        coverage = definition["covers"]
+        require(isinstance(coverage, dict) and set(coverage) == {"checks", "evidence", "reason"},
+                "coverage needs checks, evidence, and reason")
+        ids = coverage["checks"]
+        require(isinstance(ids, list) and ids and all(isinstance(key, str)
+                and re.fullmatch(r"[a-z0-9][a-z0-9-]*", key) for key in ids)
+                and len(set(ids)) == len(ids), "coverage needs unique check ids")
+        require(definition["id"] not in ids, "a check cannot cover itself")
+        require(not any("covers" in by_id[key] for key in ids if key in by_id),
+                "nested or cyclic check coverage is not supported")
+        require(isinstance(coverage["reason"], str) and coverage["reason"].strip(),
+                "coverage needs a repository configuration assessment")
+        links = coverage["evidence"]
+        require(isinstance(links, list) and links, "coverage needs repository configuration evidence")
+        paths = []
+        for link in links:
+            require(isinstance(link, dict) and set(link) == {"path", "sha256"},
+                    "invalid coverage configuration reference")
+            paths.append(link["path"])
+        validate_inputs(paths, root)
+        for link in links:
+            path = safe_path(root, link["path"])
+            require(path.is_file() and file_hash(path) == link["sha256"],
+                    "coverage configuration changed or is missing")
+        if "inputs" in definition:
+            require(set(paths) <= set(definition["inputs"]),
+                    "aggregate inputs omit coverage configuration")
+
+
+def coverage_eligible(snapshot, aggregate, child):
+    """Only an explicit, sufficient dependency scope can replace a command."""
+    if child.get("fresh") or child["id"] not in aggregate.get("covers", {}).get("checks", []):
+        return False
+    if not aggregate.get("environment") or aggregate.get("environment") != child.get("environment"):
+        return False
+    if "inputs" in aggregate and ("inputs" not in child or not set(child["inputs"]) <= set(aggregate["inputs"])):
+        return False
+    for link in aggregate["covers"]["evidence"]:
+        require(snapshot["source"]["files"].get(link["path"], {}).get("sha256") == link["sha256"],
+                "coverage configuration is outside captured source")
+    return True
+
+
+def validate_coverage_capture(check, snapshot, definition, path):
+    require(set(check) == {"kind", "snapshot_path", "snapshot_sha256", "source_id", "definition", "aggregate"}
+            and check["kind"] == "coverage", "invalid derived coverage record")
+    require(check["definition"] == definition and not definition.get("fresh"),
+            "derived coverage cannot replace a changed or required fresh check")
+    target_path = Path(snapshot["snapshot_path"])
+    require(check["snapshot_path"] == str(target_path) and check["snapshot_sha256"] == file_hash(target_path),
+            "derived coverage target snapshot differs")
+    require(Path(path).resolve() == target_path.parent / "checks" / definition["id"] / "result.json",
+            "derived coverage path differs from its target bundle")
+    aggregate_path = checked_link(check["aggregate"], "aggregate capture")
+    aggregate = load_record(aggregate_path)
+    require(aggregate.get("kind") != "coverage", "nested coverage captures are not permitted")
+    aggregate_definition = check_definition(snapshot, aggregate["definition"]["id"])
+    require(coverage_eligible(snapshot, aggregate_definition, definition), "aggregate does not cover this check")
+    require(validate_check(aggregate_path, snapshot, aggregate_definition), "aggregate check did not pass")
+    captured = load_record(aggregate["transfer"]["snapshot"]["path"] if "transfer" in aggregate
+                           else aggregate["snapshot_path"])
+    require(check_definition(captured, definition["id"]) == definition,
+            "aggregate capture has no matching covered check definition")
+    return True
+
+
+def cover_check(snapshot_path, key, aggregate_check):
+    """Record proven coverage without claiming the child command was executed."""
+    snapshot_path = Path(snapshot_path).resolve()
+    snapshot = current_snapshot(snapshot_path)
+    definition = check_definition(snapshot, key)
+    path = snapshot_path.parent / "checks" / key / "result.json"
+    payload = {"kind": "coverage", "snapshot_path": str(snapshot_path),
+               "snapshot_sha256": file_hash(snapshot_path), "source_id": snapshot["source_id"],
+               "definition": definition, "aggregate": evidence_link(aggregate_check)}
+    validate_coverage_capture(payload, snapshot, definition, path)
+    current_snapshot(snapshot_path)
+    return write_record(path, payload)
+
 def prepare(root, base, contract, requirements, output, artifact_dir=None, previous_reviews=()):
     root, output = Path(root).resolve(), Path(output).resolve()
     artifact_dir = Path(artifact_dir or output).resolve()
@@ -351,6 +441,8 @@ def prepare(root, base, contract, requirements, output, artifact_dir=None, previ
     validate_requirements(plan, root)
     source = source_state(root, base, artifact_dir)
     scopes = [check["inputs"] for check in plan["checks"] if "inputs" in check]
+    scopes.extend([link["path"] for link in check["covers"]["evidence"]]
+                  for check in plan["checks"] if "covers" in check)
     scopes.extend(plan.get("observation_inputs", {}).values())
     if "critical_scope" in plan:
         scopes.extend([plan["critical_scope"]["inputs"], plan["critical_scope"]["independent_paths"]])
@@ -449,6 +541,8 @@ def run_check(snapshot_path, key):
 def validate_check(path, snapshot, definition):
     check = load_record(path)
     require(check["source_id"] == snapshot["source_id"], "check source does not match")
+    if check.get("kind") == "coverage":
+        return validate_coverage_capture(check, snapshot, definition, path)
     if "transfer" in check:
         if snapshot.get("snapshot_path"):
             target_path = Path(snapshot["snapshot_path"])
@@ -698,7 +792,7 @@ def transfer_check(from_snapshot, to_snapshot, check_path, assessment_path):
     old = load_record(from_snapshot)
     target = current_snapshot(to_snapshot)
     check = load_record(check_path)
-    require("transfer" not in check, "transfer directly from the original captured check")
+    require("transfer" not in check and check.get("kind") != "coverage", "transfer directly from the original captured check")
     definition = check_definition(target, check["definition"]["id"])
     require(validate_check(check_path, old, definition), "only a passing captured check can transfer")
     transfer = {"snapshot": {"path": str(Path(from_snapshot).resolve()), "sha256": file_hash(from_snapshot)},
@@ -717,7 +811,7 @@ def validate_transfer(check, target, definition):
         require(set(link) == {"path", "sha256"} and file_hash(link["path"]) == link["sha256"], "transfer evidence checksum mismatch")
     old = load_record(links["snapshot"]["path"])
     original = load_record(links["check"]["path"])
-    require("transfer" not in original, "nested transfer is not permitted")
+    require("transfer" not in original and original.get("kind") != "coverage", "nested or derived transfer is not permitted")
     require(old["source_id"] == digest(old["source"]), "invalid transfer source")
     require(original["snapshot_sha256"] == links["snapshot"]["sha256"], "original check snapshot differs")
     if "inputs" in definition:
@@ -748,12 +842,15 @@ def validate_environment_assessment(assessment):
             require(set(entry) == {"path", "sha256"} and file_hash(entry["path"]) == entry["sha256"], "transfer assessment evidence changed")
 
 
-def select_checks(snapshot_path, from_snapshot=None, checks=None, fresh=()):
+def select_checks(snapshot_path, from_snapshot=None, checks=None, fresh=(), selected=None):
     """Select actual commands from captured inputs; never infer dependency independence."""
     target = current_snapshot(snapshot_path)
     definitions = target["requirements"]["value"]["checks"]
     ids = {row["id"] for row in definitions}
     require(set(fresh) <= ids, "unknown required fresh check")
+    require(selected is None or set(selected) <= ids, "unknown selected check")
+    require(selected is None or set(fresh) <= set(selected), "required fresh check is outside selected checks")
+    definitions = [row for row in definitions if selected is None or row["id"] in selected]
     checks = checks or {}
     require(isinstance(checks, dict) and set(checks) <= ids, "unknown supplied check")
     old = load_record(from_snapshot) if from_snapshot else None
@@ -769,6 +866,7 @@ def select_checks(snapshot_path, from_snapshot=None, checks=None, fresh=()):
             reason = "fresh execution required"
         elif old and key in checks:
             try:
+                require(load_record(checks[key]).get("kind") != "coverage", "rebuild coverage from the original aggregate capture")
                 require(validate_check(checks[key], old, check_definition(old, key)), "prior check failed")
                 require(check_definition(old, key) == definition, "command or inputs declaration changed")
                 require(check_acceptance(old) == check_acceptance(target), "acceptance contract changed")
@@ -786,8 +884,61 @@ def select_checks(snapshot_path, from_snapshot=None, checks=None, fresh=()):
                 reason = str(error)
         rows.append({"id": key, "action": action, "reason": reason, "inputs": definition.get("inputs", "whole-source"),
                      **({"check": evidence_link(checks[key])} if action in {"reuse", "transfer"} else {})})
-    return {"snapshot": evidence_link(snapshot_path), "changed_paths": changed, "checks": rows}
+    return {"snapshot": evidence_link(snapshot_path), "changed_paths": changed,
+            "checks": apply_check_coverage(target, rows, fresh)}
 
+
+
+def apply_check_coverage(snapshot, rows, fresh=()):
+    """Choose direct coverage only among already selected commands."""
+    rows = copy.deepcopy(rows)
+    definitions = {row["id"]: row for row in snapshot["requirements"]["value"]["checks"]}
+    by_id = {row["id"]: row for row in rows}
+    aggregates = [key for key in by_id if "covers" in definitions[key]]
+    remaining = {key for key, row in by_id.items() if row["action"] == "run" and key not in fresh}
+    def eligible(key, child):
+        if not coverage_eligible(snapshot, definitions[key], definitions[child]):
+            return False
+        if by_id[key]["action"] in {"reuse", "transfer"}:
+            capture = load_record(by_id[key]["check"]["path"])
+            original = load_record(capture["transfer"]["snapshot"]["path"] if "transfer" in capture
+                                   else capture["snapshot_path"])
+            originals = {row["id"]: row for row in original["requirements"]["value"]["checks"]}
+            return originals.get(child) == definitions[child]
+        return True
+    while aggregates:
+        candidates = {key: {child for child in remaining if eligible(key, child)}
+                      for key in aggregates}
+        winner = min(aggregates, key=lambda key: (-len(candidates[key]), key))
+        for key in candidates[winner]:
+            by_id[key].update(action="covered", covered_by=winner,
+                              reason="explicit repository configuration binds this check to the selected aggregate")
+            by_id[key].pop("check", None)
+        remaining -= candidates[winner]
+        aggregates.remove(winner)
+    return rows
+
+
+def run_plan(snapshot_path, selected=None, fresh=()):
+    """Run selected commands once, then retain separate evidence for covered ids."""
+    selection = select_checks(snapshot_path, fresh=fresh, selected=selected)
+    checks = {}
+    passed = True
+    for row in selection["checks"]:
+        if row["action"] == "covered":
+            continue
+        path = run_check(snapshot_path, row["id"])
+        snapshot = current_snapshot(snapshot_path)
+        passed = validate_check(path, snapshot, check_definition(snapshot, row["id"])) and passed
+        checks[row["id"]] = str(path)
+    for row in selection["checks"]:
+        if row["action"] != "covered":
+            continue
+        aggregate_path = checks[row["covered_by"]]
+        snapshot = current_snapshot(snapshot_path)
+        if validate_check(aggregate_path, snapshot, check_definition(snapshot, row["covered_by"])):
+            checks[row["id"]] = str(cover_check(snapshot_path, row["id"], aggregate_path))
+    return {**selection, "captures": checks, "passed": passed}
 
 def evidence_link(path):
     path = Path(path).resolve()
@@ -1219,6 +1370,14 @@ def main():
     check_parser = commands.add_parser("run-check", help="execute one declared command and capture its result")
     check_parser.add_argument("--snapshot", required=True)
     check_parser.add_argument("--id", required=True)
+    plan_parser = commands.add_parser("run-plan", help="run selected commands and record explicit aggregate coverage")
+    plan_parser.add_argument("--snapshot", required=True)
+    plan_parser.add_argument("--id", action="append", help="selected check id; defaults to all checks")
+    plan_parser.add_argument("--fresh", action="append", default=[])
+    coverage_parser = commands.add_parser("cover-check", help="bind a covered check to a passing aggregate capture")
+    coverage_parser.add_argument("--snapshot", required=True)
+    coverage_parser.add_argument("--id", required=True)
+    coverage_parser.add_argument("--aggregate-check", required=True)
     record_parser = commands.add_parser("record", help="store the structured response from a completed reviewer")
     record_parser.add_argument("--snapshot", required=True)
     record_parser.add_argument("--execution", required=True)
@@ -1241,6 +1400,7 @@ def main():
     selection_parser = commands.add_parser("select-checks", help="select affected commands and checked reuse from declared inputs")
     selection_parser.add_argument("--snapshot", required=True)
     selection_parser.add_argument("--from-snapshot")
+    selection_parser.add_argument("--id", action="append", help="selected check id; defaults to all checks")
     selection_parser.add_argument("--checks", help="JSON map of check ids to original captured result paths")
     selection_parser.add_argument("--fresh", action="append", default=[], help="required fresh check id; repeat for multiple checks")
     args = parser.parse_args()
@@ -1250,10 +1410,14 @@ def main():
         elif args.action == "run-check":
             path = run_check(args.snapshot, args.id)
             result = {"check": str(path), "passed": validate_check(path, load_record(args.snapshot), check_definition(load_record(args.snapshot), args.id))}
+        elif args.action == "run-plan":
+            result = run_plan(args.snapshot, args.id, args.fresh)
+        elif args.action == "cover-check":
+            result = {"check": str(cover_check(args.snapshot, args.id, args.aggregate_check))}
         elif args.action == "response-contract":
             result = response_contract(args.snapshot)
         elif args.action == "select-checks":
-            result = select_checks(args.snapshot, args.from_snapshot, read_json(args.checks) if args.checks else None, args.fresh)
+            result = select_checks(args.snapshot, args.from_snapshot, read_json(args.checks) if args.checks else None, args.fresh, args.id)
         elif args.action == "prepare-packet":
             path = prepare_packet(args.snapshot, args.output, read_json(args.checks) if args.checks else None, read_json(args.observations), args.id)
             result = {"evidence_packet": evidence_link(path)}

@@ -124,7 +124,10 @@ structured response unchanged and require the shared verifier to return exit
 code 0 and `ready` before reporting readiness. Include the packet and verifier
 result in the final report.
 
-Do not repeat commands already covered by an aggregate check. After simplification or a fix, invalidate only the evidence affected by that change.
+Use `Aggregate check coverage` in `shared/references/review-evidence.md` when
+commands overlap. Reuse only validated declared coverage, while keeping fresh
+checks and distinct environments independent. After simplification or a fix,
+invalidate only the evidence affected by that change.
 
 ## 3. Correct and recheck
 

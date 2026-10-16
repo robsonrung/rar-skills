@@ -40,6 +40,8 @@ requirements and capture API. Load `Structured context and scoped inputs` when
 using structured identity, check inputs, or observation inputs. Load `Transfer
 checks after a commit or worktree change` only for a selected transfer candidate.
 Load `Bridge feature validation to review` only for a bound validation run.
+Load `Aggregate check coverage` only when commands overlap and requirements
+explicitly declare `covers`. Follow its execution order and retain every required ID.
 The manual introduction defines helper integrity limits; keep review judgment
 separate from checksum validation.
 
@@ -58,7 +60,8 @@ python3 <shared-dir>/scripts/review_evidence.py run-check \
 Resolve `<shared-dir>` from the loaded shared skill. Keep artifacts outside source
 or declare the launcher's generated directory with `--artifact-dir`. Run source
 changing prerequisites before preparation. Stop other writers while preparing and
-capturing. Capture each required command once on the final unchanged source. A
+capturing. Capture each command selected for execution once on the final unchanged
+source. A
 repair needs a new snapshot directory and retains failed captures. Return the
 snapshot and original result paths with raw logs, failing regression evidence,
 and any missing or failed check. Do not replace captures with a prose summary.
@@ -86,7 +89,8 @@ check in the new target directory. Build the packet for that new target using
 both result paths. Preserve the first results and every fresh requirement.
 
 Execute all selected `run` entries, keep validated `reuse` paths, and use
-`transfer-check` only after the required environment and base assessment.
+`transfer-check` only after the required environment and base assessment. Resolve
+`covered` entries through the aggregate coverage protocol before preparing the packet.
 Return the complete packet for the selected task requirements. A deferred task
 returns provisional evidence. Critical and task-mode workers return it to the
 coordinator for [task-review.md](task-review.md). Worker checks do not supply reviewer

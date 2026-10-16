@@ -207,6 +207,78 @@ dependencies from path names or turn an unaffected path into review approval.
 Transfer still rejects failed commands, altered output, and changed identities.
 Fresh checks cannot transfer. A fresh run uses a new snapshot directory.
 
+## Aggregate check coverage
+
+Use this section only when a declared aggregate command includes other checks.
+Keep every required check ID in the plan and packet. Declare coverage from actual
+repository command or configuration evidence; command names alone prove nothing.
+Plans without `covers` retain independent check execution.
+
+The aggregate check can declare:
+
+```json
+{
+  "id": "verify",
+  "command": ["npm", "run", "verify"],
+  "cwd": ".",
+  "timeout_seconds": 900,
+  "environment": "local-node",
+  "covers": {
+    "checks": ["lint", "tests"],
+    "evidence": [{"path": "package.json", "sha256": "actual file hash"}],
+    "reason": "The verify script runs the declared lint and tests commands."
+  }
+}
+```
+
+Each covered check must be declared separately with the same explicit
+`environment`. That label supplements the snapshot's observed runtime and external
+context; it does not prove equivalence. Distinct environments run independently.
+Coverage is direct: a covered check cannot itself declare `covers`. If the aggregate
+has scoped `inputs`, they must contain the child inputs and coverage evidence files.
+Otherwise the aggregate uses the whole source. Include the complete command chain
+in the evidence, including configuration that controls options and exclusions.
+
+The selector can return `covered` with `covered_by` naming a selected aggregate.
+It selects only aggregates already in the requested scope. It never adds an
+optional command merely to replace a required child. A check marked `fresh: true`
+or selected with `--fresh` executes independently. Retain every required failing
+regression capture and every required observation.
+
+Execute the selected plan only in a fresh evidence bundle:
+
+```bash
+python3 <shared-dir>/scripts/review_evidence.py run-plan \
+  --snapshot <current-snapshot.json>
+```
+
+Repeat `--id <check-id>` to limit execution to selected checks. Use
+`--fresh <check-id>` to require independent execution. For existing captures, use
+`select-checks` to reuse or transfer valid evidence and execute its `run` entries.
+Then create each covered result from the passing aggregate with:
+
+```bash
+python3 <shared-dir>/scripts/review_evidence.py cover-check \
+  --snapshot <current-snapshot.json> --id <covered-check-id> \
+  --aggregate-check <actual-aggregate/result.json>
+```
+
+`run-plan` preserves a failed aggregate and returns `passed: false`; it creates no
+passing child record from that failure. A required failed aggregate blocks
+acceptance even if its child checks pass. A coverage declaration can name a child
+outside the selected task scope, but cannot prove that child unless the original
+aggregate snapshot also contained its exact check definition.
+
+A covered result must link an actual passing aggregate capture and its frozen
+coverage declaration. Inspect the captured aggregate logs and repository evidence.
+The derived record binds that declared coverage; it does not claim the child
+command ran separately. A stale declaration, missing or failed aggregate, changed logs,
+or incompatible source, contract, inputs, or environment cannot establish a pass.
+Correct invalid or stale declarations through the existing plan binding. Run a
+child independently only when the plan is valid but coverage eligibility or proof
+is insufficient. After a source repair, select checks against a new snapshot and
+retain the original captures.
+
 ## Bridge feature validation to review
 
 New `validate-e2e` plans bind `review_snapshot: {path, sha256}` to the existing

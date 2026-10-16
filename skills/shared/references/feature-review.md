@@ -46,6 +46,11 @@ The check plan contains three fields:
 
 Use `feature_review.py requirements --policy PATH --root ROOT --task T1` to derive focused snapshot requirements. Omit `--task` to derive the final requirements. Save that output for `review_evidence.py prepare`. This derives command definitions from one plan and binds their exact definitions, required flags, acceptance contracts, and environment identity.
 
+When commands overlap, use [Aggregate check coverage](review-evidence.md#aggregate-check-coverage).
+Focused and final requirements keep their selected check IDs. Coverage applies
+only when both aggregate and child are selected; optional aggregates are not
+added to replace required checks. Every required ID remains in its packet.
+
 The derived `check_contract` binds the feature contract and canonical scope hashes for the complete policy input set. Snapshot review contracts remain task specific until final review. This common check contract permits exact captured commands to transfer from task evidence to final evidence. The validator derives the entire declaration from the policy; an omitted input or unrelated review contract fails validation. Canonical task hashes ignore only the existing exact workflow status line. Workflow files may remain in ignored directories because the immutable snapshot requirements bind them separately from source files.
 
 ## Provisional dependency release
@@ -131,7 +136,9 @@ environment file is validated in preview too.
 Add `--execute --environment <current-environment.json>` to prepare immutable
 snapshots and packets, transfer valid captures, and run required commands.
 Compatible nonfresh checks can serve several task snapshots. Required fresh
-checks still execute for each target snapshot.
+checks still execute for each target snapshot. Declared aggregate coverage follows
+the shared contract above: capture or reuse the aggregate first, then create the
+child coverage records. A failed aggregate cannot produce a ready refresh patch.
 
 Bind the environment evidence to the preview's current IDs using `to_source_id`
 and `context_id`. Include `runtime`, `dependencies`, `external_state`, and

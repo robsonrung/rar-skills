@@ -43,6 +43,9 @@ paths, check IDs, observation IDs, fresh observations, and prior findings.
    results and logs. Prose, generic validation statuses, and execution claims
    cannot replace captures. Preserve failures and required failing regression
    evidence; do not turn a skipped or failed result into a pass.
+   For derived aggregate coverage, follow [Aggregate check coverage](review-evidence.md#aggregate-check-coverage).
+   Inspect the original aggregate capture and declared repository evidence;
+   report the child as covered, not separately executed.
 4. Each observation has exactly `id`, `result`, and `evidence`. IDs match
    requirements. Result is `pass`, `fail`, or `skipped`. Evidence is a nonempty
    list of objects with absolute `path` and file `sha256`. Assess actual driver
