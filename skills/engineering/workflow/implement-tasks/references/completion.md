@@ -1,6 +1,10 @@
 # Complete the Implementation Run
 
-Read when the task results are ready for integration review and delivery.
+Read when task results are ready for integration review and delivery. For a bound
+feature policy, resolve `references/final-feature-review.md` from the loaded
+`implement-and-review` skill, apply that complete gate, then read only `Deliver
+and report` below. Without that policy, read `Verify the complete change` and
+`Deliver and report`. Existing task-mode review obligations remain unchanged.
 
 ## Verify the complete change
 
@@ -53,6 +57,10 @@ output from the report. Only `ready` meets this gate; open P2 findings and skipp
 required checks prevent completion.
 
 ## Deliver and report
+
+When findings remain unapplied, load [residual-findings.md](residual-findings.md)
+and record them. A blocking defect stays blocked. Link the accepted snapshot, review, check records,
+and verifier output; a report or task label alone cannot prove readiness.
 
 Deliver the verified local diff by default. If the user authorized commit, push, or a PR, perform those actions; use `open-pr` for an authorized PR. A configured remote does not grant publication permission. Reuse prior authorization without asking again.
 

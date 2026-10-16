@@ -140,6 +140,8 @@ python3 "$SKILL_DIR/scripts/launch.py" evidence-recovery \
 
 ## Receipts and native routes
 
+### Review receipts
+
 The launcher resolves the reviewer response contract to an absolute readable path.
 External adapters use file reads. For a native host without verified shared-file
 access, the brief embeds the contract so the role can use its exact schema.
@@ -164,6 +166,8 @@ or stale evidence. A fix requires a new snapshot and reviewer recheck. Preserve
 earlier records and cycle limits. Non-Git implementation can still run, but the
 source evidence gate requires Git.
 
+### Runner policy and receipts
+
 For every runner call, forward the approved `provider_routing`, model capabilities,
 effort control, and tool policy from its snapshot, including repairs and resume.
 Retain the captured request policy digest and separate model author, gateway, and
@@ -181,6 +185,8 @@ a native or provider event with the approved observed model. An
 `allow_unverified` route may report an unverified receipt, which stays visible
 in polling and the final report. A verified receipt is also valid when its
 observed model matches. A different observed model blocks the route.
+
+### Native receipts
 
 Native routes return a pending record. After the caller dispatches the exact
 route, record its JSON receipt before polling or reviewing it:

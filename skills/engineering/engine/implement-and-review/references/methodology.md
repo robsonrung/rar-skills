@@ -1,11 +1,11 @@
 # Task Brief Methodology
 
-Runner and native worker routes receive the task brief, not the skill library. Bind each brief to the existing approved route snapshot. Read the triggered methods and put their applicable constraints into the brief. Include the cleanup instruction for the selected review mode even when no candidate is known yet. Applying a practice or routine lens happens in that role. It does not select a route or launch a nested worker.
+Runner and native worker routes receive the task brief, not the skill library. Bind each brief to the existing approved route snapshot. Read the triggered methods and put their applicable constraints into the brief. Applying a practice or routine lens happens in that role. It does not select a route or launch a nested worker.
 
 ## Always Include
 
 1. The accepted task scope and unchanged-behavior boundary.
-2. The full acceptance contract on first dispatch, plus required verification commands and check IDs.
+2. The canonical acceptance contract path, required verification commands, and check IDs. The launcher inserts the full contract on first dispatch and reconstruction; derived notes add execution details without copying it.
 3. The named task risk and any settled design constraint.
 4. The evidence route from `evidence-strategy.md`.
 5. The bound review mode, task classification, focused checks, dependency contract tests, and provisional result when feature mode applies.
@@ -14,7 +14,7 @@ Runner and native worker routes receive the task brief, not the skill library. B
 Give the implementer the requirements file and shared capture instructions before
 dispatch. After its final edit, it prepares a snapshot and captures the last green
 required checks through `run-check`. It returns original snapshot, result, and log
-paths. The coordinator selects reusable captures before independent review. For a deferred feature task, those captures prove provisional implementation only. Read `shared/references/feature-review.md` for the final gate.
+paths. The coordinator selects reusable captures before independent review. For a deferred feature task, those captures prove provisional implementation only.
 
 ## Select by Trigger
 
@@ -29,30 +29,9 @@ paths. The coordinator selects reusable captures before independent review. For 
 | Agent loop, durable state, tool retry, or human gate | Apply `agent-architecture-lens`. |
 | Component composition, UI state, or UI fetch lifecycle | Apply `advanced-react` or `frontend-design`, when the matching framework is present. |
 | New pattern, topology, or architecture boundary | Apply the selected lens conclusion as a fixed constraint. |
-| Task mode: the task is green and a behavior-preserving simplification would help the next reader | Apply `coding-review-simplify` before the final snapshot and check capture, including when the candidate appears only after implementation. The implementer performs authorized cleanup within the task scope. |
-
-In feature mode, record broad simplification candidates for one combined pass before the final snapshot. Include immediate local cleanup only when the task needs it for correctness, a critical boundary, or its acceptance contract. Keep focused regression and dependency contract tests mandatory.
-
-For the selected cleanup instruction, resolve `coding-review-simplify` through the host catalog or collection layout. Give the implementer its readable `SKILL.md` path and require it to load the method when the trigger occurs. If the worker cannot read that path, include the method's constraints in the brief. Use existing report fields for cleanup that ran or found a necessary follow-up.
 
 Apply `clean-code` when touched code has a concrete smell or needs refactoring. Apply `test-lens` when choosing tests needs judgment about real behavior, seams, mocks, or brittle coverage. Keep at most three selected lenses. Carry inherited findings into the brief, and recheck only a blocking lens after its design surface changes. Routine lenses are read only in the assigned role. A material risk or unresolved question can dispatch a selected independent specialist only through the approved snapshot. Reuse shared design, security, interface, and acceptance decisions from the feature policy. Reopen only a changed or unresolved boundary. The task should remain a **native diff**: change only what the acceptance contract needs.
 
 ## Review Brief
 
-Give the approved reviewer:
-
-1. The review scope and acceptance contract: task scope for standalone or critical dependency review, complete feature scope for final feature review.
-2. The changed paths and relevant diff.
-3. Test evidence and any no-test exception.
-4. The named task risk and triggered lens conclusions.
-5. `shared/references/reviewer-response.md`, including its exact JSON fields, packet substitution, incremental responses, and conditional scope approval.
-
-Include these review constraints in the brief: the reviewer is read only and independent from the implementer. It checks **observable behavior**, scope, evidence, and the named risk. It assesses whether simplification edits are behavior-preserving, whether removed safeguards were required, and whether changed code creates a material maintenance trap. Severity follows the consequence. A confirmed P2 whose fix is outside scope remains blocking pending the existing user decision process; it cannot become a deferred P3 to fit the scope. The reviewer consumes the approved snapshot and does not choose a different model, effort, task scope, or worker.
-
-For final feature review, include all task contracts, current combined checks, interaction evidence, prior findings, and all author identities. Batch confirmed fixes through their original approved implementation routes, then request one scoped recheck for the changed behavior and affected interactions. Preserve valid coverage elsewhere.
-
-For confirmed role continuation, send changed facts, finding IDs, evidence
-locators, and the unchanged boundaries through the launcher. The launcher validates
-the prior contract, route, context, receipt, and input before omitting repeated
-contract text. It keeps the full rendering when it is smaller. Fresh or reconstructed roles receive the full contract. A compact
-prompt does not reduce required review coverage or the approved call limits.
+For an independent task or final feature review, read [review-brief.md](review-brief.md). Implementation-only roles stop before this section.

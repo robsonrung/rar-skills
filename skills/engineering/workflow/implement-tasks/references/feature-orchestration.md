@@ -79,7 +79,7 @@ every feature author. Apply confirmed fixes as a batch through the original
 implementation contexts. Capture affected checks and use one scoped recheck;
 preserve valid coverage on unchanged behavior.
 
-Use [completion.md](completion.md) for the final gate. The following legacy task
+For the final gate, use the feature-policy path selector at the start of [completion.md](completion.md). Load the selected final review reference and `Deliver and report` only; legacy integration protocols below are outside this path. The following legacy task
 integration protocols apply only when no feature policy is bound.
 
 ## Legacy task mode integration

@@ -61,6 +61,7 @@ jobs:
           python3 skills/shared/tests/test_workflow_capture.py
           python3 skills/engineering/seats/pi-runner/tests/test_usage_totals.py
           python3 skills/shared/tests/test_gate_contract.py
+          python3 skills/shared/tests/test_planning_reuse.py
           python3 skills/shared/tests/test_answer_evidence.py
           python3 skills/shared/tests/test_context_packet.py
       - name: Structured Claude receipts

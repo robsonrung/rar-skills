@@ -34,10 +34,14 @@ The PRD carries outcomes, constraints, security decisions, and observable succes
 
 ## 3. To Tasks: turn one PRD into executable slices
 
-Settle shared design, security, interfaces, and acceptance once for the feature. Reuse those settled decisions in each task contract. For each slice, apply `design-gate` once. It selects at most three relevant inline lenses
-and records the canonical gate result from [gate-result.md](gate-result.md) in the Slice Contract. Preserve blocking and advisory finding IDs and review focus. Reuse settled shared decisions when their scope and evidence match; classify each slice's design and security risks separately.
-Recheck only a blocking lens after the design changes. Apply `security-gate` to
-record `security: deep` or `security: standard`. Reuse these findings in implementation.
+Assess shared design, security, interfaces, and acceptance once for the feature.
+For repeated settled choices, use [planning-reuse.md](planning-reuse.md) to verify
+source revisions and render each full task gate from shared findings and assessed
+task differences. Stable decision IDs and the source index remain the authority.
+Each task classifies its own applicability, risks, and security triggers. Apply
+`design-gate` only to unresolved or changed boundaries; recheck only the blocking
+lens after a fix. Apply `security-gate` to record `security: deep|standard` for each
+task. Preserve every finding, disposition, and review requirement.
 
 Apply `test-lens` only for a real test-design decision, such as an integration
 boundary, mock boundary, concurrency case, or brittle test. Otherwise express
@@ -56,6 +60,8 @@ simplification before the final snapshot, complete combined checks, interaction
 evidence, and one independent review of the complete feature. Batch fixes and
 recheck affected behavior. Final acceptance is the completion gate. Existing
 plans and explicitly selected task mode keep their approved review sequence.
+
+Load the `implement-and-review` entry and only the mode it selects. At final feature review, use its `references/final-feature-review.md`. Resolve these paths from the loaded engine skill.
 
 The implementation engine starts from the approved Slice Contract. It uses the inherited `design-gate` constraints as its last focused design check and re-routes only when implementation changes the slice's design surface. It does not replay every lens.
 

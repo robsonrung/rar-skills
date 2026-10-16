@@ -51,8 +51,10 @@ The controller also reads a `json task-queue` fenced block in a legacy index and
 ## Optional feature policy
 
 For a new feature plan, set the same `review_policy` relative path in `queue.json`
-and the approved routing plan. Read `shared/references/feature-review.md` for the
-policy and check plan contracts. Include those files, the canonical queue, the feature contract, and
+and the approved routing plan. Read only `Policy and authority`, `One check plan`,
+and `Provisional dependency release` in `shared/references/feature-review.md` for
+the policy and check plan contracts. Load its `Final acceptance` section when
+projecting the final gate. Include those files, the canonical queue, the feature contract, and
 all task contracts in the approved `scope.inputs`. Run `feature_review.py validate --policy <policy.json> --root <project-root>`
 to validate the policy. The launcher and queue projection check approved input bindings. A missing pointer keeps the existing task mode and
 its digests. Existing plans remain unchanged.
@@ -66,8 +68,9 @@ Keep provisional tasks active in the sidebar until that gate returns ready.
 The feature helper validates focused captures and required critical task reviews;
 a task success label cannot release a dependency.
 
-After integration changes, use the batch evidence refresh protocol in
-`shared/references/feature-review.md`. Its proposed patch preserves original
+After integration changes, load only `Batch evidence refresh` in
+`shared/references/feature-review.md`; also load `Scoped critical review reuse`
+when the selected critical task has a bound reuse scope. Its proposed patch preserves original
 critical review dispatches and requires current focused evidence. Apply only a
 complete patch through the helper's guarded `--apply-result` command, then
 project readiness again. Refresh does not promote tasks to final acceptance.

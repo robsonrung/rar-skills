@@ -45,6 +45,8 @@ Use a new ID for a split or a replacement. Deletion leaves an ID gap. Keep every
 
 Read `shared/references/gate-result.md` for the canonical fields and finding contract. Use the task Markdown labels shown above; the queue controller requires the exact `Verdict:`, `Decision required:`, and `Security:` labels. The versioned JSON holds the complete gate record; these labels must agree with it. Run `shared/scripts/gate_contract.py <task.md>` before approval.
 
+For shared conclusions, use `shared/references/planning-reuse.md` to render these same fields from verified decisions and task differences. Keep the full rendered gate in this contract, bind the immutable render request and decision records with the other approval inputs, and retain the source index as evidence authority. The renderer grants no approval and does not inherit task security.
+
 Carry the gate's `review_focus` into Expected review focus by reference and add only task-specific risks there. Legacy task fields remain readable; fill missing fields when revising an unstarted draft, without rewriting a started contract.
 
 ## Compact index

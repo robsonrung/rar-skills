@@ -23,18 +23,10 @@ For a no-test route, report `no_test_reason` and the replacement verification. D
 
 ## Select check scope
 
-For feature mode, load `shared/references/feature-review.md`. The bound central
-check plan owns check IDs and definitions. A task captures its exact
-`focused_checks`, including required regression and dependency contract tests.
-A green task is provisional. Critical task review validates that dependency;
-final feature review validates the combined result.
-
-Consolidate broad simplification before preparing the final feature snapshot.
-Run the complete required feature checks and interaction observations on that
-state. Reuse valid captured checks through the shared selector. After a fix,
-capture affected checks and request a scoped reviewer recheck; broaden only when
-a changed boundary, failure, or required fresh check makes it necessary.
-Standalone and legacy task mode keep the complete task evidence route below.
+Use the requirements selected by the current mode: the complete task requirements
+for task mode, or the policy-derived focused requirements for a feature task.
+Task captures in feature mode remain provisional. Final combined review uses
+[final-feature-review.md](final-feature-review.md) when the feature is ready.
 
 ## Capture the final implementation checks
 
@@ -42,8 +34,14 @@ Before dispatch, the coordinator discovers the repository's required commands
 and acceptance checks. Give the worker stable check IDs, command argument lists,
 working directories, timeouts, required fresh flags, observation requirements,
 intended base, contract path, and an artifact directory. Declare check inputs only
-when their complete dependencies are known. Use the requirements format and
-capture API in `shared/references/review-evidence.md`.
+when their complete dependencies are known. Read the manual introduction and only `Prepare before review`, `Capture checks`, `Evidence packet before dispatch`,
+and `Select affected checks` in `shared/references/review-evidence.md` for the
+requirements and capture API. Load `Structured context and scoped inputs` when
+using structured identity, check inputs, or observation inputs. Load `Transfer
+checks after a commit or worktree change` only for a selected transfer candidate.
+Load `Bridge feature validation to review` only for a bound validation run.
+The manual introduction defines helper integrity limits; keep review judgment
+separate from checksum validation.
 
 The implementer retains the required failing regression evidence. After all
 implementation and applicable simplification edits, it records actual runtime, dependency,
@@ -89,8 +87,9 @@ both result paths. Preserve the first results and every fresh requirement.
 
 Execute all selected `run` entries, keep validated `reuse` paths, and use
 `transfer-check` only after the required environment and base assessment.
-Return the focused packet for a deferred feature task. For a critical task or task mode, prepare the complete task packet and send it to the independent reviewer with
-`shared/references/reviewer-response.md`. Worker checks do not supply reviewer
+Return the complete packet for the selected task requirements. A deferred task
+returns provisional evidence. Critical and task-mode workers return it to the
+coordinator for [task-review.md](task-review.md). Worker checks do not supply reviewer
 judgment. These captures use the existing implementation turn; they require no
 extra model call. **Only captured command results count as evidence.**
 
