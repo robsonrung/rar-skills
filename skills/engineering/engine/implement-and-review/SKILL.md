@@ -11,9 +11,9 @@ For a worker dispatch, model IDs, effort support, and task defaults come only
 from `shared/model-routing.json`. Preserve the exact saved route during
 dispatch, retry, and resume.
 
-Build one task to its **acceptance contract** with the exact approved implementation and review routes. The next consumer is `implement-tasks` or the user. A worker result is evidence for integration. It must not mark a task queue complete. The parent marks a task complete only after integration checks pass with no unresolved acceptance or blocking defect.
+Build one task to its **acceptance contract** with its exact approved routes and review policy. The next consumer is `implement-tasks` or the user. A worker result is evidence for integration. It must not mark a task queue complete. In task mode, the parent marks a task complete after integration checks pass with no unresolved acceptance or blocking defect. In feature mode, task evidence can release dependencies provisionally; only final feature acceptance completes the task.
 
-The routing plan binds the implementation and independent review model, effort control, native or runner execution, provider routing, capabilities, allowed tools, limits, and exact approved fallback. Use `shared/references/implementation-routing-plan.schema.json`, `shared/references/task-shaped-model-routing.md`, and `shared/references/host-model-execution.md` when forming a new selection. A matching immutable route snapshot is consumed unchanged for dispatch and resume. Record the selected budget before dispatch and retain the plan's call, time, and concurrency limits.
+The routing plan binds the implementation and applicable independent review model, effort control, native or runner execution, provider routing, capabilities, allowed tools, limits, and exact approved fallback. Use `shared/references/implementation-routing-plan.schema.json`, `shared/references/task-shaped-model-routing.md`, and `shared/references/host-model-execution.md` when forming a new selection. A matching immutable route snapshot is consumed unchanged for dispatch and resume. Record the selected budget before dispatch and retain the plan's call, time, and concurrency limits.
 
 ## Authority
 
@@ -25,32 +25,48 @@ Use the supplied or inherited mode. Otherwise use a safe scoped default that fit
 
 Use this skill directly for one accepted task when its acceptance contract is complete and no product, data, security, public contract, or dependency decision remains unresolved. This entry uses the same acceptance evidence, immutable route snapshot, privacy controls, source identity checks, budget accounting, and independent final code review. It adds no workflow stage and does not weaken acceptance.
 
+## Inherited feature policy
+
+When an approved queue binds `review_policy`, load
+`shared/references/feature-review.md` and the bound policy before dispatch.
+A `deferred` task has an implementation route and focused checks. Return
+`implemented` with its immutable snapshot and evidence packet after those checks
+pass. The parent validates provisional dependency release. Skip this skill's task
+review launch, `record-review`, and `verify-review` sequence for that task.
+A `critical` task retains that sequence before provisional dependency release.
+Both kinds remain pending final feature acceptance. The feature reviewer uses
+its separate approved route and the complete feature contract.
+
+Without the bound policy, this skill keeps its standalone and legacy task review
+sequence. Existing snapshots remain unchanged. The launcher must validate the
+policy before it can accept an implementation route without a task reviewer.
+
 ## Before Writing Code
 
 1. Read the task, acceptance contract, and active project conventions. Inspect the relevant code and tests.
 2. Confirm task input files still match the routing plan hashes before a worker dispatch. The launcher enforces this before it writes files, creates worktrees, or starts a worker.
 3. If the task came from `implement-tasks`, use its approved plan. A standalone task that meets the small change entry uses this skill directly. If the branch dispatches workers, use the shared preview and its decision rules. A request to use defaults and run or approval for the unchanged setup suffices within existing source sharing authority and accepted receipt limits. Otherwise obtain the model plan decision before workers start. Include host and driver capabilities, independent review, session strategy, effort, provider controls, tools, receipt limits, budgets, and exact fallback triggers.
 4. Start with one track. Add a second track only when their scopes and contracts are independent. Worktree isolation is reversible and needs no separate approval. Commit-based integration remains separately authorized.
-5. Before preparing the implementation brief, read and apply [references/methodology.md](references/methodology.md), including its conditional cleanup instruction. Discover required verification commands and stable check IDs before dispatch. Give the implementer the requirements file, capture commands, intended base, artifact location, and required failing regression evidence through [references/evidence-strategy.md](references/evidence-strategy.md).
+5. Before preparing the implementation brief, read and apply [references/methodology.md](references/methodology.md), including the cleanup instruction for the selected review mode. Discover required verification commands and stable check IDs before dispatch. Give the implementer the requirements file, capture commands, intended base, artifact location, and required failing regression evidence through [references/evidence-strategy.md](references/evidence-strategy.md).
 
 Never call `models-consensus` from this skill. A user who wants more opinions invokes that workflow separately.
 
 ## Apply Engineering Practices at Their Trigger
 
-Apply methods in the assigned coordinator or implementer context. Loading a method or routine design lens does not dispatch a worker. Inherited lens findings remain constraints. A routine lens is read only while it evaluates the task. Select at most three lenses, and recheck only a blocking lens after its design surface changes. Dispatch a selected independent specialist only when a material risk or unresolved question requires it and the approved snapshot names its route. The final code review remains independent from the implementer.
+Apply methods in the assigned coordinator or implementer context. Loading a method or routine design lens does not dispatch a worker. Inherited lens findings remain constraints. A routine lens is read only while it evaluates the task. Select at most three lenses, and recheck only a blocking lens after its design surface changes. Dispatch a selected independent specialist only when a material risk or unresolved question requires it and the approved snapshot names its route. The final code review remains independent from every author in its scope. Feature mode applies it at the final feature gate, with earlier review for critical tasks.
 
 1. Apply `coding-design-plan` when the implementation shape or boundary is still unresolved. Use the task's settled decisions as inputs.
 2. Apply `design-gate` only for a nonlocal boundary with no selected lens conclusions. It selects at most three lenses.
 3. Apply `diagnose` before implementation when the available failure evidence does not establish the cause.
 4. Apply `tdd` for a behavior change. For untested legacy behavior, apply `safe-incremental-coding` to make a **characterization test** before changing it.
 5. Apply `clean-code` when touched code has a concrete smell or needs refactoring. Apply `test-lens` when a test choice needs judgment about real behavior, seams, mocks, or brittle coverage. Apply a domain lens only when the task triggers it: data paths, interfaces, distributed systems, domain logic, agent control flow, or a framework specific UI concern.
-6. Apply `coding-review-simplify` after the task is green when a **behavior-preserving** simplification would help the next reader.
+6. In task mode, apply `coding-review-simplify` after the task is green when a **behavior-preserving** simplification would help the next reader. In feature mode, record broad candidates for the combined pass; perform local cleanup now only when the task needs it for correctness, clarity of a critical boundary, or its acceptance contract.
 
 The implementation brief must state the task scope, acceptance contract, relevant lens conclusions, and execution boundary. The launcher includes the full approved contract on first calls and reconstruction. After validating a persistent role continuation, the launcher uses the smaller full or compact rendering. The ledger retains contract identity and receipt proof. Compact input sends changed facts, findings, and evidence locators. Derived notes cannot change acceptance. See `shared/references/context-packets.md` for required continuation proof.
 
 ## Launch the Approved Routes
 
-Use the launcher only for a worker dispatch. It requires an approved plan, validates canonical task content hashes and route digests, and records the approved reviewer in the manifest. A dry run can preview a complete draft plan but never writes, creates a worktree, or starts a worker. It dispatches only the plan's exact model, effort, tools, privacy controls, source identity checks, and budget limits.
+Use the launcher only for a worker dispatch. It requires an approved plan, validates canonical task content hashes and route digests, and records the applicable approved reviewer or bound deferral in the manifest. A dry run can preview a complete draft plan but never writes, creates a worktree, or starts a worker. It dispatches only the plan's exact model, effort, tools, privacy controls, source identity checks, and budget limits.
 
 Prefer native delegation when the host exposes the exact model, effort, isolation,
 and tools. Use an external runner for a foreign model, an unsupported native
@@ -73,6 +89,8 @@ A native launch returns an exact `native_dispatch` handoff. The host starts or
 resumes that role, then records its actual receipt with `record-native`. A handoff
 is not execution. Read [references/runner-invocations.md](references/runner-invocations.md)
 for native capabilities, receipt fields, `resume-native`, and runner continuation.
+
+For a deferred feature task, stop here after capturing and returning its focused evidence as described above. For task mode or a critical feature task, continue with independent task review.
 
 The implementer captures its last green required checks on the final unchanged source and returns the snapshot and original result paths. The coordinator reads `shared/references/review-evidence.md`, confirms current source and environment, and uses `select-checks` with `--from-snapshot <worker-snapshot>` and the original capture map before running verification. For unchanged source and context, pass the same worker snapshot to `--snapshot`. Reuse only validated captures; execute every affected, fresh, or missing check. Build the complete evidence packet with `prepare-packet` and resolve invalid references before dispatch. Before preparing the review brief, read and apply [Review Brief](references/methodology.md#review-brief). Give the independent reviewer `shared/references/reviewer-response.md`, the snapshot, check result paths, prior findings, and named risk. Launch the exact reviewer recorded in the plan:
 
@@ -116,9 +134,9 @@ from `report.md`. Legacy reviews without these records cannot establish readines
 
 Return:
 
-1. `status`: `complete`, `failed`, `ceiling_hit`, or `awaiting_human`.
+1. `status`: `implemented` for provisional feature work; otherwise `complete`, `failed`, `ceiling_hit`, or `awaiting_human`. A critical task can report its review ready while remaining provisional at feature scope.
 2. `acceptance`: each required behavior and captured check result.
 3. `routes_used`: approved route ids, effective receipts, and an explicitly approved fallback if used.
-4. `review`: findings applied, findings declined with evidence, and remaining risks.
+4. `review`: findings applied, findings declined with evidence, and remaining risks; for provisional feature work, identify the pending final feature gate.
 5. `changed_paths`: files changed within the task scope.
 6. `next_action`: only a necessary user decision, parent integration, or separate authorized delivery action.

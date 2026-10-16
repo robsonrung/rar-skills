@@ -1143,5 +1143,237 @@ class TaskQueueTests(unittest.TestCase):
         self.assertEqual(before, self.inventory(bundle))
 
 
+    def feature_fixture(self, task_ids=("T1", "T2", "T3"), critical=()):
+        config = self.queue_config(list(task_ids), dependencies={task_ids[index]: [task_ids[index - 1]]
+                                  for index in range(1, len(task_ids))},
+                                  concurrency={"max_active": 1, "isolation": "working-tree"})
+        value = json.loads(config.read_text())
+        value["review_policy"] = "policy.json"
+        config.write_text(json.dumps(value))
+        (self.root / "app.txt").write_text("baseline\n")
+        (self.root / "feature.md").write_text("# Feature acceptance\nAll tasks and their interactions must pass.\n")
+        checks = {"requirements": {"context": {"runtime": "fixture"}, "checks": [{"id": "focused",
+                  "command": [sys.executable, "-c", "from pathlib import Path; assert Path('app.txt').read_text().startswith('baseline\\n')"],
+                  "cwd": ".", "timeout_seconds": 5, "inputs": ["app.txt"], "fresh": True}],
+                  "observations": ["interaction"], "exclusions": {}},
+                  "required_checks": {"focused": True}, "interactions": ["interaction"]}
+        (self.root / "checks.json").write_text(json.dumps(checks))
+        plan_path = self.routing_plan(list(task_ids))
+        plan = json.loads(plan_path.read_text())
+        final = self.route("feature-final", "reviewer")
+        final["input_path"] = "feature.md"
+        plan["routes"] = [route for route in plan["routes"] if route["role"] == "implementer"
+                          or route["task_id"] in critical]
+        for route in plan["routes"]:
+            if route["role"] == "implementer":
+                route.update(mode="native", effort_control="native", native={"host": "fixture", "transport": "subagent",
+                             "capability_source": "test", "supported_efforts": ["high"]})
+        plan["routes"].append(final)
+        policy = {"schema_version": 1, "mode": "feature", "queue": "queue.json", "feature_contract": "feature.md",
+                  "check_plan": "checks.json", "tasks": {key: {"contract": f"tasks/{key}-example.md",
+                  "review": "critical" if key in critical else "deferred", "reason": "Explicit fixture classification",
+                  "focused_checks": ["focused"]} for key in task_ids}, "final_review": {"scope": "feature.md", "route": final}}
+        (self.root / "policy.json").write_text(json.dumps(policy))
+        plan["review_policy"] = "policy.json"
+        for name in ("policy.json", "checks.json", "feature.md"):
+            plan["scope"]["inputs"].append({"path": name, "content_sha256": launcher.content_digest(self.root / name)})
+        plan["approval"]["scope_digest"] = launcher.canonical_digest(launcher.normalized_scope_inputs(plan["scope"]["inputs"]))
+        plan["approval"]["routes_digest"] = launcher.canonical_digest(launcher.normalized_routes(plan["routes"]))
+        plan_path.write_text(json.dumps(plan))
+        self.git("init", "-q")
+        self.git("add", "app.txt", "prd.md", "queue.json", "routing-plan.json", "tasks", "checks.json", "policy.json", "feature.md")
+        self.git("-c", "user.name=Tests", "-c", "user.email=tests@example.invalid", "commit", "-qm", "Fixture")
+        self.feature_counter = 0
+        return config, plan_path, self.ledger(plan_path)
+
+    def feature_implementation(self, task_id, plan_path):
+        plan = json.loads(plan_path.read_text())
+        route = next(row for row in plan["routes"] if row["task_id"] == task_id and row["role"] == "implementer")
+        path = self.manifest(task_id, plan_path)
+        manifest = json.loads(path.read_text())
+        manifest["review_policy"] = {"path": str(self.root / "policy.json"), "sha256": queue.file_sha256(self.root / "policy.json")}
+        track = manifest["tracks"]["main"]
+        track["implementer_route"] = route
+        reviewer = next((row for row in plan["routes"] if row["task_id"] == task_id and row["role"] == "reviewer"), None)
+        if reviewer is None:
+            track.pop("reviewer_route")
+        brief = path.parent / "brief.md"
+        brief.write_text("Implement the task contract and capture focused checks.\n")
+        dispatch = {"call_id": launcher.native_call_id(route, "implementation", 0, 1), "input_revision": queue.file_sha256(brief),
+                    "input_path": str(brief), "tool_policy": "write", "parent_history": "none"}
+        receipt = {"success": True, "effective_runner": route["runner"], "configured_model": route["model"],
+                   "effective_model": route["model"], "configured_effort": route["effort"], "effective_effort": route["effort"],
+                   "model_receipt": {"status": "verified", "source": "native_event", "observed_model": route["model"]},
+                   "native_execution": {**dispatch, "host": "fixture", "transport": "subagent", "context_id": f"impl-{task_id}",
+                   "role": "implementer", "task_id": task_id, "configured_model": route["model"], "configured_effort": route["effort"],
+                   "completed_turn": 1}}
+        receipt_path = path.parent / "receipt.json"
+        receipt_path.write_text(json.dumps(receipt))
+        track["implementation"] = {"mode": "native", "status": "completed", "selected_route": route, "effective_route": route,
+                                   "completion_receipt": receipt, "receipt_artifact": review_evidence.evidence_link(receipt_path),
+                                   "native_dispatch": dispatch}
+        path.write_text(json.dumps(manifest))
+        return path
+
+    def feature_capture(self, task_id, ledger_path):
+        import feature_review
+        self.feature_counter += 1
+        requirements = self.artifacts / f"requirements-{self.feature_counter}.json"
+        requirements.write_text(json.dumps(feature_review.requirements(self.root / "policy.json", self.root, task_id)))
+        snapshot = review_evidence.prepare(self.root, "HEAD", self.root / f"tasks/{task_id}-example.md", requirements,
+                                          self.artifacts / f"focused-{self.feature_counter}", artifact_dir=self.artifacts)
+        review_evidence.run_check(snapshot, "focused")
+        packet = review_evidence.prepare_packet(snapshot, snapshot.parent / "packet.json", observations=[])
+        state = json.loads(ledger_path.read_text())
+        state["integration_evidence"][task_id] = {"snapshot": review_evidence.evidence_link(snapshot), "base": "HEAD",
+            "evidence_packet": review_evidence.evidence_link(packet),
+            "launch_manifest": f"artifacts/{task_id}/launch-manifest.json"}
+        ledger_path.write_text(json.dumps(state))
+        return snapshot
+
+    def test_feature_chain_releases_dependencies_without_task_reviews_and_never_accepts_early(self):
+        config, plan, ledger = self.feature_fixture()
+        completed_ids = []
+        for task_id, next_task in (("T1", "T2"), ("T2", "T3"), ("T3", None)):
+            self.feature_implementation(task_id, plan)
+            source = self.root / "app.txt"
+            source.write_text(source.read_text() + task_id + "\n")
+            stale = queue.schedule(config, plan, ledger, self.root)
+            self.assertEqual(stale["implemented"], [])
+            completed_ids.append(task_id)
+            for completed_id in completed_ids:
+                self.feature_capture(completed_id, ledger)
+            result = queue.schedule(config, plan, ledger, self.root)
+            self.assertEqual(result["integrated"], [])
+            self.assertIn(task_id, result["implemented"])
+            self.assertEqual([row["id"] for row in result["ready"]], [next_task] if next_task else [])
+        self.assertEqual(result["feature_review"]["status"], "review_required")
+        command = [sys.executable, str(SCRIPTS / "task_queue.py"), "schedule", "--root", str(self.root),
+                   "--queue", str(config), "--routing-plan", str(plan), "--ledger", str(ledger)]
+        completed = subprocess.run(command, capture_output=True, text=True)
+        self.assertEqual(completed.returncode, 0, completed.stderr + completed.stdout)
+        self.assertEqual(json.loads(completed.stdout)["implemented"], ["T1", "T2", "T3"])
+        (self.root / "app.txt").write_text("changed\n")
+        result = queue.schedule(config, plan, ledger, self.root)
+        self.assertEqual(result["implemented"], [])
+        self.assertEqual(result["feature_review"]["status"], "blocked")
+
+    def test_feature_receipt_pending_replay_and_critical_gates_block_dependencies(self):
+        config, plan, ledger = self.feature_fixture(("T1", "T2"))
+        manifest = self.feature_implementation("T1", plan)
+        self.feature_capture("T1", ledger)
+        value = json.loads(manifest.read_text())
+        value["tracks"]["main"]["implementation"]["completion_receipt"]["native_execution"]["call_id"] = "wrong-call"
+        manifest.write_text(json.dumps(value))
+        result = queue.schedule(config, plan, ledger, self.root)
+        self.assertEqual(result["implemented"], [])
+        self.assertEqual(result["ready"], [])
+        self.feature_implementation("T1", plan)
+        state = json.loads(ledger.read_text())
+        route = json.loads(plan.read_text())["routes"][0]
+        state["call_ledger"]["calls"]["pending-repair"] = {"status": "pending", "intent": {"route": route}}
+        state["attempts"] = {"total_role_calls": 1, route["id"]: 1}
+        ledger.write_text(json.dumps(state))
+        result = queue.schedule(config, plan, ledger, self.root)
+        self.assertEqual(result["implemented"], [])
+        self.assertEqual(result["ready"], [])
+
+    def test_feature_critical_task_needs_independent_review_before_dependency_release(self):
+        config, plan, ledger = self.feature_fixture(("T1", "T2"), critical=("T1",))
+        self.feature_implementation("T1", plan)
+        self.feature_capture("T1", ledger)
+        result = queue.schedule(config, plan, ledger, self.root)
+        self.assertEqual(result["implemented"], [])
+        self.assertEqual(result["ready"], [])
+        self.assertTrue(result["required_integration"])
+
+    def test_feature_queue_and_plan_must_select_the_same_bound_policy(self):
+        config, plan, ledger = self.feature_fixture(("T1",))
+        value = json.loads(config.read_text())
+        value.pop("review_policy")
+        config.write_text(json.dumps(value))
+        with self.assertRaisesRegex(queue.QueueError, "both declare review_policy"):
+            queue.schedule(config, plan, ledger, self.root)
+
+
+    def test_feature_final_review_accepts_combined_source_once_and_source_change_revokes_acceptance(self):
+        import feature_review
+        config, plan, ledger = self.feature_fixture(("T1", "T2"))
+        for task_id in ("T1", "T2"):
+            self.feature_implementation(task_id, plan)
+            self.feature_capture(task_id, ledger)
+        requirements = self.artifacts / "final-requirements.json"
+        requirements.write_text(json.dumps(feature_review.requirements(self.root / "policy.json", self.root)))
+        snapshot_path = review_evidence.prepare(self.root, "HEAD", self.root / "feature.md", requirements,
+                                                self.artifacts / "final", artifact_dir=self.artifacts)
+        check = review_evidence.run_check(snapshot_path, "focused")
+        snapshot = review_evidence.snapshot_record(snapshot_path)
+        response = {"snapshot_sha256": review_evidence.file_hash(snapshot_path),
+                    "coverage": [{"path": name, "outcome": "reviewed", "reason": "Checked task behavior and interactions"}
+                                 for name in snapshot["source"]["changed_paths"]],
+                    "findings": [], "checks": {"focused": str(check)},
+                    "observations": [{"id": "interaction", "result": "pass", "evidence": [review_evidence.evidence_link(check)]}],
+                    "summary": "All feature acceptance criteria pass."}
+        plan_value = json.loads(plan.read_text())
+        route = next(row for row in plan_value["routes"] if row["task_id"] == "feature-final")
+        brief = self.artifacts / "final-review.md"
+        brief.write_text("Review every task and the complete feature interactions.\n")
+        receipt = {"success": True, "call_id": "feature-review", "input_revision": queue.file_sha256(brief),
+                   "configured_model": route["model"], "configured_effort": route["effort"],
+                   "effective_runner": route["runner"], "effective_model": route["model"], "effective_effort": route["effort"],
+                   "session_id": "independent-feature-review", "model_receipt": {"status": "verified", "source": "provider_event",
+                   "observed_model": route["model"]}, "agent_message": json.dumps(response)}
+        receipt_path = self.artifacts / "final-receipt.json"
+        receipt_path.write_text(json.dumps(receipt))
+        review_evidence.record_review(snapshot_path, response, receipt)
+        state = json.loads(ledger.read_text())
+        call = {"status": "completed", "review_status": "ready", "intent": {"route": route,
+                "input": review_evidence.evidence_link(brief), "review_snapshot": review_evidence.evidence_link(snapshot_path)},
+                "receipt_ref": review_evidence.evidence_link(receipt_path),
+                "review": review_evidence.evidence_link(snapshot_path.parent / "review.json")}
+        writer = next(row for row in plan_value["routes"] if row["task_id"] == "T1" and row["role"] == "implementer")
+        state["call_ledger"]["calls"]["failed-first-attempt"] = {"status": "failed", "intent": {"route": writer}}
+        state["call_ledger"]["calls"]["feature-review"] = call
+        state["call_ledger"]["contexts"] = {route["id"]: "independent-feature-review"}
+        state["attempts"] = {"total_role_calls": 2, writer["id"]: 1, route["id"]: 1}
+        state["feature_review"] = {"snapshot": review_evidence.evidence_link(snapshot_path), "base": "HEAD", "call_id": "feature-review"}
+        ledger.write_text(json.dumps(state))
+        result = queue.schedule(config, plan, ledger, self.root)
+        self.assertEqual(result["feature_review"]["status"], "ready", result)
+        self.assertEqual(result["implemented"], [])
+        self.assertEqual(result["integrated"], ["T1", "T2"])
+        self.assertIn("failed-first-attempt", json.loads(ledger.read_text())["call_ledger"]["calls"])
+        (self.root / "app.txt").write_text("changed\n")
+        result = queue.schedule(config, plan, ledger, self.root)
+        self.assertEqual(result["integrated"], [])
+        self.assertEqual(result["feature_review"]["status"], "blocked")
+
+
+    def test_feature_pending_owner_keeps_overlapping_independent_writer_blocked(self):
+        config, plan_path, ledger = self.feature_fixture(("T1", "T2"))
+        value = json.loads(config.read_text())
+        for row in value["tasks"]:
+            row["blocked_by"] = []
+            row["write_paths"] = ["src/shared.py"]
+        config.write_text(json.dumps(value))
+        plan = json.loads(plan_path.read_text())
+        for row in plan["scope"]["inputs"]:
+            row["content_sha256"] = launcher.content_digest(self.root / row["path"])
+        plan["approval"]["scope_digest"] = launcher.canonical_digest(launcher.normalized_scope_inputs(plan["scope"]["inputs"]))
+        plan_path.write_text(json.dumps(plan))
+        ledger = self.ledger(plan_path)
+        self.feature_implementation("T1", plan_path)
+        self.feature_capture("T1", ledger)
+        state = json.loads(ledger.read_text())
+        route = plan["routes"][0]
+        state["call_ledger"]["calls"]["pending-repair"] = {"status": "pending", "intent": {"route": route}}
+        state["attempts"] = {"total_role_calls": 1, route["id"]: 1}
+        ledger.write_text(json.dumps(state))
+        result = queue.schedule(config, plan_path, ledger, self.root)
+        self.assertEqual(result["ready"], [])
+        t2 = next(row for row in result["blocked"] if row["id"] == "T2")
+        self.assertTrue(any("write ownership conflicts with T1" in reason for reason in t2["reasons"]), t2)
+
+
 if __name__ == "__main__":
     unittest.main()

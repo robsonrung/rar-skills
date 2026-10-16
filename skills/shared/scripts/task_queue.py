@@ -157,6 +157,7 @@ class Queue:
     merge_plans: tuple[MergePlan, ...]
     approval_record: Path | None = None
     legacy: bool = False
+    review_policy: Path | None = None
 
 
 @dataclass
@@ -487,6 +488,8 @@ def load_queue(queue_path: str | Path, root: str | Path | None = None) -> Queue:
         tasks=tuple(sorted(tasks, key=lambda task: task_sort_key(task.id))),
         merge_plans=plans,
         approval_record=approval_record,
+        review_policy=(inside_root(resolved_root, value["review_policy"], "queue review_policy")
+                       if "review_policy" in value else None),
     )
 
 
@@ -632,10 +635,24 @@ def load_json(path: Path, label: str) -> dict[str, Any]:
     return value
 
 
+def queue_review_policy(queue, plan, root):
+    """Require the same explicit opt in in the queue and approved route plan."""
+    locator = plan.get("review_policy")
+    if queue.review_policy is None and locator is None:
+        return None
+    require(queue.review_policy is not None and isinstance(locator, str),
+            "queue and routing plan must both declare review_policy")
+    require(referenced_path(root, locator) == queue.review_policy,
+            "queue and routing plan review_policy paths differ")
+    from feature_review import validate_policy
+    return validate_policy(queue.review_policy, root, {task.id: task.contract_path for task in queue.tasks})
+
+
 def prospective_routing(queue: Queue, routing_path: Path, root: Path) -> dict[str, Any]:
     """Produce launch compatible approval digests while task files remain draft."""
     launcher = launcher_module()
     plan = load_json(routing_path, "draft routing plan")
+    queue_review_policy(queue, plan, root)
     require(plan.get("schema_version") == 1, "draft routing plan must have schema_version 1")
     scope = plan.get("scope")
     require(isinstance(scope, dict) and isinstance(scope.get("inputs"), list) and scope["inputs"],
@@ -676,6 +693,10 @@ def prospective_routing(queue: Queue, routing_path: Path, root: Path) -> dict[st
         route_ids.add(validated["id"])
         require(validated["input_path"] in seen,
                 f"draft route input_path is not in scope.inputs: {validated['input_path']}")
+    if queue.review_policy is not None:
+        launcher.bound_review_policy(plan, root, {item["path"]: {"path": referenced_path(root, item["path"]),
+                                                                "content_sha256": item["content_sha256"]}
+                                                 for item in scope_inputs})
     normalized_inputs = launcher.normalized_scope_inputs(scope_inputs)
     return {
         "routing_plan": str(routing_path),
@@ -689,6 +710,7 @@ def routes_for_queue(queue: Queue, routing_plan: Path, root: Path) -> dict[str, 
     """Validate the exact approved route plan and its bound queue inputs."""
     launcher = launcher_module()
     raw_plan = load_json(routing_plan, "routing plan")
+    queue_review_policy(queue, raw_plan, root)
     routes = raw_plan.get("routes")
     require(isinstance(routes, list), "routing plan must contain routes")
     result = {}
@@ -1027,6 +1049,9 @@ def load_launch_manifest(
             issues.append("launch manifest has another routing plan")
         if bound.get("approval") != routing["approval"]:
             issues.append("launch manifest has a changed approval binding")
+    policy = routing.get("review_policy")
+    if policy is not None and manifest.get("review_policy") != {key: policy[key] for key in ("path", "sha256")}:
+        issues.append("launch manifest review policy binding differs")
     tracks = manifest.get("tracks")
     if not isinstance(tracks, dict):
         issues.append("launch manifest tracks are incomplete")
@@ -1038,7 +1063,7 @@ def load_launch_manifest(
                 continue
             if record.get("implementer_route") != routes["implementer"]:
                 issues.append(f"launch manifest implementer route differs for {track}")
-            if record.get("reviewer_route") != routes["reviewer"]:
+            if record.get("reviewer_route") != routes.get("reviewer"):
                 issues.append(f"launch manifest reviewer route differs for {track}")
     return manifest, issues
 
@@ -1265,6 +1290,125 @@ def integration_assessment(
     return []
 
 
+def implementation_receipts(task, manifest, routing, root):
+    """Require a successful exact receipt from every approved implementation track."""
+    require(isinstance(manifest, dict), "task has no launch manifest")
+    launcher = launcher_module()
+    contexts = set()
+    for track, roles in routing["routes"].items():
+        record = manifest["tracks"][track]
+        entry = record.get("implementation")
+        require(isinstance(entry, dict), "implementation has no execution record")
+        approved = roles["implementer"]
+        selected = entry.get("selected_route")
+        effective = entry.get("effective_route") or selected
+        require(selected in launcher.route_variants(approved), "implementation selected route differs from approval")
+        require(effective in launcher.route_variants(approved), "implementation effective route is not approved")
+        require(entry.get("mode") == effective["mode"], "implementation execution mode differs")
+        if entry["mode"] == "native":
+            require(entry.get("status") == "completed", "implementation native call is still pending")
+            receipt = entry.get("completion_receipt")
+            require(isinstance(receipt, dict), "implementation has no native completion receipt")
+            link = entry.get("receipt_artifact")
+            require(isinstance(link, dict) and isinstance(link.get("path"), str),
+                    "implementation has no persisted receipt artifact")
+            path = referenced_path(root, link["path"])
+            require(file_sha256(path) == link.get("sha256"), "implementation receipt checksum changed")
+            require(load_json(path, "implementation receipt") == receipt, "implementation receipt artifact differs")
+            dispatch = entry.get("native_dispatch")
+            require(isinstance(dispatch, dict) and dispatch.get("call_id") and dispatch.get("input_revision"),
+                    "implementation has no native dispatch identity")
+            mismatch = launcher.native_execution_error(effective, receipt, task.id, dispatch)
+            require(mismatch is None, mismatch or "implementation native receipt differs")
+            require(dispatch.get("call_id") == launcher.native_call_id(approved, "implementation", 0,
+                                                                        entry.get("resume_attempts", 0) + 1),
+                    "implementation native dispatch call differs")
+            require(file_sha256(referenced_path(root, dispatch.get("input_path", ""))) == dispatch["input_revision"],
+                    "implementation native dispatch input changed")
+            execution = receipt["native_execution"]
+        else:
+            require(isinstance(entry.get("result_file"), str), "implementation has no runner result artifact")
+            receipt = load_json(referenced_path(root, entry["result_file"]), "implementation runner receipt")
+            execution = {**receipt.get("dispatch_metadata", {}), **receipt}
+            expected = entry.get("metadata") or entry.get("dispatch_metadata") or {}
+            call_id = expected.get("call_id") or launcher.native_call_id(approved, "implementation", 0,
+                                                                        entry.get("resume_attempts", 0) + 1)
+            require(execution.get("call_id") == call_id, "implementation runner receipt belongs to another call")
+            brief = entry.get("input_path") or entry.get("brief") or record.get("brief")
+            require(isinstance(brief, str), "implementation has no bound runner brief")
+            require(execution.get("input_revision") == file_sha256(referenced_path(root, brief)),
+                    "implementation runner receipt input revision differs")
+        require(receipt.get("success") is True, "implementation execution did not succeed")
+        mismatch = launcher.receipt_error(effective, receipt)
+        require(mismatch is None, mismatch or "implementation receipt route differs")
+        context = execution.get("context_id") or receipt.get("session_id")
+        require(isinstance(context, str) and context, "implementation receipt has no role context")
+        contexts.add(context)
+    return contexts
+
+
+def provisional_assessment(queue, task, state, manifest, manifest_issues, routing, root):
+    """Release dependencies from focused evidence without accepting the feature."""
+    if manifest_issues:
+        return ["launch manifest is incomplete or differs from the approved route"]
+    try:
+        implementation_receipts(task, manifest, routing, root)
+        entry = state.get("integration_evidence", {}).get(task.id)
+        require(isinstance(entry, dict), "no focused implementation evidence is recorded")
+        require(referenced_path(root, entry.get("launch_manifest", "")) == task.launch_manifest_path,
+                "focused evidence belongs to another launch manifest")
+        link = entry.get("snapshot")
+        require(isinstance(link, dict) and isinstance(link.get("path"), str), "focused snapshot link is missing")
+        path = referenced_path(root, link["path"])
+        require(file_sha256(path) == link.get("sha256"), "focused snapshot checksum changed")
+        from feature_review import assess_task
+        assessment = assess_task(queue.review_policy, task.id, path, entry.get("evidence_packet"), entry.get("base"), root)
+        require(assessment.get("dependency_release") is True,
+                "; ".join(assessment.get("reasons", [])) or "focused checks are not ready")
+    except (ValueError, OSError, KeyError, TypeError) as error:
+        return [f"provisional implementation evidence is invalid or stale: {error}"]
+    return []
+
+
+def feature_assessment(queue, state, states, routing, root):
+    reasons = []
+    for task in queue.tasks:
+        if task.status in {"draft", "blocked"}:
+            reasons.append(f"{task.id} contract status is {task.status}")
+        reasons.extend(f"{task.id}: {reason}" for reason in readiness_gates(task))
+        if states[task.id].kind != "implemented":
+            reasons.append(f"{task.id} has no current provisional implementation evidence")
+    calls = state["call_ledger"]["calls"]
+    if any(call.get("status") == "pending" for call in calls.values()):
+        reasons.append("feature ledger has pending calls")
+    if reasons:
+        return {"status": "blocked", "reasons": reasons}
+    entry = state.get("feature_review")
+    if not isinstance(entry, dict):
+        return {"status": "review_required", "reasons": ["combined acceptance and independent feature review are required"]}
+    try:
+        link = entry.get("snapshot")
+        require(isinstance(link, dict) and isinstance(link.get("path"), str), "feature snapshot link is missing")
+        path = referenced_path(root, link["path"])
+        require(file_sha256(path) == link.get("sha256"), "feature snapshot checksum changed")
+        call = calls.get(entry.get("call_id"))
+        require(isinstance(call, dict), "feature review has no recorded reviewer call")
+        from feature_review import assess_feature
+        assessment = assess_feature(queue.review_policy, path, entry.get("base"), call, root, call_ledger=state["call_ledger"])
+        require(assessment.get("status") == "ready", "; ".join(assessment.get("reasons", [])) or "feature review is not ready")
+        contexts = set()
+        for task in queue.tasks:
+            contexts.update(implementation_receipts(task, states[task.id].manifest, routing[task.id], root))
+        receipt_link = call.get("receipt_ref", {})
+        receipt = load_json(referenced_path(root, receipt_link.get("path", "")), "feature reviewer receipt")
+        execution = receipt.get("native_execution", receipt)
+        require((execution.get("context_id") or receipt.get("session_id")) not in contexts,
+                "feature reviewer context belongs to an implementer")
+    except (ValueError, OSError, KeyError, TypeError) as error:
+        return {"status": "review_required", "reasons": [f"feature review is invalid or stale: {error}"]}
+    return {"status": "ready", "reasons": []}
+
+
 def manifest_has_terminal_failure(manifest: dict[str, Any] | None) -> str | None:
     if manifest is None:
         return None
@@ -1297,9 +1441,13 @@ def classify_tasks(
             call for call in calls if call.get("status") not in {"pending", "completed", "failed"}
         ]
         failure = manifest_has_terminal_failure(manifest)
-        integration_reasons = integration_assessment(
+        deferred = (queue.review_policy is not None
+                    and routing[task.id]["review_policy"]["value"]["tasks"][task.id]["review"] == "deferred")
+        integration_reasons = [] if deferred else integration_assessment(
             task, state, manifest, manifest_issues, routing[task.id], routing_path, root, queue.tasks, batch_cache
         )
+        if queue.review_policy is not None:
+            integration_reasons += provisional_assessment(queue, task, state, manifest, manifest_issues, routing[task.id], root)
         call_reasons = []
         if pending_calls:
             call_reasons.append("ledger has a pending route call")
@@ -1319,7 +1467,7 @@ def classify_tasks(
             result[task.id] = TaskState(task, "active", [failure], manifest, manifest_issues, integration_reasons)
             continue
         if not integration_reasons:
-            result[task.id] = TaskState(task, "integrated", [], manifest, manifest_issues, [])
+            result[task.id] = TaskState(task, "implemented" if queue.review_policy else "integrated", [], manifest, manifest_issues, [])
             continue
         if manifest is not None:
             reasons = ["task has a launch manifest"]
@@ -1443,7 +1591,7 @@ def _schedule(
     selected_reservations: dict[str, int] = {}
     for task in queue.tasks:
         task_state = states[task.id]
-        if task_state.kind in {"integrated", "active"}:
+        if task_state.kind in {"integrated", "implemented", "active"}:
             continue
         reasons = list(task_state.reasons)
         if task_state.kind == "fresh":
@@ -1452,7 +1600,7 @@ def _schedule(
             reasons.extend(readiness_gates(task))
             for blocker in task.blocked_by:
                 blocker_state = states[blocker]
-                if blocker_state.kind != "integrated":
+                if blocker_state.kind not in {"integrated", "implemented"}:
                     reasons.append(f"blocker {blocker} lacks current integration evidence")
             conflicts = []
             for owner in [*active_tasks, *selected]:
@@ -1478,8 +1626,12 @@ def _schedule(
                 })
                 continue
         blocked.append({"id": task.id, "reasons": sorted(set(reasons))})
+    feature = feature_assessment(queue, state, states, routing, resolved_root) if queue.review_policy else None
     return {
         "schema_version": 1,
+        **({"implemented": [task_id for task_id in sorted(states, key=task_sort_key)
+                            if states[task_id].kind == "implemented" and feature["status"] != "ready"], "feature_review": feature}
+           if feature is not None else {}),
         "queue": {
             "id": queue.id,
             "path": str(queue.path),
@@ -1494,7 +1646,8 @@ def _schedule(
             for item in active
         ],
         "integrated": [
-            task_id for task_id in sorted(states, key=task_sort_key) if states[task_id].kind == "integrated"
+            task_id for task_id in sorted(states, key=task_sort_key)
+            if states[task_id].kind == "integrated" or (feature is not None and feature["status"] == "ready")
         ],
         "blocked": blocked,
         "required_integration": required_integration(queue, states),

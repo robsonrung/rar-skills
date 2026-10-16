@@ -48,6 +48,27 @@ Set `approval_record` before preview for a new combined approval. It locates the
 
 The controller also reads a `json task-queue` fenced block in a legacy index and legacy heading queues. An index-only draft must first become canonical task files before combined approval or fresh execution. Existing published task contracts and started execution records stay intact. Missing machine ownership or approval must be supplied and bound before dispatch. For new queues, prefer a separate `queue.json`; live approval links and index status cannot then change its binding.
 
+## Optional feature policy
+
+For a new feature plan, set the same `review_policy` relative path in `queue.json`
+and the approved routing plan. Read `shared/references/feature-review.md` for the
+policy and check plan contracts. Include those files, the canonical queue, the feature contract, and
+all task contracts in the approved `scope.inputs`. Run `feature_review.py validate --policy <policy.json> --root <project-root>`
+to validate the policy. The launcher and queue projection check approved input bindings. A missing pointer keeps the existing task mode and
+its digests. Existing plans remain unchanged.
+
+With the bound feature policy, `implemented` lists provisional task results
+whose focused evidence permits dependency release. It does not mean accepted.
+`integrated` lists final accepted tasks only after the feature gate passes.
+`feature_review` reports `blocked`, `review_required`, or `ready` with its reasons.
+The workflow controller uses `feature_review_required` to request the final gate.
+Keep provisional tasks active in the sidebar until that gate returns ready.
+The feature helper validates focused captures and required critical task reviews;
+a task success label cannot release a dependency.
+
+The integration evidence and carry forward protocols below describe legacy task
+mode. Feature mode uses the bound policy's provisional and final assessments.
+
 ## Inspect draft identities
 
 ```bash

@@ -34,7 +34,7 @@ The PRD carries outcomes, constraints, security decisions, and observable succes
 
 ## 3. To Tasks: turn one PRD into executable slices
 
-For each slice, apply `design-gate` once. It selects at most three relevant inline lenses
+Settle shared design, security, interfaces, and acceptance once for the feature. Reuse those settled decisions in each task contract. For each slice, apply `design-gate` once. It selects at most three relevant inline lenses
 and records the canonical gate result from [gate-result.md](gate-result.md) in the Slice Contract. Preserve blocking and advisory finding IDs and review focus. Reuse settled shared decisions when their scope and evidence match; classify each slice's design and security risks separately.
 Recheck only a blocking lens after the design changes. Apply `security-gate` to
 record `security: deep` or `security: standard`. Reuse these findings in implementation.
@@ -48,6 +48,15 @@ of those drafts and the required concrete worker routes.
 
 ## 4. Implement Tasks: apply the selected constraints
 
+A new feature plan can bind `review_policy` through
+[feature-review.md](feature-review.md). In that mode, routine tasks capture focused
+checks and dependency contract tests, then remain provisional. Critical
+dependencies retain early independent review. The coordinator consolidates broad
+simplification before the final snapshot, complete combined checks, interaction
+evidence, and one independent review of the complete feature. Batch fixes and
+recheck affected behavior. Final acceptance is the completion gate. Existing
+plans and explicitly selected task mode keep their approved review sequence.
+
 The implementation engine starts from the approved Slice Contract. It uses the inherited `design-gate` constraints as its last focused design check and re-routes only when implementation changes the slice's design surface. It does not replay every lens.
 
 | Trigger during implementation or review | Procedure to apply | Moment |
@@ -56,7 +65,7 @@ The implementation engine starts from the approved Slice Contract. It uses the i
 | Untested legacy code must change | `safe-incremental-coding` then `tdd` | Build the characterization test net first |
 | Failure is surprising or cause is unknown | `diagnose` | Prove the cause from existing evidence or a bounded probe before fixing |
 | Green refactor, local smell, naming, or comment decision | `clean-code` | Refactor step only |
-| A behavior-preserving simplification would help the next reader | `coding-review-simplify` in the implementer context | After green, before final snapshot and check capture, including candidates found after implementation |
+| A behavior-preserving simplification would help the next reader | `coding-review-simplify` in the implementation context | Task mode: after green before task capture. Feature mode: consolidate broad candidates before final combined snapshot and checks; do immediate local cleanup when task correctness or its acceptance needs it. |
 | Test value, mock boundary, or brittle test needs a decision | `test-lens` | Before writing or keeping that test |
 | Stored state, migration, queue, cache, retry, concurrency, or external API | `data-systems-coding-lens` | Before the affected implementation step and in verification |
 | Domain logic, aggregate, value object, domain event, or context integration | `domain-driven-design` tactical or strategic route | Before the affected implementation step |

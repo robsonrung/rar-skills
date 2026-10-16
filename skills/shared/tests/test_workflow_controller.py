@@ -358,6 +358,32 @@ class ControllerTests(unittest.TestCase):
         self.assertEqual(result.stderr, "")
 
 
+    def test_provisional_tasks_remain_active_until_final_feature_review(self):
+        schedule = {"implemented": ["T1", "T2"], "integrated": [], "ready": [], "active": [], "blocked": [],
+                    "feature_review": {"status": "review_required", "reasons": ["independent review required"]}}
+        projection = controller.sidebar_projection(schedule, set())
+        self.assertEqual(projection["tasks"]["T1"]["icon"], "🧑‍💻")
+        self.assertEqual(projection["tasks"]["T2"]["acceptance"], "pending_feature_review")
+        checkpoint = {}
+        result = controller.project(self.state, checkpoint, schedule)
+        self.assertIn("feature_review_required", self.kinds(result))
+        self.assertIn("task_implemented", self.kinds(result))
+        self.assertNotIn("task_integrated", self.kinds(result))
+        schedule["integrated"] = ["T1", "T2"]
+        schedule["feature_review"] = {"status": "ready", "reasons": []}
+        projection = controller.sidebar_projection(schedule, set())
+        self.assertEqual(projection["tasks"]["T1"]["icon"], "✅")
+        accepted = controller.project(self.state, checkpoint, schedule)
+        self.assertIn("task_integrated", self.kinds(accepted))
+        self.assertNotIn("task_implemented", self.kinds(accepted))
+        self.assertNotIn("feature_review_required", self.kinds(accepted))
+        self.assertFalse(any(action.get("acceptance") == "pending_feature_review" for action in accepted["actions"]))
+        self.assertTrue(accepted["superseded_action_ids"])
+        self.assertTrue(all(value.get("acceptance") != "pending_feature_review"
+                            for value in checkpoint["projection"].values()))
+
+
+
 class QueueIntegrationTests(unittest.TestCase):
     def test_real_queue_acceptance_is_preserved_and_cli_resolves_paths_from_root(self):
         sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -378,6 +404,7 @@ class QueueIntegrationTests(unittest.TestCase):
         self.assertNotIn("T2", [item.get("task_id") for item in result["actions"] if item["kind"] == "ready"])
         self.assertEqual(ledger.read_bytes(), before)
         self.assertFalse((fixture.root / "controller.json").exists())
+
 
 
 if __name__ == "__main__":

@@ -87,9 +87,31 @@ new plan. Keep the coordinator in this preview input, separate from executable
 worker route rows. Existing approved snapshots, plan schema, and route digest
 rules remain unchanged. On resume, consume the saved exact routes.
 
+### Feature review preview
+
+Add `--review-mode feature` for an explicit future feature preview. The default
+`--review-mode task` returns the existing task routes unchanged. Feature mode
+keeps early reviewers for high risk tasks, routes that are central risk targets,
+and separately selected reviewer roles. Routine implementation rows keep only
+their implementation role. Risk classification must follow behavior, invariants,
+and acceptance evidence; disjoint paths alone do not prove low risk.
+
+The result adds `review_mode`, `execution_authorized: false`, and `final_review`.
+The final selection uses the central `broad-review` route, with its central risk
+route when a critical task exists. It is separate from task rows. A final
+reviewer that matches any implementer or worker model produces `status: blocked`
+and exact task, role, and model conflicts. The helper does not select a fallback.
+Use an explicit replacement preview to resolve the conflict under the caller's
+existing authority. No model default lives in this procedure.
+
+This output prepares a plan only. Bind a feature policy through
+[feature-review.md](feature-review.md) before execution. Existing approved
+snapshots retain all their saved roles. A preview never removes reviews from a
+running or previously approved plan.
+
 ## Review and verification
 
-Implementation routes name a worker and a different review model. Keep separate
+Task mode implementation routes name a worker and a different review model. Feature mode keeps critical task reviews and a separate final reviewer independent from every author. Keep separate
 contexts and reuse each only for that role's repairs or rechecks. Give the reviewer
 all `policy.review_inputs`, including the original requirement, actual diff,
 relevant source, and captured checks. Permit further source inspection. Derive
@@ -99,7 +121,7 @@ A summary from the implementer is not sufficient review evidence.
 A `broad-review` role performs actual code review regardless of the selected
 family. A `design-review` role assesses design and cannot substitute for code
 review. Use `independent-review` when the usual reviewer wrote the code. Use a
-separate integration review for the combined revision and task boundaries.
+separate integration review for the combined revision and task boundaries. In feature mode, this final review covers the complete feature behavior, including deferred task scopes.
 
 Run the compiler, tests, lint, types, or security checks applicable to the change.
 Capture a failing regression before a bug fix where applicable. Do not weaken

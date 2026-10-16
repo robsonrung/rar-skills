@@ -17,18 +17,39 @@ risk evidence. Keep current and selected future coordinator values separate;
 host selection is required before future startup when they differ or are unknown.
 Existing approved plans keep their exact routes.
 
-Turn an approved queue into a verified change. Be a **thin conductor**: own model selection, scheduling, integration, and delivery. `implement-and-review` owns each task's implementation, focused review, and acceptance evidence.
+Turn an approved queue into a verified change. Be a **thin conductor**: own model selection, scheduling, integration, and delivery. `implement-and-review` owns task implementation and focused evidence. The bound review policy selects task review or one final feature review.
 
 The feature sequence is `interview-me` → `to-prd` → `to-tasks` → `implement-tasks`. Receive the approved PRD and canonical task queue under `.ai-workflow/work/<feature-slug>/`. For one bounded, specified change with clear acceptance and no unresolved product, security, public contract, data ownership, or dependency decisions, use the existing standalone `implement-and-review` path. It keeps exact model approval and independent review without creating a feature PRD or task graph. Missing material decisions return to the appropriate earlier stage.
 
 Use `shared/references/workflow-measurement.md` for the feature measurement record and capture API. Keep each stage's execution ledger and immutable plan intact. Capture `stage-start` for `implement-tasks` before preparation, any actual model approval wait, reserved repair calls, and `stage-end` after integration and required checks. Reused combined approval adds no new wait. Reuse the feature measurement path and bind remaining known identity fields once. Import completed separate stage ledgers with `stage-ledger` before terminal capture; the local implementation ledger is counted directly. Declare worker coverage only when local and required imported records cover all calls.
+
+## Select the review mode
+
+For a new feature queue, prepare the feature policy in
+`shared/references/feature-review.md`. Settle shared design, security, interfaces,
+and acceptance once. Classify each task by its behavior and dependency risk;
+separate file paths do not prove independence. Routine tasks use focused tests
+and provisional dependency evidence. Critical dependencies keep their approved
+independent review. Consolidate broad simplification before final combined
+checks and one independent feature review.
+
+Feature mode is explicit: the queue and approved routing plan bind the same
+`review_policy` path. Existing approved plans retain their routes and review
+sequence. With no policy, use the existing task mode. An explicitly selected
+legacy task review also keeps that mode. A standalone small change retains its
+scoped independent review.
+
+An `implemented` result in feature mode is provisional. Keep its sidebar active
+until the final gate accepts the feature. Only the final gate can mark the tasks
+accepted and the queue complete. Delivery reuses evidence that still passes the
+current source, contract, environment, and intended base checks.
 
 ## Select the current phase
 
 | Phase | Required work and reference |
 | --- | --- |
 | Prepare or revise a model plan | Read [references/model-plan.md](references/model-plan.md). Validate canonical inputs, dependencies, routes, native capabilities, and role sessions. A combined decision can preview drafts; dispatch still requires actual approval and ready tasks. |
-| Schedule and integrate approved tasks | Read [references/feature-orchestration.md](references/feature-orchestration.md). Dispatch ready tasks, enforce write ownership, retain same-task role sessions through permitted iterations, and verify the combined result before releasing dependents. |
+| Schedule and integrate approved tasks | Read [references/feature-orchestration.md](references/feature-orchestration.md). Dispatch ready tasks, enforce write ownership, retain same-task role sessions through permitted iterations, and verify the dependency contract before releasing dependents under the selected policy. |
 | Verify and deliver | Read [references/completion.md](references/completion.md). Reconcile cross-task risks, capture final acceptance, and deliver within the user's authorization. |
 | Resume | Compare saved scope, route approval, task inputs, and repository state before continuing the applicable phase. Reuse matching approval and evidence. |
 
@@ -47,7 +68,7 @@ A model, runner, role, mode, native transport, effort, provider routing, capabil
 ## Execution rules
 
 1. Apply inherited design constraints. Use `coding-design-plan` only for an unresolved implementation shape and `design-gate` only when new evidence changes the design surface. Workers select the relevant engineering practices; they do not replay every lens.
-2. Start a fresh implementer context and a separate independent reviewer context for each task. A later task never inherits either context. Reuse the recorded implementer for that task's fixes and evidence recovery, and its reviewer for rechecks. Use a separate persistent integration context for the combined revision; it never becomes a task implementer or reviewer. **Hand off the path, not the payload**: pass artifact paths and a short brief.
+2. Start a fresh implementer context for each task. Start a separate independent task reviewer only when the selected policy requires it. A later task never inherits either context. Reuse the recorded implementer for that task's fixes and evidence recovery, and its reviewer for rechecks. Use a separate persistent integration context for the combined revision; it never becomes a task implementer or reviewer. **Hand off the path, not the payload**: pass artifact paths and a short brief.
 3. Follow `host-model-execution.md`. When preflight proves that the active host can run the selected model, effort, isolation, and follow-up natively, use the native subagent or authorized task thread. Use a runner only for a foreign model, an explicit user-requested transport, or a native route that cannot meet the approved requirements, and disclose why in the preview. Prefer a resumable session for an iterative runner role. A missing native continuation capability is recorded; it does not authorize a transport change.
 4. Keep progress in **the ledger, not the transcript**. Store the preview, approved routing plan, and `run-state.json` under `.ai-workflow/impl-review/<session_id>/`. Before dispatch, record each role's route ID, host, transport, task and role, pending call, and pending context entry. When a call returns, record its actual context or session reference, completed turn, input revision, receipt, and resume result. Record effects before dispatch, then confirm from actual state.
 5. Use the read-only shared queue controller as [references/queue-controller.md](references/queue-controller.md) specifies. It projects readiness from bound contracts, task manifests, and the call ledger. Use `shared/references/workflow-controller.md` to turn that projection into bound action checkpoints, apply captured results once, and wait for changed events. Use `shared/references/usage-accounting.md` before each dispatch; new plans bind a usage policy input and initialize it with `--usage-policy`. Include observed coordinator usage and disclose unknown data. Default to at most three tasks in flight within the approved cap; use one sequential writer without isolation. Reserve calls before dispatch and keep ownership through unresolved calls and required integration. A worker tool's absence is disclosed in the preview before proposing inline execution.

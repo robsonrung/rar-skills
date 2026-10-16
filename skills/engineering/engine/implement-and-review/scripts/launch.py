@@ -342,6 +342,74 @@ def validate_route(route: Any) -> dict[str, Any]:
     return route
 
 
+def bound_review_policy(plan, root, scope_inputs):
+    """Load the explicit feature policy only when its approved inputs are present."""
+    if "review_policy" not in plan:
+        return None
+    from feature_review import validate_policy, policy_inputs
+    policy_path = scope_path(require_string(plan["review_policy"], "review_policy"), root)
+    policy = validate_policy(policy_path, root)
+    inputs = {item["path"].resolve() for item in scope_inputs.values()}
+    for locator in policy_inputs(policy_path, root):
+        if scope_path(str(locator), root) not in inputs:
+            raise ValueError(f"review policy input is not in scope.inputs: {locator}")
+    for task_id, task_policy in policy["tasks"].items():
+        grouped = {}
+        for route in plan.get("routes", []):
+            if route.get("task_id") == task_id:
+                roles = grouped.setdefault(route["track"], {})
+                if route["role"] in roles:
+                    raise ValueError(f"feature task has a duplicate role: {task_id}/{route['track']}")
+                roles[route["role"]] = route
+                if scope_path(route["input_path"], root) != scope_path(task_policy["contract"], root):
+                    raise ValueError("feature task route does not bind the policy task contract")
+        expected = {"implementer"} if task_policy["review"] == "deferred" else {"implementer", "reviewer"}
+        if not grouped or any(set(roles) != expected for roles in grouped.values()):
+            raise ValueError(f"routing plan needs roles {sorted(expected)} for feature task {task_id}")
+        if task_policy["review"] == "critical":
+            for roles in grouped.values():
+                if any(writer["model"] == reader["model"] for writer in route_variants(roles["implementer"])
+                       for reader in route_variants(roles["reviewer"])):
+                    raise ValueError(f"routing plan cannot assign self-review for {task_id}")
+    final_route = policy["final_review"]["route"]
+    validate_route(final_route)
+    if final_route not in plan.get("routes", []):
+        raise ValueError("feature reviewer route is not in approved routes")
+    if final_route.get("role") != "reviewer":
+        raise ValueError("feature final route must be a reviewer")
+    for route in plan["routes"]:
+        if route.get("role") == "implementer":
+            if route.get("task_id") not in policy["tasks"]:
+                raise ValueError("feature implementer route is absent from the policy task set")
+            for writer in route_variants(route):
+                for reader in route_variants(final_route):
+                    if writer["model"] == reader["model"]:
+                        raise ValueError("feature reviewer cannot review its own implementation model")
+    return {"path": str(policy_path), "sha256": file_digest(policy_path), "value": policy}
+
+
+def implementation_policy_brief(rendered, binding, routing, task_id):
+    policy = routing.get("review_policy")
+    if policy is None:
+        return rendered, binding
+    task = policy["value"]["tasks"].get(task_id)
+    if task is None:
+        raise ValueError("feature policy has no task entry")
+    binding["review_policy"] = {key: policy[key] for key in ("path", "sha256")}
+    rendered += ("\nFeature review policy\nSource: " + policy["path"] + "\n"
+                 "Task classification: " + task["review"] + "\n"
+                 "Feature acceptance remains pending until the independent final review.\n")
+    if task["review"] == "deferred":
+        rendered += (
+                     "This task has deferred independent review. Implement this contract and capture "
+                     "the focused checks on the current combined source. Return provisional implementation "
+                     "evidence. Feature acceptance requires the independent final feature review. "
+                     "Defer routine broad simplification until feature completion, before the final snapshot "
+                     "and required check captures. The final reviewer remains read only.\n"
+                     "Focused checks: " + ", ".join(task["focused_checks"]) + "\n")
+    return rendered, binding
+
+
 def load_routing_plan(path: str, task_id: str, active_tracks: set[str], require_approved: bool, root: Path) -> dict[str, Any]:
     plan_candidate = Path(path).expanduser()
     plan_path = (plan_candidate if plan_candidate.is_absolute() else root / plan_candidate).resolve()
@@ -396,6 +464,7 @@ def load_routing_plan(path: str, task_id: str, active_tracks: set[str], require_
         all_route_ids.add(validated["id"])
     if canonical_digest(normalized_routes(routes)) != approval["routes_digest"]:
         raise ValueError("approval.routes_digest does not match routes")
+    review_policy = bound_review_policy(plan, root, scope_inputs)
     selected = [validate_route(route) for route in routes if isinstance(route, dict) and route.get("task_id") == task_id]
     if not selected:
         raise ValueError(f"routing plan has no routes for task {task_id!r}")
@@ -412,18 +481,24 @@ def load_routing_plan(path: str, task_id: str, active_tracks: set[str], require_
         missing = ", ".join(sorted(active_tracks - set(by_track)))
         raise ValueError(f"routing plan is missing active track routes: {missing}")
     for track, roles in by_track.items():
-        if set(roles) != {"implementer", "reviewer"}:
-            raise ValueError(f"routing plan needs one implementer and one reviewer for {task_id}/{track}")
+        task_policy = review_policy["value"]["tasks"].get(task_id) if review_policy else None
+        deferred = task_policy is not None and task_policy["review"] == "deferred"
+        expected_roles = {"implementer"} if deferred else {"implementer", "reviewer"}
+        if set(roles) != expected_roles:
+            raise ValueError(f"routing plan needs roles {sorted(expected_roles)} for {task_id}/{track}")
         implementer = roles["implementer"]
-        reviewer = roles["reviewer"]
-        for writer in route_variants(implementer):
-            for reader in route_variants(reviewer):
-                if writer["model"] == reader["model"]:
-                    raise ValueError(f"routing plan cannot assign self-review for {task_id}/{track}")
+        if task_policy and scope_path(implementer["input_path"], root) != scope_path(task_policy["contract"], root):
+            raise ValueError("feature task route does not bind the policy task contract")
+        if not deferred:
+            for writer in route_variants(implementer):
+                for reader in route_variants(roles["reviewer"]):
+                    if writer["model"] == reader["model"]:
+                        raise ValueError(f"routing plan cannot assign self-review for {task_id}/{track}")
         for route in roles.values():
             if route["input_path"] not in scope_inputs:
                 raise ValueError(f"route input_path is not in scope.inputs: {route['input_path']}")
-    return {"path": str(plan_path), "approval": approval, "scope_inputs": scope_inputs, "routes": by_track}
+    return {"path": str(plan_path), "approval": approval, "scope_inputs": scope_inputs, "routes": by_track,
+            **({"review_policy": review_policy} if review_policy is not None else {})}
 
 
 def fallback_route(route: dict[str, Any]) -> dict[str, Any] | None:
@@ -804,6 +879,8 @@ def initial_manifest(
         "isolation": args.isolation,
         "worktrees_dir": str(worktrees_dir) if worktrees_dir else None,
         "routing_plan": {"path": routing["path"], "approval": routing["approval"]},
+        **({"review_policy": {key: routing["review_policy"][key] for key in ("path", "sha256")}}
+           if "review_policy" in routing else {}),
         "artifact_dir": str(artifact_dir),
         "dry_run": args.dry_run,
         "status": "running",
@@ -870,6 +947,7 @@ def cmd_launch(args: argparse.Namespace) -> int:
             ):
                 raise ValueError(f"task contract is still a draft: {contract['path']}; promote it before launch")
             rendered, binding = render_bound_brief(contract, source, WRITE_BOUNDARY, "Derived implementation notes")
+            rendered, binding = implementation_policy_brief(rendered, binding, routing, args.task_id)
             binding["input_measurement"] = measure_rendered(rendered, route.get("context_budget"))
             prepared[track] = {
                 "rendered": rendered,
@@ -934,7 +1012,7 @@ def cmd_launch(args: argparse.Namespace) -> int:
             "brief": str(artifact_dir / f"{track}-implementation-brief.md"),
             "brief_binding": prepared[track]["binding"],
             "implementer_route": routes["implementer"],
-            "reviewer_route": routes["reviewer"],
+            **({"reviewer_route": routes["reviewer"]} if "reviewer" in routes else {}),
             "implementation": {"status": "pending", "selected_route": routes["implementer"]},
         }
         if not args.dry_run:
@@ -1688,7 +1766,7 @@ def recovery_limits(manifest, track):
     routing = load_routing_plan(manifest["routing_plan"]["path"], manifest["task_id"], {track}, True, Path(manifest["working_root"]))
     if routing["approval"] != manifest["routing_plan"]["approval"]:
         raise ValueError("recovery plan approval changed")
-    return routing["routes"][track]["reviewer"].get("recovery", defaults)
+    return routing["routes"][track].get("reviewer", routing["routes"][track]["implementer"]).get("recovery", defaults)
 
 
 def next_review_cycle(manifest: dict[str, Any], track_name: str, requested_cycle: int | None, dry_run: bool, path: Path) -> int:
@@ -1786,7 +1864,9 @@ def cmd_review(args: argparse.Namespace) -> int:
         routing = load_routing_plan(routing_plan, task_id, {args.track}, require_approved=True, root=root)
     except ValueError as error:
         fail(f"routing plan is no longer valid: {error}")
-    approved_route = routing["routes"][args.track]["reviewer"]
+    approved_route = routing["routes"][args.track].get("reviewer")
+    if approved_route is None:
+        fail("task review is deferred to the independent final feature review")
     try:
         saved_route = track.get("reviewer_route")
         validate_route(saved_route)
@@ -2178,6 +2258,7 @@ def cmd_resume_native(args: argparse.Namespace) -> int:
             "Derived implementation follow-up",
             proof,
         )
+        rendered, binding = implementation_policy_brief(rendered, binding, routing, task_id)
         binding["input_measurement"] = measure_rendered(rendered, effective_route.get("context_budget"))
     except (ValueError, OSError, UnicodeError) as error:
         fail(f"could not prepare a bound implementation follow-up: {error}")

@@ -499,14 +499,17 @@ def parse_role_overrides(values: list[str]) -> dict:
 
 def resolve_task_batch(tasks: list[dict], profile: str | None = None, *,
                        local_profile: str | None = None, coordinator_model: str | None = None,
-                       coordinator_effort: str | None = None, config: dict | None = None) -> dict:
+                       coordinator_effort: str | None = None, review_mode: str = "task",
+                       config: dict | None = None) -> dict:
     """Prepare future task routes without changing a running session or saved plan."""
     from task_queue import TASK_ID, task_sort_key
 
     config = load_config() if config is None else config
+    require(review_mode in ("task", "feature"), f"Unknown review mode: {review_mode}")
     require(isinstance(tasks, list) and bool(tasks), "Task batch must be a nonempty list")
     rows = []
     seen = set()
+    critical_routes = {route["risk_route"] for route in config["routes"].values()}
     for task in tasks:
         require(isinstance(task, dict) and set(task) == {"task_id", "route", "risk", "risk_reason"},
                 "Each task requires only task_id, route, risk, and risk_reason")
@@ -522,6 +525,16 @@ def resolve_task_batch(tasks: list[dict], profile: str | None = None, *,
                 f"Record task risk evidence for {task_id}")
         resolved = resolve_profile(task["route"], profile, local_profile=local_profile,
                                    risk=task["risk"], config=config)
+        if review_mode == "feature":
+            critical = (task["risk"] == "high" or resolved["route"] in critical_routes
+                        or ("reviewer" in resolved["roles"] and "implementer" not in resolved["roles"]))
+            if critical:
+                require("reviewer" in resolved["roles"],
+                        f"Critical task {task_id} requires a configured reviewer role")
+            else:
+                resolved["roles"].pop("reviewer", None)
+                resolved["alternatives"].pop("reviewer", None)
+            resolved["review"] = "critical" if critical else "deferred"
         rows.append(dict(task_id=task_id, risk_reason=task["risk_reason"], **resolved))
     selected = resolve_profile("coordinator", profile, local_profile=local_profile, config=config)
     for label, value in (("model", coordinator_model), ("effort", coordinator_effort)):
@@ -532,7 +545,7 @@ def resolve_task_batch(tasks: list[dict], profile: str | None = None, *,
     mismatch = any(actual is not None and actual != expected for actual, expected in observations)
     known = all(actual is not None for actual, _ in observations)
     status = "mismatch" if mismatch else "match" if known else "unknown"
-    return {
+    result = {
         "config_digest": config_digest(config),
         "profile": selected["profile"],
         "profile_label": selected["profile_label"],
@@ -546,6 +559,24 @@ def resolve_task_batch(tasks: list[dict], profile: str | None = None, *,
         },
         "tasks": sorted(rows, key=lambda row: task_sort_key(row["task_id"])),
     }
+    if review_mode == "feature":
+        final = resolve_profile("broad-review", profile, local_profile=local_profile,
+                                risk="high" if any(row["review"] == "critical" for row in rows) else "normal",
+                                config=config)
+        reviewer = final["roles"]["reviewer"]
+        conflicts = [
+            {"task_id": row["task_id"], "role": role, "model": reviewer["model"]}
+            for row in result["tasks"] for role in ("implementer", "worker")
+            if row["roles"].get(role, {}).get("model") == reviewer["model"]
+        ]
+        result.update(review_mode="feature", execution_authorized=False, final_review={
+            "selection": final,
+            "status": "blocked" if conflicts else "ready",
+            "conflicts": conflicts,
+            "reason": ("The configured final reviewer authored these tasks; select and approve an independent route."
+                       if conflicts else "The configured final reviewer differs from every task author role."),
+        })
+    return result
 
 
 def resolve_panel_providers(panel: dict, config: dict | None = None) -> dict:
@@ -594,6 +625,8 @@ def main() -> int:
     batch.add_argument("--tasks", type=Path, required=True, help="JSON object containing a tasks list with task_id, route, risk, and risk_reason")
     batch.add_argument("--profile", help="Preview profile; default uses the configured preference")
     batch.add_argument("--local-profile", help="Local preview preference, below an explicit profile")
+    batch.add_argument("--review-mode", choices=("task", "feature"), default="task",
+                       help="Future preview only: task preserves task reviews; feature defers routine reviews to one final gate")
     batch.add_argument("--coordinator-model", help="Actual current host model; omitted means unknown")
     batch.add_argument("--coordinator-effort", help="Actual exposed host effort; omitted means unknown")
     council = commands.add_parser("council", help="Resolve a council preview without starting any calls")
@@ -620,7 +653,7 @@ def main() -> int:
             require(isinstance(payload, dict) and set(payload) == {"tasks"}, "Task batch file requires only tasks")
             output = resolve_task_batch(payload["tasks"], None if args.profile == "default" else args.profile,
                                         local_profile=args.local_profile, coordinator_model=args.coordinator_model,
-                                        coordinator_effort=args.coordinator_effort, config=config)
+                                        coordinator_effort=args.coordinator_effort, review_mode=args.review_mode, config=config)
         elif args.command == "council":
             output = resolve_council(args.name, args.poll_profile, risk_flags=args.risk_flag, config=config)
         else:

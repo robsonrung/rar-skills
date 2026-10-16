@@ -101,6 +101,31 @@ def contract_hash(path):
 
 
 @validation_cached
+def scope_content_hash(path):
+    """Use the approved scope's canonical text identity for workflow inputs."""
+    file_hash(path)
+    text = Path(path).read_text().replace("\r\n", "\n").replace("\r", "\n")
+    canonical = "".join(line for line in text.splitlines(keepends=True)
+                        if not re.fullmatch(r"\*\*Status:\*\* (?:ready-for-agent|in-progress|done|blocked)",
+                                            line.removesuffix("\n")))
+    return hashlib.sha256(canonical.encode()).hexdigest()
+
+
+def check_acceptance(snapshot):
+    """Only a complete feature policy can share captures across task contracts."""
+    binding = snapshot["requirements"]["value"].get("check_contract")
+    if binding is None:
+        return snapshot["contract"]["sha256"]
+    from feature_review import validate_check_contract
+    contracts = validate_check_contract(binding, Path(snapshot["source"]["root"]))
+    require(Path(snapshot["contract"]["path"]).resolve() in contracts,
+            "check contract does not include the snapshot acceptance contract")
+    require(snapshot["contract"]["sha256"] == contract_hash(snapshot["contract"]["path"]),
+            "snapshot acceptance contract changed")
+    return binding
+
+
+@validation_cached
 def read_json(path):
     if _VALIDATION.get() is not None:
         file_hash(path)
@@ -259,7 +284,10 @@ def fresh_observations(old, snapshot):
 
 
 def validate_requirements(value, root):
-    require(isinstance(value, dict) and {"context", "checks", "observations", "exclusions"} <= set(value) <= {"context", "checks", "observations", "exclusions", "observation_inputs", "review_scope", "batch"}, "requirements need context, checks, observations, and exclusions")
+    require(isinstance(value, dict) and {"context", "checks", "observations", "exclusions"} <= set(value) <= {"context", "checks", "observations", "exclusions", "observation_inputs", "review_scope", "batch", "check_contract"}, "requirements need context, checks, observations, and exclusions")
+    if "check_contract" in value:
+        from feature_review import validate_check_contract
+        validate_check_contract(value["check_contract"], root)
     require(isinstance(value["context"], dict) and bool(value["context"]), "context must describe the current runtime and external state")
     context_identity(value["context"])
     require(isinstance(value["checks"], list), "checks must be a list")
@@ -412,7 +440,7 @@ def validate_check(path, snapshot, definition):
         require(captured.get("snapshot_path", str(captured_path)) == str(captured_path), "captured snapshot path differs")
         require(captured["source_id"] == digest(captured["source"]) == snapshot["source_id"], "invalid check capture source")
         require(check_definition(captured, definition["id"]) == definition, "captured command differs")
-        require(captured["contract"]["sha256"] == snapshot["contract"]["sha256"], "check contract does not match")
+        require(check_acceptance(captured) == check_acceptance(snapshot), "check contract does not match")
         require(captured["requirements"]["value"] == snapshot["requirements"]["value"], "check requirements do not match")
         if definition.get("fresh"):
             require(captured == snapshot, "required fresh check belongs to another snapshot")
@@ -671,7 +699,7 @@ def validate_transfer(check, target, definition):
                 "transfer check inputs differ")
     else:
         require(content_identity(old["source"]) == content_identity(target["source"]), "transfer source content differs")
-    require(old["contract"]["sha256"] == target["contract"]["sha256"], "transfer contract differs")
+    require(check_acceptance(old) == check_acceptance(target), "transfer contract differs")
     require(context_identity(old["requirements"]["value"]["context"]) == context_identity(target["requirements"]["value"]["context"]), "transfer context differs")
     require(check_definition(old, definition["id"]) == definition, "transfer command definition differs")
     require(validate_check(links["check"]["path"], old, definition), "original check did not pass")
@@ -717,7 +745,7 @@ def select_checks(snapshot_path, from_snapshot=None, checks=None, fresh=()):
             try:
                 require(validate_check(checks[key], old, check_definition(old, key)), "prior check failed")
                 require(check_definition(old, key) == definition, "command or inputs declaration changed")
-                require(old["contract"]["sha256"] == target["contract"]["sha256"], "acceptance contract changed")
+                require(check_acceptance(old) == check_acceptance(target), "acceptance contract changed")
                 require(context_identity(old["requirements"]["value"]["context"]) == context_identity(target["requirements"]["value"]["context"]), "environment identity changed")
                 if "inputs" in definition:
                     require(not set(changed).intersection(definition["inputs"]), "declared check inputs changed")

@@ -279,6 +279,72 @@ class ModelProfileTests(unittest.TestCase):
         self.assertEqual(result, routing.resolve_task_batch(list(reversed(self.batch_tasks())), config=self.config))
         self.assertEqual(self.config, before)
 
+    def test_feature_preview_defers_routine_reviews_and_preserves_critical_routes(self):
+        before = copy.deepcopy(self.config)
+        tasks = self.batch_tasks()
+        legacy = routing.resolve_task_batch(tasks, config=self.config)
+        self.assertEqual(legacy, routing.resolve_task_batch(tasks, review_mode="task", config=self.config))
+        feature = routing.resolve_task_batch(tasks, review_mode="feature", config=self.config)
+        normal, critical = feature["tasks"]
+        self.assertEqual(normal["review"], "deferred")
+        self.assertNotIn("reviewer", normal["roles"])
+        self.assertNotIn("reviewer", normal["alternatives"])
+        self.assertEqual(normal["roles"]["implementer"], legacy["tasks"][0]["roles"]["implementer"])
+        self.assertEqual(critical["review"], "critical")
+        self.assertEqual(critical["roles"], legacy["tasks"][1]["roles"])
+        final = feature["final_review"]
+        self.assertEqual(final["selection"], self.resolve("broad-review", risk="high"))
+        self.assertEqual(final["status"], "blocked")
+        self.assertEqual(final["conflicts"], [{"task_id": "T2", "role": "implementer",
+                                             "model": critical["roles"]["implementer"]["model"]}])
+        self.assertIn("authored", final["reason"])
+        self.assertFalse(feature["execution_authorized"])
+        self.assertEqual(self.config, before)
+        self.assertEqual(legacy, routing.resolve_task_batch(tasks, config=self.config))
+
+    def test_feature_preview_final_review_is_separate_and_independent(self):
+        task = self.batch_tasks()[1]
+        for profile in self.config["profiles"]:
+            with self.subTest(profile=profile):
+                result = routing.resolve_task_batch([task], profile, review_mode="feature", config=self.config)
+                self.assertEqual(result["final_review"]["selection"], self.resolve("broad-review", profile))
+                self.assertEqual(result["final_review"]["status"], "ready")
+                self.assertEqual(result["final_review"]["conflicts"], [])
+                self.assertNotIn("reviewer", result["tasks"][0]["roles"])
+        with self.assertRaisesRegex(ValueError, "Unknown review mode"):
+            routing.resolve_task_batch([task], review_mode="missing", config=self.config)
+        direct = dict(task, route="test-execution", risk="high")
+        with self.assertRaisesRegex(ValueError, "T1 requires a configured reviewer"):
+            routing.resolve_task_batch([direct], review_mode="feature", config=self.config)
+
+    def test_feature_preview_keeps_explicit_critical_routes_with_normal_risk_label(self):
+        task = self.batch_tasks()[1]
+        for route in ("sensitive-implementation", "migration", "difficult-implementation", "validation-risk"):
+            with self.subTest(route=route):
+                selected = dict(task, route=route)
+                result = routing.resolve_task_batch([selected], review_mode="feature", config=self.config)
+                row = result["tasks"][0]
+                self.assertEqual(row["review"], "critical")
+                self.assertEqual(row["roles"], self.resolve(route)["roles"])
+                self.assertEqual(result["final_review"]["selection"], self.resolve("broad-review", risk="high"))
+
+    def test_feature_preview_cli_is_opt_in_and_never_dispatches(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / "tasks.json"
+            path.write_text(json.dumps({"tasks": [self.batch_tasks()[1]]}))
+            command = [sys.executable, str(SHARED / "scripts/model_routing.py"), "resolve-batch", "--tasks", str(path)]
+            legacy = subprocess.run(command, capture_output=True, text=True)
+            explicit = subprocess.run([*command, "--review-mode", "task"], capture_output=True, text=True)
+            self.assertEqual(legacy.returncode, 0, legacy.stderr)
+            self.assertEqual(explicit.stdout, legacy.stdout)
+            result = subprocess.run([*command, "--review-mode", "feature"], capture_output=True, text=True)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            output = json.loads(result.stdout)
+            self.assertEqual(output["review_mode"], "feature")
+            self.assertFalse(output["execution_authorized"])
+            self.assertEqual(output["final_review"]["status"], "ready")
+            self.assertNotIn("reviewer", output["tasks"][0]["roles"])
+
     def test_batch_coordinator_reports_current_observation_and_future_readiness(self):
         for model, effort, status in ((None, None, "unknown"), ("gpt-6.1-sol", None, "unknown"),
                                       ("gpt-6-astra", "high", "mismatch"), (None, "high", "mismatch"),

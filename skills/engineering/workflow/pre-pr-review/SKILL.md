@@ -29,6 +29,14 @@ referenced review and verification evidence. Inspect the existing run state and
 approved model plan when present. A report path or completion label alone is not
 proof of coverage.
 
+For a feature run with a bound `review_policy`, read
+`shared/references/feature-review.md`. Verify its final combined evidence and
+actual independent reviewer receipt. Routine `implemented` task results are
+provisional and cannot establish readiness. A current final feature gate can
+supply the complete review evidence; a separate routine task review or cleanup
+report is not a missing step. Reuse that gate when its source, contract, check
+plan, environment, and intended base still match.
+
 For a validation run, read the initial `review_snapshot` from its validation plan
 and the checked packet exported through `validation_control.py evidence-packet`.
 Each latest required unit can use a scoped packet for its own planned IDs. The
@@ -67,7 +75,7 @@ Resolve only the selected skills by name through the host catalog or collection 
 | Gap | Action |
 | --- | --- |
 | Changes made after review | Review the changed paths and affected callers. Preserve valid coverage for the rest of the diff. |
-| Missing integration review | Use `full-review` on the combined change, limited to interactions and gaps not covered by task reviews. |
+| Missing integration review | Use `full-review` on the combined change. In feature mode, cover the complete feature contract and deferred task behavior; in task mode, cover interactions and gaps not covered by task reviews. |
 | Missing or invalid check results | Use `verify-changes` for the affected checks and any required fresh checks. |
 | Missing browser evidence | Use `browser-smoke` for the affected interface flows. |
 | Confirmed defects or disputed findings | Apply the correction and recheck rules below. |
@@ -124,7 +132,7 @@ Evaluate findings against the current code. Return confirmed defects to the orig
 
 Correct all confirmed P0, P1, and P2 findings within the task scope. Correct P3 findings when the change is small and useful; record the reason for each deferred P3. A correction outside the task scope requires a user decision.
 
-After each correction, have the independent reviewer check the fix and affected paths. Run `verify-changes` for affected checks and any required fresh checks. Repeat browser checks when their flows changed. Preserve review coverage for unchanged files and expand it when a fix affects another boundary.
+Batch confirmed corrections by their original implementation scope, then have the independent reviewer check the fixes, affected paths, and interactions in one scoped recheck. Run `verify-changes` for affected checks and any required fresh checks. Repeat browser checks when their flows changed. Preserve review coverage for unchanged files and expand it when a fix affects another boundary.
 
 Allow at most three correction and recheck cycles in this workflow. For work continued from an earlier run, also honor that run's remaining correction allowance. Starting this skill or resuming a context does not reset an exhausted limit. Record the counts, findings, changed paths, and evidence in the temporary report before each cycle. At the limit, stop and report the remaining work.
 

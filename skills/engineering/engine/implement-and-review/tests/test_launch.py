@@ -2016,5 +2016,93 @@ class LauncherTests(unittest.TestCase):
         self.assertEqual(current["brief_binding"]["input_measurement"]["utf8_bytes"], Path(current["brief"]).stat().st_size)
 
 
+    def feature_plan(self, classification="deferred"):
+        import sys
+
+        self.task.write_text("# T1: Approved task\n\n**Status:** ready-for-agent\n**Parent:** prd.md\n\nAcceptance: command succeeds\n")
+        path = self.native_plan()
+        plan = json.loads(path.read_text())
+        implementer, reviewer = plan["routes"]
+        implementer["task_id"] = "T1"
+        feature = self.root / "feature.md"
+        feature.write_text("# Feature acceptance\nEvery task and interaction must pass.\n")
+        reviewer.update(task_id="feature-final", input_path="feature.md")
+        checks = {"requirements": {"context": {"runtime": "fixture"}, "checks": [{"id": "focused", "command": [sys.executable, "-c", "pass"],
+                   "cwd": ".", "timeout_seconds": 5, "inputs": ["task.md"], "fresh": True}],
+                   "observations": ["interaction"], "exclusions": {}},
+                  "required_checks": {"focused": True}, "interactions": ["interaction"]}
+        (self.root / "checks.json").write_text(json.dumps(checks))
+        policy = {"schema_version": 1, "mode": "feature", "queue": "queue.json", "feature_contract": "feature.md", "check_plan": "checks.json",
+                  "tasks": {"T1": {"contract": "task.md", "review": classification, "reason": "Scoped local change",
+                                     "focused_checks": ["focused"]}},
+                  "final_review": {"scope": "feature.md", "route": reviewer}}
+        (self.root / "policy.json").write_text(json.dumps(policy))
+        (self.root / "prd.md").write_text("# Feature\n**Status:** approved\n")
+        (self.root / "queue.json").write_text(json.dumps({"schema_version": 1, "id": "feature", "parent_prd": "prd.md",
+            "review_policy": "policy.json", "concurrency": {"max_active": 1, "isolation": "working-tree"},
+            "tasks": [{"id": "T1", "manifest": "task.md", "launch_manifest": "artifacts/launch-manifest.json", "blocked_by": [], "write_paths": ["src"], "shared_surfaces": []}]}))
+        plan["review_policy"] = "policy.json"
+        plan["routes"] = [implementer, reviewer]
+        for name in ("feature.md", "checks.json", "policy.json", "queue.json", "prd.md"):
+            plan["scope"]["inputs"].append({"path": name, "content_sha256": launcher.content_digest(self.root / name)})
+        plan["approval"]["scope_digest"] = launcher.canonical_digest(launcher.normalized_scope_inputs(plan["scope"]["inputs"]))
+        plan["approval"]["routes_digest"] = launcher.canonical_digest(launcher.normalized_routes(plan["routes"]))
+        path.write_text(json.dumps(plan))
+        return path
+
+    def test_feature_deferred_launch_has_no_task_reviewer_and_binds_policy(self):
+        path = self.feature_plan()
+        args = self.launch_arguments(path, "feature")
+        args.task_id = "T1"
+        with contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(launcher.cmd_launch(args), 0)
+        manifest_path = self.root / ".ai-workflow/impl-review/feature/T1/launch-manifest.json"
+        manifest = json.loads(manifest_path.read_text())
+        self.assertNotIn("reviewer_route", manifest["tracks"]["api"])
+        self.assertEqual(manifest["review_policy"]["sha256"], launcher.file_digest(self.root / "policy.json"))
+        brief = Path(manifest["tracks"]["api"]["brief"]).read_text()
+        self.assertIn("provisional implementation", brief)
+        self.assertIn("before the final snapshot", brief)
+        self.assertEqual(manifest["reviews"], [])
+        self.assertEqual(launcher.recovery_limits(manifest, "api")["review_cycles"], 3)
+
+    def test_feature_policy_failure_precedes_launch_side_effects(self):
+        path = self.feature_plan()
+        plan = json.loads(path.read_text())
+        plan["scope"]["inputs"] = [row for row in plan["scope"]["inputs"] if row["path"] != "checks.json"]
+        plan["approval"]["scope_digest"] = launcher.canonical_digest(launcher.normalized_scope_inputs(plan["scope"]["inputs"]))
+        path.write_text(json.dumps(plan))
+        args = self.launch_arguments(path, "feature")
+        args.task_id = "T1"
+        with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+            launcher.cmd_launch(args)
+        self.assertFalse((self.root / ".ai-workflow").exists())
+
+    def test_feature_critical_and_legacy_still_require_task_reviewer(self):
+        for classification in ("critical", "legacy"):
+            with self.subTest(classification=classification):
+                path = self.feature_plan("critical" if classification == "critical" else "deferred")
+                if classification == "legacy":
+                    plan = json.loads(path.read_text())
+                    plan.pop("review_policy")
+                    path.write_text(json.dumps(plan))
+                with self.assertRaisesRegex(ValueError, "needs roles"):
+                    launcher.load_routing_plan(str(path), "T1", {"api"}, True, self.root)
+
+
+    def test_feature_policy_pointer_cannot_switch_between_two_bound_policies(self):
+        path = self.feature_plan()
+        alternate = self.root / "alternate-policy.json"
+        alternate.write_text((self.root / "policy.json").read_text())
+        plan = json.loads(path.read_text())
+        plan["scope"]["inputs"].append({"path": alternate.name, "content_sha256": launcher.content_digest(alternate)})
+        plan["approval"]["scope_digest"] = launcher.canonical_digest(launcher.normalized_scope_inputs(plan["scope"]["inputs"]))
+        plan["review_policy"] = alternate.name
+        path.write_text(json.dumps(plan))
+        with self.assertRaisesRegex(ValueError, "exact review policy"):
+            launcher.load_routing_plan(str(path), "T1", {"api"}, True, self.root)
+        self.assertFalse((self.root / ".ai-workflow").exists())
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

@@ -52,7 +52,7 @@ contract before the notes. A note cannot replace the approved task contract.
 The manifest records both source digests.
 
 Before preparing implementation notes, read and apply [methodology.md](methodology.md),
-including its conditional cleanup instruction. Discover the required commands and stable check IDs. Include the
+including the cleanup instruction for the selected review mode. Discover the required commands and stable check IDs. Include the
 requirements file, base, capture location, and shared `prepare` and `run-check`
 instructions in the implementation notes as described in `evidence-strategy.md`.
 The worker captures its last green checks after its final edit and returns original
@@ -83,6 +83,13 @@ python3 "$SKILL_DIR/scripts/launch.py" launch \
 non-dry launch rejects a plan without recorded approval.
 
 ## Launch review
+
+A bound feature policy can defer routine task review. Read
+`shared/references/feature-review.md` before using that branch. The task manifest
+then records the approved implementation route without a task reviewer. Return
+its focused evidence as provisional `implemented` progress; the feature
+coordinator validates dependency release and performs the separate final gate.
+Use the commands below for task mode and critical feature tasks.
 
 Before preparing the review brief, read and apply [Review Brief](methodology.md#review-brief).
 

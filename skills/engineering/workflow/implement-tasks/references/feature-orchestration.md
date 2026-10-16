@@ -1,10 +1,10 @@
 # Feature orchestration
 
-Read after the model plan is approved. `implement-tasks` owns scheduling and integration; `implement-and-review` owns each task's build and review.
+Read after the model plan is approved. `implement-tasks` owns scheduling and integration; `implement-and-review` owns each task build and the review required by its bound policy.
 
 ## Worker brief
 
-Use a fresh implementer context and a separate independent reviewer context per task. For tasks with independently approved tracks, keep a separate pair per track. Supply these fields in the implementer's first message:
+Use a fresh implementer context per task. Create a separate independent reviewer context when the selected policy requires task review. For tasks with independently approved tracks, keep a separate pair per track. Supply these fields in the implementer's first message:
 
 ```text
 Task: <stable T-ID and task file path>
@@ -12,14 +12,15 @@ Skill: implement-and-review
 Scope: <allowed paths, interfaces, and exclusions>
 Base: <current integration revision, or sequential working tree>
 Inputs: <task acceptance contract, settled decisions, relevant file and evidence locators>
-Models: <approved implementation/review models, native or runner transport, effort, and receipt policy>
+Models: <approved implementation and applicable review models, native or runner transport, effort, and receipt policy>
 Role session: <route id, context or runner-session reference when resumed, and manifest path>
 Approval: <routing-plan.json, model-plan.md, and approval entry>
 Authorization: <permitted local changes and authorized git/publication actions>
 Acceptance: <exact commands and observable behaviors from the task>
 Report: <unique task report and envelope paths>
 Ceilings: <remaining review cycles, evidence recoveries, total calls, deadline, and context budget>
-Return: complete, failed, ceiling_hit, or awaiting_human; evidence paths and remaining blockers
+Review policy: <bound policy path, deferred or critical, focused checks, dependency contract tests>
+Return: implemented (provisional feature work), complete (task mode), failed, ceiling_hit, or awaiting_human; evidence paths and remaining blockers
 ```
 
 The acceptance contract is a completion condition, not a host `/goal` command. Do not use a user-owned task as a subagent unless requested. Start the worker with no parent conversation history. Send only the bound task packet. Use the host's explicit empty-history option; for a `fork_turns` host, use `none`. This does not authorize additional workers.
@@ -30,7 +31,7 @@ Workers load selected lenses and practices when their task needs them. They cann
 
 Read `shared/references/host-model-execution.md` before dispatch. Use its native-first decision after the approved route and host capability check, not as a reason to replace the approved model or transport.
 
-1. Before the first task call, write the brief and create the recorded implementer context. Create the reviewer context separately before its first review. Both are fresh for this task and track; neither receives another task's history.
+1. Before the first task call, write the brief and create the recorded implementer context. Create a task reviewer context only for a critical feature task or task mode. Each context is fresh for its task and track; neither receives another task's history.
 2. Before dispatch, record the route ID, host, transport, task ID, role, input revision, pending call, and pending context entry in the feature ledger and task manifest. When the call returns, add its context or runner-session reference and receipt. Native task contexts live in `native_contexts[route_id]`; after polling, runner results supply `runner_session_id` and the manifest records it in `runner_contexts[route_id]`.
 3. After a review finding, send the correction only to the same task's approved implementer context. Send the changed paths, evidence, and review report paths, not a copied transcript. Send the recheck to the same approved reviewer context. The approved cycle limit applies across these turns; it defaults to three.
 4. Route an approved evidence recovery to the same task role that can recover the missing proof. It must not reimplement unrelated work, add a model, or reset the review cycle. Record the attempt before dispatch.
@@ -42,12 +43,45 @@ Keep each context available until its role is complete and all required evidence
 ## Scheduling
 
 1. Use the shared read-only controller from [queue-controller.md](queue-controller.md) before each wave. It validates IDs, blockers, cycles, approved scope and route bindings, ownership, and concurrency. Use `shared/references/workflow-controller.md` for durable action checkpoints and normalized event application. Its adapter performs only the selected actions and appends their captured results; the controller itself starts no host or provider work. Preserve stable IDs. The canonical task file owns acceptance; the compact index owns references; manifests and the ledger own progress.
-2. Select only returned `ready` tasks. Each dependency needs verified integration evidence bound to its contract and the current combined source state, a current carry forward checkpoint under its original approved scope, or an explicit current batch endorsement. A task or worker completion label alone cannot release a dependent. Finish returned `required_integration` work through the approved integration route or reuse an accepted shared checkpoint, then project readiness again.
+2. Select only returned `ready` tasks. In feature mode, use the bound policy assessment described below. In task mode, each dependency needs verified integration evidence bound to its contract and the current combined source state, a current carry forward checkpoint under its original approved scope, or an explicit current batch endorsement. A task or worker completion label alone cannot release a dependent. Finish returned `required_integration` work through the approved integration route or reuse an accepted shared checkpoint, then project readiness again.
 3. Separate product blockers from write conflicts. Keep shared files, migrations, interfaces, and security surfaces serialized unless the approved queue input names an accepted merge plan with overlap and combined verification. An unresolved task or pending call keeps its write ownership until reconciliation and integration permit release.
 4. Start at most the approved number of tasks. Use one writer without isolation. Each new worktree starts at the current integration revision. A running independent task can finish on its recorded base; after integration, check interactions and rerun affected acceptance. The scheduler only projects a wave; reserve its calls in the ledger before dispatch.
 5. Record task role context IDs, runner-session IDs, pending calls, and task states before dispatch. Use the shared call-ledger helper to reserve and reconcile calls. Check the bound usage policy through `shared/references/usage-accounting.md`, including coordinator observations and missing metrics. Read compact status and result envelopes. Use the workflow controller's bounded event wait and the adapter's cursor-based host wait or `runner_jobs.py wait-many` for explicit runner jobs. Apply changed events once and retain the checkpoint across recovery. Do not load unchanged report bodies. Open report bodies for failures, changed results, and final synthesis, not repeated polling.
 
-## Integration
+## Feature mode integration
+
+When `review_policy` is bound, follow `shared/references/feature-review.md`.
+The central check plan and shared decisions apply across tasks. Classify review
+by semantic risk: authorization, data, concurrency, public contracts, weak
+acceptance, and critical dependencies can require early independent review.
+Separate paths alone do not make a dependency safe.
+
+After each task, validate its focused captures, regression evidence, dependency
+contract tests, current source, and packet. A deferred task can release its
+consumers only when the policy helper returns `dependency_release: true`.
+A critical task also needs its actual independent task review. This release
+records provisional `implemented` progress. Keep the task active in the sidebar;
+`integrated` acceptance and a completed icon wait for final feature acceptance.
+
+Do the required integration checks at changed boundaries. Start an earlier
+independent review only for the policy's critical dependency or a newly found
+material risk. Preserve the approved route and record the actual call. A new
+risk can require a replacement policy for unresolved work; it never removes a
+previously approved review from an existing plan automatically.
+
+When implementation is ready, perform one broad behavior-preserving
+simplification pass on the combined feature. Capture the final source snapshot
+after that pass, run missing or affected combined checks and required fresh
+checks, and collect interaction evidence. Dispatch one final independent reviewer
+through the policy's exact approved route. The reviewer must be independent from
+every feature author. Apply confirmed fixes as a batch through the original
+implementation contexts. Capture affected checks and use one scoped recheck;
+preserve valid coverage on unchanged behavior.
+
+Use [completion.md](completion.md) for the final gate. The following legacy task
+integration protocols apply only when no feature policy is bound.
+
+## Legacy task mode integration
 
 Use the project's branch convention and preserve unrelated changes. Default to one sequential writer in the selected workspace and record acceptance after each task. Follow `references/worktree-and-integration.md` from the loaded `implement-and-review` skill for isolation and integration. Perform commit-based integration only when its required git actions are explicitly authorized.
 
@@ -86,7 +120,7 @@ If a launcher cannot represent a model, effort, or execution mode, report the mi
 
 Keep task reports and role-session records after workers finish. Do not close a task role before its review, correction, and evidence obligations end; keep the integration context until the feature report is complete. Close native workers only through the host lifecycle when needed. Leave user-owned tasks, branches, and worktrees intact unless cleanup is authorized.
 
-Capture combined acceptance and the approved seam review using [completion.md](completion.md). Report blocked tasks and missing evidence. Resume from the ledger and repository state; a report path alone does not prove its revision is current.
+Capture combined acceptance and the approved final review using [completion.md](completion.md). Report blocked tasks and missing evidence. Resume from the ledger and repository state; a report path alone does not prove its revision is current.
 
 ## Context packet before dispatch
 

@@ -90,7 +90,7 @@ def initialize(state, plan_path, run_id, limits, usage_policy_path=None):
     state.setdefault("workflow_measurement", {}).setdefault("ledger_started_at", now())
 
 
-def reserve(state, route_id, call_id, brief, phase, setup_reference=None, review_snapshot=None):
+def reserve(state, route_id, call_id, brief, phase, setup_reference=None, review_snapshot=None, root=None):
     ledger = state["call_ledger"]
     reference = ledger["plan"]
     require(sha(reference["path"]) == reference["sha256"], "plan changed; reconcile authority before reservation")
@@ -114,6 +114,10 @@ def reserve(state, route_id, call_id, brief, phase, setup_reference=None, review
     if call_id in calls:
         require(calls[call_id]["intent"] == intent, "call ID already has different inputs")
         return calls[call_id]  # Reconciliation is required; this is not permission to dispatch again.
+    if "review_policy" in plan:
+        require(root is not None, "feature role reservation requires an explicit source root")
+        from feature_review import validate_plan_policy
+        validate_plan_policy(plan, Path(root).resolve())
     check_policy_binding(state)
     budget = evaluate_budget(state)
     require(budget["dispatch_allowed"], "usage budget blocks future dispatch: " + json.dumps(budget["reasons"]))
@@ -491,6 +495,7 @@ def main():
         reserve_parser.add_argument("--" + name, required=True)
     reserve_parser.add_argument("--setup-reference")
     reserve_parser.add_argument("--review-snapshot", help="bind a prepared snapshot for atomic review completion")
+    reserve_parser.add_argument("--root", help="explicit source root for a feature review reservation")
     for name, option in (("reconcile", "receipt"), ("complete", "receipt"), ("resolve-context", "event")):
         sub = commands.add_parser(name)
         sub.add_argument("--call", required=True)
@@ -536,7 +541,7 @@ def main():
                 initialize(state, args.plan, args.run_id, json.loads(Path(args.limits).read_text()), args.usage_policy)
             elif args.action == "reserve":
                 existed = args.call in state["call_ledger"]["calls"]
-                reserve(state, args.route, args.call, args.brief, args.phase, args.setup_reference, args.review_snapshot)
+                reserve(state, args.route, args.call, args.brief, args.phase, args.setup_reference, args.review_snapshot, args.root)
                 return {**call_summary(state, args.call), "reservation": "existing" if existed else "new"}
             elif args.action == "complete":
                 require(not args.dry_run, "complete writes evidence; use receipt validation for a dry run")

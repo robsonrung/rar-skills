@@ -218,6 +218,14 @@ def project(state, checkpoint, schedule, *, unapplied=False):
         current["blocked"] = {"kind": "queue_blocked", "tasks": schedule["blocked"]}
     if schedule.get("error"):
         current["queue_error"] = {"kind": "queue_error", "reason": schedule["error"]}
+    for identity in schedule.get("implemented", []):
+        if identity in schedule.get("integrated", []):
+            continue
+        current["implemented:" + identity] = {"kind": "task_implemented", "task_id": identity,
+                                               "acceptance": "pending_feature_review"}
+    feature = schedule.get("feature_review")
+    if isinstance(feature, dict) and feature.get("status") == "review_required":
+        current["feature_review"] = {"kind": "feature_review_required", **feature}
     for identity in schedule.get("integrated", []):
         current["integrated:" + identity] = {"kind": "task_integrated", "task_id": identity}
     previous = checkpoint.get("projection", {})
@@ -292,6 +300,8 @@ def sidebar_projection(schedule, waiting):
     for group in ("ready", "active", "blocked"):
         for row in schedule.get(group, []):
             tasks[row["id"]] = {"status": "active", "icon": "🧑‍💻"}
+    for identity in schedule.get("implemented", []):
+        tasks[identity] = {"status": "active", "icon": "🧑‍💻", "acceptance": "pending_feature_review"}
     for identity in schedule.get("integrated", []):
         tasks[identity] = {"status": "complete", "icon": "✅"}
     for identity in waiting:

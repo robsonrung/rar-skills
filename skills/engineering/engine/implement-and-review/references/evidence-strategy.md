@@ -21,6 +21,21 @@ For every behavior change, report:
 
 For a no-test route, report `no_test_reason` and the replacement verification. Do not add a hollow test only to satisfy a process step.
 
+## Select check scope
+
+For feature mode, load `shared/references/feature-review.md`. The bound central
+check plan owns check IDs and definitions. A task captures its exact
+`focused_checks`, including required regression and dependency contract tests.
+A green task is provisional. Critical task review validates that dependency;
+final feature review validates the combined result.
+
+Consolidate broad simplification before preparing the final feature snapshot.
+Run the complete required feature checks and interaction observations on that
+state. Reuse valid captured checks through the shared selector. After a fix,
+capture affected checks and request a scoped reviewer recheck; broaden only when
+a changed boundary, failure, or required fresh check makes it necessary.
+Standalone and legacy task mode keep the complete task evidence route below.
+
 ## Capture the final implementation checks
 
 Before dispatch, the coordinator discovers the repository's required commands
@@ -31,7 +46,7 @@ when their complete dependencies are known. Use the requirements format and
 capture API in `shared/references/review-evidence.md`.
 
 The implementer retains the required failing regression evidence. After all
-implementation and simplification edits, it records actual runtime, dependency,
+implementation and applicable simplification edits, it records actual runtime, dependency,
 and relevant external state, then uses the shared helper:
 
 ```bash
@@ -74,7 +89,7 @@ both result paths. Preserve the first results and every fresh requirement.
 
 Execute all selected `run` entries, keep validated `reuse` paths, and use
 `transfer-check` only after the required environment and base assessment.
-Prepare the complete packet and send it to the independent final reviewer with
+Return the focused packet for a deferred feature task. For a critical task or task mode, prepare the complete task packet and send it to the independent reviewer with
 `shared/references/reviewer-response.md`. Worker checks do not supply reviewer
 judgment. These captures use the existing implementation turn; they require no
 extra model call. **Only captured command results count as evidence.**

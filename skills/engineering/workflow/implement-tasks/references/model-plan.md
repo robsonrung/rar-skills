@@ -6,6 +6,30 @@ approval; preserve the exact saved route during dispatch, retry, and resume.
 
 Use `shared/references/model-preview.md` once when an execution plan is needed. Coordinator-only validation and task drafting can proceed with direct tools under the current request. Nested workers use the immutable approved snapshot; they do not repeat selection or start unlisted workers. This workflow never invokes a council automatically.
 
+## Select the review policy
+
+Use `shared/references/feature-review.md` for a new feature plan. Bind its
+`review_policy` path in both queue and routing plan. Bind the policy, canonical queue, central
+check plan, feature contract, and all task contracts in `scope.inputs`. Run `feature_review.py validate --policy <policy.json> --root <project-root>`
+before approval or dispatch. Preserve existing approved
+plans and an explicitly selected legacy task review sequence.
+
+Settle shared design, security, interfaces, and acceptance once. Select focused
+checks and dependency contract tests for every task. Keep early independent
+review for critical dependencies. Routine tasks have an implementation route;
+the feature has one separate final reviewer route whose `input_path` is the
+feature contract and whose scope ID differs from task IDs. Ensure this reviewer
+is independent from all authors. Consolidate broad simplification before the
+final combined checks and review.
+
+For the future route preview, add `--review-mode feature` to `resolve-batch`.
+It only prepares routes. It grants no execution authority and cannot change an
+existing snapshot. The default `task` mode preserves per-task review. The
+feature preview retains high risk and central critical route reviewers, defers
+routine reviewers, and reports exact final reviewer author conflicts as blocked.
+Resolve any conflict in a concrete replacement preview before dispatch; preserve
+the selected models until that replacement has authority.
+
 ## Prepare the execution plan
 
 1. Read the canonical queue under `.ai-workflow/work/<feature-slug>/tasks/`, its compact `tasks-draft.md`, `queue.json`, and PRD. For normal execution, verify that the PRD and queue approvals still match. For an explicit combined decision, read the canonical drafts and prepare the execution plan without launching them. For a bare feature plan, obtain an approved PRD through `to-prd`, then use `to-tasks`. For one bounded, specified change with complete acceptance and settled product, security, public contract, data ownership, and dependency decisions, use standalone `implement-and-review` with the same model approval.
@@ -115,8 +139,9 @@ digest proves the locally captured fields; it does not prove inference host
 identity. Reuse standing approval within that scope; do not ask again on each task. Host approval review still applies.
 Older approved plans remain valid under their recorded authority.
 
-Select task review, targeted integration checks at changed boundaries, and one final
-combined review. An earlier broad integration review needs a named unresolved risk.
+Under task mode, select task review, targeted integration checks at changed boundaries, and one final
+combined review. Under feature mode, select early review for critical dependencies,
+focused integration checks, and one final combined review for all task behavior. An earlier broad integration review needs a named unresolved risk.
 Do not schedule a full repeated panel at every wave by default. Keep any review
 sequence the user has already approved until an authorized plan change.
 
