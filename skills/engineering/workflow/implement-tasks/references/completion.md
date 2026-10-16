@@ -6,9 +6,10 @@ Read when the task results are ready for integration review and delivery.
 
 Read `shared/references/review-evidence.md`. For a bound feature policy, also
 read `shared/references/feature-review.md` and use its final gate. Routine task
-snapshots prove provisional dependency release only. Critical tasks must pass
-the launcher's `verify-review` before that release. Feature acceptance needs the
-complete combined contract, checks, interaction evidence, an actual independent
+snapshots prove provisional dependency release only. Critical tasks need a current
+independent review or valid scoped reuse under that policy. Batch refresh can
+prepare their current evidence together; it cannot pass this final gate. Feature
+acceptance needs the complete combined contract, checks, interaction evidence, an actual independent
 review receipt, and a passing policy assessment.
 
 Without a feature policy, each task must pass the launcher's `verify-review`

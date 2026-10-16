@@ -59,9 +59,10 @@ Separate paths alone do not make a dependency safe.
 After each task, validate its focused captures, regression evidence, dependency
 contract tests, current source, and packet. A deferred task can release its
 consumers only when the policy helper returns `dependency_release: true`.
-A critical task also needs its actual independent task review. This release
-records provisional `implemented` progress. Keep the task active in the sidebar;
-`integrated` acceptance and a completed icon wait for final feature acceptance.
+A critical task also needs its actual independent task review. For retained critical
+reviews and batch evidence refresh, use the scoped reuse and refresh protocols in
+`shared/references/feature-review.md`. This release records provisional
+`implemented` progress. Keep the task active in the sidebar; `integrated` acceptance and a completed icon wait for final feature acceptance.
 
 Do the required integration checks at changed boundaries. Start an earlier
 independent review only for the policy's critical dependency or a newly found

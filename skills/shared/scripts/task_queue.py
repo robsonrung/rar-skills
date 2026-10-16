@@ -1352,7 +1352,7 @@ def provisional_assessment(queue, task, state, manifest, manifest_issues, routin
     if manifest_issues:
         return ["launch manifest is incomplete or differs from the approved route"]
     try:
-        implementation_receipts(task, manifest, routing, root)
+        author_contexts = implementation_receipts(task, manifest, routing, root)
         entry = state.get("integration_evidence", {}).get(task.id)
         require(isinstance(entry, dict), "no focused implementation evidence is recorded")
         require(referenced_path(root, entry.get("launch_manifest", "")) == task.launch_manifest_path,
@@ -1362,9 +1362,16 @@ def provisional_assessment(queue, task, state, manifest, manifest_issues, routin
         path = referenced_path(root, link["path"])
         require(file_sha256(path) == link.get("sha256"), "focused snapshot checksum changed")
         from feature_review import assess_task
-        assessment = assess_task(queue.review_policy, task.id, path, entry.get("evidence_packet"), entry.get("base"), root)
+        assessment = assess_task(queue.review_policy, task.id, path, entry.get("evidence_packet"), entry.get("base"), root,
+                                 critical_review=entry.get("critical_review"), call_ledger=state.get("call_ledger"))
         require(assessment.get("dependency_release") is True,
                 "; ".join(assessment.get("reasons", [])) or "focused checks are not ready")
+        if entry.get("critical_review") is not None:
+            call = state["call_ledger"]["calls"][entry["critical_review"]["call_id"]]
+            receipt = load_json(referenced_path(root, call["receipt_ref"]["path"]), "critical reviewer receipt")
+            execution = receipt.get("native_execution", receipt)
+            require((execution.get("context_id") or receipt.get("session_id")) not in author_contexts,
+                    "critical reviewer context belongs to an implementer")
     except (ValueError, OSError, KeyError, TypeError) as error:
         return [f"provisional implementation evidence is invalid or stale: {error}"]
     return []
@@ -1443,7 +1450,9 @@ def classify_tasks(
         failure = manifest_has_terminal_failure(manifest)
         deferred = (queue.review_policy is not None
                     and routing[task.id]["review_policy"]["value"]["tasks"][task.id]["review"] == "deferred")
-        integration_reasons = [] if deferred else integration_assessment(
+        scoped_critical = (queue.review_policy is not None
+                           and "reuse_scope" in routing[task.id]["review_policy"]["value"]["tasks"][task.id])
+        integration_reasons = [] if deferred or scoped_critical else integration_assessment(
             task, state, manifest, manifest_issues, routing[task.id], routing_path, root, queue.tasks, batch_cache
         )
         if queue.review_policy is not None:

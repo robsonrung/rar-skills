@@ -8,6 +8,7 @@ import copy
 import json
 import re
 import sys
+from datetime import datetime
 from pathlib import Path
 
 import review_evidence as evidence
@@ -30,7 +31,7 @@ def check_plan(policy, root):
     evidence.require(isinstance(requirements, dict) and "check_contract" not in requirements,
                      "feature check plan derives its check contract from policy")
     evidence.validate_requirements(requirements, root)
-    evidence.require(not {"batch", "review_scope"}.intersection(requirements),
+    evidence.require(not {"batch", "review_scope", "critical_scope"}.intersection(requirements),
                      "feature check plan cannot contain a batch or prospective review scope")
     checks = {row["id"] for row in requirements["checks"]}
     flags = plan["required_checks"]
@@ -65,7 +66,8 @@ def validate_policy(path, root, task_contracts=None):
                      and all(isinstance(key, str) and re.fullmatch(r"T[1-9][0-9]*", key) for key in tasks),
                      "feature policy needs explicit task IDs")
     for key, row in tasks.items():
-        evidence.require(isinstance(row, dict) and set(row) == {"contract", "review", "reason", "focused_checks"},
+        evidence.require(isinstance(row, dict) and {"contract", "review", "reason", "focused_checks"} <= set(row)
+                         <= {"contract", "review", "reason", "focused_checks", "reuse_scope"},
                          f"{key} needs contract, review, reason, and focused_checks")
         contract = local_file(root, row["contract"], f"{key} contract")
         evidence.require(row["review"] in {"critical", "deferred"}
@@ -76,6 +78,15 @@ def validate_policy(path, root, task_contracts=None):
                          and all(isinstance(check, str) for check in focused)
                          and len(set(focused)) == len(focused) and set(focused) <= checks,
                          f"{key} focused checks must name unique feature check IDs")
+        if "reuse_scope" in row:
+            evidence.require(row["review"] == "critical", "only critical tasks can declare review reuse")
+            evidence.validate_critical_scope(row["reuse_scope"], root)
+            focused_definitions = [check for check in plan["requirements"]["checks"] if check["id"] in focused]
+            evidence.require(all("inputs" in check for check in focused_definitions),
+                             "scoped critical review needs explicit focused check dependencies")
+            declared = {name for check in focused_definitions for name in check["inputs"]}
+            evidence.require(declared <= set(row["reuse_scope"]["inputs"]),
+                             "critical scope omits focused check dependencies")
         if task_contracts is not None:
             evidence.require(key in task_contracts and Path(task_contracts[key]).resolve() == contract,
                              f"{key} policy contract differs from canonical queue")
@@ -90,6 +101,13 @@ def validate_policy(path, root, task_contracts=None):
     evidence.require({task.id: task.contract_path for task in queue.tasks}
                      == {key: root / row["contract"] for key, row in tasks.items()},
                      "policy tasks differ from canonical queue contracts")
+    from task_queue import path_conflicts
+    for task in queue.tasks:
+        scope = tasks[task.id].get("reuse_scope")
+        if scope:
+            evidence.require(not any(path_conflicts(name, owned) for name in scope["independent_paths"]
+                                     for owned in task.write_paths),
+                             "independent paths overlap critical task ownership")
     final = policy["final_review"]
     evidence.require(isinstance(final, dict) and set(final) == {"scope", "route"},
                      "final_review needs scope and route")
@@ -179,6 +197,8 @@ def requirements(path, root, task_id=None):
         ids = set(policy["tasks"][task_id]["focused_checks"])
         value["observations"], value["exclusions"] = [], {}
         value.pop("observation_inputs", None)
+        if "reuse_scope" in policy["tasks"][task_id]:
+            value["critical_scope"] = copy.deepcopy(policy["tasks"][task_id]["reuse_scope"])
     value["checks"] = [row for row in value["checks"] if row["id"] in ids]
     value["check_contract"] = check_contract(path, root)
     return value
@@ -197,7 +217,7 @@ def bound_snapshot(path, root, policy_path, policy, base, task_id=None):
 
 
 @evidence.validation_session
-def assess_task(path, task_id, snapshot_path, packet_link, base, root=None):
+def assess_task(path, task_id, snapshot_path, packet_link, base, root=None, critical_review=None, call_ledger=None):
     result = {"dependency_release": False, "feature_accepted": False,
               "independent_review_required": True, "reasons": []}
     try:
@@ -214,15 +234,19 @@ def assess_task(path, task_id, snapshot_path, packet_link, base, root=None):
                   if not evidence.validate_check(packet["checks"][row["id"]], snapshot, row)]
         evidence.require(not failed, f"focused checks failed: {failed}")
         if critical:
-            evidence.require(evidence.assess(snapshot_path, base)["status"] == "ready",
-                             "critical task requires a ready independent review")
+            if "reuse_scope" in policy["tasks"][task_id]:
+                assess_critical_reuse(path, task_id, snapshot_path, critical_review, call_ledger, root)
+            else:
+                evidence.require(critical_review is None, "critical review reuse requires an approved scope")
+                evidence.require(evidence.assess(snapshot_path, base)["status"] == "ready",
+                                 "critical task requires a ready independent review")
         result["dependency_release"] = True
     except (ValueError, OSError, KeyError, TypeError) as error:
         result["reasons"].append(str(error))
     return result
 
 
-def reviewer_binding(policy, snapshot_path, receipt, ledger, root):
+def reviewer_binding(policy, snapshot_path, receipt, ledger, root, critical_task=None):
     """Read the captured receipt; call status alone is not review evidence."""
     evidence.require(isinstance(ledger, dict) and isinstance(ledger.get("calls"), dict),
                      "final acceptance requires the actual call ledger")
@@ -234,8 +258,13 @@ def reviewer_binding(policy, snapshot_path, receipt, ledger, root):
     call_id = matches[0]
     evidence.require(receipt.get("status") == "completed" and receipt.get("review_status") == "ready",
                      "final reviewer call is not completed and ready")
-    route = policy["final_review"]["route"]
     intent = receipt.get("intent", {})
+    route = intent.get("route") if critical_task else policy["final_review"]["route"]
+    if critical_task:
+        evidence.require(isinstance(route, dict) and route.get("role") == "reviewer"
+                         and route.get("task_id") == critical_task
+                         and route.get("input_path") == policy["tasks"][critical_task]["contract"],
+                         "critical reviewer route differs from its task")
     evidence.require(intent.get("route") == route, "final reviewer route differs from policy")
     plan_link = ledger.get("plan")
     evidence.require(isinstance(plan_link, dict) and isinstance(plan_link.get("path"), str), "call ledger plan is missing")
@@ -248,7 +277,7 @@ def reviewer_binding(policy, snapshot_path, receipt, ledger, root):
     evidence.require(validate_policy(policy_path, root) == policy, "call ledger plan binds another review policy")
     validate_plan_policy(plan, root)
     for candidate in plan["routes"]:
-        if candidate.get("role") == "implementer":
+        if candidate.get("role") == "implementer" and (critical_task is None or candidate.get("task_id") == critical_task):
             from task_queue import launcher_module
             evidence.require(all(variant.get("model") != route["model"]
                                  for variant in launcher_module().route_variants(candidate)),
@@ -281,6 +310,91 @@ def reviewer_binding(policy, snapshot_path, receipt, ledger, root):
                      "final review execution differs from the completed receipt")
 
 
+def latest_critical_review(task_id, selected_id, ledger):
+    """Require ordered review history and retain every earlier finding chain."""
+    calls = {key: call for key, call in ledger["calls"].items()
+             if call.get("status") == "completed" and call.get("intent", {}).get("route", {}).get("role") == "reviewer"
+             and call["intent"]["route"].get("task_id") == task_id}
+    evidence.require(selected_id in calls, "selected critical review is not completed")
+    if len(calls) == 1:
+        return
+    ordered = []
+    for key, call in calls.items():
+        times = []
+        for field in ("reserved_at", "completed_at"):
+            value = call.get(field)
+            evidence.require(isinstance(value, str), "multiple critical reviews require unambiguous timestamps")
+            stamp = datetime.fromisoformat(value.replace("Z", "+00:00"))
+            evidence.require(stamp.tzinfo is not None, "critical review timestamps need a timezone")
+            times.append(stamp)
+        evidence.require(times[0] <= times[1], "critical review completion precedes reservation")
+        ordered.append((times[0], times[1], key, call))
+    ordered.sort(key=lambda row: row[0])
+    evidence.require(all(previous[0] < current[0] and previous[1] <= current[0]
+                         for previous, current in zip(ordered, ordered[1:])),
+                     "critical review chronology is ambiguous or overlapping")
+    evidence.require(ordered[-1][2] == selected_id, "critical review was superseded by a later completed review")
+    selected = calls[selected_id]
+    ancestors = evidence.review_ancestors(selected["review"])
+    for _, _, key, call in ordered[:-1]:
+        link = call.get("review")
+        evidence.checked_link(link, "prior critical review")
+        evidence.require((link["path"], link["sha256"]) in ancestors,
+                         "latest critical review omits an earlier review and its findings")
+        record, snapshot = evidence.prior_review(link)
+        evidence.require(call.get("intent", {}).get("review_snapshot")
+                         == evidence.evidence_link(record["snapshot_path"]), "prior critical snapshot binding differs")
+        raw = evidence.read_json(evidence.checked_link(call.get("receipt_ref"), "prior critical receipt"))
+        execution = raw.get("native_execution", raw)
+        if "dispatch_metadata" in raw:
+            execution = {**raw["dispatch_metadata"], **raw}
+        evidence.require(record["execution"] == raw and execution.get("call_id") == key,
+                         "prior critical review differs from its actual receipt")
+        evidence.require(snapshot["contract"] == evidence.load_record(selected["intent"]["review_snapshot"]["path"])["contract"],
+                         "prior critical review belongs to another contract")
+
+
+def assess_critical_reuse(policy_path, task_id, snapshot_path, reference, ledger, root):
+    """Retain an original scoped review only for dependency release."""
+    evidence.require(isinstance(reference, dict) and {"snapshot", "call_id"} <= set(reference) <= {"snapshot", "call_id", "assessment"},
+                     "scoped critical review needs its original snapshot and call_id")
+    old_path = evidence.checked_link(reference["snapshot"], "original critical snapshot")
+    old = evidence.snapshot_record(old_path)
+    current = evidence.current_snapshot(snapshot_path)
+    policy = validate_policy(policy_path, root)
+    expected = requirements(policy_path, root, task_id)
+    evidence.require(old["requirements"]["value"] == current["requirements"]["value"] == expected,
+                     "critical review requirements or environment changed")
+    evidence.require(old["contract"] == current["contract"]
+                     and Path(old["contract"]["path"]).resolve() == root / policy["tasks"][task_id]["contract"],
+                     "critical review contract changed")
+    evidence.check_acceptance(old)
+    evidence.require(old["source"]["root"] == current["source"]["root"]
+                     and old["source"]["base"] == current["source"]["base"]
+                     and old["source"]["index_sha256"] == current["source"]["index_sha256"]
+                     and old["artifact_dir"] == current["artifact_dir"],
+                     "critical review source root, base, or index changed")
+    scope = expected["critical_scope"]
+    changed = {name for name in set(old["source"]["files"]) | set(current["source"]["files"])
+               if old["source"]["files"].get(name) != current["source"]["files"].get(name)}
+    evidence.require(changed <= set(scope["independent_paths"]),
+                     f"critical review dependencies or undeclared paths changed: {sorted(changed - set(scope['independent_paths']))}")
+    if old["source_id"] != current["source_id"] or "assessment" in reference:
+        assessment = evidence.read_json(evidence.checked_link(reference.get("assessment"), "critical environment assessment"))
+        evidence.require(isinstance(assessment, dict)
+                         and assessment.get("from_snapshot_sha256") == reference["snapshot"]["sha256"]
+                         and assessment.get("to_source_id") == current["source_id"],
+                         "critical environment assessment binding differs")
+        evidence.validate_environment_assessment(assessment)
+    evidence.require(evidence.assess_record(old_path, old)["status"] == "ready",
+                     "original critical review is not ready")
+    evidence.require(isinstance(ledger, dict), "scoped critical review requires the actual call ledger")
+    receipt = ledger.get("calls", {}).get(reference["call_id"])
+    evidence.require(isinstance(receipt, dict), "original critical review call is missing")
+    reviewer_binding(policy, old_path, receipt, ledger, root, critical_task=task_id)
+    latest_critical_review(task_id, reference["call_id"], ledger)
+
+
 @evidence.validation_session
 def assess_feature(path, snapshot_path, base, reviewer_receipt, root=None, call_ledger=None):
     result = {"status": "needs-work", "final_review_ready": False, "reasons": []}
@@ -309,6 +423,7 @@ def main():
     parser.add_argument("--packet", help="immutable packet record path")
     parser.add_argument("--base")
     parser.add_argument("--ledger", help="JSON call ledger file")
+    parser.add_argument("--critical-review", help="JSON original critical snapshot and call_id reference")
     parser.add_argument("--call", help="completed final reviewer call ID")
     args = parser.parse_args()
     try:
@@ -321,7 +436,9 @@ def main():
             evidence.require(args.snapshot and args.base, "assessment needs --snapshot and --base")
             if args.command == "assess-task":
                 evidence.require(args.task and args.packet, "task assessment needs --task and --packet")
-                result = assess_task(args.policy, args.task, args.snapshot, evidence.evidence_link(args.packet), args.base, args.root)
+                result = assess_task(args.policy, args.task, args.snapshot, evidence.evidence_link(args.packet), args.base, args.root,
+                                     evidence.read_json(args.critical_review) if args.critical_review else None,
+                                     evidence.read_json(args.ledger) if args.ledger else None)
             else:
                 evidence.require(args.ledger and args.call, "feature assessment needs --ledger and --call")
                 ledger = evidence.read_json(args.ledger)

@@ -269,6 +269,20 @@ def validate_review_scope(scope, root):
     require(not set(paths).intersection(scope["inputs"]), "scoped changes overlap review dependencies")
 
 
+def validate_critical_scope(scope, root):
+    """Require an explicit dependency closure and exact independent paths."""
+    require(isinstance(scope, dict) and set(scope) == {"inputs", "independent_paths", "complete", "reason"},
+            "critical scope needs inputs, independent_paths, complete, and reason")
+    validate_inputs(scope["inputs"], root)
+    validate_inputs(scope["independent_paths"], root)
+    require(not any(any(character in name for character in "*?[]")
+                    for name in scope["inputs"] + scope["independent_paths"]), "critical scope requires exact file paths")
+    require(scope["complete"] is True and isinstance(scope["reason"], str) and scope["reason"].strip(),
+            "critical scope requires a complete dependency assessment")
+    require(not set(scope["inputs"]).intersection(scope["independent_paths"]),
+            "independent paths overlap critical dependencies")
+
+
 def fresh_observations(old, snapshot):
     before, after = old["requirements"]["value"], snapshot["requirements"]["value"]
     if context_identity(before["context"]) != context_identity(after["context"]):
@@ -284,7 +298,7 @@ def fresh_observations(old, snapshot):
 
 
 def validate_requirements(value, root):
-    require(isinstance(value, dict) and {"context", "checks", "observations", "exclusions"} <= set(value) <= {"context", "checks", "observations", "exclusions", "observation_inputs", "review_scope", "batch", "check_contract"}, "requirements need context, checks, observations, and exclusions")
+    require(isinstance(value, dict) and {"context", "checks", "observations", "exclusions"} <= set(value) <= {"context", "checks", "observations", "exclusions", "observation_inputs", "review_scope", "batch", "check_contract", "critical_scope"}, "requirements need context, checks, observations, and exclusions")
     if "check_contract" in value:
         from feature_review import validate_check_contract
         validate_check_contract(value["check_contract"], root)
@@ -320,6 +334,14 @@ def validate_requirements(value, root):
         declared.update(p for paths in scopes.values() for p in paths)
         require(declared <= set(scope["inputs"]), "review scope omits declared check or observation dependencies")
 
+    if "critical_scope" in value:
+        require(not {"review_scope", "batch"}.intersection(value), "critical scope cannot combine review modes")
+        scope = value["critical_scope"]
+        validate_critical_scope(scope, root)
+        declared = {p for check in value["checks"] for p in check.get("inputs", [])}
+        declared.update(p for paths in scopes.values() for p in paths)
+        require(declared <= set(scope["inputs"]), "critical scope omits declared dependencies")
+
 
 def prepare(root, base, contract, requirements, output, artifact_dir=None, previous_reviews=()):
     root, output = Path(root).resolve(), Path(output).resolve()
@@ -330,6 +352,8 @@ def prepare(root, base, contract, requirements, output, artifact_dir=None, previ
     source = source_state(root, base, artifact_dir)
     scopes = [check["inputs"] for check in plan["checks"] if "inputs" in check]
     scopes.extend(plan.get("observation_inputs", {}).values())
+    if "critical_scope" in plan:
+        scopes.extend([plan["critical_scope"]["inputs"], plan["critical_scope"]["independent_paths"]])
     if "review_scope" in plan:
         scopes.append(plan["review_scope"]["inputs"])
         for row in plan["review_scope"]["changes"]:
@@ -520,7 +544,8 @@ def previous_findings(snapshot):
 @validation_cached
 def validate_result(result, snapshot, snapshot_path):
     fields = {"snapshot_sha256", "coverage", "findings", "checks", "observations", "summary"}
-    scope = snapshot["requirements"]["value"].get("review_scope")
+    scope = (snapshot["requirements"]["value"].get("review_scope")
+             or snapshot["requirements"]["value"].get("critical_scope"))
     if scope:
         fields.add("scope_approval")
     if "batch" in snapshot["requirements"]["value"]:
@@ -605,7 +630,8 @@ def expand_response(raw, snapshot, snapshot_path, depth=0):
     require("batch" not in snapshot["requirements"]["value"], "batch review requires a full current response")
     fields = {"mode", "snapshot_sha256", "previous_review", "reuse_assessment", "affected_paths",
               "coverage", "findings", "checks", "observations", "summary"}
-    scope = snapshot["requirements"]["value"].get("review_scope")
+    scope = (snapshot["requirements"]["value"].get("review_scope")
+             or snapshot["requirements"]["value"].get("critical_scope"))
     if scope:
         fields.add("scope_approval")
     require(set(raw) == fields and raw["mode"] in {"recheck", "addendum"}, "invalid incremental review fields")
@@ -851,7 +877,8 @@ def response_contract(snapshot_path):
     if len(snapshot["previous_reviews"]) == 1:
         _, old = prior_review(snapshot["previous_reviews"][0])
         fresh = fresh_observations(old, snapshot)
-    scope = snapshot["requirements"]["value"].get("review_scope")
+    scope = (snapshot["requirements"]["value"].get("review_scope")
+             or snapshot["requirements"]["value"].get("critical_scope"))
     return {"snapshot_sha256": file_hash(snapshot_path), "previous_reviews": snapshot["previous_reviews"],
             **({"scope_approval": digest(scope), "review_scope": scope} if scope else {}),
             "coverage_paths": snapshot["source"]["changed_paths"],

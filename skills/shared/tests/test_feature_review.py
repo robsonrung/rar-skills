@@ -62,13 +62,13 @@ class FeatureReviewTests(unittest.TestCase):
         self.policy_path.write_text(json.dumps(self.policy))
         (self.root / self.policy["check_plan"]).write_text(json.dumps(self.plan))
 
-    def snapshot(self, task_id="T1", name="snapshot", run=True, fail_observation=False):
+    def snapshot(self, task_id="T1", name="snapshot", run=True, fail_observation=False, previous=()):
         requirements = feature.requirements(self.policy_path, self.root, task_id)
         req_path = self.artifacts / (name + ".requirements.json")
         req_path.write_text(json.dumps(requirements))
         contract = self.policy["tasks"][task_id]["contract"] if task_id else self.policy["feature_contract"]
         snapshot = evidence.prepare(self.root, self.base, self.root / contract, req_path,
-                                    self.artifacts / name, artifact_dir=self.artifacts)
+                                    self.artifacts / name, artifact_dir=self.artifacts, previous_reviews=previous)
         if run:
             for check in requirements["checks"]:
                 evidence.run_check(snapshot, check["id"])
@@ -84,12 +84,14 @@ class FeatureReviewTests(unittest.TestCase):
     def task_assessment(self, snapshot, packet):
         return feature.assess_task(self.policy_path, "T1", snapshot, evidence.evidence_link(packet), self.base, self.root)
 
-    def record_review(self, snapshot, packet, execution=None):
+    def record_review(self, snapshot, packet, execution=None, findings=None):
         contract = evidence.response_contract(snapshot)
         result = {"snapshot_sha256": contract["snapshot_sha256"], "coverage": [
             {"path": name, "outcome": "reviewed", "reason": "Read the changed behavior."}
-            for name in contract["coverage_paths"]], "findings": [],
+            for name in contract["coverage_paths"]], "findings": findings or [],
             "evidence_packet": evidence.evidence_link(packet), "summary": "Feature contract passes."}
+        if "scope_approval" in contract:
+            result["scope_approval"] = contract["scope_approval"]
         execution = {**(execution or {}), "success": True, "agent_message": json.dumps(result)}
         return evidence.record_review(snapshot, result, execution), execution
 
@@ -128,6 +130,222 @@ class FeatureReviewTests(unittest.TestCase):
 
     def final_assessment(self, snapshot, call, ledger):
         return feature.assess_feature(self.policy_path, snapshot, self.base, call, self.root, ledger)
+
+    def scoped_fixture(self):
+        (self.root / "config.txt").write_text("stable config\n")
+        (self.root / "later.txt").write_text("unrelated original\n")
+        row = self.policy["tasks"]["T1"]
+        row["review"] = "critical"
+        row["reuse_scope"] = {"inputs": ["app.txt", "config.txt", "future.txt"],
+                              "independent_paths": ["later.txt"], "complete": True,
+                              "reason": "All callers, configuration, and dependencies are listed."}
+        self.save_policy()
+        snapshot, packet = self.snapshot(name="original-critical")
+        route = next(route for route in self.routing_plan()["routes"] if route["id"] == "T1-reviewer")
+        execution = {"call_id": "critical-call", "configured_model": route["model"], "configured_effort": "high",
+                     "context_id": "critical-context", "input_revision": evidence.file_hash(self.root / "T1.md"),
+                     "effective_runner": "codex", "effective_model": route["model"], "effective_effort": "high",
+                     "model_receipt": {"status": "verified", "source": "provider_event", "observed_model": route["model"]}}
+        review, execution = self.record_review(snapshot, packet, execution)
+        receipt = self.artifacts / "critical-receipt.json"
+        receipt.write_text(json.dumps(execution))
+        routing = self.artifacts / "critical-routing.json"
+        routing.write_text(json.dumps(self.routing_plan()))
+        call = {"status": "completed", "review_status": "ready", "review": evidence.evidence_link(review),
+                "receipt_ref": evidence.evidence_link(receipt), "intent": {"route": route,
+                "review_snapshot": evidence.evidence_link(snapshot), "input": evidence.evidence_link(self.root / "T1.md")}}
+        ledger = {"plan": evidence.evidence_link(routing), "calls": {"critical-call": call},
+                  "contexts": {route["id"]: "critical-context"}}
+        reference = {"snapshot": evidence.evidence_link(snapshot), "call_id": "critical-call"}
+        return snapshot, packet, reference, ledger
+
+    def scoped_assessment(self, snapshot, packet, reference, ledger, environment=True):
+        reference = copy.deepcopy(reference)
+        old = evidence.load_record(reference["snapshot"]["path"])
+        current = evidence.load_record(snapshot)
+        if environment and old["source_id"] != current["source_id"]:
+            capture = snapshot.parent / "environment.txt"
+            capture.write_text("Fixture runtime, dependencies, external state, and base interactions are unchanged.\n")
+            assessment = {"from_snapshot_sha256": reference["snapshot"]["sha256"], "to_source_id": current["source_id"],
+                          **{key: {"reason": "Fixture environment is unchanged.", "evidence": [evidence.evidence_link(capture)]}
+                             for key in ("runtime", "dependencies", "external_state", "base_interactions")}}
+            path = snapshot.parent / "environment.json"
+            path.write_text(json.dumps(assessment))
+            reference["assessment"] = evidence.evidence_link(path)
+        return feature.assess_task(self.policy_path, "T1", snapshot, evidence.evidence_link(packet), self.base,
+                                   self.root, critical_review=reference, call_ledger=ledger)
+
+    def later_critical_review(self, ledger, prior, call_id, hour, findings=None, retain=True):
+        old_call = ledger["calls"][prior["call_id"]]
+        snapshot, packet = self.snapshot(name=call_id, previous=[old_call["review"]["path"]] if retain else ())
+        execution = evidence.read_json(old_call["receipt_ref"]["path"])
+        execution["call_id"] = call_id
+        review, execution = self.record_review(snapshot, packet, execution, findings=findings)
+        receipt = self.artifacts / (call_id + "-receipt.json")
+        receipt.write_text(json.dumps(execution))
+        call = {**copy.deepcopy(old_call), "review_status": evidence.assess(snapshot, self.base)["status"],
+                "reserved_at": f"2026-10-16T{hour:02d}:00:00+00:00", "completed_at": f"2026-10-16T{hour:02d}:10:00+00:00",
+                "review": evidence.evidence_link(review), "receipt_ref": evidence.evidence_link(receipt)}
+        call["intent"]["review_snapshot"] = evidence.evidence_link(snapshot)
+        ledger["calls"][call_id] = call
+        return snapshot, packet, {"snapshot": evidence.evidence_link(snapshot), "call_id": call_id}
+
+    def test_scoped_review_cannot_reuse_superseded_ready_or_drop_later_findings(self):
+        original, packet, reference, ledger = self.scoped_fixture()
+        ledger["calls"]["critical-call"].update(reserved_at="2026-10-16T01:00:00+00:00",
+                                                  completed_at="2026-10-16T01:10:00+00:00")
+        finding = {"id": "critical-defect", "path": "app.txt", "severity": "P1", "status": "open",
+                   "evidence": "The dependency contract has a missing case."}
+        _, _, later = self.later_critical_review(ledger, reference, "later-needs-work", 2, [finding])
+        result = self.scoped_assessment(original, packet, reference, ledger)
+        self.assertFalse(result["dependency_release"], result)
+        self.assertIn("superseded", " ".join(result["reasons"]))
+        fresh, fresh_packet, omitted = self.later_critical_review(ledger, later, "omitted-history", 3, retain=False)
+        result = self.scoped_assessment(fresh, fresh_packet, omitted, ledger)
+        self.assertFalse(result["dependency_release"], result)
+        self.assertIn("omits an earlier review", " ".join(result["reasons"]))
+        ledger["calls"].pop("omitted-history")
+        resolved = {**finding, "status": "rejected", "evidence": "The existing guard covers the reported case."}
+        fresh, fresh_packet, newest = self.later_critical_review(ledger, later, "resolved-review", 4, [resolved])
+        ledger["calls"]["failed-attempt"] = {"status": "failed", "intent": copy.deepcopy(ledger["calls"]["critical-call"]["intent"])}
+        result = self.scoped_assessment(fresh, fresh_packet, newest, ledger)
+        self.assertTrue(result["dependency_release"], result)
+        self.assertFalse(result["feature_accepted"])
+
+    def test_scoped_review_fails_closed_on_ambiguous_history(self):
+        original, packet, reference, ledger = self.scoped_fixture()
+        ledger["calls"]["critical-call"].update(reserved_at="2026-10-16T01:00:00+00:00",
+                                                  completed_at="2026-10-16T01:10:00+00:00")
+        fresh, fresh_packet, newest = self.later_critical_review(ledger, reference, "new-review", 2)
+        for kind in ("missing", "overlap", "timezone", "tampered-receipt"):
+            candidate = copy.deepcopy(ledger)
+            with self.subTest(kind=kind):
+                if kind == "missing":
+                    candidate["calls"]["critical-call"].pop("completed_at")
+                elif kind == "overlap":
+                    candidate["calls"]["new-review"]["reserved_at"] = "2026-10-16T01:05:00+00:00"
+                elif kind == "timezone":
+                    candidate["calls"]["critical-call"]["reserved_at"] = "2026-10-16T01:00:00"
+                else:
+                    candidate["calls"]["critical-call"]["receipt_ref"]["sha256"] = "0" * 64
+                self.assertFalse(self.scoped_assessment(fresh, fresh_packet, newest, candidate)["dependency_release"])
+
+    def test_scoped_critical_review_reuses_actual_receipt_after_independent_edit(self):
+        original, _, reference, ledger = self.scoped_fixture()
+        (self.root / "later.txt").write_text("unrelated next task\n")
+        current, packet = self.snapshot(name="current-critical")
+        self.assertFalse(self.scoped_assessment(current, packet, reference, ledger, environment=False)["dependency_release"])
+        result = self.scoped_assessment(current, packet, reference, ledger)
+        self.assertTrue(result["dependency_release"], result)
+        self.assertFalse(result["feature_accepted"])
+        self.assertFalse((current.parent / "review.json").exists())
+        self.assertFalse(feature.assess_feature(self.policy_path, current, self.base,
+                                                ledger["calls"]["critical-call"], self.root, ledger)["final_review_ready"])
+        with self.assertRaisesRegex(ValueError, "stale"):
+            evidence.current_snapshot(original)
+
+    def test_scoped_critical_review_invalidates_dependency_config_absent_and_mode_changes(self):
+        _, _, reference, ledger = self.scoped_fixture()
+        for name in ("app.txt", "config.txt", "future.txt", "unknown.txt"):
+            with self.subTest(name=name):
+                path = self.root / name
+                original = path.read_bytes() if path.exists() else None
+                path.write_text("dependency changed\n")
+                current, packet = self.snapshot(name="changed-" + name)
+                result = self.scoped_assessment(current, packet, reference, ledger)
+                self.assertFalse(result["dependency_release"], result)
+                if original is None:
+                    path.unlink()
+                else:
+                    path.write_bytes(original)
+        path = self.root / "app.txt"
+        path.chmod(path.stat().st_mode | 0o100)
+        current, packet = self.snapshot(name="changed-mode")
+        self.assertFalse(self.scoped_assessment(current, packet, reference, ledger)["dependency_release"])
+
+    def test_scoped_critical_review_rejects_receipt_tamper_pending_and_shared_context(self):
+        current, packet, reference, ledger = self.scoped_fixture()
+        for kind in ("pending", "context", "checksum", "missing", "wrong-call"):
+            candidate, ref = copy.deepcopy(ledger), copy.deepcopy(reference)
+            with self.subTest(kind=kind):
+                if kind == "pending":
+                    candidate["calls"]["other"] = {"status": "pending"}
+                elif kind == "context":
+                    candidate["contexts"]["writer"] = "critical-context"
+                elif kind == "checksum":
+                    candidate["calls"]["critical-call"]["receipt_ref"]["sha256"] = "0" * 64
+                elif kind == "missing":
+                    candidate["calls"]["critical-call"].pop("receipt_ref")
+                else:
+                    ref["call_id"] = "missing"
+                self.assertFalse(self.scoped_assessment(current, packet, ref, candidate)["dependency_release"])
+        self.assertFalse(self.task_assessment(current, packet)["dependency_release"])
+
+    def test_scoped_critical_review_rejects_changed_environment_contract_and_index(self):
+        _, _, reference, ledger = self.scoped_fixture()
+        for kind in ("environment", "contract", "index", "base"):
+            with self.subTest(kind=kind):
+                original_plan = copy.deepcopy(self.plan)
+                contract = (self.root / "T1.md").read_bytes()
+                if kind == "environment":
+                    self.plan["requirements"]["context"]["runtime"] = "changed"
+                    self.save_policy()
+                elif kind == "contract":
+                    (self.root / "T1.md").write_bytes(contract + b"Changed acceptance.\n")
+                elif kind == "index":
+                    self.git("add", "later.txt")
+                else:
+                    self.git("commit", "--allow-empty", "-qm", "New base")
+                    self.base = self.git("rev-parse", "HEAD").strip()
+                current, packet = self.snapshot(name="changed-" + kind)
+                self.assertFalse(self.scoped_assessment(current, packet, reference, ledger)["dependency_release"])
+                self.plan = original_plan
+                self.save_policy()
+                (self.root / "T1.md").write_bytes(contract)
+                if kind == "index":
+                    self.git("reset", "-q", "HEAD", "later.txt")
+
+    def test_scoped_policy_rejects_unknown_closure_overlap_globs_and_missing_check_inputs(self):
+        self.scoped_fixture()
+        before = copy.deepcopy(self.policy)
+        for kind in ("incomplete", "overlap", "ownership", "glob", "check"):
+            self.policy = copy.deepcopy(before)
+            scope = self.policy["tasks"]["T1"]["reuse_scope"]
+            with self.subTest(kind=kind):
+                if kind == "incomplete":
+                    scope["complete"] = False
+                elif kind == "overlap":
+                    scope["independent_paths"] = ["config.txt"]
+                elif kind == "ownership":
+                    scope["inputs"] = ["config.txt"]
+                    scope["independent_paths"] = ["app.txt"]
+                elif kind == "glob":
+                    scope["independent_paths"] = ["*.txt"]
+                else:
+                    self.check.pop("inputs")
+                self.save_policy()
+                with self.assertRaises(ValueError):
+                    feature.validate_policy(self.policy_path, self.root)
+        self.check["inputs"] = ["app.txt"]
+
+    def test_scoped_review_requires_original_scope_acknowledgement(self):
+        self.scoped_fixture()
+        snapshot, packet = self.snapshot(name="missing-approval")
+        result = {"snapshot_sha256": evidence.file_hash(snapshot), "coverage": [
+            {"path": name, "outcome": "reviewed", "reason": "Reviewed."}
+            for name in evidence.response_contract(snapshot)["coverage_paths"]],
+            "findings": [], "evidence_packet": evidence.evidence_link(packet), "summary": "Ready."}
+        with self.assertRaisesRegex(ValueError, "fields"):
+            evidence.record_review(snapshot, result, {"success": True, "agent_message": json.dumps(result)})
+
+    def test_scoped_inputs_cannot_hide_ignored_or_artifact_dependencies(self):
+        self.scoped_fixture()
+        (self.root / ".gitignore").write_text("hidden.txt\n")
+        (self.root / "hidden.txt").write_text("secret dependency\n")
+        self.policy["tasks"]["T1"]["reuse_scope"]["inputs"].append("hidden.txt")
+        self.save_policy()
+        with self.assertRaisesRegex(ValueError, "outside captured source"):
+            self.snapshot(name="ignored-input")
 
     def test_focused_capture_releases_dependency_without_feature_acceptance(self):
         snapshot, packet = self.snapshot()

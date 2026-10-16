@@ -83,6 +83,7 @@ jobs:
         run: |
           python3 skills/shared/tests/test_review_evidence.py
           python3 skills/shared/tests/test_feature_review.py
+          python3 skills/shared/tests/test_feature_refresh.py
       - name: Review finding integrity
         run: python3 skills/engineering/review/full-review/tests/test_findings_mechanics.py
       - name: Architecture review contract, measurements and renderer

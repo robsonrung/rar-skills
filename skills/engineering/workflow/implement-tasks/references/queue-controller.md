@@ -66,6 +66,12 @@ Keep provisional tasks active in the sidebar until that gate returns ready.
 The feature helper validates focused captures and required critical task reviews;
 a task success label cannot release a dependency.
 
+After integration changes, use the batch evidence refresh protocol in
+`shared/references/feature-review.md`. Its proposed patch preserves original
+critical review dispatches and requires current focused evidence. Apply only a
+complete patch through the helper's guarded `--apply-result` command, then
+project readiness again. Refresh does not promote tasks to final acceptance.
+
 The integration evidence and carry forward protocols below describe legacy task
 mode. Feature mode uses the bound policy's provisional and final assessments.
 

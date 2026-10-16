@@ -1143,7 +1143,7 @@ class TaskQueueTests(unittest.TestCase):
         self.assertEqual(before, self.inventory(bundle))
 
 
-    def feature_fixture(self, task_ids=("T1", "T2", "T3"), critical=()):
+    def feature_fixture(self, task_ids=("T1", "T2", "T3"), critical=(), scoped=()):
         config = self.queue_config(list(task_ids), dependencies={task_ids[index]: [task_ids[index - 1]]
                                   for index in range(1, len(task_ids))},
                                   concurrency={"max_active": 1, "isolation": "working-tree"})
@@ -1173,6 +1173,11 @@ class TaskQueueTests(unittest.TestCase):
                   "check_plan": "checks.json", "tasks": {key: {"contract": f"tasks/{key}-example.md",
                   "review": "critical" if key in critical else "deferred", "reason": "Explicit fixture classification",
                   "focused_checks": ["focused"]} for key in task_ids}, "final_review": {"scope": "feature.md", "route": final}}
+        for task_id in scoped:
+            policy["tasks"][task_id]["reuse_scope"] = {"inputs": ["app.txt"],
+                "independent_paths": ["later.txt"], "complete": True, "reason": "The later file has no dependency connection."}
+        if scoped:
+            (self.root / "later.txt").write_text("unrelated before\n")
         (self.root / "policy.json").write_text(json.dumps(policy))
         plan["review_policy"] = "policy.json"
         for name in ("policy.json", "checks.json", "feature.md"):
@@ -1286,6 +1291,80 @@ class TaskQueueTests(unittest.TestCase):
         self.assertEqual(result["implemented"], [])
         self.assertEqual(result["ready"], [])
         self.assertTrue(result["required_integration"])
+
+    def test_scoped_critical_queue_releases_after_refresh_but_never_accepts_feature(self):
+        config, plan, ledger = self.feature_fixture(("T1", "T2"), critical=("T1",), scoped=("T1",))
+        self.feature_implementation("T1", plan)
+        original = self.feature_capture("T1", ledger)
+        state = json.loads(ledger.read_text())
+        response_contract = review_evidence.response_contract(original)
+        response = {"snapshot_sha256": response_contract["snapshot_sha256"],
+                    "scope_approval": response_contract["scope_approval"],
+                    "coverage": [{"path": name, "outcome": "reviewed", "reason": "Reviewed dependency closure."}
+                                 for name in response_contract["coverage_paths"]], "findings": [],
+                    "evidence_packet": state["integration_evidence"]["T1"]["evidence_packet"], "summary": "Critical contract passes."}
+        route = next(row for row in json.loads(plan.read_text())["routes"]
+                     if row["task_id"] == "T1" and row["role"] == "reviewer")
+        brief = self.artifacts / "critical-review.md"
+        brief.write_text("Review the critical contract and approve its dependency scope.\n")
+        receipt = {"success": True, "call_id": "critical-review", "input_revision": queue.file_sha256(brief),
+                   "configured_model": route["model"], "configured_effort": route["effort"],
+                   "effective_runner": route["runner"], "effective_model": route["model"], "effective_effort": route["effort"],
+                   "session_id": "independent-critical-review", "model_receipt": {"status": "verified", "source": "provider_event",
+                   "observed_model": route["model"]}, "agent_message": json.dumps(response)}
+        receipt_path = self.artifacts / "critical-receipt.json"
+        receipt_path.write_text(json.dumps(receipt))
+        review_evidence.record_review(original, response, receipt)
+        call = {"status": "completed", "review_status": "ready", "intent": {"route": route,
+                "input": review_evidence.evidence_link(brief), "review_snapshot": review_evidence.evidence_link(original)},
+                "receipt_ref": review_evidence.evidence_link(receipt_path),
+                "review": review_evidence.evidence_link(original.parent / "review.json")}
+        state["call_ledger"]["calls"]["critical-review"] = call
+        state["call_ledger"]["contexts"] = {route["id"]: "independent-critical-review"}
+        state["attempts"] = {"total_role_calls": 1, route["id"]: 1}
+        reference = {"snapshot": review_evidence.evidence_link(original), "call_id": "critical-review"}
+        state["integration_evidence"]["T1"]["critical_review"] = reference
+        ledger.write_text(json.dumps(state))
+        result = queue.schedule(config, plan, ledger, self.root)
+        self.assertEqual(result["implemented"], ["T1"], result)
+        (self.root / "later.txt").write_text("independent next task\n")
+        self.assertEqual(queue.schedule(config, plan, ledger, self.root)["implemented"], [])
+        current = self.feature_capture("T1", ledger)
+        capture = self.artifacts / "environment.txt"
+        capture.write_text("Fixture environment and base interactions are unchanged.\n")
+        environment = {"from_snapshot_sha256": reference["snapshot"]["sha256"],
+                       "to_source_id": review_evidence.snapshot_record(current)["source_id"],
+                       **{key: {"reason": "The fixture environment is unchanged.",
+                                "evidence": [review_evidence.evidence_link(capture)]}
+                          for key in ("runtime", "dependencies", "external_state", "base_interactions")}}
+        environment_path = self.artifacts / "environment.json"
+        environment_path.write_text(json.dumps(environment))
+        reference["assessment"] = review_evidence.evidence_link(environment_path)
+        state = json.loads(ledger.read_text())
+        state["integration_evidence"]["T1"]["critical_review"] = reference
+        ledger.write_text(json.dumps(state))
+        result = queue.schedule(config, plan, ledger, self.root)
+        self.assertEqual(result["implemented"], ["T1"], result)
+        self.assertEqual(result["integrated"], [])
+        self.assertEqual([row["id"] for row in result["ready"]], ["T2"])
+        (self.root / "app.txt").write_text("baseline\ncritical dependency changed\n")
+        current = self.feature_capture("T1", ledger)
+        capture = self.artifacts / "environment.txt"
+        capture.write_text("Fixture environment and base interactions are unchanged.\n")
+        environment = {"from_snapshot_sha256": reference["snapshot"]["sha256"],
+                       "to_source_id": review_evidence.snapshot_record(current)["source_id"],
+                       **{key: {"reason": "The fixture environment is unchanged.",
+                                "evidence": [review_evidence.evidence_link(capture)]}
+                          for key in ("runtime", "dependencies", "external_state", "base_interactions")}}
+        environment_path = self.artifacts / "environment.json"
+        environment_path.write_text(json.dumps(environment))
+        reference["assessment"] = review_evidence.evidence_link(environment_path)
+        state = json.loads(ledger.read_text())
+        state["integration_evidence"]["T1"]["critical_review"] = reference
+        ledger.write_text(json.dumps(state))
+        result = queue.schedule(config, plan, ledger, self.root)
+        self.assertEqual(result["implemented"], [], result)
+        self.assertEqual(result["ready"], [], result)
 
     def test_feature_queue_and_plan_must_select_the_same_bound_policy(self):
         config, plan, ledger = self.feature_fixture(("T1",))

@@ -55,6 +55,13 @@ this field in full, recheck, and addendum responses for such snapshots; omit it
 otherwise. A digest is an explicit review judgment, not a value to copy without
 assessment. Report an unsupported scope as a blocker to the coordinator.
 
+When requirements instead declare `critical_scope`, assess the complete dependency
+closure and independence of every allowed path. Return its `scope_approval` digest
+only if later edits to those paths cannot affect this acceptance contract. Follow
+[scoped critical review reuse](feature-review.md#scoped-critical-review-reuse).
+This conditional approval releases dependencies only; final feature review remains
+required. Include it in full, recheck, and addendum responses for these snapshots.
+
 ## Evidence packet substitution
 
 A complete prepared packet can replace both `checks` and `observations` with
