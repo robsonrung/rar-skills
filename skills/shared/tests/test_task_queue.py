@@ -20,9 +20,10 @@ SCRIPTS = SHARED / "scripts"
 sys.path.insert(0, str(SCRIPTS))
 import review_evidence
 import task_queue as queue
+from skill_paths import skill_dir
 
 
-LAUNCH_PATH = SHARED.parent / "engineering" / "engine" / "implement-and-review" / "scripts" / "launch.py"
+LAUNCH_PATH = skill_dir("implement-and-review", root=SHARED.parent) / "scripts" / "launch.py"
 LAUNCH_SPEC = importlib.util.spec_from_file_location("task_queue_test_launcher", LAUNCH_PATH)
 assert LAUNCH_SPEC and LAUNCH_SPEC.loader
 launcher = importlib.util.module_from_spec(LAUNCH_SPEC)
@@ -1124,7 +1125,7 @@ class TaskQueueTests(unittest.TestCase):
         ledger = self.ledger(plan)
         bundle = Path(self.temporary.name) / "flat-skills"
         shutil.copytree(SHARED, bundle / "shared")
-        shutil.copytree(SHARED.parent / "engineering" / "engine" / "implement-and-review", bundle / "implement-and-review")
+        shutil.copytree(skill_dir("implement-and-review", root=SHARED.parent), bundle / "implement-and-review")
         script = bundle / "shared" / "scripts" / "task_queue.py"
         before = self.inventory(bundle)
         commands = [

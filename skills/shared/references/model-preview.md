@@ -27,6 +27,12 @@ they do not re-resolve preferences, ask another model question, or add workers.
 
 1. Identify the actual current coordinator model and exposed effort. A preview
    cannot change it. Report unavailable identity or usage fields as unknown.
+   For a future implementation plan, resolve the central `coordinator` route
+   with the task batch described in [task-shaped-model-routing.md](task-shaped-model-routing.md#future-task-plans).
+   Show selected future and actual current coordinator values separately.
+   A mismatch or unknown identity requires host selection before future startup;
+   the current session can finish preparing the plan. A profile does not switch
+   the current model.
 2. Select only the workers needed by the chosen branch. Include independent
    review and any material specialist the branch requires. Do not create a
    worker merely to fill a preview row.
@@ -47,7 +53,9 @@ they do not re-resolve preferences, ask another model question, or add workers.
    A validated local `route_overrides` entry applies its per-route seat and
    effort changes here, at preview time only; it never changes an approved
    route.
-4. Apply the route's risk conditions. Preserve strong planning, invariant,
+4. Apply the route's risk conditions to each task and record its risk evidence.
+   A feature's sensitive task does not promote independent bounded tasks.
+   Preserve strong planning, invariant,
    integration design, and risk review roles. A routine author implements
    settled cases; it cannot decide unresolved product policy. Resolve exact
    overrides before dispatch, without changing central defaults.
@@ -76,6 +84,12 @@ provider. For OpenRouter routes, show the selected `provider_routing` policy:
 `require_parameters: true`, plus `only` and `allow_fallbacks` when selected.
 An inference provider preference is not an allowlist. Unknown account guardrails
 stay unknown. These controls do not establish a browser service's privacy policy.
+
+For new implementation plans, include the bound usage policy described in
+[usage-accounting.md](usage-accounting.md). Show observed coordinator and worker
+usage, remaining limits, unknown fields, and subscription observations separately
+from running worker caps. Host observations support the next dispatch decision;
+they do not prove that a running worker is capped.
 
 Show only the routes needed for the current request, including on the first
 invocation. If the user names exact models and efforts, resolve those choices

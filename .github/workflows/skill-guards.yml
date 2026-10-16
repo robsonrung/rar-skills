@@ -50,10 +50,13 @@ jobs:
       - name: Approved implementation dispatch
         run: python3 skills/engineering/engine/implement-and-review/tests/test_launch.py
       - name: Canonical task queue and readiness projection
-        run: python3 skills/shared/tests/test_task_queue.py
+        run: |
+          python3 skills/shared/tests/test_task_queue.py
+          python3 skills/shared/tests/test_workflow_controller.py
       - name: Persistent call ledger and context packets
         run: |
           python3 skills/shared/tests/test_run_state.py
+          python3 skills/shared/tests/test_usage_accounting.py
           python3 skills/shared/tests/test_workflow_comparison.py
           python3 skills/shared/tests/test_workflow_capture.py
           python3 skills/engineering/seats/pi-runner/tests/test_usage_totals.py

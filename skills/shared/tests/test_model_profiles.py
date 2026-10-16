@@ -7,6 +7,7 @@ import copy
 import json
 import subprocess
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 from unittest import mock
@@ -256,6 +257,88 @@ class ModelProfileTests(unittest.TestCase):
         for kwargs in cases:
             with self.subTest(kwargs=kwargs), self.assertRaises(ValueError):
                 self.resolve("routine-implementation", **kwargs)
+
+    def batch_tasks(self):
+        return [
+            {"task_id": "T2", "route": "routine-implementation", "risk": "high",
+             "risk_reason": "Changes authorization checks on a public endpoint."},
+            {"task_id": "T1", "route": "routine-implementation", "risk": "normal",
+             "risk_reason": "Formats settled fields with existing acceptance checks."},
+        ]
+
+    def test_batch_routes_each_task_without_feature_wide_promotion(self):
+        before = copy.deepcopy(self.config)
+        result = routing.resolve_task_batch(self.batch_tasks(), config=self.config)
+        normal, sensitive = result["tasks"]
+        self.assertEqual([row["task_id"] for row in result["tasks"]], ["T1", "T2"])
+        self.assertEqual(normal["route"], "routine-implementation")
+        self.assertEqual(normal["roles"]["implementer"]["seat"], "glm")
+        self.assertEqual(sensitive["route"], "sensitive-implementation")
+        self.assertEqual(sensitive["roles"]["implementer"]["seat"], "astra")
+        self.assertEqual(sensitive["roles"]["reviewer"]["seat"], "opus")
+        self.assertEqual(result, routing.resolve_task_batch(list(reversed(self.batch_tasks())), config=self.config))
+        self.assertEqual(self.config, before)
+
+    def test_batch_coordinator_reports_current_observation_and_future_readiness(self):
+        for model, effort, status in ((None, None, "unknown"), ("gpt-6.1-sol", None, "unknown"),
+                                      ("gpt-6-astra", "high", "mismatch"), (None, "high", "mismatch"),
+                                      ("gpt-6.1-sol", "medium", "match")):
+            with self.subTest(model=model, effort=effort):
+                row = routing.resolve_task_batch(self.batch_tasks(), coordinator_model=model,
+                                                coordinator_effort=effort, config=self.config)["coordinator"]
+                self.assertEqual(row["status"], status)
+                self.assertEqual(row["future_start_ready"], status == "match")
+                self.assertEqual(row["host_selection_required"], status != "match")
+                self.assertFalse(row["current_session_changed"])
+                target = row["selection"]["roles"]["coordinator"]
+                self.assertEqual((target["seat"], target["effort"]), ("sol", "medium"))
+
+    def test_batch_requires_explicit_risk_evidence_and_refuses_role_downgrades(self):
+        invalid = [[], [self.batch_tasks()[0]] * 2]
+        for field, value in (("risk_reason", ""), ("risk", ""), ("route", "coordinator"),
+                             ("role_overrides", {"implementer": {"seat": "glm"}})):
+            task = copy.deepcopy(self.batch_tasks()[0])
+            task[field] = value
+            invalid.append([task])
+        task = copy.deepcopy(self.batch_tasks()[0])
+        del task["risk"]
+        invalid.append([task])
+        for tasks in invalid:
+            with self.subTest(tasks=tasks), self.assertRaises(ValueError):
+                routing.resolve_task_batch(tasks, config=self.config)
+
+    def test_batch_uses_canonical_queue_ids_and_numeric_order(self):
+        tasks = self.batch_tasks()
+        tenth = copy.deepcopy(tasks[0])
+        tenth["task_id"] = "T10"
+        result = routing.resolve_task_batch([tenth, *tasks], config=self.config)
+        self.assertEqual([row["task_id"] for row in result["tasks"]], ["T1", "T2", "T10"])
+        for task_id in ("", " ", " T1", "T1 ", "T1\n", "T0", "T01", "t1", "task1", "T1a", 1, None):
+            task = copy.deepcopy(tasks[0])
+            task["task_id"] = task_id
+            with self.subTest(task_id=task_id), self.assertRaisesRegex(ValueError, "canonical"):
+                routing.resolve_task_batch([task], config=self.config)
+
+    def test_batch_cli_uses_profiles_and_handles_invalid_files_without_dispatch(self):
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / "tasks.json"
+            path.write_text(json.dumps({"tasks": self.batch_tasks()}))
+            command = [sys.executable, str(SHARED / "scripts/model_routing.py"), "resolve-batch", "--tasks", str(path)]
+            result = subprocess.run([*command, "--profile", "balanced", "--local-profile", "economy"], capture_output=True, text=True)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            output = json.loads(result.stdout)
+            self.assertEqual(output["profile"], "balanced")
+            self.assertFalse(output["coordinator"]["future_start_ready"])
+            self.assertEqual(output["tasks"][0]["roles"]["implementer"]["seat"], "terra")
+            for content in ('{"tasks": [], "tasks": []}', '{"tasks": []}', '{"unexpected": []}'):
+                path.write_text(content)
+                result = subprocess.run(command, capture_output=True, text=True)
+                self.assertEqual(result.returncode, 2)
+                self.assertIn("Model routing error:", result.stderr)
+            path.unlink()
+            result = subprocess.run(command, capture_output=True, text=True)
+            self.assertEqual(result.returncode, 2)
+            self.assertNotIn("Traceback", result.stderr)
 
     def test_cli_overrides_runtime_effort_and_rejects_ambiguous_choices(self):
         result = self.cli("validation-browser", "--profile", "economy", "--role", "worker=mistral-small:runtime")

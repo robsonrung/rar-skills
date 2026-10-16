@@ -28,9 +28,14 @@ with task approval; it does not need a second model question.
    Read exact seats and alternates from the configuration. First-pass diagnosis
    is bounded: an unresolved causal chain can justify a proposed `deep-analysis`
    or `difficult-implementation` route within the caller's change procedure.
-3. Apply `policy.high_risk_triggers` before editing. Resolve with `--risk high`
-   when a trigger applies. A strong lead must settle requirements, interfaces,
-   invariants, and critical acceptance cases before routine parts are delegated.
+3. Apply `policy.high_risk_triggers` to each task before editing. Record its risk
+   level and evidence in `risk_reason`: affected behavior, invariants, and relevant
+   acceptance checks. Resolve with `--risk high` when that task meets a trigger.
+   One sensitive task does not promote every task in the feature. A task that
+   shares the sensitive invariant remains high risk until its boundary is settled.
+   A strong lead must settle requirements, interfaces, invariants, and critical
+   acceptance cases before routine parts are delegated. Keep sensitive planning,
+   implementation, and independent review on their selected strong routes.
 4. Validate native or adapter support. Copy the exact selections and source
    digest into the proposed run plan. An alternate, a specialist, or a second
    review is a separate planned role, not an implicit extra call.
@@ -48,6 +53,39 @@ Check a seat's `effort_scaling` field before raising effort: `flat` and
 `flat-above-high` seats gain little above their routed level, and
 `non-monotonic` seats can regress; only `monotonic` seats justify routine
 escalation, and only with a recorded gap.
+
+## Future task plans
+
+Use `model_routing.py resolve-batch --tasks <task-risk.json> --profile default`
+to resolve a future queue in one deterministic pass. Add a validated
+`--local-profile` or an explicit profile as needed. Each input row has exactly
+`task_id`, `route`, `risk`, and `risk_reason`. Task IDs use the queue's canonical
+`T1`, `T2`, ... format. The helper sorts task numbers numerically,
+requires an explicit risk decision for every task, and accepts no role overrides.
+It applies each task's risk route independently and retains deterministic command
+work without a model worker. An explicit role change uses the existing single
+route preview and the caller's selection rules; it cannot be hidden in a batch.
+
+```json
+{"tasks": [
+  {"task_id": "T1", "route": "routine-implementation", "risk": "normal", "risk_reason": "Formats settled fields; existing checks cover the result."},
+  {"task_id": "T2", "route": "routine-implementation", "risk": "high", "risk_reason": "Changes endpoint authorization; review must cover denied access."}
+]}
+```
+
+The batch also resolves the central `coordinator` route for future startup.
+Pass `--coordinator-model <observed-model>` and `--coordinator-effort
+<observed-effort>` only when the host exposes those facts. Its coordinator result
+reports `match`, `mismatch`, or `unknown`. A mismatch or unknown value sets
+`future_start_ready: false` and requires host selection before the future
+coordinator starts. Plan preparation can continue in the current session.
+A matching identity does not replace capability, authority, or usage checks.
+The helper starts no model and never changes the current session.
+
+Bind the task risk input and resolved preview as immutable `scope.inputs` for a
+new plan. Keep the coordinator in this preview input, separate from executable
+worker route rows. Existing approved snapshots, plan schema, and route digest
+rules remain unchanged. On resume, consume the saved exact routes.
 
 ## Review and verification
 

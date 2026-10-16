@@ -2165,6 +2165,40 @@
         }
       },
       "evidence": "validate-e2e/references/model-research.md, checked 2026-09-19; task-fit judgment, not local measured equivalence."
+    },
+    "coordinator": {
+      "purpose": "Coordinate a future approved plan, task scheduling, evidence, and integration.",
+      "conditions": [
+        "Coordination only. Sensitive requirements, invariants, planning, and review use their own selected strong roles.",
+        "A preview cannot change the current session model. Select the exact route in the host before future coordinator startup."
+      ],
+      "risk_route": "coordinator",
+      "families": {
+        "gpt": {
+          "coordinator": {
+            "seat": "sol",
+            "effort": "medium"
+          }
+        },
+        "claude": {
+          "coordinator": {
+            "seat": "sonnet",
+            "effort": "high"
+          }
+        },
+        "economy": {
+          "coordinator": {
+            "seat": "sol",
+            "effort": "medium"
+          }
+        },
+        "saver": {
+          "coordinator": {
+            "seat": "sol",
+            "effort": "medium"
+          }
+        }
+      }
     }
   },
   "council_policy": {

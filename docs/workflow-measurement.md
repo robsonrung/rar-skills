@@ -96,6 +96,30 @@ observable behavior, including failure and repair, and do not compare instructio
 wording. Identity mismatch blocks deltas. Missing usage remains visible through
 unknown-call counts.
 
+## Future plan controls
+
+New future implementation plans use the existing measurement records with
+[usage accounting](../skills/shared/references/usage-accounting.md) and the
+[workflow controller](../skills/shared/references/workflow-controller.md).
+The approved scope binds a usage policy input. Ledger initialization attaches
+that policy through `--usage-policy`; it does not change old plan schemas or
+saved route digests. The controller prepares action checkpoints and applies
+captured adapter events once. It makes no provider calls.
+
+The [batch route preview](../skills/shared/references/task-shaped-model-routing.md#future-task-plans)
+records each task's risk evidence and the selected future coordinator. Independent
+bounded tasks keep their selected saver routes. Sensitive work keeps strong
+planning and independent review. The current model is an observed host fact;
+a future selection in a profile cannot switch it. A mismatch or unknown identity
+requires host selection before future startup and does not prevent preparation.
+
+Coordinator, worker, failed call, repair, and review usage count toward observed
+totals. Unknown fields remain unknown. Missing data for a limited or required
+metric blocks future dispatch under the bound policy. Subscription observations
+are scoped and dated facts. They are separate from caps that the host can enforce
+on running workers. This is a structural workflow change. It establishes no
+measured runtime savings.
+
 ## Limits
 
 A runtime performance claim still needs bounded, repeated comparisons across a

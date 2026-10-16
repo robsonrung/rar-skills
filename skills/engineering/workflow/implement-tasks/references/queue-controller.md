@@ -2,6 +2,12 @@
 
 Use `shared/scripts/task_queue.py` to inspect canonical task inputs and project readiness. Resolve `shared/` from the loaded collection. The controller reads contracts, approved routing scope, task launch manifests, the call ledger, and structured integration evidence. It writes no state, starts no worker, and runs no acceptance command.
 
+For action checkpoints and event recovery, use
+`shared/references/workflow-controller.md`. That controller consumes this readiness
+projection and the bound usage policy described in
+`shared/references/usage-accounting.md`. It keeps scheduling state in its existing
+checkpoint contract; task manifests and the ledger retain execution authority.
+
 ```bash
 SHARED_DIR="<absolute path of the loaded shared skill>";
 python3 "$SHARED_DIR/scripts/task_queue.py" --help

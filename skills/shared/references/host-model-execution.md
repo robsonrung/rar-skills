@@ -10,8 +10,14 @@ only when preparing a new selection. Preserve **seat fidelity**:
 
 ## Choose the execution path
 
-1. Inspect the current host's exposed tools, model catalog, and restrictions. A profile changes worker selection, not the
-   current coordinator model.
+1. Inspect the current host's exposed tools, model catalog, and restrictions.
+   A profile resolves future coordinator and worker choices. It cannot change the
+   current coordinator model. For a future plan, compare the observed model and
+   effort with the central `coordinator` route through the batch preview in
+   [task-shaped-model-routing.md](task-shaped-model-routing.md#future-task-plans).
+   A mismatch or unknown identity requires selection in the host before future
+   startup. Continue plan preparation in the current session and disclose the
+   difference. Never treat a saved preview as evidence of a host model change.
    Confirm exact model selection, supported effort, role isolation, tool policy,
    result collection, and follow-up or resume support. Do not infer capabilities
    from the app name or the model running the coordinator.

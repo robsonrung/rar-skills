@@ -4,6 +4,16 @@ Use **the ledger, not the transcript**: record observed facts in the existing ru
 state at their boundary. Measurement records do not grant approval, certify
 acceptance, release tasks, or reset call ceilings.
 
+For dispatch limits and subscription observations, use
+[usage-accounting.md](usage-accounting.md). A new future implementation plan binds
+its usage policy as an approved scope input and initializes it with
+`run_state.py init --usage-policy`. Capture actual coordinator usage as well as
+worker usage. A missing value remains unknown and can block the next dispatch
+when the policy limits or requires that metric. Observation is separate from a
+cap that the host enforces on a running worker. Use
+[workflow-controller.md](workflow-controller.md) for action checkpoints and event
+recovery; capture remains the measurement API.
+
 ```bash
 python3 <shared-dir>/scripts/run_state.py --state <run-state.json> capture --event <event.json>
 ```
