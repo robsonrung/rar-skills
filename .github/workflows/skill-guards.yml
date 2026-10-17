@@ -77,6 +77,7 @@ jobs:
         run: |
           python3 skills/engineering/seats/codex-runner/tests/test_run_codex.py
           python3 skills/engineering/seats/gemini-runner/tests/test_run_gemini.py
+          python3 skills/engineering/seats/muse-runner/tests/test_run_muse.py
           python3 skills/shared/tests/test_output_contract.py
       - name: Peer fleet lifecycle
         run: python3 skills/extras/peer-sessions/tests/test_cmux_fleet.py

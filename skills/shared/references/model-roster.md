@@ -36,6 +36,13 @@ regardless of its cost or quality position. Seats served through the Pi
 gateway carry their per-seat `privacy` evidence; natively served seats meet
 the rule through their provider's own data policy.
 
+Muse Wonder Full has account scoped admission based on the user confirmation
+of subscription ZDR dated 16 October 2026. Its `privacy.evidence_type` is
+`user_confirmed`, with `independently_verified: false`. This record covers the
+current user subscription only. It does not establish coverage for other accounts
+or change the ZDR requirement for any seat. It is an optional implementer with a
+required serving receipt; the selected profile supplies the independent reviewer.
+
 ## Effort scaling
 
 `effort_scaling` is an optional per-seat field recording how observed quality

@@ -1,0 +1,129 @@
+{
+  "checked_on": "2026-10-15",
+  "test": "Order preserving deduplication of hashable values",
+  "cli_version": "Muse Code 1.4.7 (1.4.7-R6101.1)",
+  "requested_model": "muse-wonder-full-1.0",
+  "effort": "high",
+  "provider": "meta",
+  "contributor_mode": "off",
+  "mode": "read only, no tools used",
+  "elapsed_seconds": 22.36,
+  "model_requests_observed": 1,
+  "run_completed": true,
+  "answer": {
+    "code": "def unique(values):\n    return list(dict.fromkeys(values))",
+    "result": [
+      3,
+      1,
+      2
+    ]
+  },
+  "behavior_checks": {
+    "passed": true,
+    "case_count": 5,
+    "cases": [
+      {
+        "input": [],
+        "expected": []
+      },
+      {
+        "input": [
+          3,
+          1,
+          3,
+          2,
+          1
+        ],
+        "expected": [
+          3,
+          1,
+          2
+        ]
+      },
+      {
+        "input": [
+          "b",
+          "a",
+          "b"
+        ],
+        "expected": [
+          "b",
+          "a"
+        ]
+      },
+      {
+        "input": [
+          null,
+          null,
+          1
+        ],
+        "expected": [
+          null,
+          1
+        ]
+      },
+      {
+        "input": [
+          [
+            1,
+            2
+          ],
+          [
+            1,
+            2
+          ],
+          [
+            2,
+            3
+          ]
+        ],
+        "expected": [
+          [
+            1,
+            2
+          ],
+          [
+            2,
+            3
+          ]
+        ]
+      }
+    ]
+  },
+  "serving_model_evidence": [
+    {
+      "session_id": "01a14131-6425-74d0-b8fb-07978429985c",
+      "command_id": "a358b75c-50be-4037-94b9-2c22d1d92a9c",
+      "task_id": "018f0000-0000-7000-8000-000000002710",
+      "payload_type": "task.lifecycle.status",
+      "phase": "stream_succeeded",
+      "provider_detail": {
+        "kind": "provider",
+        "provider": "meta",
+        "request_id": "8333e33b-089d-4bc2-8feb-8c25a2246e02",
+        "response_id": "resp_6ad133a10d377725d02849b7",
+        "model": "muse-wonder-full-1.0",
+        "stream": {
+          "bytes_read": 159140,
+          "wire_events_seen": 14,
+          "last_wire_event_type": "response.completed",
+          "eof": false,
+          "eof_buffer_len": 0,
+          "time_to_first_event_ms": 8,
+          "bytes_before_first_event": 0
+        }
+      }
+    }
+  ],
+  "original_wrapper_receipt": {
+    "status": "unverified",
+    "source": "configured_model",
+    "observed_model": null
+  },
+  "event_stream_sha256": "bda606e3a405bc39bf5b7c350d6b013a2e577c203df60885cc5c68caee8227f6",
+  "limits": [
+    "Serving identity is reported by the native runtime provider completion event.",
+    "This small task does not test tool execution, repository work, or general quality.",
+    "Subscription zero data retention remains unverified."
+  ]
+}

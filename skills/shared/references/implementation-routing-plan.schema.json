@@ -104,7 +104,8 @@
         "claude",
         "pi",
         "grok",
-        "gemini"
+        "gemini",
+        "muse"
       ]
     },
     "effort": {
@@ -457,6 +458,10 @@
         },
         "required_capabilities": {
           "$ref": "#/definitions/required_capabilities"
+        },
+        "privacy_evidence": {
+          "type": "object",
+          "description": "Account scoped subscription coverage confirmed by the user; copied from the selected seat."
         }
       },
       "allOf": [

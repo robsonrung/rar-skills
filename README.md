@@ -137,7 +137,7 @@ instructions in each `SKILL.md`. The shared library installs beside them.
 | Practice | `clean-code`, `diagnose`, `frontend-design`, `safe-incremental-coding`, `tdd`, `test-lens` |
 | Review | `architecture-review`, `code-deslop`, `coding-review-simplify`, `full-review` |
 | Delivery | `capture-learning`, `open-pr`, `resolve-pr-feedback`, `session-handoff`, `summarize` |
-| Model seats | `claude-runner`, `codex-runner`, `gemini-runner`, `grok-runner`, `pi-runner` |
+| Model seats | `claude-runner`, `codex-runner`, `gemini-runner`, `grok-runner`, `pi-runner`, `muse-runner` |
 | Independent utilities | `agents-md-craft`, `browser-smoke`, `cmux-cli`, `collaborative-delivery`, `decide-about-disagreements`, `diverse-plan`, `dynamic-harness`, `environment-check`, `fable-mindset`, `knowledge-graph`, `peer-sessions`, `response-unslop`, `review-gate`, `skill-expert`, `verify-changes` |
 | Visualizations | `consensus-summary-html`, `explain-architecture`, `html-explainer` |
 
@@ -181,6 +181,18 @@ python3 skills/shared/scripts/discover_runners.py probe
 Resolve model identifiers from the central configuration. A successful probe
 confirms a transport, not the model
 that later serves the request.
+
+[`muse-runner`](skills/engineering/seats/muse-runner/SKILL.md) provides the optional
+`muse-wonder-full` implementation worker. Select it with
+`python3 skills/shared/scripts/model_routing.py resolve routine-implementation --profile default --role implementer=muse-wonder-full:high`.
+The selected profile reviewer and current defaults stay unchanged. Subscription
+ZDR is recorded as user confirmed on 16 October 2026 for the current account,
+not independently verified or applicable to other accounts. Workflow dispatch
+requires the exact serving receipt, keeps Contributor mode off, and supports
+background jobs with sandboxed test commands. Persistent resume is unsupported.
+Check the local transport with
+`python3 skills/engineering/seats/muse-runner/scripts/run_muse.py --preflight --json`.
+The Pi Muse Spark seat stays separate.
 
 ## Documentation
 

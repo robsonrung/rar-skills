@@ -34,6 +34,15 @@ host capability list. `runner` remains the model-family adapter key for schema
 compatibility; a native route does not invoke its CLI. Legacy native rows with
 runner effort control can still be read, but they do not prove native capability.
 
+For optional Muse implementation, resolve the selected profile with
+`--role implementer=muse-wonder-full:high`. Keep its reviewer. Use `runner: muse`,
+`mode: runner`, `model_verification: required`, and `unavailable: {action: block}`.
+Copy `privacy_evidence` from that preview into the approved route. This is the
+current user's subscription confirmation, not independent vendor verification.
+The launcher starts a shared background job with file writes and sandboxed shell
+tests enabled. Exact session resume is unsupported. A fresh context requires the
+explicit recovery path and full approved task context; it is never a hidden retry.
+
 ## Launch implementation
 
 ```bash

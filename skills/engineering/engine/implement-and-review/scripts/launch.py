@@ -23,7 +23,7 @@ from typing import Any, NoReturn
 
 SKILL_ROOT = Path(__file__).resolve().parents[1]
 JOB_ID_RE = re.compile(r"\b([a-z]+-[0-9a-f]{8})\b")
-RUNNERS = {"codex", "claude", "pi", "grok", "gemini"}
+RUNNERS = {"codex", "claude", "pi", "grok", "gemini", "muse"}
 NATIVE_TRANSPORTS = {"subagent", "thread"}
 RUNNER_RESUME_FLAGS = {
     "codex": "--resume",
@@ -273,6 +273,13 @@ def validate_route(route: Any) -> dict[str, Any]:
         raise ValueError(f"route.mode must be runner or native, got {route['mode']!r}")
     if route["model_verification"] not in {"required", "allow_unverified"}:
         raise ValueError("route.model_verification must be required or allow_unverified")
+    if route["runner"] == "muse":
+        from model_routing import subscription_privacy
+        if (route["seat"] != "muse-wonder-full" or route["role"] != "implementer"
+                or route["mode"] != "runner" or route["model_verification"] != "required"
+                or route.get("unavailable") != {"action": "block"}
+                or route.get("privacy_evidence") != subscription_privacy(ROUTING_CONFIG)):
+            raise ValueError("Muse requires an implementation runner route, exact receipt, no fallback, and scoped subscription evidence")
     if "provider_routing" in route:
         from provider_routing import validate_provider_routing
         if route["runner"] != "pi" or route["mode"] != "runner":
@@ -549,6 +556,8 @@ def route_arguments(
 ) -> list[str]:
     from execution_provenance import capture
     metadata = {**metadata, "prompt_context": metadata.get("prompt_context", {}), "execution_provenance": capture([Path(__file__), runner_script(route["runner"]), SKILLS_DIR / "shared/scripts/runner_prompt.py", SKILLS_DIR / "shared/scripts/context_packet.py"])}
+    if route["runner"] == "muse":
+        metadata["privacy_evidence"] = route["privacy_evidence"]
     arguments = [
         "--prompt-file", str(brief),
         "--working-dir", str(working_dir),
@@ -584,6 +593,10 @@ def route_arguments(
                           "--browser-preflight", browser["preflight"]["path"]])
     else:
         arguments.append("--restrict-tools" if read_only else "--allow-write")
+        if route["runner"] == "muse" and not read_only:
+            arguments.append("--allow-shell")
+    if route["runner"] == "muse":
+        arguments.append("--require-model-receipt")
     return arguments
 
 
@@ -1575,6 +1588,11 @@ def jobs_query(subcommand: str, job_id: str, working_dir: str) -> dict[str, Any]
 
 
 def receipt_error(route: dict[str, Any], result: dict[str, Any]) -> str | None:
+    if route["runner"] == "muse":
+        if (result.get("privacy_status") != "user_confirmed"
+                or result.get("privacy_evidence") != route.get("privacy_evidence")
+                or result.get("contributor_mode") != "off"):
+            return "Muse result does not match the approved subscription evidence or contributor setting"
     if "provider_routing" in route:
         from provider_routing import provider_receipt_error
         policy_error = provider_receipt_error(route["provider_routing"], result)

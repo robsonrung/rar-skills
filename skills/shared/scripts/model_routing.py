@@ -277,6 +277,10 @@ def validate_config(config: Any) -> None:
     for seat, model in config["models"].items():
         if "default_effort" in model:
             validate_selection(model["runner"], model["model"], model["default_effort"], config)
+        if model["runner"] == "muse":
+            require(seat == "muse-wonder-full" and model.get("optional_roles") == ["implementer"]
+                    and model.get("model_verification") == "required", "Muse admission requires an optional implementer and exact receipt")
+            subscription_privacy(config)
         if "capabilities" in model:
             capabilities = model["capabilities"]
             require(isinstance(capabilities, dict) and all(key in {"tools", "images"} and isinstance(value, bool) for key, value in capabilities.items()), f"Invalid capabilities for {seat}")
@@ -408,12 +412,28 @@ def profile_role(selection: dict, provider_routing: dict, requirements: list[str
         privacy = entry.get("privacy", {})
         require(privacy.get("gateway") == provider_routing["gateway"] and privacy.get("zdr_available") is True, f"Seat {result['seat']} has no verified strict privacy route")
         result["provider_routing"] = copy.deepcopy(provider_routing)
+    if result["runner"] == "muse":
+        result.update(privacy_evidence=subscription_privacy(config), model_verification="required")
     result["effort_control"] = "runtime" if result["effort"] is None else "runner"
     if capabilities:
         result["capabilities"] = copy.deepcopy(capabilities)
     if required:
         result["required_capabilities"] = required
     return result
+
+
+def subscription_privacy(config: dict | None = None) -> dict:
+    """Return scoped user evidence without asserting independent verification."""
+    config = load_config() if config is None else config
+    privacy = config["models"]["muse-wonder-full"].get("privacy", {})
+    require(privacy.get("gateway") == "meta-subscription" and privacy.get("zdr_available") is True
+            and privacy.get("evidence_type") == "user_confirmed"
+            and privacy.get("scope") == "current_user_subscription"
+            and privacy.get("independently_verified") is False
+            and isinstance(privacy.get("confirmed_at"), str) and bool(privacy["confirmed_at"])
+            and isinstance(privacy.get("reference"), str) and bool(privacy["reference"]),
+            "Muse requires account scoped subscription ZDR confirmation from the user")
+    return copy.deepcopy(privacy)
 
 
 def override_selection(base: dict, override: dict, config: dict) -> dict:
@@ -462,6 +482,9 @@ def resolve_profile(name: str, profile: str | None = None, *, local_profile: str
                            policy["provider_routing"], requirements.get(role, []), config)
         for role, selection in result["roles"].items()
     }
+    for role, selected in result["roles"].items():
+        allowed = config["models"][selected["seat"]].get("optional_roles")
+        require(allowed is None or role in allowed, f"Seat {selected['seat']} is not admitted for role {role}")
     for left, right in (("implementer", "reviewer"), ("interviewer", "respondent")):
         if left in result["roles"] and right in result["roles"]:
             require(result["roles"][left]["model"] != result["roles"][right]["model"], "Independent roles must use distinct models")

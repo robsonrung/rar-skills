@@ -30,6 +30,43 @@ class ModelProfileTests(unittest.TestCase):
         return subprocess.run([sys.executable, str(SHARED / "scripts/model_routing.py"),
                                "resolve", *args], capture_output=True, text=True)
 
+    def test_muse_optional_implementer_preserves_profile_reviewer(self):
+        for profile in self.config["profiles"]:
+            before = self.resolve("routine-implementation", profile)
+            selected = self.resolve("routine-implementation", profile,
+                                    role_overrides={"implementer": {"seat": "muse-wonder-full", "effort": "high"}})
+            self.assertEqual(selected["roles"]["reviewer"], before["roles"]["reviewer"])
+            self.assertEqual(selected["roles"]["implementer"]["runner"], "muse")
+            self.assertEqual(selected["roles"]["implementer"]["model_verification"], "required")
+            self.assertEqual(self.resolve("routine-implementation", profile), before)
+        cli = self.cli("routine-implementation", "--profile", "default", "--role", "implementer=muse-wonder-full:high")
+        self.assertEqual(cli.returncode, 0, cli.stderr)
+        self.assertEqual(json.loads(cli.stdout)["roles"]["reviewer"], self.resolve("routine-implementation")["roles"]["reviewer"])
+        with self.assertRaisesRegex(ValueError, "not admitted for role reviewer"):
+            self.resolve("routine-implementation", role_overrides={"reviewer": {"seat": "muse-wonder-full"}})
+
+    def test_muse_subscription_evidence_is_user_scoped(self):
+        evidence = routing.subscription_privacy(self.config)
+        self.assertEqual(evidence["evidence_type"], "user_confirmed")
+        self.assertEqual(evidence["scope"], "current_user_subscription")
+        self.assertEqual(evidence["confirmed_at"], "2026-10-16")
+        self.assertFalse(evidence["independently_verified"])
+        for key, value in (("zdr_available", False), ("scope", "all_accounts"), ("evidence_type", "public_policy")):
+            changed = copy.deepcopy(self.config)
+            changed["models"]["muse-wonder-full"]["privacy"][key] = value
+            with self.assertRaisesRegex(ValueError, "account scoped"):
+                routing.resolve_profile("routine-implementation", config=changed,
+                                        role_overrides={"implementer": {"seat": "muse-wonder-full"}})
+
+    def test_muse_discovery_is_explicit_only(self):
+        import discover_runners
+        default = {item.seat for item in discover_runners.filter_specs(None)}
+        self.assertNotIn("muse-wonder-full", default)
+        selected = discover_runners.filter_specs({"muse-wonder-full"})
+        self.assertEqual(len(selected), 1)
+        self.assertEqual((selected[0].probe_cli, selected[0].execution_path), ("muse", "muse_runner"))
+        self.assertEqual(self.config["models"]["muse"]["model"], "meta/muse-spark-1.3")
+
     def test_profile_precedence_and_legacy_cli_default(self):
         central = self.resolve("routine-function")
         local = self.resolve("routine-function", local_profile="balanced")

@@ -69,6 +69,11 @@
       "low",
       "high",
       "max"
+    ],
+    "muse": [
+      "high",
+      "xhigh",
+      "max"
     ]
   },
   "runners": {
@@ -142,6 +147,14 @@
       "effort_aliases": {
         "none": "off"
       }
+    },
+    "muse": {
+      "provider": "meta",
+      "effort_flag": "--effort",
+      "effort_profile": "muse",
+      "default_seat": "muse-wonder-full",
+      "default_effort": "high",
+      "known_model_required": true
     }
   },
   "models": {
@@ -430,6 +443,35 @@
         "source": "https://openrouter.ai/api/v1/endpoints/zdr",
         "preflight_required": true
       }
+    },
+    "muse-wonder-full": {
+      "model": "muse-wonder-full-1.0",
+      "runner": "muse",
+      "family": "muse",
+      "effort_profile": "muse",
+      "default_effort": "high",
+      "aliases": [],
+      "optional_roles": [
+        "implementer"
+      ],
+      "model_verification": "required",
+      "capabilities": {
+        "tools": true
+      },
+      "capability_evidence": {
+        "checked_at": "2026-10-15",
+        "source": "Muse CLI 1.4.7 native tool configuration and echo checks. Live tool execution remains untested."
+      },
+      "privacy": {
+        "gateway": "meta-subscription",
+        "zdr_available": true,
+        "evidence_type": "user_confirmed",
+        "scope": "current_user_subscription",
+        "confirmed_at": "2026-10-16",
+        "reference": "User confirmed that ZDR covers the Muse Code subscription and authorized this optional implementation worker.",
+        "independently_verified": false
+      },
+      "source": "https://dev.meta.ai/models/muse-wonder"
     }
   },
   "discovery": [
@@ -600,6 +642,12 @@
       "depends_on": [
         "pi"
       ],
+      "tier": "candidate"
+    },
+    {
+      "seat": "muse-wonder-full",
+      "execution_path": "muse_runner",
+      "probe_cli": "muse",
       "tier": "candidate"
     }
   ],

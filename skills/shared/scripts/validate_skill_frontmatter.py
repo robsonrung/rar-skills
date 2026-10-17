@@ -45,7 +45,7 @@ from model_routing import load_config, model_aliases  # noqa: E402
 SKILL_NAME_RE = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
 
 # Runner dirs that intentionally have no seat in discover_runners.py:
-# none today — every remaining runner skill owns registered seats.
+# Every runner has a registered seat.
 NON_SEAT_RUNNERS: set[str] = set()
 
 BANNED_NAME_PREFIXES = ("ce-",)
@@ -146,13 +146,10 @@ def check_runner_parity(failures: list[str]) -> None:
         if not runner_dir.is_dir():
             continue
         prefix = runner_dir.name.removesuffix("-runner")
-        if runner_dir.name in NON_SEAT_RUNNERS:
-            # Deliberately allowlisted non-seat runners (none today).
-            continue
         script = runner_dir / "scripts" / f"run_{prefix}.py"
         if not script.exists():
             failures.append(f"{runner_dir.name}: missing scripts/run_{prefix}.py")
-        if prefix not in registered:
+        if prefix not in registered and runner_dir.name not in NON_SEAT_RUNNERS:
             failures.append(
                 f"{runner_dir.name}: not registered in model-routing.json and not in "
                 "NON_SEAT_RUNNERS — register the seat or allowlist it deliberately"

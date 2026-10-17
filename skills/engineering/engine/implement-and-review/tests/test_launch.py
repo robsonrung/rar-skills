@@ -7,8 +7,11 @@ import contextlib
 import importlib.util
 import io
 import json
+import os
 import subprocess
+import sys
 import tempfile
+import time
 import unittest
 from argparse import Namespace
 from pathlib import Path
@@ -73,6 +76,74 @@ class LauncherTests(unittest.TestCase):
         for name in ("runner_prompt.py", "context_packet.py"):
             dependency = launcher.SKILLS_DIR / "shared/scripts" / name
             self.assertEqual(resources[str(dependency.resolve())], launcher.file_digest(dependency))
+
+    def muse_route(self):
+        from model_routing import subscription_privacy
+        return self.route("impl-api", "implementer", "muse-wonder-full-1.0", runner="muse",
+                          seat="muse-wonder-full", privacy_evidence=subscription_privacy(launcher.ROUTING_CONFIG))
+
+    def test_muse_launch_requires_scoped_privacy_exact_receipt_and_no_fallback(self):
+        route = self.muse_route()
+        launcher.validate_route(route)
+        for field, value in (("model_verification", "allow_unverified"), ("privacy_evidence", {}),
+                             ("role", "reviewer"), ("mode", "native"), ("unavailable", {"action": "use"})):
+            with self.subTest(field=field), self.assertRaisesRegex(ValueError, "Muse requires"):
+                launcher.validate_route({**route, field: value})
+        args = launcher.route_arguments(route, self.brief, self.root, "implementer", 60, {}, False)
+        for flag in ("--allow-write", "--allow-shell", "--require-model-receipt", "--disable-fallback"):
+            self.assertIn(flag, args)
+        metadata = json.loads(args[args.index("--metadata-json") + 1])
+        self.assertEqual(metadata["privacy_evidence"], route["privacy_evidence"])
+        with self.assertRaisesRegex(launcher.RunnerLaunchError, "no exact persistent-session resume"):
+            launcher.route_arguments(route, self.brief, self.root, "implementer", 60, {}, False,
+                                     resume_context_id="old-session")
+        self.assertFalse(launcher.persist_runner_context({"task_id": "task1"}, {"selected_route": route},
+                                                        {"success": True, "runner_session_id": "old-session"}))
+
+    def test_muse_background_job_and_launcher_receipts_offline(self):
+        script = launcher.runner_script("muse")
+        fixture_dir = script.parent.parent / "tests/fixtures"
+        raw = (fixture_dir / "provider-completed.jsonl").read_text()
+        configured_only = (fixture_dir / "echo.jsonl").read_text()
+        binary = self.root / "muse-fixture"
+        args_file = self.root / "native-args.json"
+        binary.write_text(
+            "#!" + sys.executable + "\nimport sys,json,pathlib\n"
+            "if sys.argv[1]=='--version': print('Muse Code 1.4.7 (1.4.7-R6101.1)')\n"
+            "elif sys.argv[1]=='model-profile': print('model: muse-wonder-full-1.0\\neffort: high')\n"
+            "else:\n pathlib.Path(" + repr(str(args_file)) + ").write_text(json.dumps(sys.argv[1:]))\n"
+            " print(pathlib.Path(" + repr(str(self.root / "native-output.jsonl")) + ").read_text())\n")
+        binary.chmod(0o755)
+        route = self.muse_route()
+        launcher.validate_route(route)
+        arguments = launcher.route_arguments(route, self.brief, self.root, "implementer", 10, {}, False)
+        env = {"MUSE_CLI_PATH": str(binary), "XDG_CONFIG_HOME": str(self.root / "config")}
+        for content, expected in ((raw, "completed"), (configured_only, "model_unverified"),
+                                  (raw.replace('"model":"muse-wonder-full-1.0"', '"model":"other-model"'), "model_mismatch")):
+            with self.subTest(expected=expected), mock.patch.dict(os.environ, env):
+                (self.root / "native-output.jsonl").write_text(content)
+                job = launcher.fire_runner("muse", arguments, self.root, False)
+                self.assertTrue(job["job_id"].startswith("muse-"))
+                result_path = Path(job["result_file"])
+                deadline = time.monotonic() + 10
+                while not result_path.exists() and time.monotonic() < deadline:
+                    time.sleep(0.02)
+                self.assertTrue(result_path.exists())
+                result = json.loads(result_path.read_text())
+                self.assertEqual(result["status"], expected, result)
+                observation = launcher.jobs_query("result", job["job_id"], str(self.root))
+                self.assertEqual(observation["status"], expected)
+                if expected == "completed":
+                    self.assertIsNone(launcher.receipt_error(route, result))
+                    self.assertIsNotNone(launcher.receipt_error(route, {**result, "contributor_mode": "on"}))
+                    self.assertIsNotNone(launcher.receipt_error(route, {**result, "privacy_evidence": {}}))
+                else:
+                    self.assertFalse(result["success"])
+                    self.assertIsNotNone(launcher.receipt_error(route, result))
+                native_args = json.loads(args_file.read_text())
+                self.assertNotIn("--disable-shell", native_args)
+                self.assertNotIn("--disable-sandbox", native_args)
+                self.assertEqual(native_args[native_args.index("--contributor-mode") + 1], "off")
 
     def test_source_sharing_is_optional_but_requires_a_complete_scope(self):
         route = self.route("review-api", "reviewer", "claude-fable-5-1", runner="claude", seat="fable")
