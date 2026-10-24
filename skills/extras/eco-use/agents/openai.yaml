@@ -1,0 +1,4 @@
+interface:
+  display_name: "Eco Use"
+  short_description: "Economical delegation with bounded workers and review"
+  default_prompt: "Use $eco-use to delegate this task economically from this session."
