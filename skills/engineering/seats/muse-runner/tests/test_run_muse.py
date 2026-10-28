@@ -271,10 +271,10 @@ class MuseTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             runner.check_startup_configuration(self.workspace)
 
-    def trust(self, path, decision="trusted"):
+    def trust(self, path, decision="trusted", schema_version=1):
         store = self.workspace / "config" / "muse" / "trust.json"
         store.parent.mkdir(parents=True, exist_ok=True)
-        store.write_text(json.dumps({"schema_version": 1, "projects": {str(path): {"decision": decision}}}))
+        store.write_text(json.dumps({"schema_version": schema_version, "projects": {str(path): {"decision": decision}}}))
 
     def test_trusted_project_startup_files_block(self):
         project = self.workspace / "repo"
@@ -299,6 +299,32 @@ class MuseTests(unittest.TestCase):
         (project / ".muse" / "agents").mkdir()
         with self.assertRaisesRegex(ValueError, "unaudited project configuration"):
             runner.check_startup_configuration(nested)
+
+    def test_trust_lookup_fails_closed(self):
+        project = self.workspace / "repo"
+        (project / ".git").mkdir(parents=True)
+        (project / ".mcp.json").write_text("{}")
+        for key, decision in ((str(project) + os.sep, "trusted"), (str(project).upper(), "trusted"),
+                              (str(project), "future-decision")):
+            self.trust(key, decision)
+            with self.subTest(key=key, decision=decision), self.assertRaisesRegex(ValueError, "MCP servers"):
+                runner.check_startup_configuration(project)
+        self.trust(project, schema_version=2)
+        with self.assertRaisesRegex(ValueError, "trust store format"):
+            runner.check_startup_configuration(project)
+
+    def test_trusted_project_settings_and_links_are_deny_by_default(self):
+        project = self.workspace / "repo"
+        (project / ".git").mkdir(parents=True)
+        (project / ".muse").mkdir()
+        self.trust(project)
+        (project / ".muse" / "settings.json").write_text('{"schema_version":1,"run":{"toolset":["read"]}}')
+        with self.assertRaisesRegex(ValueError, "sets project settings"):
+            runner.check_startup_configuration(project)
+        (project / ".muse" / "settings.json").unlink()
+        (project / ".muse" / "worktrees").symlink_to(self.workspace)
+        with self.assertRaisesRegex(ValueError, "unaudited project configuration"):
+            runner.check_startup_configuration(project)
 
     def test_version_and_profile_preflight_no_inference(self):
         def response(command, **kwargs):

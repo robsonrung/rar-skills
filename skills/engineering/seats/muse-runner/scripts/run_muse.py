@@ -57,8 +57,10 @@ def normalize_envelope(result, requested_runner="muse", requested_model=MODEL):
 
 
 STARTUP_SETTING_KEYS = ("hooks", "managed_hooks_path", "managed_plugins_path", "plugins", "mcpServers", "mcp_servers")
-# Muse runtime state that a trusted project may hold without adding startup code.
+# Muse runtime state directories and files a trusted project may hold. Project
+# settings are checked separately and must carry no settings at all.
 TRUSTED_PROJECT_STATE = {"settings.json", "worktrees", "projects", "lock.json", "feedback"}
+PROJECT_SETTINGS_KEYS = {"schema_version"}
 
 
 def check_startup_settings(settings: Path):
@@ -72,27 +74,60 @@ def check_startup_settings(settings: Path):
             raise ValueError(f"Startup setting {key} in {settings} requires a separate audited configuration.")
 
 
+def trust_key(path) -> str:
+    """Compare trust paths after resolving links, trailing separators, and case.
+
+    Casefolding can only make more paths match, which blocks more workspaces.
+    """
+    return os.path.realpath(os.path.expanduser(str(path))).rstrip(os.sep).casefold() or os.sep
+
+
 def trusted_project(workspace: Path, root: Path):
     """Return the saved trust root that Muse applies to this workspace, if any.
 
     Muse 1.4.14 checks showed that a trusted workspace, or a folder below one,
     loads project hooks and `.mcp.json` servers at startup; an untrusted one loads
-    neither. Any trusted ancestor counts, so a nearer non-trusted entry cannot
-    hide one.
+    neither. Any ancestor whose decision is not explicitly untrusted counts, and
+    an unrecognized store format fails closed.
     """
     store = root / "trust.json"
     if not store.exists():
         return None
     value = json.loads(store.read_text(encoding="utf-8"))
     projects = value.get("projects") if isinstance(value, dict) else None
-    if not isinstance(projects, dict):
-        raise ValueError("Muse trust store must hold a projects object.")
-    for candidate in dict.fromkeys((workspace, workspace.resolve())):
-        for parent in (candidate, *candidate.parents):
-            entry = projects.get(str(parent))
-            if isinstance(entry, dict) and entry.get("decision") == "trusted":
-                return parent
+    if not isinstance(value, dict) or value.get("schema_version") != 1 or not isinstance(projects, dict):
+        raise ValueError(f"Unrecognized Muse trust store format: {store}")
+    decisions = {}
+    for path, entry in projects.items():
+        trusted = not (isinstance(entry, dict) and entry.get("decision") == "untrusted")
+        decisions[trust_key(path)] = decisions.get(trust_key(path), False) or trusted
+    for parent in (workspace, *workspace.parents):
+        if decisions.get(trust_key(parent)):
+            return parent
+    resolved = workspace.resolve()
+    for parent in (resolved, *resolved.parents):
+        if decisions.get(trust_key(parent)):
+            return parent
     return None
+
+
+def check_trusted_project_directory(project: Path, trusted: Path):
+    if project.is_symlink():
+        raise ValueError(f"Trusted Muse project {trusted} has a linked project directory: {project}")
+    if not project.is_dir():
+        return
+    unknown = sorted(entry.name for entry in project.iterdir()
+                     if entry.name not in TRUSTED_PROJECT_STATE or entry.is_symlink())
+    if unknown:
+        raise ValueError(f"Trusted Muse project {trusted} has unaudited project configuration in "
+                         f"{project}: {', '.join(unknown)}.")
+    settings = project / "settings.json"
+    if settings.exists():
+        value = json.loads(settings.read_text(encoding="utf-8"))
+        extra = sorted(set(value) - PROJECT_SETTINGS_KEYS) if isinstance(value, dict) else ["<not an object>"]
+        if extra:
+            raise ValueError(f"Trusted Muse project {trusted} sets project settings in {settings}: "
+                             f"{', '.join(extra)}; they require a separate audited configuration.")
 
 
 def check_startup_configuration(workspace: Path):
@@ -105,15 +140,10 @@ def check_startup_configuration(workspace: Path):
         if (project / "hooks.json").exists():
             raise ValueError("Project hooks require a separate audited configuration.")
         if trusted:
-            if (parent / ".mcp.json").exists():
+            if (parent / ".mcp.json").exists() or (parent / ".mcp.json").is_symlink():
                 raise ValueError(f"Trusted Muse project {trusted} would start the MCP servers in "
                                  f"{parent / '.mcp.json'}; they require a separate audited configuration.")
-            check_startup_settings(project / "settings.json")
-            if project.is_dir():
-                unknown = sorted(entry.name for entry in project.iterdir() if entry.name not in TRUSTED_PROJECT_STATE)
-                if unknown:
-                    raise ValueError(f"Trusted Muse project {trusted} has unaudited project configuration in "
-                                     f"{project}: {', '.join(unknown)}.")
+            check_trusted_project_directory(project, trusted)
         if (parent / ".git").exists():
             break
     if os.environ.get("MUSE_PERMISSION_PROFILE_FAIL_OPEN"):
