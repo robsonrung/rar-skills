@@ -30,7 +30,10 @@ to recover a failed call.
 
 Delegation, observers, web tools, artifact tools, session messaging, and parallel
 tool calls are disabled. Startup hooks, configured plugins, and MCP servers block
-the adapter because they can execute outside its tool list. Shell permission can
+the adapter because they can execute outside its tool list. A workspace under a
+project saved as trusted in Muse also loads project `.mcp.json` servers and
+project configuration, so the adapter blocks those files and any unrecognized
+`.muse` entry there. Shell permission can
 start external programs, so it does not enforce a ban on nested workers. Keep the
 single worker constraint in the task prompt when using shell commands.
 

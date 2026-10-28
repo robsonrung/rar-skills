@@ -271,6 +271,35 @@ class MuseTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             runner.check_startup_configuration(self.workspace)
 
+    def trust(self, path, decision="trusted"):
+        store = self.workspace / "config" / "muse" / "trust.json"
+        store.parent.mkdir(parents=True, exist_ok=True)
+        store.write_text(json.dumps({"schema_version": 1, "projects": {str(path): {"decision": decision}}}))
+
+    def test_trusted_project_startup_files_block(self):
+        project = self.workspace / "repo"
+        (project / ".git").mkdir(parents=True)
+        (project / ".muse" / "worktrees").mkdir(parents=True)
+        nested = project / "pkg"
+        nested.mkdir()
+        (project / ".mcp.json").write_text('{"mcpServers":{}}')
+        runner.check_startup_configuration(nested)
+        self.trust(project, "untrusted")
+        runner.check_startup_configuration(nested)
+        self.trust(project)
+        with self.assertRaisesRegex(ValueError, "MCP servers"):
+            runner.check_startup_configuration(nested)
+        (project / ".mcp.json").unlink()
+        runner.check_startup_configuration(nested)
+        for key in ("hooks", "mcpServers", "plugins"):
+            (project / ".muse" / "settings.json").write_text(json.dumps({key: {"configured": True}}))
+            with self.subTest(key=key), self.assertRaisesRegex(ValueError, key):
+                runner.check_startup_configuration(nested)
+        (project / ".muse" / "settings.json").write_text("{}")
+        (project / ".muse" / "agents").mkdir()
+        with self.assertRaisesRegex(ValueError, "unaudited project configuration"):
+            runner.check_startup_configuration(nested)
+
     def test_version_and_profile_preflight_no_inference(self):
         def response(command, **kwargs):
             output = "Muse Code " + runner.VERSION if command[1] == "--version" else "model:  " + runner.MODEL + "\neffort: max"

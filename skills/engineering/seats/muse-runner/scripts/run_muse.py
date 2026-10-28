@@ -56,20 +56,64 @@ def normalize_envelope(result, requested_runner="muse", requested_model=MODEL):
     return result
 
 
+STARTUP_SETTING_KEYS = ("hooks", "managed_hooks_path", "managed_plugins_path", "plugins", "mcpServers", "mcp_servers")
+# Muse runtime state that a trusted project may hold without adding startup code.
+TRUSTED_PROJECT_STATE = {"settings.json", "worktrees", "projects", "lock.json", "feedback"}
+
+
+def check_startup_settings(settings: Path):
+    if not settings.exists():
+        return
+    value = json.loads(settings.read_text(encoding="utf-8"))
+    if not isinstance(value, dict):
+        raise ValueError(f"Muse settings must be a JSON object: {settings}")
+    for key in STARTUP_SETTING_KEYS:
+        if value.get(key):
+            raise ValueError(f"Startup setting {key} in {settings} requires a separate audited configuration.")
+
+
+def trusted_project(workspace: Path, root: Path):
+    """Return the saved trust root that Muse applies to this workspace, if any.
+
+    Muse 1.4.14 checks showed that a trusted workspace, or a folder below one,
+    loads project hooks and `.mcp.json` servers at startup; an untrusted one loads
+    neither. Any trusted ancestor counts, so a nearer non-trusted entry cannot
+    hide one.
+    """
+    store = root / "trust.json"
+    if not store.exists():
+        return None
+    value = json.loads(store.read_text(encoding="utf-8"))
+    projects = value.get("projects") if isinstance(value, dict) else None
+    if not isinstance(projects, dict):
+        raise ValueError("Muse trust store must hold a projects object.")
+    for candidate in dict.fromkeys((workspace, workspace.resolve())):
+        for parent in (candidate, *candidate.parents):
+            entry = projects.get(str(parent))
+            if isinstance(entry, dict) and entry.get("decision") == "trusted":
+                return parent
+    return None
+
+
 def check_startup_configuration(workspace: Path):
     """Refuse startup extensions that can run outside the selected tool list."""
     root = Path(os.environ.get("XDG_CONFIG_HOME", str(Path.home() / ".config"))) / "muse"
-    settings = root / "settings.json"
-    if settings.exists():
-        value = json.loads(settings.read_text(encoding="utf-8"))
-        if not isinstance(value, dict):
-            raise ValueError("Muse settings must be a JSON object.")
-        for key in ("hooks", "managed_hooks_path", "managed_plugins_path", "plugins", "mcpServers", "mcp_servers"):
-            if value.get(key):
-                raise ValueError(f"Startup setting {key} requires a separate audited configuration.")
+    check_startup_settings(root / "settings.json")
+    trusted = trusted_project(workspace, root)
     for parent in (workspace, *workspace.parents):
-        if (parent / ".muse" / "hooks.json").exists():
+        project = parent / ".muse"
+        if (project / "hooks.json").exists():
             raise ValueError("Project hooks require a separate audited configuration.")
+        if trusted:
+            if (parent / ".mcp.json").exists():
+                raise ValueError(f"Trusted Muse project {trusted} would start the MCP servers in "
+                                 f"{parent / '.mcp.json'}; they require a separate audited configuration.")
+            check_startup_settings(project / "settings.json")
+            if project.is_dir():
+                unknown = sorted(entry.name for entry in project.iterdir() if entry.name not in TRUSTED_PROJECT_STATE)
+                if unknown:
+                    raise ValueError(f"Trusted Muse project {trusted} has unaudited project configuration in "
+                                     f"{project}: {', '.join(unknown)}.")
         if (parent / ".git").exists():
             break
     if os.environ.get("MUSE_PERMISSION_PROFILE_FAIL_OPEN"):
