@@ -179,20 +179,13 @@
       "effort_scaling_evidence": "AutomationBench effort curve for gpt-6-sol, checked 2026-09-22: smooth monotonic climb; weak below medium effort. Not yet re-measured for gpt-6.1-sol, whose catalog default effort is low; always route an explicit effort of medium or higher."
     },
     "terra": {
-      "model": "gpt-5.6-terra",
+      "model": "gpt-6.1-terra",
       "runner": "codex",
       "family": "gpt",
       "effort_profile": "extended",
       "aliases": [
         "codex-code"
       ]
-    },
-    "luna": {
-      "model": "gpt-6-luna",
-      "runner": "codex",
-      "family": "gpt",
-      "effort_profile": "standard",
-      "aliases": []
     },
     "fable": {
       "model": "claude-fable-5-1",
@@ -497,13 +490,6 @@
       "tier": "backup"
     },
     {
-      "seat": "luna",
-      "execution_path": "codex_runner",
-      "probe_cli": "codex",
-      "depends_on": [],
-      "tier": "backup"
-    },
-    {
       "seat": "fable",
       "execution_path": "claude_runner",
       "probe_cli": "claude",
@@ -710,7 +696,7 @@
       "families": {
         "gpt": {
           "worker": {
-            "seat": "luna",
+            "seat": "terra",
             "effort": "low"
           }
         },
@@ -743,7 +729,7 @@
       "families": {
         "gpt": {
           "worker": {
-            "seat": "luna",
+            "seat": "terra",
             "effort": "medium"
           }
         },
@@ -776,7 +762,7 @@
       "families": {
         "gpt": {
           "implementer": {
-            "seat": "luna",
+            "seat": "terra",
             "effort": "medium"
           },
           "reviewer": {
@@ -825,7 +811,7 @@
       "families": {
         "gpt": {
           "implementer": {
-            "seat": "luna",
+            "seat": "terra",
             "effort": "high"
           },
           "reviewer": {
@@ -1115,7 +1101,7 @@
       "families": {
         "gpt": {
           "implementer": {
-            "seat": "luna",
+            "seat": "terra",
             "effort": "high"
           },
           "reviewer": {
@@ -1164,7 +1150,7 @@
       "families": {
         "gpt": {
           "worker": {
-            "seat": "luna",
+            "seat": "terra",
             "effort": "low"
           }
         },
@@ -1197,7 +1183,7 @@
       "families": {
         "gpt": {
           "worker": {
-            "seat": "luna",
+            "seat": "terra",
             "effort": "medium"
           }
         },
@@ -1609,7 +1595,7 @@
       "families": {
         "gpt": {
           "implementer": {
-            "seat": "luna",
+            "seat": "terra",
             "effort": "xhigh"
           },
           "reviewer": {
@@ -1629,7 +1615,7 @@
         },
         "economy": {
           "implementer": {
-            "seat": "luna",
+            "seat": "terra",
             "effort": "xhigh"
           },
           "reviewer": {
@@ -1979,7 +1965,7 @@
       "families": {
         "balanced": {
           "implementer": {
-            "seat": "luna",
+            "seat": "terra",
             "effort": "high"
           },
           "reviewer": {
@@ -2480,15 +2466,10 @@
         "url": "https://platform.claude.com/docs/en/about-claude/models/overview",
         "accessed": "2026-10-02"
       },
-      "V3": {
-        "title": "Provider model page",
-        "url": "https://developers.openai.com/api/docs/models/gpt-6-luna",
-        "accessed": "2026-09-19"
-      },
       "V4": {
         "title": "Provider model page",
-        "url": "https://developers.openai.com/api/docs/models/gpt-5.6-terra",
-        "accessed": "2026-09-19"
+        "url": "https://developers.openai.com/api/docs/models/gpt-6.1-terra",
+        "accessed": "2026-10-28"
       },
       "V5": {
         "title": "Provider model page",

@@ -38,7 +38,7 @@ only when preparing a new selection. Preserve **seat fidelity**:
 | Active host | Native preference | External route when needed |
 | --- | --- | --- |
 | Claude Code app or CLI | Exposed Claude subagents with exact Fable, Opus, Sonnet, or Haiku selection | Other model families, or a required control absent from native tools |
-| ChatGPT app or Codex app/CLI | Exposed Astra, Sol, Terra, or Luna subagents; persistent task threads where supported and authorized | Foreign families, or an exact route unsupported by the native tools |
+| ChatGPT app or Codex app/CLI | Exposed Astra, Sol, or Terra subagents; persistent task threads where supported and authorized | Foreign families, or an exact route unsupported by the native tools |
 | Pi | Exposed delegation with the selected provider model; Pi is a multi-provider host | A configured model alone does not prove a subagent extension exists; use a checked runner if needed |
 | Grok or another host | Its actual exposed model selection, isolated worker, and follow-up tools | A checked external route for capabilities the host does not expose |
 

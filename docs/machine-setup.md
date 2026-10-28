@@ -216,7 +216,7 @@ npm --version
 git --version
 rg --version
 pi --version
-python3 skills/shared/scripts/discover_runners.py probe --seat glm --seat luna --seat sol --seat astra
+python3 skills/shared/scripts/discover_runners.py probe --seat glm --seat terra --seat sol --seat astra
 python3 skills/shared/scripts/model_routing.py resolve routine-implementation --profile default
 ```
 

@@ -54,9 +54,9 @@ class ModelConfigTests(unittest.TestCase):
 
     def test_bounded_work_uses_small_workers_and_strong_review(self):
         exploration = routing.resolve_route("code-exploration", "gpt")
-        self.assertEqual((exploration["roles"]["worker"]["seat"], exploration["roles"]["worker"]["effort"]), ("luna", "medium"))
+        self.assertEqual((exploration["roles"]["worker"]["seat"], exploration["roles"]["worker"]["effort"]), ("terra", "medium"))
         implementation = routing.resolve_route("isolated-implementation", "gpt")
-        self.assertEqual((implementation["roles"]["implementer"]["seat"], implementation["roles"]["implementer"]["effort"]), ("luna", "high"))
+        self.assertEqual((implementation["roles"]["implementer"]["seat"], implementation["roles"]["implementer"]["effort"]), ("terra", "high"))
         self.assertEqual(implementation["roles"]["reviewer"]["seat"], "astra")
         claude = routing.resolve_route("routine-implementation", "claude")
         self.assertEqual(claude["roles"]["implementer"]["seat"], "sonnet")
@@ -70,7 +70,7 @@ class ModelConfigTests(unittest.TestCase):
 
     def test_config_change_updates_resolution_without_editing_consumers(self):
         changed = copy.deepcopy(self.config)
-        changed["models"]["luna"]["model"] = "test-model-revision"
+        changed["models"]["terra"]["model"] = "test-model-revision"
         changed["routes"]["code-exploration"]["families"]["gpt"]["worker"]["effort"] = "high"
         routing.validate_config(changed)
         result = routing.resolve_route("code-exploration", "gpt", config=changed)
@@ -81,11 +81,11 @@ class ModelConfigTests(unittest.TestCase):
     def test_invalid_config_fails_instead_of_using_hidden_defaults(self):
         for mutate in (
             lambda c: c["routes"]["code-exploration"]["families"]["gpt"]["worker"].update(seat="missing"),
-            lambda c: c["routes"]["code-exploration"]["families"]["gpt"]["worker"].update(effort="ultra"),
-            lambda c: c["routes"]["isolated-implementation"]["families"]["gpt"]["reviewer"].update(seat="luna"),
+            lambda c: c["routes"]["code-exploration"]["families"]["gpt"]["worker"].update(effort="unknown"),
+            lambda c: c["routes"]["isolated-implementation"]["families"]["gpt"]["reviewer"].update(seat="terra"),
             lambda c: c["runners"]["codex"].update(default_seat="missing"),
             lambda c: c["runners"]["codex"].update(fallback_runner="missing"),
-            lambda c: c["runners"]["codex"].update(default_seat="luna", default_effort="ultra"),
+            lambda c: c["runners"]["codex"].update(default_seat="sonnet"),
             lambda c: c["runners"]["gemini"]["fallbacks"][0].update(seat="sonnet"),
             lambda c: c["runners"]["pi"]["effort_aliases"].update(none="invalid"),
             lambda c: c["discovery_presets"].update(light=["missing"]),
@@ -210,7 +210,7 @@ roles = ["reader"]
             shutil.copytree(skill_dir("codex-runner", root=SKILLS), root / "codex-runner", ignore=shutil.ignore_patterns("__pycache__"))
             result = subprocess.run([sys.executable, str(root / "shared" / "scripts" / "model_routing.py"), "resolve", "isolated-implementation", "--family", "gpt"], cwd=directory, text=True, capture_output=True)
             self.assertEqual(result.returncode, 0, result.stderr)
-            self.assertEqual(json.loads(result.stdout)["roles"]["implementer"]["seat"], "luna")
+            self.assertEqual(json.loads(result.stdout)["roles"]["implementer"]["seat"], "terra")
             result = subprocess.run([sys.executable, str(root / "codex-runner" / "scripts" / "run_codex.py"), "--help"], cwd=directory, text=True, capture_output=True)
             self.assertEqual(result.returncode, 0, result.stderr)
 

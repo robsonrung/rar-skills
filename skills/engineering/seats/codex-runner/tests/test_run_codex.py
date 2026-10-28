@@ -33,7 +33,7 @@ class ReadOnlyProfileTests(unittest.TestCase):
         run, calls = self.local_cli(servers)
         with patch.object(runner.shutil, "which", return_value="/usr/bin/codex"), \
              patch.object(runner.subprocess, "run", side_effect=run):
-            result = runner.run_codex("Review", model="luna", effort="low", role="researcher",
+            result = runner.run_codex("Review", model="terra", effort="low", role="researcher",
                                       disable_fallback=True, **kwargs)
         return result, calls
 

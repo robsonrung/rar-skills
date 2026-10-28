@@ -14,7 +14,7 @@ Locks in the family-wide contract so the per-script copies cannot drift:
 3. Relative --prompt-file paths resolve against --working-dir (not the
    process cwd): an existing file under the working dir reaches the -2
    missing-CLI path, a missing one is a -3 input error.
-4. Codex-family aliases resolve before launch, including Luna, and runner
+4. Codex-family aliases resolve before launch, including Terra, and runner
    discovery recognizes every rostered Codex-family seat without calling a
    provider.
 
@@ -234,8 +234,7 @@ class CodexFamilyAliasAndDiscoveryTests(unittest.TestCase):
         expected_models = {
             "astra": "gpt-6-astra",
             "sol": "gpt-6.1-sol",
-            "terra": "gpt-5.6-terra",
-            "luna": "gpt-6-luna",
+            "terra": "gpt-6.1-terra",
         }
         codex = RUNNER_SCRIPTS["codex"]
         for alias, model in expected_models.items():
@@ -263,13 +262,11 @@ class CodexFamilyAliasAndDiscoveryTests(unittest.TestCase):
             "sol",
             "--seat",
             "terra",
-            "--seat",
-            "luna",
         )
         self.assertEqual(proc.returncode, 0, proc.stderr)
         payload = json.loads(proc.stdout)
         seats = {seat["seat"]: seat for seat in payload["seats"]}
-        self.assertEqual(set(seats), {"astra", "sol", "terra", "luna"})
+        self.assertEqual(set(seats), {"astra", "sol", "terra"})
         for name in seats:
             with self.subTest(seat=name):
                 self.assertEqual(seats[name]["execution_path"], "codex_runner")

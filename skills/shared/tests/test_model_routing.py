@@ -177,7 +177,9 @@ class ModelRoutingContractTests(unittest.TestCase):
         self.assertEqual(worker.DEFAULT_MODEL, model_routing.default_model("codex"))
         self.assertEqual(worker.resolve_model("codex"), worker.resolve_model("astra"))
         self.assertEqual(worker.resolve_effort(worker.resolve_model("astra"), "ultra"), "ultra")
-        self.assertEqual(worker.resolve_effort(worker.resolve_model("luna"), "ultra"), "max")
+        self.assertEqual(worker.resolve_effort(worker.resolve_model("terra"), "ultra"), "ultra")
+        worker.MODEL_EFFORT_LEVELS["test-standard"] = ["low", "medium", "high", "xhigh", "max"]
+        self.assertEqual(worker.resolve_effort("test-standard", "ultra"), "max")
         runner = self.read("codex-runner/scripts/run_codex.py")
         self.assertIn('"requested_effort": effort', runner)
         self.assertIn('"effort_clamped": effort is not None', runner)

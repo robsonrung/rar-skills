@@ -1,6 +1,6 @@
 ---
 name: codex-runner
-description: Execute an external Codex CLI prompt in non-interactive exec mode. Use only for an explicit Codex CLI request, a selected Astra, Sol, Terra, or Luna route unavailable as native host delegation, or an approved external fallback.
+description: Execute an external Codex CLI prompt in non-interactive exec mode. Use only for an explicit Codex CLI request, a selected Astra, Sol, or Terra route unavailable as native host delegation, or an approved external fallback.
 ---
 
 # Codex Runner
@@ -11,7 +11,7 @@ Execute the caller's scoped prompt through the local CLI. Shared roles, envelope
 
 ## Native routing
 
-Read `shared/references/host-model-execution.md` before choosing an external route. If the current host can dispatch the exact selected Astra, Sol, Terra, or Luna model with the required effort, isolation, and receipt policy in a native subagent or task thread, use that route. `agents/openai.yaml` is host UI metadata; it does not dispatch a native model.
+Read `shared/references/host-model-execution.md` before choosing an external route. If the current host can dispatch the exact selected Astra, Sol, or Terra model with the required effort, isolation, and receipt policy in a native subagent or task thread, use that route. `agents/openai.yaml` is host UI metadata; it does not dispatch a native model.
 
 ## Invocation
 
