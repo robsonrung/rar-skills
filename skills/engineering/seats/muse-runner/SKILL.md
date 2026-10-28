@@ -1,6 +1,6 @@
 ---
 name: muse-runner
-description: Run Muse Wonder Full through its native CLI for an explicit request or an approved optional implementation route. The Pi Muse Spark seat stays separate.
+description: Run Muse Wonder Full through its native CLI for an explicit request or an approved optional implementation route.
 ---
 
 # Muse Runner

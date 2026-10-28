@@ -192,7 +192,6 @@ requires the exact serving receipt, keeps Contributor mode off, and supports
 background jobs with sandboxed test commands. Persistent resume is unsupported.
 Check the local transport with
 `python3 skills/engineering/seats/muse-runner/scripts/run_muse.py --preflight --json`.
-The Pi Muse Spark seat stays separate.
 
 ## Documentation
 

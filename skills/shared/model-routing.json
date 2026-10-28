@@ -278,14 +278,6 @@
       "effort_profile": "pi",
       "aliases": []
     },
-    "muse": {
-      "model": "meta/muse-spark-1.3",
-      "runner": "pi",
-      "family": "muse",
-      "effort_profile": "runtime",
-      "aliases": [],
-      "default_effort": null
-    },
     "minimax": {
       "model": "minimax/minimax-m2.7",
       "runner": "pi",
@@ -557,15 +549,6 @@
         "pi"
       ],
       "tier": "candidate"
-    },
-    {
-      "seat": "muse",
-      "execution_path": "pi_runner_seat",
-      "probe_cli": "pi",
-      "depends_on": [
-        "pi"
-      ],
-      "tier": "backup"
     },
     {
       "seat": "gemma",

@@ -23,13 +23,11 @@ Use `schemas/round1-response.schema.json` for the opening and `schemas/later-rou
 | `opus` | `critical_with_responsibility` | `balanced_synthesis` | `pragmatic_engineering` |
 | `sol` | `pragmatic_engineering` | `critical_with_responsibility` | `balanced_synthesis` |
 | `terra` | `pragmatic_engineering` | `supportive_with_integrity` | `balanced_synthesis` |
-| `luna` | `supportive_with_integrity` | `pragmatic_engineering` | `balanced_synthesis` |
 | `gemini` | `balanced_synthesis` | `pragmatic_engineering` | `critical_with_responsibility` |
 | `sonnet` | `supportive_with_integrity` | `critical_with_responsibility` | `balanced_synthesis` |
 | `kimi` | `pragmatic_engineering` | `balanced_synthesis` | `critical_with_responsibility` |
 | `glm` | `outsider_fresh_eyes` | `balanced_synthesis` | `critical_with_responsibility` |
 | `gemma` | `supportive_with_integrity` | `critical_with_responsibility` | `balanced_synthesis` |
-| `muse` | `pragmatic_engineering` | `devils_advocate` | `balanced_synthesis` |
 
 For a panel smaller than six, the preview assigns each selected seat one distinct opening stance. Prefer `outsider_fresh_eyes` for a seat that receives no repository context. Do not create a duplicate seat to fill a missing stance.
 

@@ -355,13 +355,11 @@ class MuseTests(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertFalse(json.loads(output.read_text())["success"])
 
-    def test_optional_seat_does_not_change_spark_or_defaults(self):
+    def test_optional_seat_does_not_change_defaults(self):
         config = runner.load_config()
         self.assertIn("muse-wonder-full", config["models"])
         self.assertNotIn("muse-wonder-full", config["conditional_models"])
         self.assertEqual(config["models"]["muse-wonder-full"]["privacy"]["evidence_type"], "user_confirmed")
-        self.assertEqual(config["models"]["muse"]["runner"], "pi")
-        self.assertEqual(config["models"]["muse"]["model"], "meta/muse-spark-1.3")
 
 
 if __name__ == "__main__":

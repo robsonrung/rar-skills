@@ -65,7 +65,7 @@ class ModelProfileTests(unittest.TestCase):
         selected = discover_runners.filter_specs({"muse-wonder-full"})
         self.assertEqual(len(selected), 1)
         self.assertEqual((selected[0].probe_cli, selected[0].execution_path), ("muse", "muse_runner"))
-        self.assertEqual(self.config["models"]["muse"]["model"], "meta/muse-spark-1.3")
+        self.assertNotIn("muse", self.config["models"])
 
     def test_profile_precedence_and_legacy_cli_default(self):
         central = self.resolve("routine-function")

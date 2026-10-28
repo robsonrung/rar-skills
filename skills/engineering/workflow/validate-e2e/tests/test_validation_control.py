@@ -269,7 +269,7 @@ class ValidationTests(unittest.TestCase):
             model_routing.resolve_role({"seat": seat, "effort": "medium"}, config)
         with self.assertRaises(ValueError):
             model_routing.resolve_role({"seat": "gemini", "effort": "high"}, config)
-        for seat in ("muse", "minimax", "mistral-small"):
+        for seat in ("minimax", "mistral-small"):
             # Former cline seats now route through pi with runtime-controlled effort.
             with self.assertRaises(ValueError):
                 model_routing.resolve_role({"seat": seat, "effort": "medium"}, config)

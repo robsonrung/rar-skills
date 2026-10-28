@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Cross-runner parity tests for the wrapper scripts (claude, codex, gemini,
-grok, pi) and the named seats they serve (pi: kimi, glm, qwen, gemma, muse,
+grok, pi) and the named seats they serve (pi: kimi, glm, qwen, gemma,
 minimax, mistral-small) via `--seat`.
 
 Locks in the family-wide contract so the per-script copies cannot drift:
@@ -56,7 +56,6 @@ RUNNER_SCRIPTS = {
     "glm": (_PI, ("--seat", "glm")),
     "qwen": (_PI, ("--seat", "qwen")),
     "gemma": (_PI, ("--seat", "gemma")),
-    "muse": (_PI, ("--seat", "muse")),
     "minimax": (_PI, ("--seat", "minimax")),
     "mistral-small": (_PI, ("--seat", "mistral-small")),
 }
@@ -166,10 +165,6 @@ class MissingCliEnvelopeParityTests(unittest.TestCase):
                     self.assertEqual(env["effective_runner"], "pi")
                     self.assertEqual(env["configured_model"], "google/gemma-4-31b-it")
                     self.assertEqual(env["effective_provider"], "google")
-                if name == "muse":
-                    self.assertEqual(env["effective_runner"], "pi")
-                    self.assertEqual(env["configured_model"], "meta/muse-spark-1.3")
-                    self.assertEqual(env["effective_provider"], "meta")
                 if name == "minimax":
                     self.assertEqual(env["effective_runner"], "pi")
                     self.assertEqual(env["configured_model"], "minimax/minimax-m2.7")

@@ -20,7 +20,7 @@
   "properties": {
     "runner": {
       "type": "string",
-      "description": "Requested runner identity (claude, codex, gemini, grok, pi, or a named seat label such as kimi, glm, qwen, gemma, muse, minimax, ...)."
+      "description": "Requested runner identity (claude, codex, gemini, grok, muse, pi, or a named seat label such as kimi, glm, qwen, gemma, minimax, ...)."
     },
     "effective_runner": {
       "type": "string",
