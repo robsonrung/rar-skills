@@ -105,11 +105,11 @@ class ModelReceiptTests(unittest.TestCase):
 
     def test_non_forwarded_label_stays_unverified(self) -> None:
         envelope = attach_model_receipt(
-            {"model": "gemini-3.8-flash", "model_forwarded": False},
-            "gemini-3.8-flash",
+            {"model": "gemini-4-argon", "model_forwarded": False},
+            "gemini-4-argon",
         )
 
-        self.assertEqual(envelope["requested_model"], "gemini-3.8-flash")
+        self.assertEqual(envelope["requested_model"], "gemini-4-argon")
         self.assertIsNone(envelope["configured_model"])
         self.assertIsNone(envelope["effective_model"])
         self.assertEqual(envelope["model_receipt"]["status"], "unverified")

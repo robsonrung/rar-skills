@@ -48,4 +48,4 @@ With `--output-file` set, the `--json` stdout pointer is `{success, return_code,
 
 - Antigravity CLI (`agy`) installed and available in PATH
 - Authentication configured for Antigravity CLI
-- Model selection is configured in `agy` itself. The wrapper's `--model` is not forwarded. List models with `agy models`, then select Gemini 3.8 Flash (High) through `/model` or `~/.gemini/antigravity-cli/settings.json`. The route remains unverified until a native receipt identifies the serving model.
+- Model selection is configured in `agy` itself. The wrapper's `--model` is not forwarded. List models with `agy models`, then select Gemini 4 Argon (High) through `/model` or `~/.gemini/antigravity-cli/settings.json`. The route remains unverified until a native receipt identifies the serving model.

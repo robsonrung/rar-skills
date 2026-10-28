@@ -230,7 +230,7 @@
       "default_effort": "high"
     },
     "gemini": {
-      "model": "gemini-3.8-flash",
+      "model": "gemini-4-argon",
       "runner": "gemini",
       "family": "gemini",
       "effort_profile": "runtime",

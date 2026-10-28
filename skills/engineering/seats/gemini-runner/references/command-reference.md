@@ -54,7 +54,7 @@ python3 .agents/skills/gemini-runner/scripts/run_gemini.py "Continue the previou
 1. Executes `agy [--continue] --print-timeout <Ns> --print "<prompt>"`. The `--print-timeout` is set slightly below the wrapper's `--timeout` so `agy` self-terminates (and returns its own exit code) before the hard subprocess timeout would kill it; a genuine wrapper timeout still reports `return_code -1` / `status: timeout`.
 2. Does not request a permission bypass.
 3. Keeps `runner=gemini` for workflow compatibility and sets `effective_runner=agy` when Antigravity CLI produced the output.
-4. Does not pass unsupported Gemini CLI flags such as `--model`, `--output-format`, `--thinking-budget`, or a read-only convenience mode to `agy`. `--model` is a request label only; the envelope records `model_receipt.status: unverified` unless a native receipt identifies the serving model. Configure agy's `/model` picker to Gemini 3.8 Flash (High) when that route is selected.
+4. Does not pass unsupported Gemini CLI flags such as `--model`, `--output-format`, `--thinking-budget`, or a read-only convenience mode to `agy`. `--model` is a request label only; the envelope records `model_receipt.status: unverified` unless a native receipt identifies the serving model. Configure agy's `/model` picker to Gemini 4 Argon (High) when that route is selected.
 5. Resolves relative `--prompt-file`/`--session-file` paths against `--working-dir` (not the process cwd).
 
 ### Continuation caveat
