@@ -445,7 +445,7 @@
       },
       "capability_evidence": {
         "checked_at": "2026-10-15",
-        "source": "Muse CLI 1.4.7 native tool configuration and echo checks. Live tool execution remains untested."
+        "source": "Muse CLI 1.4.14 native tool configuration and echo checks. Live tool execution remains untested."
       },
       "privacy": {
         "gateway": "meta-subscription",

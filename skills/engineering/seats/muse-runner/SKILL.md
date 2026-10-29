@@ -65,7 +65,7 @@ For a deterministic transport check, use `--provider echo`. It makes no model
 request. Its provider is `echo`, its configured model is null, and authentication
 remains untested. It cannot prove live tool use, entitlement, privacy, or quality.
 
-The CLI contract was checked against Muse 1.4.7 (1.4.7-R6101.1). See
+The CLI contract was checked against Muse 1.4.14 (1.4.14-R7309.1). See
 [headless operation](https://dev.meta.ai/docs/muse-code/extending),
 [permission profiles](https://dev.meta.ai/docs/muse-code/permissions), and the
 [Muse Wonder model ID](https://dev.meta.ai/models/muse-wonder).

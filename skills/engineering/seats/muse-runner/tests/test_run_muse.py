@@ -113,6 +113,24 @@ class MuseTests(unittest.TestCase):
                 self.assertFalse(result["success"])
                 self.assertTrue(REQUIRED <= result.keys())
 
+    def test_usage_status_is_accepted_but_not_model_proof(self):
+        events = [json.loads(line) for line in FIXTURE.splitlines()]
+        usage = {"schema_version": 1, "id": "usage", "stream": {"kind": "exec.usage", "id": events[0]["stream"]["id"]},
+                 "sequence": 1, "record_type": "status", "durability": "ephemeral",
+                 "payload_type": "run.usage", "payload_schema_version": 1,
+                 "payload": {"kind": "run_usage", "models": [{"model": runner.MODEL, "calls": 1}], "calls": 1}}
+        def run(record):
+            return self.fake_run(stdout="\n".join(map(json.dumps, [*events[:-1], record, events[-1]])),
+                                 provider="echo")[0]
+        result = run(usage)
+        self.assertTrue(result["success"])
+        self.assertIsNone(result["effective_model"])
+        for change in ({"stream": {"kind": "exec.usage", "id": "other"}}, {"payload_type": "run.other"},
+                       {"stream": {"kind": "exec.other", "id": usage["stream"]["id"]}},
+                       {"payload": {"kind": "other"}}, {"durability": "durable"}):
+            with self.subTest(change=change):
+                self.assertFalse(run({**usage, **change})["success"])
+
     def provider_events(self):
         events = [json.loads(line) for line in PROVIDER_FIXTURE.splitlines()]
         status = next(event for event in events if event["payload_type"] == "task.lifecycle.status")

@@ -26,7 +26,7 @@ from runner_prompt import measured_run, prompt_context, record_input
 ROUTING_CONFIG = load_config()
 MODEL = ROUTING_CONFIG["models"]["muse-wonder-full"]["model"]
 EFFORTS = model_efforts("muse", ROUTING_CONFIG)[MODEL]
-VERSION = "1.4.7 (1.4.7-R6101.1)"
+VERSION = "1.4.14 (1.4.14-R7309.1)"
 READ_TOOLS = ["read_file", "search"]
 WRITE_TOOLS = [*READ_TOOLS, "write_file", "edit_file"]
 ROLES = ("planner", "codereviewer", "implementer", "synthesizer", "adversarial", "challenger", "researcher")
@@ -279,7 +279,7 @@ def provider_receipts(events, terminal):
 
 def parse_records(stdout):
     """Accept one completed root turn; never promote labels into model proof."""
-    terminals, sessions, events = [], set(), []
+    terminals, sessions, events, usage_sessions = [], set(), [], set()
     for line in stdout.splitlines():
         if not line.strip():
             continue
@@ -287,6 +287,12 @@ def parse_records(stdout):
         if not isinstance(event, dict) or event.get("schema_version") != 1:
             raise ValueError("Unsupported Muse record schema.")
         stream, payload = event.get("stream"), event.get("payload")
+        if (isinstance(stream, dict) and stream.get("kind") == "exec.usage" and isinstance(payload, dict)
+                and event.get("record_type") == "status" and event.get("durability") == "ephemeral"
+                and event.get("payload_type") == "run.usage" and payload.get("kind") == "run_usage"):
+            # Muse 1.4.14 usage summary: its model labels are never serving proof.
+            usage_sessions.add(stream.get("id"))
+            continue
         if not isinstance(stream, dict) or stream.get("kind") != "session" or not isinstance(payload, dict):
             raise ValueError("Expected a session record with an object payload.")
         if not isinstance(stream.get("id"), str) or not stream["id"]:
@@ -304,6 +310,8 @@ def parse_records(stdout):
             terminals.append(payload)
     if len(sessions) != 1 or len(terminals) != 1:
         raise ValueError("Expected one session and one terminal record.")
+    if not usage_sessions <= sessions:
+        raise ValueError("Usage record belongs to a different session.")
     terminal = terminals[0]
     message = terminal.get("text")
     if message is not None and not isinstance(message, str):

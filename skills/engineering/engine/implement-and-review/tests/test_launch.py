@@ -109,7 +109,7 @@ class LauncherTests(unittest.TestCase):
         args_file = self.root / "native-args.json"
         binary.write_text(
             "#!" + sys.executable + "\nimport sys,json,pathlib\n"
-            "if sys.argv[1]=='--version': print('Muse Code 1.4.7 (1.4.7-R6101.1)')\n"
+            "if sys.argv[1]=='--version': print('Muse Code 1.4.14 (1.4.14-R7309.1)')\n"
             "elif sys.argv[1]=='model-profile': print('model: muse-wonder-full-1.0\\neffort: high')\n"
             "else:\n pathlib.Path(" + repr(str(args_file)) + ").write_text(json.dumps(sys.argv[1:]))\n"
             " print(pathlib.Path(" + repr(str(self.root / "native-output.jsonl")) + ").read_text())\n")
