@@ -30,10 +30,9 @@ same role context throughout the run. A lost context may be recreated only as
 the same recorded role and route from its checkpoint, as the host execution
 contract permits.
 
-Every external runner call names the recorded model and effort and passes
-`--disable-fallback`. Accept a result only when `effective_runner` and
-`configured_model` match the recorded route, `fallback_reason` is empty, and a
-verified `effective_model` does not differ from the requested model. Apply the
+Every external runner call names the recorded model and effort, never with a
+fallback option. Accept a result only when it ran on the recorded route and any
+model the CLI reports matches the requested model. Apply the
 recorded receipt policy before the result enters the decision record.
 
 ## Role protocol

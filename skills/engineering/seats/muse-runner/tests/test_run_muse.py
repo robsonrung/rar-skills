@@ -344,13 +344,12 @@ class MuseTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "unaudited project configuration"):
             runner.check_startup_configuration(project)
 
-    def test_version_and_profile_preflight_no_inference(self):
+    def test_profile_preflight_no_inference(self):
         def response(command, **kwargs):
-            output = "Muse Code " + runner.VERSION if command[1] == "--version" else "model:  " + runner.MODEL + "\neffort: max"
-            return subprocess.CompletedProcess(command, 0, output, "")
+            return subprocess.CompletedProcess(command, 0, "model:  " + runner.MODEL + "\neffort: max", "")
         with patch.object(runner.subprocess, "run", side_effect=response) as run:
             result = runner.preflight("muse", self.workspace, "max")
-        self.assertEqual(run.call_count, 2)
+        self.assertEqual(run.call_count, 1)
         self.assertEqual(result["model_entitlement"], "unknown")
         self.assertTrue(all("exec" not in call.args[0] for call in run.call_args_list))
         with patch.object(runner.subprocess, "run", return_value=subprocess.CompletedProcess([], 0, "future", "")):
@@ -407,8 +406,7 @@ class MuseTests(unittest.TestCase):
         binary = self.workspace / "muse-fixture"
         binary.write_text(
             "#!" + sys.executable + "\nimport sys\n"
-            "if sys.argv[1] == '--version': print(" + repr("Muse Code " + runner.VERSION) + ")\n"
-            "elif sys.argv[1] == 'model-profile': print(" + repr("model: " + runner.MODEL + "\neffort: high") + ")\n"
+            "if sys.argv[1] == 'model-profile': print(" + repr("model: " + runner.MODEL + "\neffort: high") + ")\n"
             "else: print(" + repr(FIXTURE) + ")\n"
         )
         binary.chmod(0o755)

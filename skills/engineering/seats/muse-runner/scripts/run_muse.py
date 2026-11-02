@@ -26,7 +26,6 @@ from runner_prompt import measured_run, prompt_context, record_input
 ROUTING_CONFIG = load_config()
 MODEL = ROUTING_CONFIG["models"]["muse-wonder-full"]["model"]
 EFFORTS = model_efforts("muse", ROUTING_CONFIG)[MODEL]
-VERSION = "1.4.14 (1.4.14-R7309.1)"
 READ_TOOLS = ["read_file", "search"]
 WRITE_TOOLS = [*READ_TOOLS, "write_file", "edit_file"]
 ROLES = ("planner", "codereviewer", "implementer", "synthesizer", "adversarial", "challenger", "researcher")
@@ -154,9 +153,6 @@ def preflight(cli: str, workspace: Path, effort: str, deadline=None):
     def remaining():
         return min(5, max(0.001, deadline - time.monotonic())) if deadline else 5
     check_startup_configuration(workspace)
-    version = subprocess.run([cli, "--version"], capture_output=True, text=True, timeout=remaining(), check=False)
-    if version.returncode or version.stdout.strip().removeprefix("Muse Code ") != VERSION:
-        raise ValueError(f"This adapter requires Muse CLI {VERSION}.")
     profile = subprocess.run(
         [cli, "model-profile", "show", MODEL, "--effort", effort],
         capture_output=True, text=True, timeout=remaining(), check=False,
@@ -166,7 +162,7 @@ def preflight(cli: str, workspace: Path, effort: str, deadline=None):
             or not re.search(rf"(?m)^effort:\s+{re.escape(effort)}\s*$", profile.stdout)):
         raise ValueError("Exact model profile did not resolve.")
     return {
-        "cli_version": version.stdout.strip(), "profile_resolved": True,
+        "profile_resolved": True,
         "model_entitlement": "unknown", "serving_model": "unknown", "zdr": "user_confirmed",
         "privacy_evidence": subscription_privacy(ROUTING_CONFIG),
         "detail": "Local profile resolution does not prove current access. Subscription coverage is user confirmed, not independently verified.",

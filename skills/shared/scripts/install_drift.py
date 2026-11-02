@@ -7,7 +7,6 @@ import json
 import re
 from pathlib import Path
 
-from skill_paths import runner_script
 
 from model_routing import config_digest, load_config, unique_object, validate_selection
 from runner_preflight import file_evidence
@@ -95,17 +94,13 @@ LEGACY_CRITICAL_FILES = (
     "shared/scripts/model_routing.py", "shared/scripts/runner_preflight.py",
     "shared/scripts/preflight_cache.py", "shared/scripts/discover_runners.py",
     "shared/scripts/install_drift.py", "shared/scripts/model_receipt.py",
-    "claude-runner/scripts/run_claude.py",
 )
 CRITICAL_FILES = (*LEGACY_CRITICAL_FILES,
                   "shared/scripts/runner_prompt.py", "shared/scripts/context_packet.py")
 
 
 def critical_path(root: Path | str, relative: str) -> Path:
-    skills = shared_root(root).parent
-    if relative == "claude-runner/scripts/run_claude.py":
-        return runner_script("claude", root=skills)
-    return skills / relative
+    return shared_root(root).parent / relative
 
 
 def write_manifest(source_root: Path | str, installed_root: Path | str) -> Path:

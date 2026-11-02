@@ -9,7 +9,7 @@ Run one bounded turn on Muse Wonder Full through the local `muse` CLI. A host th
 
 ## Run
 
-First run `--preflight --json`: it checks the CLI version and configuration without a model call, and an untested version blocks the seat.
+First run `--preflight --json`: it checks the workspace configuration and resolves the model profile without a model call.
 
 ```bash
 python3 <skill-dir>/scripts/run_muse.py "<prompt>" --effort <effort> --json

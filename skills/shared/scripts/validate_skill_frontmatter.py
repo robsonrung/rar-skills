@@ -11,8 +11,7 @@ Checks, across every top-level skill dir (any dir containing SKILL.md):
      skill undiscoverable on AgentSkills hosts). Upstream prefixes like `ce-`
      are banned in skill names.
   3. `description:` present and at least 20 characters (enough to route on).
-  4. Runner parity: every `*-runner/` dir ships scripts/run_<prefix>.py and is
-     either registered in shared/model-routing.json or explicitly
+  4. Runner parity: every `*-runner/` dir is either registered in shared/model-routing.json or explicitly
      allowlisted below as a non-seat runner. A new runner dir that is neither
      fails CI — adding a runner skill without registering its seat is the
      drift this guard exists to catch.
@@ -146,9 +145,6 @@ def check_runner_parity(failures: list[str]) -> None:
         if not runner_dir.is_dir():
             continue
         prefix = runner_dir.name.removesuffix("-runner")
-        script = runner_dir / "scripts" / f"run_{prefix}.py"
-        if not script.exists():
-            failures.append(f"{runner_dir.name}: missing scripts/run_{prefix}.py")
         if prefix not in registered and runner_dir.name not in NON_SEAT_RUNNERS:
             failures.append(
                 f"{runner_dir.name}: not registered in model-routing.json and not in "

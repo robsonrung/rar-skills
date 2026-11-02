@@ -44,14 +44,14 @@ Load only the selected runner's skill and its `--help`:
 
 | Runner | Control to verify |
 | --- | --- |
-| `claude-runner` | Explicit model and effort; persist the role session. Current print receipts do not prove serving identity. Disclose this and obtain `allow_unverified` if required. |
-| `codex-runner` | Exact model/effort, session ID, scoped tools, provider receipt policy. Use only when the exact native path is unavailable or the CLI was requested. |
-| `grok-runner` | Model receipt and effective effort. The adapter can clamp unsupported efforts; reject a changed effort in an approved run. |
+| `claude-runner` | Explicit model and effort; persist the role session; confirm `modelUsage` names the model. |
+| `codex-runner` | Exact model and effort, thread ID, sandbox. Use only when the exact native path is unavailable or the CLI was requested. |
+| `grok-runner` | Model in `modelUsage` and an effort of at most `high`; reject a changed effort in an approved run. |
 | `pi-runner` | Pin gateway, model, serialized reasoning and provider privacy controls per call; use a unique persistent session file per role. Preflight browser commands, tool schemas, and typed image input in that external process. Host tools are not inherited. |
-| `gemini-runner` | Current runtime does not enforce exact model or effort. Accept only an explicitly approved runtime controlled route, or select another verified transport. Do not claim exact control. |
+| `gemini-runner` | Explicit `--model` and `--effort`; `agy` reports no serving model, so record the route as unverified unless the user approved another transport. |
 | Other installed runners | Inspect their actual skill and adapter. Availability alone does not prove exact routing, persistence, tools, or receipts. |
 
-Pass `--disable-fallback` where supported for approved runner calls. Keep approval checks and permission enforcement enabled. Use the shared receipt contract and metrics normalizer. Match configured model, effective effort, actual context, and serving identity when required. A mismatch blocks acceptance even when useful output exists. Reconcile a lost or ambiguous completion before another dispatch.
+Never let an approved runner call fall back. Keep approval checks and permission enforcement enabled. Match configured model, effective effort, actual context, and serving identity when required. A mismatch blocks acceptance even when useful output exists. Reconcile a lost or ambiguous completion before another dispatch.
 
 For browser mechanism selection, use `browser-smoke`: reuse an established
 Playwright Test suite directly, consider Playwright CLI with its skill for

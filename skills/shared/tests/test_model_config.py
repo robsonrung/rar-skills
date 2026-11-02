@@ -111,80 +111,9 @@ class ModelConfigTests(unittest.TestCase):
                 routing.resolve_route(*args, **kwargs)
 
     def test_runners_share_capabilities_with_the_routing_config(self):
-        worker = module(runner_script("codex", root=SKILLS), "config_worker")
-        self.assertEqual(worker.DEFAULT_MODEL, routing.default_model("codex"))
-        self.assertEqual(worker.MODEL_EFFORT_LEVELS, {k: tuple(v) for k, v in routing.model_efforts("codex").items()})
         for name, constant in (("pi", "PI_SEATS"),):
             runner = module(runner_script(name, root=SKILLS), f"config_{name}")
             self.assertEqual(getattr(runner, constant), routing.seat_models(name))
-
-    def test_panel_references_resolve_without_duplicate_model_flags(self):
-        panel = module(SKILLS / "shared" / "scripts" / "panel_round.py", "config_panel")
-        path = skill_dir("collaborative-delivery", root=SKILLS) / "assets" / "routing.toml"
-        raw = panel.load_toml(path)
-        self.assertTrue(all("model" not in provider and "effort" not in provider for provider in raw["providers"].values()))
-        resolved = routing.resolve_panel_providers(raw)
-        for provider in resolved["providers"].values():
-            self.assertTrue(provider["model"])
-            self.assertIn(provider["effort"], self.config["effort_levels"])
-            self.assertFalse(any(arg in {"--model", "--effort", "--thinking"} for arg in provider.get("runner_args", [])))
-
-    def test_panel_reference_rejects_model_and_effort_overrides(self):
-        base = {"providers": {"test": {"route": "precision-review", "family": "claude", "route_role": "reviewer", "kind": "runner"}}}
-        for override in ({"effort": "low"}, {"model": "other"}, {"runner_args": ["--effort=low"]}, {"runner_args": ["-elow"]}, {"runner_args": ["-mother"]}, {"runner": "codex"}):
-            value = copy.deepcopy(base)
-            value["providers"]["test"].update(override)
-            with self.assertRaises(ValueError):
-                routing.resolve_panel_providers(value)
-
-    def test_panel_command_forwards_resolved_effort(self):
-        panel = module(SKILLS / "shared" / "scripts" / "panel_round.py", "config_panel_command")
-        provider = routing.resolve_panel_providers({"providers": {"review": {
-            "route": "precision-review", "family": "claude", "route_role": "reviewer", "kind": "runner",
-        }}})["providers"]["review"]
-        with tempfile.TemporaryDirectory() as directory:
-            base = Path(directory)
-            result = panel.run_runner_role(
-                provider_cfg=provider, role_cfg={"runner_role": "codereviewer"},
-                role="review", phase="review", prompt_path=base / "prompt.md",
-                output_file=base / "out.json", stdout_path=base / "stdout", stderr_path=base / "stderr",
-                working_dir=base, skill_root=skill_dir("collaborative-delivery", root=SKILLS),
-                dry_run=True, role_session=None,
-            )
-        command = shlex.split(result["command_preview"])
-        self.assertEqual(command[command.index("--model") + 1], provider["model"])
-        self.assertEqual(command[command.index("--effort") + 1], provider["effort"])
-        self.assertEqual(command.count("--effort"), 1)
-        self.assertIn("--disable-fallback", command)
-
-    def test_panel_snapshot_blocks_a_changed_selection_before_dispatch(self):
-        with tempfile.TemporaryDirectory() as directory:
-            base = Path(directory)
-            path = base / "assets" / "routing.toml"
-            path.parent.mkdir()
-            template = '''[skill]
-name = "routing-test"
-[providers.reader]
-route = "code-exploration"
-family = "gpt"
-route_role = "worker"
-kind = "native"
-[roles.reader]
-provider = "reader"
-[phases.review]
-roles = ["reader"]
-'''
-            path.write_text(template)
-            command = [sys.executable, str(SKILLS / "shared/scripts/panel_round.py"), "--routing", str(path),
-                       "--phase", "review", "--goal", "Inspect only", "--working-dir", str(base), "--out", str(base / "out")]
-            result = subprocess.run(command, text=True, capture_output=True)
-            self.assertEqual(result.returncode, 0, result.stderr)
-            snapshot = (base / "out/resolved_routing.json").read_text()
-            path.write_text(template.replace('route = "code-exploration"', 'route = "technical-analysis"'))
-            result = subprocess.run(command, text=True, capture_output=True)
-            self.assertNotEqual(result.returncode, 0)
-            self.assertIn("Panel routing changed", result.stderr)
-            self.assertEqual((base / "out/resolved_routing.json").read_text(), snapshot)
 
     def test_maintained_model_pins_are_not_copied_into_other_skill_files(self):
         pins = {entry["model"] for entry in self.config["models"].values()}
@@ -206,17 +135,17 @@ roles = ["reader"]
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory) / "installed"
             shutil.copytree(SKILLS / "shared", root / "shared", ignore=shutil.ignore_patterns("__pycache__"))
-            shutil.copytree(skill_dir("codex-runner", root=SKILLS), root / "codex-runner", ignore=shutil.ignore_patterns("__pycache__"))
+            shutil.copytree(skill_dir("pi-runner", root=SKILLS), root / "pi-runner", ignore=shutil.ignore_patterns("__pycache__"))
             result = subprocess.run([sys.executable, str(root / "shared" / "scripts" / "model_routing.py"), "resolve", "isolated-implementation", "--family", "gpt"], cwd=directory, text=True, capture_output=True)
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertEqual(json.loads(result.stdout)["roles"]["implementer"]["seat"], "terra")
-            result = subprocess.run([sys.executable, str(root / "codex-runner" / "scripts" / "run_codex.py"), "--help"], cwd=directory, text=True, capture_output=True)
+            result = subprocess.run([sys.executable, str(root / "pi-runner" / "scripts" / "run_pi.py"), "--help"], cwd=directory, text=True, capture_output=True)
             self.assertEqual(result.returncode, 0, result.stderr)
 
             changed = copy.deepcopy(self.config)
-            changed["models"]["astra"]["model"] = "routingtest"
+            changed["models"]["kimi"]["model"] = "routingtest"
             (root / "shared/model-routing.json").write_text(json.dumps(changed))
-            result = subprocess.run([sys.executable, str(root / "codex-runner/scripts/run_codex.py"), "--help"], cwd=directory, text=True, capture_output=True)
+            result = subprocess.run([sys.executable, str(root / "pi-runner/scripts/run_pi.py"), "--help"], cwd=directory, text=True, capture_output=True)
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertIn("routingtest", result.stdout)
 

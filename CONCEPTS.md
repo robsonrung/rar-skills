@@ -14,15 +14,15 @@ A native seat runs through the host's own agent-spawning tool (e.g. `Agent` in C
 
 ### Runner skill / runner shim
 
-A skill (`claude-runner`, `codex-runner`, `gemini-runner`, `grok-runner`, `pi-runner`, …) whose script wraps one CLI and emits the shared envelope. One runner can serve several named seats (`pi-runner --seat kimi`), each with its own pinned model and seat label.
+A skill that runs a prompt on one model CLI when the host lacks the model. `claude-runner`, `codex-runner`, `gemini-runner`, and `grok-runner` call their CLI directly; `pi-runner` and `muse-runner` wrap theirs in a script that emits the shared envelope. One runner can serve several named seats (`pi-runner --seat kimi`), each with its own pinned model and seat label.
 
 ### Envelope
 
-The normalized JSON wrapper every runner script returns (`shared/runner-envelope.schema.json`): success, stdout/stderr, `runner`, `effective_runner`, `effective_model`, `effective_provider`, `agent_message`, and friends. The family-wide contract locked by `shared/tests/test_runner_parity.py`.
+The normalized JSON the Pi and Muse wrapper scripts return (`shared/runner-envelope.schema.json`): success, stdout/stderr, `runner`, `effective_runner`, `effective_model`, `effective_provider`, `agent_message`, and friends. Locked by `shared/tests/test_runner_parity.py`.
 
 ### Seat fidelity
 
-The invariant that a seat never silently answers with a different provider's model. Missing CLI or failed auth blocks the seat explicitly (`seat_unavailable`) instead of falling back. `--disable-fallback` enforces it in councils.
+The invariant that a seat never silently answers with a different provider's model. Missing CLI, failed auth, or a different reported model leaves the seat explicitly unanswered instead of falling back.
 
 ### Model identity receipt
 
@@ -44,11 +44,7 @@ The transport that actually executed (envelope key `effective_runner`) — e.g. 
 
 ### Moment
 
-One of the five points in a working turn that `fable-mindset` governs — intake, diagnosis, decision, implementation, reporting. A moment is about _posture_ (how a request is read, how evidence is weighed, how a result is reported) rather than a domain or a procedure; the procedural counterpart of each moment lives in its own skill (`diagnose`, `coding-design-plan`, `tdd`, `summarize`).
-
-### Panel mode
-
-The opt-in multi-model path inside a pipeline skill (`brainstorm`, `to-prd`, `to-tasks`) and the whole of `collaborative-delivery`. Panel mode fans a phase out to real model seats through `shared/scripts/panel_round.py` and writes an auditable artifact set; it replaces drafting, never the human approval gate. A generated prompt is not participation — see the status taxonomy in `shared/collaborative-panel-runner.md`.
+One of the five points in a working turn — intake, diagnosis, decision, implementation, reporting. A moment is about _posture_ (how a request is read, how evidence is weighed, how a result is reported) rather than a domain or a procedure; the procedural counterpart of each moment lives in its own skill (`diagnose`, `coding-design-plan`, `tdd`, `summarize`).
 
 ### Seat tier
 
@@ -100,7 +96,7 @@ A bound on a run counted outside the model's judgment — cycles, dispatched age
 
 ### Mode prompt
 
-The rule that invoking a skill with selectable modes (safe mode, panel mode, council modes, `--auto`, a browser mechanism) requires asking the user which mode, unless the user already named it. Silence never selects a mode; a default applies only after confirmation. Normative text in `shared/references/engineering-rules.md` (mode selection).
+The rule that invoking a skill with selectable modes (safe mode, council modes, `--auto`, a browser mechanism) requires asking the user which mode, unless the user already named it. Silence never selects a mode; a default applies only after confirmation. Normative text in `shared/references/engineering-rules.md` (mode selection).
 
 ### Local config
 

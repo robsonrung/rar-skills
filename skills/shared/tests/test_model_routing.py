@@ -155,20 +155,6 @@ class ModelRoutingContractTests(unittest.TestCase):
         self.assertNotIn("astra", [spec.seat for spec in discover_runners.filter_specs(None)])
         self.assertEqual(discover_runners.SEAT_IDENTITIES["codex"], "astra")
 
-    def test_codex_runner_uses_astra_and_records_clamps(self):
-        spec = importlib.util.spec_from_file_location("routing_worker", P("codex-runner/scripts/run_codex.py"))
-        worker = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(worker)
-        self.assertEqual(worker.DEFAULT_MODEL, model_routing.default_model("codex"))
-        self.assertEqual(worker.resolve_model("codex"), worker.resolve_model("astra"))
-        self.assertEqual(worker.resolve_effort(worker.resolve_model("astra"), "ultra"), "ultra")
-        self.assertEqual(worker.resolve_effort(worker.resolve_model("terra"), "ultra"), "ultra")
-        worker.MODEL_EFFORT_LEVELS["test-standard"] = ["low", "medium", "high", "xhigh", "max"]
-        self.assertEqual(worker.resolve_effort("test-standard", "ultra"), "max")
-        runner = self.read("codex-runner/scripts/run_codex.py")
-        self.assertIn('"requested_effort": effort', runner)
-        self.assertIn('"effort_clamped": effort is not None', runner)
-
     def test_removed_workflow_panel_routes_stay_removed(self):
         for path in (
             "brainstorm/assets/panel-routing.toml",
@@ -184,21 +170,6 @@ class ModelRoutingContractTests(unittest.TestCase):
         self.assertIn("shared/model-routing.json", text)
         self.assertIn("deep-analysis", text)
         self.assertNotIn("Synthesize and enrich (Opus seat)", text)
-
-    def test_collaborative_delivery_uses_persistent_exact_routes(self):
-        import tomllib
-        raw = tomllib.loads(self.read("collaborative-delivery/assets/routing.toml"))
-        resolved = model_routing.resolve_panel_providers(raw)
-        primary = resolved["providers"]["synthesis_anchor"]
-        reviewer = resolved["providers"]["adversarial_anchor"]
-        self.assertNotEqual(primary["model"], reviewer["model"])
-        self.assertEqual(primary["effort_control"], "native")
-        self.assertEqual(reviewer["effort_control"], "runner")
-        for provider in resolved["providers"].values():
-            self.assertEqual(provider["session_policy"], "per-role-persistent")
-        workflow = self.read("collaborative-delivery/SKILL.md")
-        self.assertIn("exact model", workflow)
-        self.assertIn("persistent native", workflow)
 
     def test_saver_profile_is_default_and_resolves_every_route(self):
         config = model_routing.load_config()

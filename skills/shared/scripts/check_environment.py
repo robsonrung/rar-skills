@@ -248,13 +248,6 @@ def check_environment(project=None, browser='auto', native_models=False, timeout
     check.command('rg', required=False)
     for name in ('gh', 'jq', 'claude', 'agy', 'grok', 'cmux'):
         check.command(name, required=False, probe=False)
-    for name in ('AGY_CLI_PATH',):
-        value = os.environ.get(name)
-        if value:
-            check.add(name, 'OK' if shutil.which(value) else 'MISSING', False,
-                      'Configured override resolves to an executable.' if shutil.which(value) else 'Configured override does not resolve to an executable.',
-                      '' if shutil.which(value) else f'Set {name} to the installed executable path, or unset {name} to use PATH.\n'
-                      'Restart the host and rerun this checker.')
 
     if project is not None:
         project = Path(project).expanduser().resolve()

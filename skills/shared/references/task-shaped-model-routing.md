@@ -165,7 +165,7 @@ policy, exact fallback triggers, limits, unavailable action, and source artifact
 Resolve native capabilities before probing external CLIs. Keep context IDs and
 iteration results in mutable run state rather than changing approved rows.
 
-Use `--disable-fallback` for every approved runner route. `unavailable` is `block`
+No runner falls back on an approved route. `unavailable` is `block`
 unless the user approved one exact alternate. An unexpected runner or configured model blocks the route.
 For native routes, check the approved host and native transport as well.
 `model_verification: required` blocks without a verified matching receipt.

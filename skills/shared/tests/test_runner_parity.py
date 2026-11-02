@@ -14,12 +14,11 @@ Locks in the family-wide contract so the per-script copies cannot drift:
 3. Relative --prompt-file paths resolve against --working-dir (not the
    process cwd): an existing file under the working dir reaches the -2
    missing-CLI path, a missing one is a -3 input error.
-4. Codex-family aliases resolve before launch, including Terra, and runner
-   discovery recognizes every rostered Codex-family seat without calling a
-   provider.
+4. Runner discovery recognizes every rostered Codex-family seat without
+   calling a provider.
 
 All tests run offline: PATH is stripped so no real CLI is ever found, and
---disable-fallback keeps the claude/codex/gemini chains from routing.
+--disable-fallback is accepted by every wrapper; none of them falls back.
 
 Run: python3 shared/tests/test_runner_parity.py
 """
@@ -47,10 +46,6 @@ DISCOVER_RUNNERS = REPO_ROOT / "shared" / "scripts" / "discover_runners.py"
 
 # runner label -> (script, extra args that select the seat)
 RUNNER_SCRIPTS = {
-    "claude": (runner_script("claude", root=REPO_ROOT), ()),
-    "codex": (runner_script("codex", root=REPO_ROOT), ()),
-    "gemini": (runner_script("gemini", root=REPO_ROOT), ()),
-    "grok": (runner_script("grok", root=REPO_ROOT), ()),
     "pi": (_PI, ()),
     "kimi": (_PI, ("--seat", "kimi")),
     "glm": (_PI, ("--seat", "glm")),
@@ -225,30 +220,6 @@ class WorkingDirPathResolutionParityTests(unittest.TestCase):
 
 
 class CodexFamilyAliasAndDiscoveryTests(unittest.TestCase):
-    def test_codex_family_aliases_resolve_before_cli_availability(self):
-        expected_models = {
-            "astra": "gpt-6-astra",
-            "sol": "gpt-6.1-sol",
-            "terra": "gpt-6.1-terra",
-        }
-        codex = RUNNER_SCRIPTS["codex"]
-        for alias, model in expected_models.items():
-            with self.subTest(alias=alias):
-                proc = run_script(
-                    codex,
-                    "hi",
-                    "--model",
-                    alias,
-                    "--json",
-                    "--disable-fallback",
-                    "--timeout",
-                    "5",
-                )
-                env = json.loads(proc.stdout)
-                self.assertEqual(env["return_code"], -2, env.get("stderr"))
-                self.assertEqual(env["configured_model"], model)
-                self.assertIsNone(env["effective_model"])
-
     def test_discovery_lists_all_codex_family_seats(self):
         proc = run_discovery(
             "--seat",

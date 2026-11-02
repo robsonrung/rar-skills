@@ -108,31 +108,6 @@
       "must_not_contain": []
     },
     {
-      "file": "skills/extras/fable-mindset/SKILL.md",
-      "concept": "the five moments — intake (act or assess / the mandate), diagnosis (pattern-match is not diagnosis / artifact of proof), decision (recommendation, not survey / already decided), implementation (native diff / defensive theater), reporting (lead with the outcome / selection over compression)",
-      "must_contain": [
-        "act or assess",
-        "the mandate",
-        "eager fix",
-        "timid report",
-        "pattern-match is not diagnosis",
-        "artifact of proof",
-        "recommendation, not survey",
-        "already decided",
-        "marginal-information test",
-        "survey ends here",
-        "native diff",
-        "earned comment",
-        "defensive theater",
-        "smallest coherent shape",
-        "lead with the outcome",
-        "selection over compression",
-        "honest ledger",
-        "last-paragraph check"
-      ],
-      "must_not_contain": []
-    },
-    {
       "file": "skills/extras/knowledge-graph/SKILL.md",
       "concept": "the schema is the only training data / the graph accumulates / local vs global search / flag, never overwrite",
       "must_contain": [

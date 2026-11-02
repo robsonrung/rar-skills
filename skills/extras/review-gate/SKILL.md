@@ -88,7 +88,7 @@ Seat rules:
 - An unavailable planned route is an **observable failure**. Use only a configured alternate route and record its effective execution path in `scope.agents[]`. Without one, mark the persona failed and its assigned coverage as `skipped`; never silently substitute a provider.
 - There is no fixed three-route quorum. Record the selected reviewer count and actual provider/model diversity in `scope.methodology`. A planned single-route review is valid; do not claim independent corroboration. Loss of a selected route must be reported as incomplete coverage unless its exact alternate was approved.
 - Resolve an exact native route through a persistent isolated subagent or supported task context before choosing a runner. A runner is only for a foreign route or a native route that cannot meet the approved plan. Keep each persona's own context through later rechecks, and never share it with the writer or another independent persona.
-- Runner invocations pass `--disable-fallback` (seat fidelity, per `shared/references/runner-common.md`); read `agent_message` from the runner envelope, never raw stdout. Capture and resume that persona's own session when another round is needed.
+- Runner calls never fall back (seat fidelity, per `shared/references/runner-common.md`); read the answer the runner's SKILL.md names. Capture and resume that persona's own session when another round is needed.
 - Run independent selected reviewers within the approved concurrency cap. A separately selected adversarial verifier runs after its input findings exist; do not launch an empty verification round.
 
 ### Fan-out mechanics
@@ -103,7 +103,7 @@ echo "$FINDINGS_DIR"
 
 Compose each persona's prompt from `references/persona-prompt-template.md`: its brief file, its file list, the relevant spec excerpt, the scope contract, `$FINDINGS_DIR`, and the findings-item shape from `references/result-schema.json`. Hand off paths, not payloads. Subagents cannot spawn subagents — a persona that needs the diff split further is your batch to schedule, not theirs.
 
-Each persona writes `$FINDINGS_DIR/<persona>.json` (`{coverage: [...], findings: [...]}`); runner seats emit that JSON as their `agent_message` and you save it to the same path. Invalid JSON or a nonzero exit marks the persona failed: its declared files become `skipped` coverage rows with a note naming the failure — the honesty accounting makes a lost persona visible instead of silent.
+Each persona writes `$FINDINGS_DIR/<persona>.json` (`{coverage: [...], findings: [...]}`); runner seats return that JSON as their answer and you save it to the same path. Invalid JSON or a nonzero exit marks the persona failed: its declared files become `skipped` coverage rows with a note naming the failure — the honesty accounting makes a lost persona visible instead of silent.
 
 Your merge is mechanical, not a second review: parse the JSON files, union coverage rows, dedupe exact `(path, line, title)` overlaps, then verify candidate evidence in the next phase. Do not re-read the diff wholesale after delegation.
 

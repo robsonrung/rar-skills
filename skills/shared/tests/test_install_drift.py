@@ -13,6 +13,7 @@ from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 import install_drift
+from skill_paths import runner_script
 from model_routing import CONFIG_PATH, config_digest, load_config
 from runner_preflight import COMPATIBILITY_PATH
 
@@ -131,13 +132,13 @@ class InstallDriftTests(unittest.TestCase):
         self.assertIn("Loaded file differs", " ".join(report["reasons"]))
         self.assertEqual(path.read_bytes(), before)
 
-    def test_flat_copy_runs_all_adapters_with_shared_prompt_dependency(self):
+    def test_flat_copy_runs_the_adapter_with_shared_prompt_dependency(self):
         source = Path(__file__).resolve().parents[3]
         bundle = Path(self.temp.name) / "flat-copy"
         shutil.copytree(source / "skills/shared", bundle / "shared", ignore=shutil.ignore_patterns("__pycache__"))
-        names = ("claude", "codex", "gemini", "grok", "pi")
+        names = ("pi",)
         for name in names:
-            shutil.copytree(install_drift.runner_script(name, root=source / "skills").parent.parent,
+            shutil.copytree(runner_script(name, root=source / "skills").parent.parent,
                             bundle / f"{name}-runner", ignore=shutil.ignore_patterns("__pycache__"))
         manifest_path = install_drift.write_manifest(source, bundle)
         self.assertEqual(install_drift.check_loaded_install(bundle)["status"], "match")

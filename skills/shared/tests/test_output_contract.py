@@ -141,9 +141,9 @@ class OutputContractUnitTests(unittest.TestCase):
 
 
 class RunnerOutputContractTests(unittest.TestCase):
-    def test_pi_and_grok_accept_only_schema_valid_final_answers(self):
+    def test_pi_accepts_only_schema_valid_final_answers(self):
         valid = json.dumps(opening_answer())
-        for name in ("pi", "grok"):
+        for name in ("pi",):
             with self.subTest(runner=name, case="valid"):
                 proc, envelope = run_runner(name, valid)
                 self.assertEqual(proc.returncode, 0, proc.stderr)

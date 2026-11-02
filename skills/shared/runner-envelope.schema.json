@@ -359,7 +359,7 @@
       "items": {
         "type": "object"
       },
-      "description": "gemini-runner: the sibling runners tried and skipped before the returned result (including not_installed siblings), so the attempt log is complete even when every fallback was unavailable."
+      "description": "Legacy field from removed fallback runners; current wrappers never fall back."
     },
     "output_json_valid": {
       "type": "boolean",

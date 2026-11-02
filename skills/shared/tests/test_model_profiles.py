@@ -257,14 +257,6 @@ class ModelProfileTests(unittest.TestCase):
         self.assertEqual(self.config, before)
         self.assertTrue(self.resolve("routine-implementation")["roles"]["implementer"]["provider_routing"]["zdr"])
 
-    def test_explicit_saved_panel_snapshot_never_gets_new_policy(self):
-        panel = {"providers": {"worker": {"seat": "glm", "model": "saved-model", "runner": "pi", "effort": "medium"}}}
-        self.assertEqual(routing.resolve_panel_providers(panel, self.config), panel)
-        changed = copy.deepcopy(self.config)
-        changed["models"]["glm"]["model"] = "replacement-model"
-        changed["default_profile"] = "balanced"
-        self.assertEqual(routing.resolve_panel_providers(panel, changed), panel)
-
     def test_invalid_profile_configuration_fails_before_preview(self):
         mutations = (
             lambda c: c.update(default_profile="missing"),

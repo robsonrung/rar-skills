@@ -21,7 +21,7 @@ class RunnerPromptTests(unittest.TestCase):
         return module
 
     def test_producers_keep_dispatch_data_outside_prompt_and_measure_adapter_text(self):
-        for name in ('codex', 'claude', 'grok', 'gemini', 'pi'):
+        for name in ('pi',):
             with self.subTest(name=name):
                 module = self.runner(name)
                 metadata = {'prompt_context': {'acceptance': 'Preserve file order'},
@@ -47,7 +47,7 @@ class RunnerPromptTests(unittest.TestCase):
                 self.assertEqual(measured['sha256'], hashlib.sha256(rendered.encode('utf-8')).hexdigest())
 
     def test_legacy_user_metadata_is_still_role_context(self):
-        for name in ('codex', 'claude', 'grok', 'gemini', 'pi'):
+        for name in ('pi',):
             with self.subTest(name=name):
                 module = self.runner(name)
                 extra = {'output_schema': None, 'tool_mode': module.TOOL_MODE_RESTRICTED} if name == 'pi' else {}
@@ -62,7 +62,7 @@ class RunnerPromptTests(unittest.TestCase):
                 self.assertNotIn('bookkeeping', empty)
 
     def test_adapter_overhead_enforces_launcher_budget_before_provider_start(self):
-        for name in ('codex', 'claude', 'grok', 'gemini', 'pi'):
+        for name in ('pi',):
             with self.subTest(name=name):
                 module = self.runner(name)
                 metadata = {'prompt_context': {}, 'input_measurement': {'max_bytes': 5}}

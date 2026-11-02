@@ -1,6 +1,6 @@
 ---
 name: skill-expert
-description: Create, audit, improve, or package SKILL.md workflows and their supporting resources. Use for skill authoring, discovery problems, or workflow simplification. For project instruction files, use agents-md-craft.
+description: Create, audit, improve, or package SKILL.md workflows and their supporting resources. Use for skill authoring, discovery problems, or workflow simplification.
 ---
 
 # Skill Expert

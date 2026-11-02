@@ -5,24 +5,23 @@ description: Run a prompt on a Claude model through the local Claude CLI. Use wh
 
 # Claude Runner
 
-Run one prompt on a Claude model through the local `claude` CLI. A host that offers the model natively (a Claude Code subagent, a T3 Code provider) runs it there instead.
+Run one prompt on a Claude model with the local `claude` CLI. A host that offers the model natively (a Claude Code subagent, a T3 Code provider) runs it there instead.
 
 ## Run
 
 ```bash
-python3 <skill-dir>/scripts/run_claude.py "<prompt>" --model <model> --effort <effort> \
-  --output-format json --disable-fallback --json
+claude -p "<prompt>" --model <model> --effort <effort> --output-format json
 ```
 
-- `--prompt-file <file>` replaces the inline prompt for a long brief; `--working-dir <path>` sets the repository.
-- `--role implementer`, or no role, can edit files; every other role runs read-only.
-- `--background` returns a job id for `shared/scripts/runner_jobs.py` (`status`, `wait-many`, `result`, `cancel`).
-- `--help` lists the rest.
+- Run it from the repository, or pass the brief through stdin for a long prompt: `claude -p --model … < brief.md`.
+- The implementer adds `--permission-mode acceptEdits`. Every other role runs read-only: add `--permission-mode plan --tools Read,Glob,Grep`.
+- Run a long call in the host's background shell and read its output when it finishes.
+- `claude --help` lists the rest.
 
 ## Continue
 
-The envelope's `session_id` (present with `--output-format json`) is that role's context. Send the role's next turn with `--resume <session_id>`; every role keeps its own session.
+The JSON result's `session_id` is that role's context. Send the role's next turn with `--resume <session_id>`; every role keeps its own session.
 
 ## Result
 
-Read `agent_message`. `--disable-fallback` keeps **seat fidelity**: the answer comes from this seat, or `success` is false. On failure, report `status` and the telling stderr lines, and leave the seat unanswered.
+Read `result`. Keep **seat fidelity**: confirm `modelUsage` names the requested model, and never pass `--fallback-model`. A failed call, `is_error: true`, or another model means the seat is unanswered; report the telling stderr lines.

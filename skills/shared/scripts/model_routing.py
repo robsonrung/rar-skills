@@ -217,14 +217,6 @@ def validate_config(config: Any) -> None:
         validate_profiles(config)
 
 
-def resolve_reference(reference: dict, config: dict) -> dict:
-    try:
-        selection = config["routes"][reference["route"]]["families"][reference["family"]][reference["role"]]
-    except (KeyError, TypeError) as exc:
-        raise ValueError(f"Invalid route reference: {reference}") from exc
-    return resolve_role(selection, config)
-
-
 def resolve_council(name: str, *, config: dict | None = None) -> dict:
     """Resolve a council's default seats without dispatching calls."""
     config = load_config() if config is None else config
@@ -492,34 +484,6 @@ def resolve_task_batch(tasks: list[dict], profile: str | None = None, *,
             "reason": ("The configured final reviewer authored these tasks; select and approve an independent route."
                        if conflicts else "The configured final reviewer differs from every task author role."),
         })
-    return result
-
-
-def resolve_panel_providers(panel: dict, config: dict | None = None) -> dict:
-    """Expand semantic references; leave explicit approved snapshots unchanged."""
-    config = load_config() if config is None else config
-    result = copy.deepcopy(panel)
-    used_reference = False
-    for name, provider in result.get("providers", {}).items():
-        if "route" not in provider:
-            continue
-        used_reference = True
-        for key in ("model", "effort", "runner", "provider", "transport", "effort_control", "effort_flag"):
-            require(key not in provider, f"Panel provider {name} must not override resolved {key}")
-        for arg in provider.get("runner_args", []):
-            arg = str(arg)
-            override = arg.split("=", 1)[0] in {"--model", "-m", "--effort", "-e", "--thinking", "--seat"}
-            override = override or (arg.startswith(("-m", "-e")) and not arg.startswith("--"))
-            require(not override, f"Panel provider {name} must not override its route in runner_args")
-        selection = resolve_reference(dict(route=provider["route"], family=provider.get("family"), role=provider.get("route_role")), config)
-        provider.update(selection)
-        provider["provider"] = config["runners"][selection["runner"]]["provider"]
-        provider["effort_flag"] = config["runners"][selection["runner"]]["effort_flag"]
-        native = provider.get("kind") in {"native", "native_codex"}
-        provider["effort_control"] = "native" if native else ("runner" if config["runners"][selection["runner"]]["effort_flag"] else "runtime")
-        provider["transport"] = "native" if native else f"{selection['runner']}-runner"
-    if used_reference:
-        result["model_routing_digest"] = config_digest(config)
     return result
 
 
