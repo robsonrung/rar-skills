@@ -5,52 +5,38 @@ description: Select relevant design lenses for a planned slice and return a proc
 
 # Design Gate
 
-Turn "which design lens applies here?" into a small, evidence-based routing decision, then apply only the selected lenses and merge their findings into one verdict. This skill is the routing authority. It does not invent a second review method or call a council.
-
-For the workflow stage boundaries and the practical skills that follow this gate, read `shared/references/workflow-stage-routing.md`.
+Pick the design lenses a planned slice actually needs, apply them, and merge their findings into one `proceed` or `revise` verdict.
 
 ## Workflow
 
-1. Identify the stage and surfaces from the plan, Slice Contract, or changed scope. During task planning, assess shared feature decisions once and classify each task's applicability and remaining risks. Use `shared/references/planning-reuse.md` when several tasks share a settled conclusion. Before implementation, use inherited constraints; re-route only when evidence changes the design surface.
-2. Select lenses only for an unresolved decision or changed risk. Reuse settled decisions by ID when scope, authority, assumptions, and source revisions match. A matching task surface needs no repeated lens call; classify its remaining risks and security separately. Start with up to three bounded lenses for the central risks. When another material risk needs coverage, record its scope reason and apply that bounded lens in the current role. Dispatch a specialist only when the risk needs expertise or independence the current role cannot supply, under an approved route; otherwise retain an explicit blocker. Lens count alone never requires dispatch or removes coverage. No matching row on a local change means no gate.
-3. Apply each selected lens in the current coordinator or implementer as a read only procedure. An independent specialist needs a material risk or unresolved question. Before dispatch, use `shared/references/model-preview.md` to reuse or obtain one concrete approved route snapshot. Give it the plan or design problem, the files and boundaries in scope, and the canonical gate result defined below. This response replaces a lens's standalone brief, edit, or implementation route. The independent final code review remains a separate workflow requirement.
-4. Merge. Any `revise` with a concrete, load-bearing finding makes the gate verdict `revise`. Cosmetic or speculative findings are advisory.
-5. On `revise`, state the required plan changes as a short numbered list. When lenses expose a real unresolved trade-off, set `verdict: revise`, set `decision_required`, and stop. Never call `models-consensus` from this skill. The user may invoke it separately when more opinions are useful.
+1. Identify the surfaces that the plan, slice contract, or changed scope touches. Reuse decisions already settled for the feature while their scope, assumptions, and sources still match. Re-route only when evidence changes the design surface.
+2. Select lenses from the table for each unresolved decision or changed risk. Start with up to three, one per central risk, each with a bounded scope. Add another only for another material risk. When no row matches a local change, return `proceed` with "no design gate required".
+3. Apply each lens read-only in the current role. Dispatch a specialist seat only when a risk needs expertise or independence the current role lacks. Give it the design problem, the files and boundaries in scope, and the gate result shape.
+4. Merge. A concrete, load-bearing finding from any lens makes the verdict `revise`; load-bearing means it changes boundaries, data ownership, contracts, or correctness. Style and speculative findings are advisory.
+5. On `revise`, list the required plan changes. After they land, recheck only the lens that raised the blocker. When the lenses expose a real trade-off that only the user's preference can settle, set `decision_required` and stop.
 
 ## Routing table
 
-| Change touches | Lens skill(s) |
+| Lens | When the change touches |
 | --- | --- |
-| Unresolved overall system style | `macro-architecture` |
-| Business vocabulary, bounded context, or relationship between domain contexts | `domain-driven-design` |
-| Service decomposition or service/data ownership | `macro-architecture` |
-| Local module placement, cohesion, or dependency direction | `architecture-lens` |
-| Business-logic structure inside one context (aggregates, invariants, events) | `domain-driven-design` |
-| Code structure choices, extensibility, sprawling conditionals | `design-patterns` |
-| Scope pressure or competing local structures with a real trade-off | `architecture-lens` |
-| Module/class/API interface design — depth, information hiding, interface complexity | `software-design-philosophy` |
-| Stored state, databases, queues, caches, migrations, retries, concurrency, external APIs | `data-systems-coding-lens` |
-| Container/process topology of a distributed app — sidecars, ambassadors, adapters, load-balanced replicas, sharding, scatter/gather, FaaS fit, ownership election, work queues, batch workflows | `distributed-systems-patterns` |
-| Event streams as a source of truth — adopting or migrating to event-driven microservices, Kafka/Pulsar/Kinesis topics, event schemas, choreography vs orchestration, CDC/outbox data liberation | `distributed-systems-patterns` (event-driven route), `data-systems-coding-lens` |
-| The thing being built **is** an agent — an LLM tool-calling loop, a multi-agent pipeline, or a long-running autonomous run needing durable state, mid-run approval, or replay | `agent-architecture-lens` |
-| React state placement, rendering, effects, or asynchronous behavior | `advanced-react` |
-| New or reworked user-facing flow, information hierarchy, or design system | `ui-ux-pro-max` |
-| Two or more competing approaches with real trade-offs | `architecture-lens` |
+| `macro-architecture` | Unresolved overall system style; service decomposition or service and data ownership |
+| `domain-driven-design` | Business vocabulary, bounded contexts, or relationships between them; business logic inside one context (aggregates, invariants, events) |
+| `architecture-lens` | Local module placement, cohesion, or dependency direction; scope pressure; two or more competing approaches or local structures with a real trade-off |
+| `design-patterns` | Code structure choices, extensibility, sprawling conditionals |
+| `software-design-philosophy` | Module, class, or API interface design: depth, information hiding, interface complexity |
+| `data-systems-coding-lens` | Stored state, databases, queues, caches, migrations, retries, concurrency, external APIs |
+| `distributed-systems-patterns` | Container or process topology: sidecars, ambassadors, adapters, load-balanced replicas, sharding, scatter/gather, FaaS fit, ownership election, work queues, batch workflows |
+| `distributed-systems-patterns` (event-driven route) with `data-systems-coding-lens` | Event streams as a source of truth: adopting event-driven microservices, Kafka, Pulsar, or Kinesis topics, event schemas, choreography versus orchestration, CDC or outbox data liberation |
+| `agent-architecture-lens` | The thing being built is an agent: an LLM tool-calling loop, a multi-agent pipeline, or a long-running autonomous run needing durable state, mid-run approval, or replay |
+| `advanced-react` | React state placement, rendering, effects, or asynchronous behavior |
+| `ui-ux-pro-max` | A new or reworked user-facing flow, information hierarchy, or design system |
 
-**Fallback row (only when no specific row above fits):** no specific lens fits but the change is architecturally significant → apply `architecture-lens` as a **Lens 1 trade-off pass** (name the 2–4 characteristics in tension, the real options, and the cost of each), and apply **all three or no ADR** before recording it with the canonical ADR template at `architecture-lens/references/adr-template.md`. Do not pair this with the rows above — it is the catch-all when a change is significant yet unroutable, not a peer lens.
+When the change is architecturally significant but no row fits, run `architecture-lens` alone as a trade-off pass: name the two to four characteristics in tension, the real options, and the cost of each. Record an ADR with `architecture-lens/references/adr-template.md` only when **all three or no ADR** holds.
 
-No row matches and the change is not architecturally significant → the change is local; return `proceed` with the note "no design gate required" and do not invent a review.
+## Output
 
-## Output contract
+Return the gate result defined in `shared/references/gate-result.md`. Keep finding IDs stable across merges and rechecks. Security classification belongs to `security-gate`.
 
-Read `shared/references/gate-result.md` and return its canonical gate result. Preserve blocking and advisory finding IDs, status, resolution evidence, and review focus when merging or rechecking. Resolve blocking findings, required changes, and material decisions before task approval; validate the versioned record with `shared/scripts/gate_contract.py`. Carry security classification separately from `security-gate`. The implementation engine receives these constraints; it does not replay every lens.
+## Seats
 
-## Gotchas
-
-1. Select each lens for a material decision or risk and bound its scope.
-2. Do not let lenses edit anything; the gate is read-only.
-3. Do not block on style opinions; only findings that change boundaries, data ownership, contracts, or correctness block.
-4. Do not reapply the full gate after a `revise` fix. Reapply only the lens that raised the blocking finding.
-5. Do not use a consensus panel to break a tie. The gate can identify a decision; it cannot manufacture user preference.
-
-When a material risk or unresolved question warrants an independent specialist, give it a bounded current decision packet and source locators in a fresh context. Reuse that role context only for its own blocking finding recheck. Do not fork the full product discussion into a narrow gate. Keep every material risk covered and preserve the route approval boundary.
+Before dispatching other models, show the plan (seats, models, briefs) and get a clear yes. Defaults come from `shared/model-routing.json`. Inside T3 Code, use `delegate_task` with the configured provider and model, and continue with `t3_thread_send`. In Claude Code or Codex, use a native subagent when the host has the model, and continue by messaging it. Otherwise use the matching `*-runner` skill. Send follow-ups, such as a blocker recheck, to the same seat so it keeps its context. Tell lens seats to leave files unchanged.

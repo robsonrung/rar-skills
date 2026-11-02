@@ -1,6 +1,6 @@
 # Run State Contract
 
-Canonical, agent-facing rules for the durable run state shared by every long-running orchestration skill (`implement-tasks`, `implement-and-review`, `dynamic-harness`, `models-consensus`, and `interview-me --auto`). Each skill's SKILL.md points here and keeps inline only its own field names and ceilings.
+Canonical, agent-facing rules for the durable run state shared by every long-running orchestration skill (`implement-tasks`, `implement-and-review`, `dynamic-harness`, and `interview-me --auto`). Each skill's SKILL.md points here and keeps inline only its own field names and ceilings.
 
 A long run's progress lives in **the ledger, not the transcript**. Anything the run must know after a crash, a compaction, or a restart is written to this file; anything held only in the message history is lost with it.
 
@@ -12,7 +12,7 @@ A long run's progress lives in **the ledger, not the transcript**. Anything the 
 
 Same tree as the existing `.ai-workflow/runner-jobs/`, `.ai-workflow/consensus/`, and `.ai-workflow/roundtable/` layouts (gitignored). `<run-id>` is unique per run — a UTC timestamp plus a short random suffix. Never reuse a fixed path across runs: a single fixed path turns two concurrent runs into one corrupted run.
 
-This is the path for a skill adopting the contract fresh. A skill that already has an established state location keeps it (`models-consensus` stays at `.ai-workflow/consensus/{session_id}.json`, `implement-and-review` extends its `launch-manifest.json`) — what this contract fixes is the _shape and the rules_, not the filename. Two state files for one run is worse than one file in an unusual place.
+This is the path for a skill adopting the contract fresh. A skill that already has an established state location keeps it — what this contract fixes is the _shape and the rules_, not the filename. Two state files for one run is worse than one file in an unusual place.
 
 ## Shape
 
@@ -133,9 +133,8 @@ A resume path that was never exercised does not work. Once per skill that adopts
 
 Use `shared/scripts/run_state.py` for feature-level call reservations and compact
 status. Extend the existing run-state file; do not create a second feature ledger.
-The task launcher remains authoritative for task dispatch, route validation,
-review-cycle limits, and completion receipts. The feature ledger owns total calls,
-per-route reservations, host setup correlation, and links to those receipts.
+The feature ledger owns total calls, per-route reservations, role contexts, host
+setup correlation, and links to completion receipts.
 
 ```bash
 python3 <shared-dir>/scripts/run_state.py --state <run-state.json> init \
@@ -178,13 +177,10 @@ setup token is never the actual context ID. Do not scan or copy whole transcript
 
 Receipts bind call ID, input revision, configured model and effort, and the actual
 context. Save raw completion output before making a normalized receipt. Reconcile
-only that receipt; task acceptance and serving-model verification remain the
-launcher's responsibility. Keep missing metrics unknown. Per-task totals report
+only that receipt; task acceptance remains the conductor's decision. Keep missing metrics unknown. Per-task totals report
 measured sums and missing-call counts, including failed calls and repairs.
 
-The helper uses a POSIX file lock and atomically replaces state. The launcher creates
-its first task manifest exclusively and rejects a repeated launch. Resume or reconcile
-that manifest instead. Later updates replace it atomically; each manifest has one
+The helper uses a POSIX file lock and atomically replaces state; each run has one
 conductor writer. Prefer host waits with
 cursors. For runners use bounded waits with backoff, no longer than the host's
 responsive wait limit. Read reports on a change or failure, not every poll.

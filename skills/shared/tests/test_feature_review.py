@@ -13,7 +13,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 import feature_review as feature
 import review_evidence as evidence
 import run_state
-from task_queue import launcher_module
+import routing_plan
 
 
 class FeatureReviewTests(unittest.TestCase):
@@ -114,7 +114,7 @@ class FeatureReviewTests(unittest.TestCase):
         return snapshot, call, ledger
 
     def routing_plan(self):
-        launcher = launcher_module()
+        launcher = routing_plan
         implementation = {**self.route, "id": "T1-implementer", "task_id": "T1", "role": "implementer",
                           "input_path": self.policy["tasks"]["T1"]["contract"], "seat": "sol", "model": "gpt-6.1-sol"}
         routes = [implementation, self.route]
@@ -570,7 +570,7 @@ class FeatureReviewTests(unittest.TestCase):
         self.assertEqual(state["attempts"], {})
 
     def test_feature_plan_requires_all_deferred_and_critical_task_roles(self):
-        launcher = launcher_module()
+        launcher = routing_plan
         for classification, missing_role in (("deferred", "implementer"), ("critical", "reviewer")):
             with self.subTest(classification=classification):
                 self.policy["tasks"]["T1"]["review"] = classification

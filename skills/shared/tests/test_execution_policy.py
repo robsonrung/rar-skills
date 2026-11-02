@@ -1,7 +1,6 @@
 """Reject policy drift between preview, dispatch, browser readiness, and receipts."""
 
 import copy
-import importlib.util
 import json
 import sys
 import tempfile
@@ -16,9 +15,7 @@ import model_routing
 import run_state
 from provider_routing import provider_policy_digest
 
-spec = importlib.util.spec_from_file_location("policy_launcher", SHARED.parent / "engineering/engine/implement-and-review/scripts/launch.py")
-launch = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(launch)
+import routing_plan as launch
 
 
 class ExecutionPolicyTests(unittest.TestCase):
@@ -37,16 +34,6 @@ class ExecutionPolicyTests(unittest.TestCase):
                        "model_receipt": {"status": "verified", "source": "native_event", "observed_model": self.route["model"]},
                        "provider_policy_receipt": {"status": "enforced", "gateway": "openrouter", "request_count": 1,
                                                    "policy_sha256": provider_policy_digest(self.route["provider_routing"])}}
-
-    def test_initial_and_resumed_dispatch_forward_the_approved_policy(self):
-        launch.validate_route(self.route)
-        for context in (None, str(self.root / "session.jsonl")):
-            argv = launch.route_arguments(self.route, self.brief, self.root, "implementer", 30, {}, False, context)
-            self.assertEqual(json.loads(argv[argv.index("--provider-routing") + 1]), self.route["provider_routing"])
-            self.assertEqual(argv[argv.index("--provider") + 1], "openrouter")
-            self.assertEqual(argv[argv.index("--thinking") + 1], "high")
-            if context:
-                self.assertEqual(argv[argv.index("--session") + 1], context)
 
     def test_policy_is_in_approval_digest(self):
         before = launch.canonical_digest(launch.normalized_routes([self.route]))
@@ -72,8 +59,6 @@ class ExecutionPolicyTests(unittest.TestCase):
         candidate = model_routing.resolve_profile("validation-browser", role_overrides={"worker": {"seat": "mistral-small"}})["roles"]["worker"]
         self.route.update(candidate)
         launch.validate_route(self.route)
-        argv = launch.route_arguments(self.route, self.brief, self.root, "implementer", 30, {}, False)
-        self.assertNotIn("--thinking", argv)
         self.route.update(model="unknown-runtime-model")
         with self.assertRaisesRegex(ValueError, "runtime"):
             launch.validate_route(self.route)
@@ -115,19 +100,13 @@ class ExecutionPolicyTests(unittest.TestCase):
         path.write_text(json.dumps(record))
         return {"mechanism": "playwright-cli", "preflight": browser.reference(path)}, record, driver
 
-    def test_browser_dispatch_checks_driver_and_artifacts_then_limits_tools(self):
-        self.route["browser"], record, driver = self.browser_record()
+    def test_browser_route_needs_a_matching_browser_receipt(self):
+        self.route["browser"], _, driver = self.browser_record()
         with patch.object(browser.shutil, "which", return_value=str(driver)):
-            argv = launch.route_arguments(self.route, self.brief, self.root, "implementer", 30, {}, False)
-            self.assertEqual(argv[argv.index("--tool-policy") + 1], "browser")
-            self.assertNotIn("--allow-write", argv)
-            self.assertEqual(argv[argv.index("--browser-mechanism") + 1], "playwright-cli")
-            self.assertIsNotNone(launch.receipt_error(self.route, self.result))
-            self.result.update(tool_policy="browser", browser_mechanism="playwright-cli")
-            self.assertIsNone(launch.receipt_error(self.route, self.result))
-            Path(record["evidence"][0]["path"]).write_text("changed")
-            with self.assertRaisesRegex(ValueError, "evidence changed"):
-                launch.route_arguments(self.route, self.brief, self.root, "implementer", 30, {}, False)
+            launch.validate_route(self.route)
+        self.assertIsNotNone(launch.receipt_error(self.route, self.result))
+        self.result.update(tool_policy="browser", browser_mechanism="playwright-cli")
+        self.assertIsNone(launch.receipt_error(self.route, self.result))
 
     def test_browser_preflight_rejects_changed_driver_workspace_or_checks(self):
         bound, record, driver = self.browser_record()

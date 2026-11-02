@@ -52,8 +52,7 @@ controller summary, or prose report cannot establish readiness. A valid packet
 supplies captured facts, not independent reviewer judgment.
 
 Use the current combined review record and intended PR base with the shared
-verifier in `shared/references/review-evidence.md`; use the launcher's
-`verify-review` for a task record. Require exit code 0 and `ready`. Reuse the
+verifier in `shared/references/review-evidence.md`, also for a task record. Require exit code 0 and `ready`. Reuse the
 feature queue assessment above when it already verifies the same combined record
 against that intended base; do not run the same verifier twice. Missing or stale
 structured evidence is a gap. Legacy Markdown reports can guide a focused review

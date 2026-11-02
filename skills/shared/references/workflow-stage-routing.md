@@ -61,7 +61,7 @@ evidence, and one independent review of the complete feature. Batch fixes and
 recheck affected behavior. Final acceptance is the completion gate. Existing
 plans and explicitly selected task mode keep their approved review sequence.
 
-Load the `implement-and-review` entry and only the mode it selects. At final feature review, use its `references/final-feature-review.md`. Resolve these paths from the loaded engine skill.
+Load the `implement-and-review` entry; its `Feature policy` section covers deferred, critical, and final feature review.
 
 The implementation engine starts from the approved Slice Contract. It uses the inherited `design-gate` constraints as its last focused design check and re-routes only when implementation changes the slice's design surface. It does not replay every lens.
 

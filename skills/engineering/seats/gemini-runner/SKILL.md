@@ -1,49 +1,28 @@
 ---
 name: gemini-runner
-description: Execute an external Antigravity CLI (`agy`) prompt for a Gemini route. Use only for an explicit Gemini or Antigravity CLI request, a selected external route, or an approved fallback when native delegation cannot meet the route.
+description: Run a prompt on a Gemini model through the local Antigravity CLI (`agy`). Use when the host cannot run the selected Gemini model natively, or the user asks for Antigravity.
 ---
 
 # Gemini Runner
 
-Use `shared/references/model-preview.md` to choose the branch first. Deterministic checks need no model selection. Actual dispatch uses one concrete approved snapshot; nested calls consume it without re-resolution or extra workers.
+Run one prompt on Gemini through the local Antigravity CLI, `agy`. A host that offers the model natively (a T3 Code Antigravity provider) runs it there instead.
 
-Execute the caller's scoped prompt through the local CLI. Shared roles, envelope keys, and result handling live in `shared/references/runner-common.md`. Preserve **seat fidelity**: name the provider that actually answered, and report unavailable or unverified seats honestly.
-
-## Native routing
-
-Read `shared/references/host-model-execution.md` before choosing an external route. If the current host can dispatch the exact selected Gemini model with the required effort, isolation, and receipt policy in a native subagent or task thread, use that route. `agents/openai.yaml` is host UI metadata; it does not dispatch a native model.
-
-## Invocation
-
-Set `SKILL_DIR` to this loaded skill directory in the same shell call:
+## Run
 
 ```bash
-SKILL_DIR="<absolute path of this skill directory>";
-python3 "$SKILL_DIR/scripts/run_gemini.py" "<scoped prompt>" \
-  --model <approved-model-id> --disable-fallback --json
+python3 <skill-dir>/scripts/run_gemini.py "<prompt>" --model <model> --disable-fallback --json
 ```
 
-Copy the selected model label, role, tool mode, receipt policy, and supported limits
-from the snapshot. This runner has no effort flag or native effort control. A route
-requiring unsupported control stays blocked. Nested calls use the saved options
-without resolving defaults again. The example does not grant source sharing or
-tool authority.
+- `agy` serves the model chosen in its own settings; `--model` only labels the envelope. Select the seat's model in `agy` before the run. Effort is not selectable.
+- `--prompt-file <file>` replaces the inline prompt for a long brief; `--working-dir <path>` sets the repository.
+- `--role implementer`, or no role, can edit files; every other role is told to stay read-only.
+- `--background` returns a job id for `shared/scripts/runner_jobs.py` (`status`, `wait-many`, `result`, `cancel`).
+- `--help` lists the rest.
 
-## Runtime boundaries
+## Continue
 
-- Use the local authenticated Antigravity CLI, `agy`, in print mode.
-- The user configures the model in agy. `--model` and output-format flags are request labels or prompt hints, not native model or format controls.
-- Permission checks follow local configuration. Prompt and file context may be sent to the configured provider.
-- Analysis roles use a read-only prompt overlay, not an enforced sandbox. Isolate the workspace for untrusted input; `--restrict-tools` alone is not a security boundary.
-- Missing-CLI fallback is labelled and described in the runtime reference. Approved routes use `--disable-fallback`; an unverified model requires the caller's explicit receipt policy.
-- Native output has no session ID. `--agy-continue` resumes the latest shared conversation and must not run concurrently against the same home.
-
-## Load by need
-
-- [references/command-reference.md](references/command-reference.md): flags, examples, native mappings, and return codes when composing a non-basic invocation.
-- [references/runtime-reference.md](references/runtime-reference.md): authentication, fallback conditions, configuration, and extended envelope fields when configuring a route or interpreting its result.
-- [references/continuation.md](references/continuation.md): only when resuming a session or managing a background job.
+`agy` exposes no session id. `--agy-continue` resumes its most recent conversation, so it holds a role's context only while that role is the sole Gemini seat in flight. Otherwise, hand the role its earlier turns as text with `--session-file <file>`.
 
 ## Result
 
-Read `agent_message` and the wrapper envelope. Check success, serving-model receipt, effective runner/provider, and any fallback or malformed-output status. A completed process alone does not prove the requested task or model was used. Report touched files when the caller authorized edits.
+Read `agent_message`. `--disable-fallback` keeps **seat fidelity**: the answer comes from this seat, or `success` is false. On failure, report `status` and the telling stderr lines, and leave the seat unanswered.

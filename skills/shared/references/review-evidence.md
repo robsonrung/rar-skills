@@ -37,8 +37,8 @@ python3 <shared-dir>/scripts/review_evidence.py prepare \
   --requirements <requirements.json> --output <new-evidence-directory>
 ```
 
-For a recheck, add `--previous-review <prior-review.json>`. The task launcher
-requires the latest recorded review for that track. For integration, pass the
+For a recheck, add `--previous-review <prior-review.json>` with the latest recorded
+review for that task. For integration, pass the
 latest record from each task; use task-specific finding IDs to avoid collisions.
 Prior records are bound by checksum. The new response must retain their finding
 IDs, paths, and severity, then state each resolution. Findings cannot disappear
@@ -46,7 +46,7 @@ or become less severe without an explicit rejected or fixed result.
 
 Use absolute paths. The helper resolves the base to a commit. It hashes tracked and nonignored untracked files, executable modes, symbolic link targets, and the index. Coverage includes committed, staged, unstaged, deleted, renamed, and new paths. Renames use old and new paths.
 
-Keep evidence outside the source tree. For launcher artifacts inside the worktree, pass `--artifact-dir <launcher-artifact-directory>` to exclude only that generated directory. It cannot contain tracked source. Never put task source files there. Non-Git directories, submodules, unresolved index conflicts, and symbolic links outside the source root return `blocked`.
+Keep evidence outside the source tree. For generated artifacts inside the worktree, pass `--artifact-dir <artifact-directory>` to exclude only that directory. It cannot contain tracked source. Never put task source files there. Non-Git directories, submodules, unresolved index conflicts, and symbolic links outside the source root return `blocked`.
 
 The task contract is hashed separately. Its standalone status line can change; acceptance cannot. Requirements, context, and exclusions are frozen by hash. Ignored files and remote state are outside the source hash.
 
@@ -85,9 +85,7 @@ rechecks, and prose corrections. Keep its response unchanged when recording it.
 
 ## Record and verify
 
-For `implement-and-review`, use the launcher's `record-review`. It reads the completed native receipt or runner response, checks the approved route, validates the result, and records its path and checksum in the task manifest. Do not rewrite the reviewer's result before recording it.
-
-For a standalone or integration review, save the actual execution envelope with `success: true` and the reviewer's complete JSON response in `agent_message`. Preserve host or runner metadata. Then run:
+Save the actual execution envelope with `success: true` and the reviewer's complete JSON response in `agent_message`. Preserve host or runner metadata. Do not rewrite the reviewer's result. Then run:
 
 ```bash
 python3 <shared-dir>/scripts/review_evidence.py record \
@@ -96,7 +94,7 @@ python3 <shared-dir>/scripts/review_evidence.py verify \
   --snapshot <evidence-directory>/snapshot.json --base <current-intended-base>
 ```
 
-The generic recorder checks response identity and integrity. Model identity and context independence remain the caller's execution protocol; the task launcher checks its own route plan. Never construct a successful envelope from a failed or missing execution.
+The generic recorder checks response identity and integrity. Model identity and context independence remain the caller's execution protocol. Never construct a successful envelope from a failed or missing execution.
 
 The verifier returns JSON and an exit code: 0 for `ready`, 1 for `needs-work`, and 2 for `blocked`. Preparation and recording can succeed before readiness is checked. Always verify before a completion decision.
 
@@ -147,8 +145,6 @@ For sequential validation units, repeat `--id <declared-id>` to prepare a scoped
 unit packet with only those checks and observations. It records that explicit
 `scope` and validates every included ID. A scoped packet cannot establish review
 readiness until the required unit packets are combined into a complete packet.
-For the task launcher, pass `review --evidence-packet <packet.json>` to validate the packet before
-reserving a review cycle. The launcher adds required response coverage to the bound review brief.
 
 Pass the complete packet reference to the reviewer. Its substitution and
 assessment rules are in [reviewer-response.md](reviewer-response.md). The helper
@@ -370,7 +366,7 @@ After an approved change occurs:
    their declared inputs or environment change, or when inputs are unknown.
 4. Run `carry-forward` and store its returned `carry_forward` link in the
    task's existing integration evidence entry. Keep that entry's original
-   `snapshot`, `base`, and `launch_manifest` bindings.
+   `snapshot` and `base` bindings.
 
 ```bash
 python3 <shared-dir>/scripts/review_evidence.py carry-forward \
@@ -443,8 +439,8 @@ its narrower case.
    snapshot. Its route must bind the batch contract and a separate scope ID.
    Record the actual response through the existing ledger completion path.
    Add the same `batch_review: {path, sha256}` snapshot link to each endorsed
-   task's integration evidence entry. Keep the original task `snapshot`,
-   `launch_manifest`, and reviewer bindings. Set `base` to the batch's intended
+   task's integration evidence entry. Keep the original task `snapshot`
+   and reviewer bindings. Set `base` to the batch's intended
    current base. Use either `batch_review` or `carry_forward` in an entry.
 
 The queue verifies every member against its canonical queue contract, both the

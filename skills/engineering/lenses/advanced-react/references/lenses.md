@@ -1,114 +1,82 @@
-# Chapter lenses — Advanced React
+# Advanced React rules, by chapter
 
-The nine per-chapter checklists from _Advanced React_ (Nadia Makarevich), loaded by `advanced-react` in **review** mode (and by **plan** mode when it needs a chapter's full checks). The parent SKILL.md owns mode selection and the composition ladder. [plan-mode.md](plan-mode.md), [implement-mode.md](implement-mode.md), and [review-mode.md](review-mode.md) own their output contracts; this file owns the checks. It asks one set of questions: **will this re-render more than it needs to, is memoization actually doing anything, is this closure stale, and is the async path safe?** Not a bug hunt for logic errors — use a code-review pass for that.
+One entry per rule name in the SKILL.md review table. Each states the decision, not the textbook.
 
-In **plan** or **implement** mode, use the checks to steer the decision _before_ the code is written — prefer composition over `memo`, place state correctly, structure the fetch. In **review** mode, audit against the checks below and report findings grouped by lens: cite `file:line`, name the rule, propose the concrete fix. Skip lenses that don't apply rather than padding. If a component is clean, say so plainly.
+## Composition (ch 1–4)
 
-## Detect the target first (read before applying)
+**re-renders-myth.** State updates start every re-render; parent re-renders and context changes carry it down, never up. Flag any reasoning that blames "props changed" for a re-render of a component that is not `React.memo`'d. React 17 batches updates only inside React event handlers; 18+ batches everywhere, so a double render can be version-specific.
 
-Every lens below applies from **React 17 onward**. What differs across versions is a handful of specific rules — so detect, never assume:
+**move-state-down.** Fast-changing state (input value, hover, open flag) held in a page or layout re-renders the whole subtree. Extract the state and its only consumer into a child. The highest-leverage fix in the book; stop here when the state is consumed only next to its control.
 
-1. **React version.** Read the target repo's `package.json` (`react` / `react-dom`, and the lockfile if the range is loose). Note the major.
-2. **State library.** Look for an external store — Redux Toolkit, Zustand, Jotai, MobX, TanStack Query, SWR, Apollo — and whether it already owns server state.
-3. **UI library.** Look for MUI, Chakra, Radix, Headless UI, Ant, shadcn/ui, Tailwind-only, or hand-rolled components.
+**hook-hides-state.** `useState`, `useReducer`, or an effect that sets state inside a custom hook re-renders the hook's caller, even when the caller never reads the value; through a chain of hooks, the outermost caller. A resize listener in a hook called from a layout is hot state in the layout. Fix: call the hook from the leaf that needs it.
 
-Then apply the lenses against what you found, and **flag version-specific rules explicitly** rather than asserting one version's behavior:
+**children-as-props / element-as-prop.** An element passed as a prop, `children` included, is created by the parent's parent, so it does not re-render when the receiver's own state changes. Use it when the owner of hot state renders a heavy slot that does not need that state, and to push a child's configuration up to the consumer (`<Button icon={<Error size="large" />} />`). An element held in a variable renders only if the component receiving it renders. `cloneElement` to inject defaults is fragile; keep it to the simplest defaults.
 
-- **Refs and `forwardRef`.** Before React 19, `forwardRef` is required for a function component to receive a `ref`. From React 19, `ref` is a regular prop and `forwardRef` is no longer needed. Check the detected version before flagging either shape as wrong.
-- **Automatic batching.** React 17 batches only inside React event handlers; React 18+ batches everywhere. A "why did this render twice" finding depends on which one you are in.
-- Say which version a finding assumes: "on the detected React 17, …" beats a bare rule.
+**render-prop-for-dom-data.** Turn an element-prop into a render prop only when the parent must feed the slot its state or DOM data (size and position trackers). Shared logic alone is a hook.
 
-Two detection-driven judgments that recur:
+## Memoization, reconciliation, HOCs (ch 5–7)
 
-- **Deep, re-render-sensitive component trees** (styled-component-heavy libraries such as MUI are the common case) make unnecessary parent re-renders expensive — the cascade runs through every styled wrapper. Weight Lens 1 higher when you detect one.
-- **When an external store with memoized selectors already exists**, reach for its selectors over a hand-rolled Context for cross-tree shared state; keep Context for low-frequency, localized config (theme, current entity), not hot state. When no such store exists, the Context guidance in Lens 3 is the whole answer.
+**dead-memo.** Objects, arrays, and functions compare by reference. A `useMemo` / `useCallback` earns its place only when the value is (a) a prop of a `React.memo` component, (b) a dependency of `useEffect` / `useMemo` / `useCallback`, or (c) passed down into (a) or (b). Otherwise delete it. Memos stacked only to feed each other bury the logic. Measure "expensive" on a representative device before memoizing a calculation: a one-off sort on click is not, a 30 ms regex on every mouse move is.
 
-The book (2023) matches React 17/18 closely; where the detected version is newer, prefer the detected framework's documented behavior over the book's assumption.
+**defeated-memo.** `React.memo` skips a parent-triggered render only when every prop is referentially unchanged; own state and context still re-render it. One recreated object, array, function, or `children`, or a value derived from an unmemoized prop or hook, defeats it. With the compiler covering the component, keep a manual memo only for a hook dependency, a non-compiled consumer, or a custom `areEqual`; `react` owns that split.
 
-## The golden rule (applies to every lens below)
+**inner-component.** A component declared inside another is a new `type` every render: remount, lost state, lost focus, at least twice the cost of a re-render. Declare components and hooks at module scope.
 
-> Composition first, memoization last. `React.memo` is the **last resort** after composition techniques have failed — because memoizing _all_ props correctly is harder than it looks, and one missed non-primitive prop silently defeats it.
+**missing-key.** Reconciliation matches by position and type. Dynamic arrays need stable keys; index keys break on reorder, worst under `React.memo`'d items. Static arrays need none.
 
----
+**state-reset.** A ternary occupies one slot even when a branch is `null`, so `cond ? <Input /> : <Input />` shares state across branches. Give the branches different keys to separate them. Changing a `key` on the same type and position forces a remount: the deliberate reset on route or entity change.
 
-## Lens 1 — Unnecessary re-renders (ch 1–4)
+**hoc-for-cross-cutting.** An HOC wraps a component to inject props or wrap events. Keep it for cross-cutting concerns (logging, feature flags, faked context selectors); shared stateful logic belongs in a hook.
 
-A state update re-renders the owning component **and all of its children**, regardless of props. Props only matter once `React.memo` is involved. So the cheapest fix is structural, not memoization.
+## Context (ch 8)
 
-Check, in order:
+**unmemoized-context.** Context _prevents_ re-renders in the middle of the tree and _forces_ every consumer to re-render when the provider `value` changes; consumer memoization cannot stop that. An inline object `value` is a candidate for an identity check, not a defect by syntax: confirm compiler coverage and measured consumer work, then `useMemo` the value if compilation does not stabilize it.
 
-1. **Move state down.** Is fast-changing state (an input value, a hover flag, an open/closed toggle) held high in the tree, forcing a big subtree to re-render? Extract the state + the small piece that uses it into a child component. This is the single highest-value fix in the book.
-2. **Children / elements as props.** When a component owns state but renders a heavy subtree that doesn't depend on that state, pass the subtree as `children` (or as an element prop). Elements passed in as props **don't re-render** when the parent's own state changes — they were created by the parent's parent. Exact pattern: cheatsheet ch 2.
-3. **Render props** only when the children genuinely need the parent's state/DOM data (e.g. logic attached to a DOM element). Hooks replaced ~99% of the old "share stateful logic" use case — don't reach for render props just to share logic.
+**unsplits-context.** Split unrelated values into separate providers. `useReducer` gives a stable `dispatch`, so state and API can live in two contexts. Context has no selectors; when hot cross-tree state needs them, use the repo's store with memoized selectors and keep Context for low-frequency config (theme, current entity). React 19 accepts `<Ctx value>`; earlier majors need `<Ctx.Provider>`.
 
-Red flags: a top-level page component holding an input's value; a `useState` in a provider or layout that wraps half the app; "I'll wrap it in `memo`" as the _first_ idea.
+## Refs and closures (ch 9–11)
 
-## Lens 2 — Memoization that does nothing (ch 5)
+A ref is a mutable `{ current }` that persists across renders; writing it is synchronous and does not re-render, so it never holds what the UI shows. Pass a `ref` to a function component through `forwardRef` before React 19 and as a plain prop from 19. Expose `useImperativeHandle` methods rather than leaking the node.
 
-React compares objects/arrays/functions **by reference**, in `memo` props and in hook deps. `useMemo` memoizes a _result_; `useCallback` memoizes the _function itself_.
+**stale-closure.** A function created during render freezes the props and state it read. A missing hook dependency, or a callback stored in a ref once and never refreshed, keeps reading old values. Escape: refresh the latest function into a ref every render and call it from a stable callback. The same move keeps a `React.memo` child's prop stable while running fresh logic.
 
-Flag memoization that buys nothing — `useMemo`/`useCallback` is only justified when **one** of these holds:
+```jsx
+const latest = useRef();
+useEffect(() => {
+  latest.current = () => save(value);
+});
+const onClick = useCallback(() => latest.current(), []);
+```
 
-- the value is a dependency of another hook (`useEffect`/`useMemo`/`useCallback`), **or**
-- the value is a prop passed to a component wrapped in `React.memo`, **or**
-- it's passed down to a component that then hits one of the above.
+**debounce-recreated.** A debounce, throttle, or timer id created in render or in an unmemoized handler resets every render and never fires as intended. Create it once and read fresh values through the ref above: `useMemo(() => debounce(() => latest.current(), 500), [])`. A bare `useMemo(() => debounce(fn), [])` freezes `fn`'s state.
 
-And flag `React.memo` that is **silently defeated**:
+## Layout and overlays (ch 12–13)
 
-- a non-primitive prop (object/array/function/**`children`**) passed to the memo'd component is recreated each render → memo is useless. _All_ props must be primitive or stable. `children` is a prop too — memoizing it is easy to forget.
-- the value came from another non-memoized prop or hook result → memoization chain is broken.
+**flicker-useEffect.** Measure-then-mutate in `useEffect` lets the browser paint the before-frame. `useLayoutEffect` runs before paint. It does not run during SSR; opt that feature out of SSR rather than expect it to fire.
 
-Rule of thumb: if you're memoizing a prop, prove the consumer is `React.memo`'d or uses it as a dep. Otherwise delete the memo.
+**trapped-overlay.** `overflow: hidden` clips `position: absolute`; `position: fixed` escapes it but nothing escapes a stacking context (`z-index` with position, `transform`, `opacity`, filters). Render modals, tooltips, and dropdowns through a portal. React events still bubble along the React tree; layout and native form submit follow the DOM. MUI, Radix, and Headless UI overlays already portal; flag hand-rolled ones that do not.
 
-Memo'd list items, or state mysteriously resetting/persisting across renders → keys & reconciliation, cheatsheet ch 6.
+## Async (ch 14–16)
 
-## Lens 3 — Context performance (ch 8)
+Prefer the repo's server-state layer (TanStack Query, SWR, Apollo, RTK Query) to hand-rolled fetch in effects; it handles caching, dedup, and races. On a stack that already uses `use()` or official Suspense data APIs, follow those over the book's 2023 workarounds.
 
-Every consumer of a Context re-renders when the provider `value` changes — and **standard memoization can't stop it**.
+**waterfall.** Independent requests started in sequence or behind a condition: `await a; await b`, or an effect that waits for A before starting B. Start them together (`Promise.all`, eager promises, a data-provider Context) within browser connection limits; prefetch critical initial data before React mounts. Classify each fetch as initial or on-demand; the loading experience follows from what the user needs first.
 
-- Check runtime provider `value` identity and measured consumer work. Confirm compiler coverage before flagging an inline object or array. Add `useMemo` or `useCallback` only when compilation does not stabilize a value that causes unnecessary work; use `context-async.md` for the rule.
-- For multiple unrelated values, **split into multiple providers** so a change to one doesn't re-render consumers of the other. `useState` → `useReducer` helps keep the data and the API in separate stable contexts.
-- No real selectors exist for Context; you can fake them with `React.memo` + HOCs (see cheatsheet ch 7), but if you find yourself doing that, reach for the **external store the repo already has** (per detection above) instead — a real selector API beats a faked one.
+**fetch-race.** `setState` after `await` in an effect keyed on a changing value lets an older response overwrite a newer one. `async`/`await` does not help. Fixes, strongest last: `key` remount, compare the resolved id with the current one, a cleanup flag, `AbortController`.
 
-## Lens 4 — Refs, closures & stale state (ch 9–11)
+**missing-error-boundary.** An uncaught render error unmounts the whole app, so place boundaries at routes and major panels. Boundaries miss callbacks, timers, and promises; `try/catch` misses render, effects, and children. Bridge them by re-throwing async errors into render, or use `react-error-boundary`:
 
-- A **ref** is a mutable box preserved across renders; mutating `ref.current` does **not** re-render and is synchronous. Use it for values that must persist but shouldn't trigger renders (timers, latest-callback, previous value, DOM nodes). Don't use it for anything that should appear in the UI.
-- **`forwardRef`** is required _before React 19_ to pass a `ref` prop to a function component; from React 19 `ref` is a regular prop. Check the detected version before flagging. Either way, expose a controlled imperative API with `useImperativeHandle` rather than leaking the DOM node.
-- **Stale closure** = the #1 bug here. A function created in render "freezes" the state and props it closed over. If it's memoized (`useCallback`/`useMemo`) with a missing dep, or stored in a ref once, it keeps reading old values.
-  - Detect: a `useCallback`/`useEffect`/`useMemo` reading state/props but missing them from deps; a callback stored in `ref.current` that's never refreshed.
-  - Escape: refresh the closed function in `ref.current` inside a `useEffect` on every render, then call `ref.current()` — it always sees the latest data. This is also how you keep a `React.memo` child stable while still calling fresh logic.
+```jsx
+const useAsyncError = () => {
+  const [, setError] = useState();
+  return useCallback((e) => setError(() => { throw e; }), []);
+};
+```
 
-## Lens 5 — Debounce / throttle (ch 11)
+### Mutation completion after editor cancellation or replacement
 
-`debounce`/`throttle` only work if the **same instance** lives across the component's life.
+Server outcome and editor ownership are separate facts: closing or replacing an editor does not cancel the write. Derive the cases from the flow: success, definite rejection, uncertain result, permission denial; current, canceled, or replaced editor; same or changed actor, organization, and record. Check cancellation both before the response and after an uncertain result.
 
-- Flag `debounce(...)` / `throttle(...)` / `setTimeout` id created **inline in render** or in a non-memoized handler — the timer is recreated every render and never fires correctly.
-- Fix: memoize the debounced function once (`useMemo`/ref), and access the latest state via the ref-refresh trap from Lens 4 (a naive memo freezes state at creation time).
+A late response never overwrites another draft or restores data the user can no longer see. A committed or uncertain result in the current scope may still need a data refresh after its editor closes. Handle permission loss in the current authorized scope; an old actor's denial must not clear a new actor's draft. Retry an uncertain write with its original request identity and body.
 
-## Lens 6 — Flickering UI / useLayoutEffect (ch 12)
-
-Measure-then-mutate DOM work (size/position) in `useEffect` lets the browser paint the "before" frame first → visible glitch. Use **`useLayoutEffect`** — it runs synchronously before paint. SSR caveat and exact pattern: cheatsheet ch 12.
-
-## Lens 7 — Portals & stacking context (ch 13)
-
-Modals/tooltips/dropdowns clipped by an ancestor's `overflow` or trapped in a Stacking Context (nothing escapes one, not even `position: fixed`) → render via a **Portal**. Most component libraries' overlay primitives already portal (MUI `Modal`/`Popper`, Radix, Headless UI) — check the detected library, then flag hand-rolled overlays that don't. CSS rules and event-bubbling behavior: cheatsheet ch 13.
-
-## Lens 8 — Data fetching: waterfalls & race conditions (ch 14–15)
-
-- **Waterfall:** sequential/conditional `await`s that could be parallel. Flag dependent `useEffect` fetches and `await a; await b` where `a` and `b` are independent → use `Promise.all`, parallel promises, or a data-provider Context. Mind browser parallel request limits; critical resources can be prefetched before React mounts.
-- **Race condition:** `setState` after an `await`/`.then` in an effect keyed on a changing value (e.g. `url`, an id). A slow earlier request can resolve after a newer one and overwrite fresh data. Fixes (prefer the last two): compare the resolved id before `setState`; cleanup-flag in `useEffect`; **`AbortController`**. Exact patterns: cheatsheet ch 15. (A server-state data layer — RTK Query, TanStack Query, SWR, Apollo — handles this for you; when the repo has one, prefer it over hand-rolled `fetch` in effects for server state.)
-
-## Lens 9 — Error handling (ch 16)
-
-After React 16, an **uncaught render error unmounts the whole app** — a few `ErrorBoundary`s in strategic places are non-negotiable. Boundaries miss callbacks/`setTimeout`/promises; `try/catch` misses render/`useEffect`/nested components. Bridge by re-throwing async errors into the render lifecycle, or use the `react-error-boundary` library. Exact hook and coverage matrix: cheatsheet ch 16.
-
----
-
-## How to apply
-
-1. Identify which lenses the change touches (a fetch hook → 8; a provider → 3; a memo'd component → 1, 2, 4).
-2. In **plan** / **implement** mode, recommend the structural option first (move state down / composition) and only escalate to memoization when the checks in Lens 2 are met.
-3. In **review** mode, report per lens: `file:line` → which rule → concrete fix.
-4. Don't invent re-renders that don't matter — a component that renders cheaply and rarely needs no optimization. Optimize where state is hot and the subtree is heavy.
-
-See `references/cheatsheet.md` for the per-chapter decision tables and code snippets.
+Restore focus on open, save, cancel, replacement, and permission loss to a valid trigger or permitted fallback, without stealing it from another active interaction. Test the observable behavior, not every combination.

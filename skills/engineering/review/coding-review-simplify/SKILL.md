@@ -1,6 +1,6 @@
 ---
 name: coding-review-simplify
-description: Review a completed code change for behavior-preserving simplification, local correctness, and maintainability. Apply it after a scoped task or when the user asks to simplify a concrete diff. Do not use as a full feature review or to choose the delivery reviewer plan.
+description: Simplify a completed code change through behavior-preserving reuse, quality, efficiency, and connascence passes. Use after a scoped task or when the user asks to simplify a concrete diff; use full-review for a feature or deep review.
 allowed-tools:
   - Bash
   - Read
@@ -12,35 +12,73 @@ allowed-tools:
 
 # Coding Review Simplify
 
-Choose the branch before selecting a model. Coordinator work and deterministic commands proceed within invocation authority. Apply this method in the assigned implementer or reviewer context. The implementer performs authorized cleanup; an independent reviewer remains read only. This method does not dispatch a worker. For a worker dispatch, use `shared/references/model-preview.md` and its one approved route snapshot. Nested skills and runners consume it without another selection or worker.
-
-Tighten a completed diff while the implementation context is fresh. The result is a smaller coherent shape, or a focused concern with proof. The next consumer is the approved review plan.
-
-This is a behavior-preserving pass. It does not create a new review route. The approved routing plan decides whether a later focused, seam, or deep review is needed.
+Tighten a completed diff while its context is fresh. Every change this pass makes is **behavior-preserving**: the **observable behavior** (outputs, errors, side effects, ordering) stays exactly as it was. Success is a simpler change, not fewer lines.
 
 ## Workflow
 
-1. Read the task acceptance contract, changed files, diff, and verification already captured. Start with the changed surface and expand only across a real boundary.
-2. Check the change against its intended observable behavior. Report a concern only when it can cause a bug, regression, maintenance trap, data risk, weak verification, or material reader confusion.
-3. Simplify only when the result remains behavior-preserving. Keep validation at trust boundaries, authorization checks, invariant assertions, encoding, and accessibility safeguards unless evidence proves they are dead. Before deletion, check supported callers and entry points, including runtime loading. Require evidence that the deletion preserves side effects, failure behavior, and required safeguards, plus relevant verification. Unknown reachability or missing preservation evidence blocks deletion.
-4. Apply the matching review concern in the current role when the diff adds a helper, changes ownership, or affects a hot or asynchronous path. Read the matching persona from `references/personas/` only for that concern. Apply `data-systems-coding-lens` when stored state or asynchronous behavior changes. Dispatch an independent specialist only for a material risk or unresolved question through an approved route.
-5. Run the **Connascence Pass** only when the diff crosses a boundary or feels tangled. Identify what is **connascent**, then state its strength, locality, degree, and smallest safe remedy. Leave local static coupling alone when extraction adds indirection without safety.
-6. Apply the relevant lens to a boundary-wide design concern in the current role. Do not start a broader refactor from this pass.
-7. Turn each accepted concern into a focused fix, test, check, or explicit follow-up. Re-run only the verification affected by a made change.
+1. Read the diff, the changed files, the task's acceptance contract, and the verification already captured. Expand past the changed surface only across a real boundary.
+2. Check the change against its intended observable behavior. Report a concern only when it can cause a bug, regression, data risk, weak verification, or maintenance trap.
+3. Run the reuse, quality, and efficiency passes. Run them inline, or as parallel read-only seats with one pass each, whichever suits the diff's size. When the diff changes stored state or asynchronous behavior, also apply `data-systems-coding-lens`.
+4. Run the **Connascence Pass** when the diff crosses a boundary or feels tangled.
+5. Turn each accepted finding into a fix, a test, or an explicit follow-up. As the implementer, apply fixes and re-run the verification they touch. As an independent reviewer, report and leave files unchanged. A design concern that spans a boundary is escalated, not refactored here.
 
-## Simplification cues
+## Guards for every pass
 
-Use the `clean-code` vocabulary. Look for a helper with no decision, a type that hides an awkward contract, needless memoization or effects, compatibility code with no callers, and unrelated diff churn. A name can be better than a wrapper. Duplication can stay when the concepts may diverge.
+- Safety checks stay: validation at trust boundaries, authorization, escaping and encoding, accessibility affordances, invariant assertions. Defense in depth is intentional even when a lower layer seems to cover it.
+- Delete only with evidence. Check every caller and entry point, including dynamic imports, re-exports, barrel files, and framework-loaded exports. Prefer the project's dead-code linter or a structural search such as `ast-grep` over text grep. Unknown reachability blocks the deletion.
+- When a platform guarantee makes code redundant, remove only what the guarantee owns. If a downstream projection makes a field filter redundant, keep the value transformations and apply them before projection. Swap a serializer or coercion only with tests proving identical output for every value type. Branches that become reachable once the filter goes are not dead code.
+- Keep a helper that names a concept, an abstraction whose purpose you have not confirmed obsolete (check `git blame`), and duplication whose concepts may diverge. Drop any change that reads longer or harder than the original.
+- **Precision over volume**: a wrong finding costs more than a missed one.
+
+## Reuse pass
+
+- A new function or inline logic that an existing utility already covers. Search utility directories, shared modules, and neighbouring files.
+- A hand-rolled standard-library or runtime primitive, such as a dedup loop or deep clone. Swap it only when the built-in is behavior-equivalent for the inputs in play. Native UI controls, `Intl` formatting, sort stability, and serialization edge cases differ from hand-rolled versions.
+- Code that hand-maintains a guarantee the platform, framework, or downstream layer provides, such as a GraphQL layer that already projects to the selection set. Name the layer and what the code collapses to.
+
+## Quality pass
+
+Use the `clean-code` vocabulary.
+
+- Redundant state: duplicated or derivable values, effects or observers that could be direct calls, needless memoization.
+- Parameter sprawl: a new parameter where generalizing the existing ones fits.
+- Near-duplicate blocks: first try deriving them from an existing source of truth. Consolidate only when elimination is not behavior-preserving.
+- Leaky abstractions, and types that hide an awkward contract.
+- Raw strings where constants, unions, or branded types already exist.
+- Wrapper elements with no layout value, in component-tree UI frameworks only.
+- Conditionals nested three deep: flatten with guard clauses, early returns, or a lookup table.
+- Comments that narrate what the code does or what the change did. Keep the **earned comment** that carries a non-obvious why.
+- Dead code, unused imports and exports, compatibility code with no callers, a helper that makes no decision, unrelated diff churn.
+
+## Efficiency pass
+
+- Redundant work: repeated reads, duplicate calls, N+1 queries.
+- Independent operations run sequentially.
+- New blocking work on startup or on per-request or per-render hot paths.
+- Unconditional state updates in loops, intervals, or handlers. Add a change guard, and check that wrappers honour the "no change" return.
+- Existence pre-checks before an operation (TOCTOU). Operate and handle the error, unless the check is a trust-boundary control; then flag the race instead.
+- Unbounded structures, missing cleanup, listener leaks.
+- Reading a whole file or collection to use one part.
+
+## Connascence Pass
+
+Name what is **connascent**: two elements that must change together to stay correct. Rank each instance by strength (static is weaker than dynamic), locality, and degree, then pick the smallest remedy that weakens it toward connascence of name or brings it closer. Model the finding: "The status code `3` is connascent by meaning across the API handler and the worker, a distant and strong form; a shared enum weakens it to name." Leave local connascence alone when extraction adds indirection without safety.
+
+## Seats
+
+Before dispatching other models, show the plan (seats, models, briefs) and get a clear yes. Defaults come from `shared/model-routing.json`. Inside T3 Code, use `delegate_task` with the configured provider and model, and continue with `t3_thread_send`. In Claude Code or Codex, use a native subagent when the host has the model, and continue by messaging it. Otherwise use the matching `*-runner` skill. Send follow-ups to the same seat so it keeps its context. Give each pass seat the diff, the guards, and its pass, and tell it to leave files unchanged.
 
 ## Output
 
-For review-only work, list findings by severity with location, consequence, smallest useful fix, and verification.
+Review only: findings by severity, each with location, consequence, smallest fix, and verification.
 
-For implementation work, return:
+Implementation:
 
 1. Outcome: safe as is, simplified, needs a focused fix, or needs design escalation.
 2. Changes made.
 3. Verification captured.
 4. Remaining risk.
 
-Use `references/team-checklists.md` only immediately before handoff or deployment. Do not measure success by lines removed; the measure is a simpler change that preserves observable behavior.
+---
+
+_Adapted from [compound-engineering-plugin](https://github.com/EveryInc/compound-engineering-plugin) (MIT). See NOTICE._

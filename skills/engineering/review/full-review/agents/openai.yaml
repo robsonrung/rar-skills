@@ -1,4 +1,4 @@
 interface:
   display_name: "Full Review"
-  short_description: "Proportionate review for seams, high-risk changes, and deep requests"
-  default_prompt: "Use $full-review to review this PR, commit, task seam, or requirements document. Start from the approved review plan, select only the needed seats and specialists, verify material findings, and return an evidence-backed verdict."
+  short_description: "Scoped, evidence-backed review for seams, high-risk changes, and requirements"
+  default_prompt: "Use $full-review to review this PR, commit, task seam, or requirements document. Choose focused, seam, or deep scope, run only the seats it needs, verify material findings, and return an evidence-backed verdict."

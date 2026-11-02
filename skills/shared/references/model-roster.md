@@ -72,9 +72,7 @@ An `allow_unverified` route needs the authority specified by its caller.
 A missing model or unsupported effort cannot cause a silent substitution.
 Unlisted models need an explicit route and capability evidence; add maintained
 defaults to the configuration before using them as library policy.
-`conditional_models` records unavailable specialist candidates. Never substitute
-an ordinary model for an unverified specialist identity.
 
 Approved run plans and receipts are historical snapshots. Do not regenerate
-an approved route from the latest defaults during retry or resume. The launcher
-validates the recorded selection and preserves the caller's approval boundary.
+an approved route from the latest defaults during retry or resume; keep the
+recorded selection and the caller's approval boundary.

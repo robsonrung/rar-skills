@@ -431,7 +431,6 @@ class MuseTests(unittest.TestCase):
     def test_optional_seat_does_not_change_defaults(self):
         config = runner.load_config()
         self.assertIn("muse-wonder-full", config["models"])
-        self.assertNotIn("muse-wonder-full", config["conditional_models"])
         self.assertEqual(config["models"]["muse-wonder-full"]["privacy"]["evidence_type"], "user_confirmed")
 
 

@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import hashlib
-import importlib.util
 import json
 import shutil
 import subprocess
@@ -19,15 +18,8 @@ SHARED = Path(__file__).resolve().parents[1]
 SCRIPTS = SHARED / "scripts"
 sys.path.insert(0, str(SCRIPTS))
 import review_evidence
+import routing_plan as plans
 import task_queue as queue
-from skill_paths import skill_dir
-
-
-LAUNCH_PATH = skill_dir("implement-and-review", root=SHARED.parent) / "scripts" / "launch.py"
-LAUNCH_SPEC = importlib.util.spec_from_file_location("task_queue_test_launcher", LAUNCH_PATH)
-assert LAUNCH_SPEC and LAUNCH_SPEC.loader
-launcher = importlib.util.module_from_spec(LAUNCH_SPEC)
-LAUNCH_SPEC.loader.exec_module(launcher)
 
 
 class TaskQueueTests(unittest.TestCase):
@@ -179,12 +171,12 @@ class TaskQueueTests(unittest.TestCase):
         path = path or self.root / "routing-plan.json"
         scope = {
             "inputs": [
-                {"path": "queue.json", "content_sha256": launcher.content_digest(self.root / "queue.json")},
-                {"path": "prd.md", "content_sha256": launcher.content_digest(self.prd)},
+                {"path": "queue.json", "content_sha256": plans.content_digest(self.root / "queue.json")},
+                {"path": "prd.md", "content_sha256": plans.content_digest(self.prd)},
                 *[
                     {
                         "path": f"tasks/{task_id}-example.md",
-                        "content_sha256": launcher.content_digest(self.root / "tasks" / f"{task_id}-example.md"),
+                        "content_sha256": plans.content_digest(self.root / "tasks" / f"{task_id}-example.md"),
                     }
                     for task_id in task_ids
                 ],
@@ -203,8 +195,8 @@ class TaskQueueTests(unittest.TestCase):
             "status": status,
             "decided_at": "2026-10-02T00:00:00Z",
             "reference": "test-response",
-            "scope_digest": launcher.canonical_digest(launcher.normalized_scope_inputs(scope["inputs"])),
-            "routes_digest": launcher.canonical_digest(launcher.normalized_routes(routes)),
+            "scope_digest": plans.canonical_digest(plans.normalized_scope_inputs(scope["inputs"])),
+            "routes_digest": plans.canonical_digest(plans.normalized_routes(routes)),
         }
         path.write_text(json.dumps({"schema_version": 1, "scope": scope, "approval": approval, "routes": routes}, indent=2), encoding="utf-8")
         return path
@@ -213,8 +205,8 @@ class TaskQueueTests(unittest.TestCase):
         queue_locator = str(queue_path.relative_to(self.root))
         scope = {
             "inputs": [
-                {"path": queue_locator, "content_sha256": launcher.content_digest(queue_path)},
-                {"path": "prd.md", "content_sha256": launcher.content_digest(self.prd)},
+                {"path": queue_locator, "content_sha256": plans.content_digest(queue_path)},
+                {"path": "prd.md", "content_sha256": plans.content_digest(self.prd)},
             ]
         }
         routes = []
@@ -227,8 +219,8 @@ class TaskQueueTests(unittest.TestCase):
             "status": "approved",
             "decided_at": "2026-10-02T00:00:00Z",
             "reference": "test-response",
-            "scope_digest": launcher.canonical_digest(launcher.normalized_scope_inputs(scope["inputs"])),
-            "routes_digest": launcher.canonical_digest(launcher.normalized_routes(routes)),
+            "scope_digest": plans.canonical_digest(plans.normalized_scope_inputs(scope["inputs"])),
+            "routes_digest": plans.canonical_digest(plans.normalized_routes(routes)),
         }
         path = self.root / "legacy-routing-plan.json"
         path.write_text(
@@ -269,32 +261,11 @@ class TaskQueueTests(unittest.TestCase):
         }, indent=2), encoding="utf-8")
         return path
 
-    def manifest(self, task_id: str, plan: Path) -> Path:
-        routing = json.loads(plan.read_text(encoding="utf-8"))
-        path = self.artifacts / task_id / "launch-manifest.json"
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(json.dumps({
-            "skill": "implement-and-review",
-            "task_id": task_id,
-            "working_root": str(self.root),
-            "isolation": "working-tree",
-            "routing_plan": {"path": str(plan.relative_to(self.root)), "approval": routing["approval"]},
-            "tracks": {
-                "main": {
-                    "implementer_route": self.route(task_id, "implementer"),
-                    "reviewer_route": self.route(task_id, "reviewer"),
-                }
-            },
-            "status": "running",
-        }, indent=2), encoding="utf-8")
-        return path
-
     def git(self, *args: str) -> None:
         result = subprocess.run(["git", *args], cwd=self.root, capture_output=True, text=True)
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 
     def current_integration(self, task_id: str, plan: Path, *, review_scope=None, output=None) -> tuple[Path, dict, dict]:
-        self.manifest(task_id, plan)
         requirements = self.artifacts / "requirements.json"
         requirements.write_text(json.dumps({
             "context": {"runtime": "fixture"},
@@ -338,7 +309,6 @@ class TaskQueueTests(unittest.TestCase):
         integration = {
             "snapshot": {"path": str(snapshot_path.relative_to(self.root)), "sha256": queue.file_sha256(snapshot_path)},
             "base": "HEAD",
-            "launch_manifest": str((self.artifacts / task_id / "launch-manifest.json").relative_to(self.root)),
         }
         reviewer_calls = {
             "combined-review": {
@@ -358,7 +328,7 @@ class TaskQueueTests(unittest.TestCase):
         self.git("add", "app.txt", "prd.md", "queue.json", "routing-plan.json", "tasks")
         self.git("-c", "user.name=Tests", "-c", "user.email=tests@example.invalid", "commit", "-qm", "Fixture")
 
-    def test_canonical_digest_matches_launcher_without_loading_engine(self) -> None:
+    def test_canonical_digest_matches_routing_plan_without_loading_it(self) -> None:
         samples = [
             "Text\r\n**Status:** ready-for-agent\r\n",
             "Text\n**Status:** draft\n",
@@ -367,10 +337,10 @@ class TaskQueueTests(unittest.TestCase):
         ]
         for text in samples:
             with self.subTest(text=text):
-                expected = hashlib.sha256(launcher.canonical_task_text(text).encode("utf-8")).hexdigest()
+                expected = hashlib.sha256(plans.canonical_task_text(text).encode("utf-8")).hexdigest()
                 self.assertEqual(queue.canonical_text_sha256(text), expected)
         config = self.queue_config(["T1"], statuses={"T1": "draft"})
-        with mock.patch.object(queue, "launcher_module", side_effect=AssertionError("engine must not load")):
+        with mock.patch.object(queue, "plan_module", side_effect=AssertionError("routing plan must not load")):
             preview = queue.approval_inputs(config, self.root)
         self.assertEqual(preview["tasks"][0]["status"], "draft")
 
@@ -383,8 +353,8 @@ class TaskQueueTests(unittest.TestCase):
         expected = preview["tasks"][0]["prospective_ready_content_sha256"]
         row = next(item for item in prospective["scope_inputs"] if item["path"] == "tasks/T1-example.md")
         self.assertEqual(row["content_sha256"], expected)
-        self.assertEqual(prospective["scope_digest"], launcher.canonical_digest(prospective["scope_inputs"]))
-        self.assertEqual(prospective["routes_digest"], launcher.canonical_digest(launcher.normalized_routes(json.loads(draft.read_text())["routes"])))
+        self.assertEqual(prospective["scope_digest"], plans.canonical_digest(prospective["scope_inputs"]))
+        self.assertEqual(prospective["routes_digest"], plans.canonical_digest(plans.normalized_routes(json.loads(draft.read_text())["routes"])))
         self.assertEqual(before, self.inventory(self.root))
 
     def test_approval_inputs_rejects_unsettled_canonical_gates(self) -> None:
@@ -573,9 +543,9 @@ class TaskQueueTests(unittest.TestCase):
         route["input_path"] = "batch-contract.md"
         value = json.loads(plan.read_text())
         value["routes"].append(route)
-        value["scope"]["inputs"].append({"path": "batch-contract.md", "content_sha256": launcher.content_digest(contract)})
-        value["approval"]["scope_digest"] = launcher.canonical_digest(launcher.normalized_scope_inputs(value["scope"]["inputs"]))
-        value["approval"]["routes_digest"] = launcher.canonical_digest(launcher.normalized_routes(value["routes"]))
+        value["scope"]["inputs"].append({"path": "batch-contract.md", "content_sha256": plans.content_digest(contract)})
+        value["approval"]["scope_digest"] = plans.canonical_digest(plans.normalized_scope_inputs(value["scope"]["inputs"]))
+        value["approval"]["routes_digest"] = plans.canonical_digest(plans.normalized_routes(value["routes"]))
         plan.write_text(json.dumps(value))
         self.commit_source()
         self.git("add", "batch-contract.md")
@@ -961,29 +931,6 @@ class TaskQueueTests(unittest.TestCase):
                 self.root,
             )
 
-    def test_manifest_review_record_keeps_legacy_reviewer_evidence_usable(self) -> None:
-        config = self.queue_config(
-            ["T1", "T2"], dependencies={"T2": ["T1"]}, concurrency={"max_active": 1, "isolation": "working-tree"}
-        )
-        (self.root / "app.txt").write_text("baseline\n", encoding="utf-8")
-        plan = self.routing_plan(["T1", "T2"])
-        self.commit_source()
-        snapshot, integration, _ = self.current_integration("T1", plan)
-        manifest_path = self.artifacts / "T1" / "launch-manifest.json"
-        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-        review_path = snapshot.parent / "review.json"
-        manifest["reviews"] = [{
-            "track": "main",
-            "cycle": 1,
-            "source_snapshot": {"path": str(snapshot), "sha256": queue.file_sha256(snapshot)},
-            "reviewer_route": self.route("T1", "reviewer"),
-            "review_evidence": {"path": str(review_path), "sha256": queue.file_sha256(review_path)},
-        }]
-        manifest_path.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
-        result = queue.schedule(config, plan, self.ledger(plan, integration={"T1": integration}), self.root)
-        self.assertEqual(result["integrated"], ["T1"])
-        self.assertEqual([item["id"] for item in result["ready"]], ["T2"])
-
     def test_legacy_embedded_task_needs_a_published_contract_before_dispatch(self) -> None:
         legacy = self.root / "tasks-draft.md"
         legacy.write_text(
@@ -1125,7 +1072,6 @@ class TaskQueueTests(unittest.TestCase):
         ledger = self.ledger(plan)
         bundle = Path(self.temporary.name) / "flat-skills"
         shutil.copytree(SHARED, bundle / "shared")
-        shutil.copytree(skill_dir("implement-and-review", root=SHARED.parent), bundle / "implement-and-review")
         script = bundle / "shared" / "scripts" / "task_queue.py"
         before = self.inventory(bundle)
         commands = [
@@ -1181,9 +1127,9 @@ class TaskQueueTests(unittest.TestCase):
         (self.root / "policy.json").write_text(json.dumps(policy))
         plan["review_policy"] = "policy.json"
         for name in ("policy.json", "checks.json", "feature.md"):
-            plan["scope"]["inputs"].append({"path": name, "content_sha256": launcher.content_digest(self.root / name)})
-        plan["approval"]["scope_digest"] = launcher.canonical_digest(launcher.normalized_scope_inputs(plan["scope"]["inputs"]))
-        plan["approval"]["routes_digest"] = launcher.canonical_digest(launcher.normalized_routes(plan["routes"]))
+            plan["scope"]["inputs"].append({"path": name, "content_sha256": plans.content_digest(self.root / name)})
+        plan["approval"]["scope_digest"] = plans.canonical_digest(plans.normalized_scope_inputs(plan["scope"]["inputs"]))
+        plan["approval"]["routes_digest"] = plans.canonical_digest(plans.normalized_routes(plan["routes"]))
         plan_path.write_text(json.dumps(plan))
         self.git("init", "-q")
         self.git("add", "app.txt", "prd.md", "queue.json", "routing-plan.json", "tasks", "checks.json", "policy.json", "feature.md")
@@ -1191,34 +1137,19 @@ class TaskQueueTests(unittest.TestCase):
         self.feature_counter = 0
         return config, plan_path, self.ledger(plan_path)
 
-    def feature_implementation(self, task_id, plan_path):
+    def feature_implementation(self, task_id, plan_path, ledger_path):
         plan = json.loads(plan_path.read_text())
         route = next(row for row in plan["routes"] if row["task_id"] == task_id and row["role"] == "implementer")
-        path = self.manifest(task_id, plan_path)
-        manifest = json.loads(path.read_text())
-        manifest["review_policy"] = {"path": str(self.root / "policy.json"), "sha256": queue.file_sha256(self.root / "policy.json")}
-        track = manifest["tracks"]["main"]
-        track["implementer_route"] = route
-        reviewer = next((row for row in plan["routes"] if row["task_id"] == task_id and row["role"] == "reviewer"), None)
-        if reviewer is None:
-            track.pop("reviewer_route")
-        brief = path.parent / "brief.md"
-        brief.write_text("Implement the task contract and capture focused checks.\n")
-        dispatch = {"call_id": launcher.native_call_id(route, "implementation", 0, 1), "input_revision": queue.file_sha256(brief),
-                    "input_path": str(brief), "tool_policy": "write", "parent_history": "none"}
-        receipt = {"success": True, "effective_runner": route["runner"], "configured_model": route["model"],
-                   "effective_model": route["model"], "configured_effort": route["effort"], "effective_effort": route["effort"],
-                   "model_receipt": {"status": "verified", "source": "native_event", "observed_model": route["model"]},
-                   "native_execution": {**dispatch, "host": "fixture", "transport": "subagent", "context_id": f"impl-{task_id}",
-                   "role": "implementer", "task_id": task_id, "configured_model": route["model"], "configured_effort": route["effort"],
-                   "completed_turn": 1}}
-        receipt_path = path.parent / "receipt.json"
-        receipt_path.write_text(json.dumps(receipt))
-        track["implementation"] = {"mode": "native", "status": "completed", "selected_route": route, "effective_route": route,
-                                   "completion_receipt": receipt, "receipt_artifact": review_evidence.evidence_link(receipt_path),
-                                   "native_dispatch": dispatch}
-        path.write_text(json.dumps(manifest))
-        return path
+        state = json.loads(ledger_path.read_text())
+        ledger = state["call_ledger"]
+        call_id = f"implement-{task_id}-{len(ledger['calls']) + 1}"
+        ledger["calls"][call_id] = {"status": "completed", "intent": {"route": route}}
+        ledger.setdefault("contexts", {})[route["id"]] = f"impl-{task_id}"
+        attempts = state.setdefault("attempts", {})
+        attempts["total_role_calls"] = attempts.get("total_role_calls", 0) + 1
+        attempts[route["id"]] = attempts.get(route["id"], 0) + 1
+        ledger_path.write_text(json.dumps(state))
+        return call_id
 
     def feature_capture(self, task_id, ledger_path):
         import feature_review
@@ -1231,8 +1162,7 @@ class TaskQueueTests(unittest.TestCase):
         packet = review_evidence.prepare_packet(snapshot, snapshot.parent / "packet.json", observations=[])
         state = json.loads(ledger_path.read_text())
         state["integration_evidence"][task_id] = {"snapshot": review_evidence.evidence_link(snapshot), "base": "HEAD",
-            "evidence_packet": review_evidence.evidence_link(packet),
-            "launch_manifest": f"artifacts/{task_id}/launch-manifest.json"}
+            "evidence_packet": review_evidence.evidence_link(packet)}
         ledger_path.write_text(json.dumps(state))
         return snapshot
 
@@ -1240,7 +1170,7 @@ class TaskQueueTests(unittest.TestCase):
         config, plan, ledger = self.feature_fixture()
         completed_ids = []
         for task_id, next_task in (("T1", "T2"), ("T2", "T3"), ("T3", None)):
-            self.feature_implementation(task_id, plan)
+            self.feature_implementation(task_id, plan, ledger)
             source = self.root / "app.txt"
             source.write_text(source.read_text() + task_id + "\n")
             stale = queue.schedule(config, plan, ledger, self.root)
@@ -1265,19 +1195,20 @@ class TaskQueueTests(unittest.TestCase):
 
     def test_feature_receipt_pending_replay_and_critical_gates_block_dependencies(self):
         config, plan, ledger = self.feature_fixture(("T1", "T2"))
-        manifest = self.feature_implementation("T1", plan)
+        self.feature_implementation("T1", plan, ledger)
         self.feature_capture("T1", ledger)
-        value = json.loads(manifest.read_text())
-        value["tracks"]["main"]["implementation"]["completion_receipt"]["native_execution"]["call_id"] = "wrong-call"
-        manifest.write_text(json.dumps(value))
+        value = json.loads(ledger.read_text())
+        value["call_ledger"]["contexts"] = {}
+        ledger.write_text(json.dumps(value))
         result = queue.schedule(config, plan, ledger, self.root)
         self.assertEqual(result["implemented"], [])
         self.assertEqual(result["ready"], [])
-        self.feature_implementation("T1", plan)
+        self.feature_implementation("T1", plan, ledger)
         state = json.loads(ledger.read_text())
         route = json.loads(plan.read_text())["routes"][0]
         state["call_ledger"]["calls"]["pending-repair"] = {"status": "pending", "intent": {"route": route}}
-        state["attempts"] = {"total_role_calls": 1, route["id"]: 1}
+        state["attempts"]["total_role_calls"] = state["attempts"].get("total_role_calls", 0) + 1
+        state["attempts"][route["id"]] = state["attempts"].get(route["id"], 0) + 1
         ledger.write_text(json.dumps(state))
         result = queue.schedule(config, plan, ledger, self.root)
         self.assertEqual(result["implemented"], [])
@@ -1285,7 +1216,7 @@ class TaskQueueTests(unittest.TestCase):
 
     def test_feature_critical_task_needs_independent_review_before_dependency_release(self):
         config, plan, ledger = self.feature_fixture(("T1", "T2"), critical=("T1",))
-        self.feature_implementation("T1", plan)
+        self.feature_implementation("T1", plan, ledger)
         self.feature_capture("T1", ledger)
         result = queue.schedule(config, plan, ledger, self.root)
         self.assertEqual(result["implemented"], [])
@@ -1294,7 +1225,7 @@ class TaskQueueTests(unittest.TestCase):
 
     def test_scoped_critical_queue_releases_after_refresh_but_never_accepts_feature(self):
         config, plan, ledger = self.feature_fixture(("T1", "T2"), critical=("T1",), scoped=("T1",))
-        self.feature_implementation("T1", plan)
+        self.feature_implementation("T1", plan, ledger)
         original = self.feature_capture("T1", ledger)
         state = json.loads(ledger.read_text())
         response_contract = review_evidence.response_contract(original)
@@ -1320,8 +1251,9 @@ class TaskQueueTests(unittest.TestCase):
                 "receipt_ref": review_evidence.evidence_link(receipt_path),
                 "review": review_evidence.evidence_link(original.parent / "review.json")}
         state["call_ledger"]["calls"]["critical-review"] = call
-        state["call_ledger"]["contexts"] = {route["id"]: "independent-critical-review"}
-        state["attempts"] = {"total_role_calls": 1, route["id"]: 1}
+        state["call_ledger"]["contexts"][route["id"]] = "independent-critical-review"
+        state["attempts"]["total_role_calls"] = state["attempts"].get("total_role_calls", 0) + 1
+        state["attempts"][route["id"]] = state["attempts"].get(route["id"], 0) + 1
         reference = {"snapshot": review_evidence.evidence_link(original), "call_id": "critical-review"}
         state["integration_evidence"]["T1"]["critical_review"] = reference
         ledger.write_text(json.dumps(state))
@@ -1379,7 +1311,7 @@ class TaskQueueTests(unittest.TestCase):
         import feature_review
         config, plan, ledger = self.feature_fixture(("T1", "T2"))
         for task_id in ("T1", "T2"):
-            self.feature_implementation(task_id, plan)
+            self.feature_implementation(task_id, plan, ledger)
             self.feature_capture(task_id, ledger)
         requirements = self.artifacts / "final-requirements.json"
         requirements.write_text(json.dumps(feature_review.requirements(self.root / "policy.json", self.root)))
@@ -1413,8 +1345,9 @@ class TaskQueueTests(unittest.TestCase):
         writer = next(row for row in plan_value["routes"] if row["task_id"] == "T1" and row["role"] == "implementer")
         state["call_ledger"]["calls"]["failed-first-attempt"] = {"status": "failed", "intent": {"route": writer}}
         state["call_ledger"]["calls"]["feature-review"] = call
-        state["call_ledger"]["contexts"] = {route["id"]: "independent-feature-review"}
-        state["attempts"] = {"total_role_calls": 2, writer["id"]: 1, route["id"]: 1}
+        state["call_ledger"]["contexts"][route["id"]] = "independent-feature-review"
+        for key in ("total_role_calls", writer["id"], route["id"]):
+            state["attempts"][key] = state["attempts"].get(key, 0) + (2 if key == "total_role_calls" else 1)
         state["feature_review"] = {"snapshot": review_evidence.evidence_link(snapshot_path), "base": "HEAD", "call_id": "feature-review"}
         ledger.write_text(json.dumps(state))
         result = queue.schedule(config, plan, ledger, self.root)
@@ -1437,16 +1370,17 @@ class TaskQueueTests(unittest.TestCase):
         config.write_text(json.dumps(value))
         plan = json.loads(plan_path.read_text())
         for row in plan["scope"]["inputs"]:
-            row["content_sha256"] = launcher.content_digest(self.root / row["path"])
-        plan["approval"]["scope_digest"] = launcher.canonical_digest(launcher.normalized_scope_inputs(plan["scope"]["inputs"]))
+            row["content_sha256"] = plans.content_digest(self.root / row["path"])
+        plan["approval"]["scope_digest"] = plans.canonical_digest(plans.normalized_scope_inputs(plan["scope"]["inputs"]))
         plan_path.write_text(json.dumps(plan))
         ledger = self.ledger(plan_path)
-        self.feature_implementation("T1", plan_path)
+        self.feature_implementation("T1", plan_path, ledger)
         self.feature_capture("T1", ledger)
         state = json.loads(ledger.read_text())
         route = plan["routes"][0]
         state["call_ledger"]["calls"]["pending-repair"] = {"status": "pending", "intent": {"route": route}}
-        state["attempts"] = {"total_role_calls": 1, route["id"]: 1}
+        state["attempts"]["total_role_calls"] = state["attempts"].get("total_role_calls", 0) + 1
+        state["attempts"][route["id"]] = state["attempts"].get(route["id"], 0) + 1
         ledger.write_text(json.dumps(state))
         result = queue.schedule(config, plan_path, ledger, self.root)
         self.assertEqual(result["ready"], [])

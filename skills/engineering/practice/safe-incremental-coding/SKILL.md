@@ -5,58 +5,44 @@ description: "Build characterization tests before a risky change to untested leg
 
 # Safe Incremental Coding
 
-Choose the branch before selecting a model. Coordinator work and deterministic commands proceed within invocation authority. Apply this method in the current role. It does not dispatch a worker. For a worker dispatch, use `shared/references/model-preview.md` and its one approved route snapshot. Nested skills and runners consume it without another selection or worker.
-
-Protect the existing behavior needed for a requested change, using the legacy change method from Dave Farley's _The Software Developers' Guidebook_. The aim is **ease of change**: the affected code can be changed safely.
-
-Build a **characterization test** net before refactoring. Keep the work within the area needed for the requested change.
+Farley's legacy-change method, aimed at **ease of change**: protect the behavior a requested change touches, then make that code testable. Stay inside the area the change needs.
 
 ## Build the net
 
-1. Identify the affected behavior and an observable boundary that can exercise it.
-2. Capture current outputs or side effects with representative inputs, including relevant boundary and failure cases. Pin existing behavior even when it contains a known defect; an intentional behavior change is a separate step.
-3. Control or normalize timestamps, identifiers, seeds, and other variable values without hiding behavior that matters to the change.
-4. Prefer tests at an acceptance or integration boundary when unit tests would depend on the current internal structure.
-5. If no existing boundary exposes the behavior, limit the initial production edit to the minimum observation seam. Keep its business logic unchanged and capture the baseline before further production changes.
-6. Check that the test passes against the baseline and would detect a relevant change in behavior.
+A **characterization test** net pins current behavior before any refactoring.
 
-A passing baseline protects only the cases it exercises. Add coverage for a missing case when the requested change depends on it.
+1. Find the affected behavior and an observable boundary that exercises it. Prefer an acceptance or integration boundary when unit tests would bind to the current internals.
+2. Capture current outputs and side effects for representative inputs, including boundary and failure cases. Pin a known defect too; changing it is a separate, intentional step.
+3. Normalize timestamps, identifiers, and seeds without hiding behavior the change depends on.
+4. When no boundary exposes the behavior, the first production edit is the minimum observation seam, with business logic untouched. Capture the baseline before any other production change.
+5. Confirm the net passes on the baseline and would catch a relevant change.
+
+The net protects only the cases it exercises. Add any case the requested change depends on.
 
 ## Remove a testability obstacle
 
-Once the net exists, identify what still prevents the requested change from being tested. Use only a structural technique that removes that obstacle.
+Use only the structural move that removes what still blocks testing the change:
 
-| Obstacle | Possible change |
+| Obstacle | Move |
 | --- | --- |
-| Proven dead code or comments obscure the affected path | Remove that material within the requested scope. Test coverage alone does not prove code is unused. |
-| A block combines several decisions that the change must isolate | Extract a cohesive operation with a name that explains its purpose. |
-| Control flow hides the behavior that needs testing | Simplify the affected conditions or flow while preserving behavior. |
-| A dependency prevents control of input or observation of output | Add a narrow seam or separate the relevant decision from its side effect. |
-| Unrelated responsibilities prevent a focused test | Separate those responsibilities within the affected boundary. |
+| Proven dead code or comments obscure the path | Remove them. Coverage alone does not prove code unused. |
+| One block makes several decisions the change must isolate | Extract a cohesive, well-named operation. |
+| Control flow hides the behavior under test | Simplify the affected conditions or flow. |
+| A dependency blocks controlling input or observing output | Add a narrow seam, or split the decision from its side effect. |
+| Unrelated responsibilities block a focused test | Separate them within the affected boundary. |
 
-Choose structure that fits the surrounding code and the required test. Use supported refactoring tools when they reduce risk.
+Each move is **behavior-preserving**. Run the net after each coherent move, and stop to investigate any failure before the next.
 
-Keep each structural change **behavior-preserving**. Run the affected characterization checks after each coherent structural change before starting the next one. Investigate a failure before continuing. Broaden checks when a change or failure exposes a wider risk.
+## Done
 
-## Completion and handoff
-
-Stop this preparation when:
+Preparation is done when:
 
 1. The relevant existing behavior has a passing characterization test.
 2. The requested change can be exercised through a usable test boundary.
-3. Any required structural changes preserve the captured behavior.
+3. Every structural change preserved the captured behavior.
 
-If these conditions already hold after the net is built, proceed directly to the requested work.
+Say it like this: "The **characterization test** protects the current output, and the dependency seam lets `tdd` test the requested change."
 
-For example: “The **characterization test** protects the current output, and the dependency seam lets `tdd` test the requested change.”
+Hand the intentional behavior change to `tdd`. Keep the net until finer tests demonstrably cover the same behavior. Report the protected behavior, the testability changes, the checks run, and the remaining evidence gaps. Behavior that surprises you and needs explaining before you can pin it goes to `diagnose`.
 
-Apply `tdd` for the intentional behavior change. Keep the characterization tests as protection while finer tests become useful. Retire one only when replacement tests demonstrably cover the same behavior.
-
-Report the protected behavior, any testability changes, checks run, and remaining evidence gaps.
-
-## Boundaries
-
-1. Keep intentional behavior changes separate from characterization and refactoring.
-2. Apply `diagnose` when unexpected behavior needs an explanation before it can be safely pinned.
-3. Apply `clean-code` for local cleanup of code already protected by tests, `test-lens` for test value, and `architecture-lens` for module boundary decisions.
-4. Do not quote or reconstruct source text from the book.
+Do not quote or reconstruct source text from the book.

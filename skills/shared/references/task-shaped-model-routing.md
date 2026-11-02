@@ -180,7 +180,7 @@ object keys, UTF-8, `ensure_ascii=false`, and compact JSON separators before
 hashing. Normalize text line endings to LF and omit only a line exactly equal to
 `**Status:** ready-for-agent`, `**Status:** in-progress`, `**Status:** done`, or
 `**Status:** blocked`. A status transition can reuse approval; scope or acceptance
-edits cannot. The launcher recomputes both digests before side effects.
+edits cannot. `shared/scripts/routing_plan.py` recomputes both digests.
 
 Reuse approval while scope and routes match. When a route fails, continue
 independent authorized work and report the affected row. A new model, unsupported

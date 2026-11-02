@@ -3,122 +3,95 @@ name: test-lens
 description: "Judge test value and choose what to test or mock. Apply it to brittle tests, test reviews, and unit or integration test design; apply tdd for the test-first execution loop."
 ---
 
-# Test Lens — Valuable Unit Testing
+# Test Lens: Valuable Unit Testing
 
-Choose the branch before selecting a model. Coordinator work and deterministic commands proceed within invocation authority. Apply this method in the current role. It does not dispatch a worker. For a worker dispatch, use `shared/references/model-preview.md` and its one approved route snapshot. Nested skills and runners consume it without another selection or worker.
+Khorikov's framework (_Unit Testing: Principles, Practices, and Patterns_) for one question: **is this test worth its maintenance cost, and does it test the right thing the right way?** A suite exists for sustainable growth: adding features and refactoring without fear. Test code is a liability, so a few valuable tests beat many mediocre ones. Set a high bar and delete what falls below it.
 
-Judge or write tests through the framework in _Unit Testing: Principles, Practices, and Patterns_ (Vladimir Khorikov). This is **not** the red-green loop (apply `tdd` for cadence) and **not** a bug hunt (that belongs in a code-review pass). It answers one question: **is this test worth its maintenance cost, and does it test the right thing the right way?**
+## The four pillars
 
-The goal of a test suite is **sustainable project growth** — letting you add features and refactor without fear. A small number of highly valuable tests beats a large number of mediocre ones. **Test code is a liability too.** Set a high bar; delete tests that don't clear it.
+Score each test 0–1 on the **four pillars**. Its value is their product, so a zero on any pillar makes the test worthless.
 
-Examples below are TypeScript + Jest. Apply the lens, then report findings concretely: cite `file:line`, name the rule, propose the fix. If a test is already good, say so plainly.
+1. **Regression protection**: how much code it exercises, weighted by complexity and domain significance.
+2. **Resistance to refactoring**: how few false positives it raises when behavior is intact. This one is non-negotiable.
+3. **Fast feedback**: how quickly it runs.
+4. **Maintainability**: how easy it is to read and to run.
 
-## The core rubric: the four pillars
+The first three trade against each other. Resistance must stay high, so the real trade is protection ⇄ speed. Each failure mode zeroes one pillar:
 
-Every test is scored 0–1 on four attributes; **value = the four multiplied**. A zero on any pillar makes the test worthless — even if it's perfect on the other three.
-
-1. **Protection against regressions** — how much code (yours + libraries) the test exercises, weighted by complexity and domain significance. Trivial code → low protection.
-2. **Resistance to refactoring** — how few **false positives** (failures when behavior is intact) it produces. Driven entirely by coupling to implementation details. **Non-negotiable.**
-3. **Fast feedback** — how quickly it runs.
-4. **Maintainability** — how hard it is to read and to run (setup, out-of-process deps).
-
-**Key tension:** the first three are mutually exclusive — you can't maximize all three. Since resistance-to-refactoring must stay high, you trade **protection ⇄ fast feedback**. The three classic failure modes, each maxing two pillars and zeroing a third:
-
-| Test type | Sacrifices | Why it's low-value |
+| Test | Zeroes | Why it is low-value |
 | --- | --- | --- |
-| End-to-end only | Fast feedback | Great coverage + resilient, but too slow to be the whole suite |
-| Trivial (`expect(user.name).toBe('John')` on a plain getter) | Protection | Nothing to catch |
-| **Brittle** (asserts SQL string / call order / private structure) | Resistance to refactoring | Breaks on every refactor → ignored → real bugs slip through |
+| End-to-end only | Fast feedback | Resilient and broad, but too slow to be the whole suite |
+| Trivial (a plain getter) | Protection | Nothing to catch |
+| **Brittle** (asserts SQL text, call order, private structure) | Resistance | Fails on every refactor, gets ignored, and lets real regressions through |
 
-> Brittle tests are the dangerous ones. They train the team to ignore failures, then a real regression rides along with the noise into production.
+Brittle tests are the dangerous ones. Say the verdict by pillar: "This scores zero on **resistance to refactoring**: it asserts call order on a stub."
 
-## Lens 1 — Observable behavior, not implementation details
+## Lens 1: observable behavior
 
-The **single most important rule.** False positives come from coupling a test to _how_ the code works instead of _what_ it produces. Verify the **end result meaningful to a domain expert / end user** — disregard the steps taken to get there.
+The rule that matters most. False positives come from asserting _how_ the code works instead of _what_ it produces. Assert the end result a domain expert would recognize: rendered HTML rather than which sub-renderers ran, and returned rows rather than SQL text. Implementation coupling shows up as:
 
-Red flags (all couple to implementation):
+- asserting which internal methods ran, in what order, or how often;
+- asserting generated SQL, the internal collaborators, or private state;
+- recomputing the expected value with the production formula (**leaking domain knowledge**); hardcode independently derived literals;
+- a test you edit whenever a private method is renamed.
 
-- Asserting which internal methods were called, in what order, or how many times (on a stub).
-- Asserting a generated SQL string, the list/types of internal collaborators, or private state.
-- A test that mirrors the production algorithm step-for-step ("leaking domain knowledge").
-- A test you must edit every time you rename a private method or reshuffle internals.
+## Lens 2: style
 
-> A good test tells a story about the problem domain. If it fails, the story and the code disagree — and that's the only failure worth your attention.
+| Style | Verifies | Quality |
+| --- | --- | --- |
+| **Output-based** | return value of a pure function | Best: resists refactoring by construction |
+| State-based | state after the act | Acceptable when mutation is the outcome |
+| Communication-based | calls to collaborators | Most brittle; only at the system edge |
 
-## Lens 2 — Pick the right style (ranked)
+Move toward output-based by splitting decisions from actions: a **functional core** that takes values and returns a decision, wrapped in a **mutable shell** that reads, delegates, and applies. Test the core with plain values. Cover the shell lightly with integration tests.
 
-| Style | Verifies | Quality | Prefer when |
-| --- | --- | --- | --- |
-| **Output-based** | return value of a pure function | **Best** — naturally resists refactoring | always, if the code allows |
-| State-based | object/system state after the act | OK — can tie to leaking state | mutation is the actual outcome |
-| Communication-based | calls to collaborators (mocks) | Most brittle | only at the system edge, for unmanaged deps |
+## Lens 3: doubles
 
-Push code toward **output-based** by separating decisions from actions: a **functional core** (pure business logic, easy to output-test) wrapped in a **mutable shell** (thin, does I/O). This is hexagonal architecture taken to its extreme. See `references/decision-trees.md`.
+- A **stub** feeds an _incoming_ interaction, meaning data the SUT reads. **Never assert calls to a stub**: that is overspecification, the top source of fragile tests.
+- A **mock** stands in for an _outgoing_ side effect. Assert it only when that side effect is itself the observable outcome.
+- One double can play both roles on different methods.
+- A **managed dependency** is reachable only through your app, such as your own database. Its interactions are implementation details, so use the real thing in integration tests.
+- An **unmanaged dependency** is visible outside the system (SMTP, a message bus, a third-party API). Its interactions are a contract, so mock it.
+- Mock **only at the system edge** (the outermost interface before I/O) and **only types you own**: wrap a third-party SDK in your own adapter and mock the adapter.
 
-## Lens 3 — Mocks: stub vs mock, managed vs unmanaged
+## Lens 4: what to test
 
-The rules agents most often get wrong. Full flowchart in `references/decision-trees.md`.
-
-- **Stub** = emulates an _incoming_ interaction (input data the SUT reads). **Never assert calls to a stub** — that's overspecification and the #1 source of fragile tests.
-- **Mock** = emulates an _outcoming_ interaction (a side effect the SUT causes). Asserting it is fine _only_ when that side effect is itself the observable outcome.
-- **Managed dependency** (you fully control it; only your app touches it — e.g. your DB): interactions are **implementation details** → use the **real thing** in integration tests.
-- **Unmanaged dependency** (externally observable — SMTP, message bus, third-party API): interactions are **observable behavior / a contract** → **mock it**.
-- Mock **only at the system edge**, and **only types you own** — wrap third-party SDKs in your own adapter and mock the adapter, not the library.
-
-## Lens 4 — What to test at all (the code quadrant)
-
-Classify the code under test on two axes — **complexity/domain significance** × **number of collaborators**:
+Classify the code by complexity or domain significance × number of collaborators:
 
 |  | Few collaborators | Many collaborators |
 | --- | --- | --- |
-| **High complexity/significance** | **Domain model / algorithms** → unit-test hard (best ROI) | **Overcomplicated** → refactor: split into the two below |
-| **Low** | **Trivial** → don't test | **Controllers** → a few integration tests |
+| **High complexity** | **Domain model / algorithms**: unit-test hard | **Overcomplicated**: split it |
+| **Low complexity** | **Trivial**: skip | **Controllers**: a few integration tests |
 
-> The more important or complex the code, the **fewer collaborators** it should have.
+Drain the overcomplicated quadrant with **Humble Object**. Move the logic into a pure domain or algorithm object and test it output-based. The humble wrapper that remains only orchestrates dependencies. Coverage is a side effect, not a goal, and no test is better than a bad one.
 
-The overcomplicated quadrant (e.g. a fat controller doing real logic _and_ I/O) is the trap. Split it with the **Humble Object** pattern: extract the logic into a pure algorithm/domain class (unit-test it output-based), leaving a thin humble wrapper that just glues to dependencies (cover lightly via integration tests). **100% coverage is not the goal** — it's possible to have high coverage and worthless tests (and vice versa); significant value per test is. Better no test than a bad test.
+Integration tests cover a controller with at least one real out-of-process dependency. Take the longest path, the one that touches the most dependencies, plus one shortest happy path. Test logging only when another system consumes it, as with an audit log, which is effectively an unmanaged dependency.
 
-## Anti-pattern checklist (flag these)
+## Anti-patterns
 
-- Testing **private methods** → a private method doing complex work is a missing abstraction; extract a class.
-- **Exposing private state** just to assert on it → test observable behavior instead.
-- **Leaking domain knowledge** → test hardcodes the algorithm's expected intermediate math.
-- **Code pollution** → test-only switches/flags in production code.
-- **Mocking concrete classes** to keep half their behavior → SRP violation; split the class.
-- **Time as ambient context** (`Date.now()` reached directly) → inject time as an explicit dependency.
-- Asserting interactions **with stubs**, or chasing a **coverage number** as the target.
+| Anti-pattern | Fix |
+| --- | --- |
+| Testing private methods | Complex private logic is a missing abstraction: extract a class and test it publicly |
+| Exposing private state to assert on it | Assert observable behavior instead |
+| Code pollution (test-only flags in production) | Inject the varying behavior |
+| Mocking a concrete class while keeping half of it | SRP violation: split logic from I/O and mock the I/O side |
+| Time as ambient context (`Date.now()`) | Inject a clock and pass a fixed time in tests |
+| Asserting interactions with stubs | Delete the assertion |
+| Coverage as the target | Set a value bar per test, even if coverage drops |
 
-## Mechanics (when writing tests)
+## Mechanics
 
-- **AAA** — Arrange / Act / Assert, one of each; if you need multiple act sections it's probably an integration test. No `if` statements in a test (split it). Keep the act to one line for a unit of behavior.
-- **Name** the test as a domain statement of behavior — `delivery_with_a_past_date_is_invalid`, not `IsValid_PastDate_ReturnsFalse`. No method names in the title; a non-programmer should read it.
-- **Parameterize** similar cases (`it.each`) — but keep distinct behaviors as separate tests.
-- Reuse fixtures via **factory functions**, not shared mutable state in `beforeEach` (high coupling between tests is an anti-pattern).
+- **AAA**, one of each. More than one act means an integration test. Keep `if` out of tests, and keep the act to one line.
+- Name each test as a domain statement a non-programmer can read: `delivery_with_a_past_date_is_invalid`.
+- Parameterize similar cases, but keep distinct behaviors in separate tests.
+- Share fixtures through factory functions, not shared mutable `beforeEach` state.
 
-## Workflow
+## State, fixtures, and evidence
 
-1. **Whose test is this?** New code → guide style choice (Lens 2/4) before writing. Existing test under review → score it.
-2. **Score the four pillars.** Name the weakest. If any is ≈0, recommend rewrite or deletion.
-3. **Apply the lenses** that fit: observable-behavior (always), mock rules (if it has doubles), quadrant (if deciding what/whether to test).
-4. **Run the anti-pattern checklist.**
-5. **Report** concretely per finding: `file:line` → which rule → the fix. Skip lenses that don't apply rather than padding.
+- For stateful or asynchronous code, derive a small case table from the real state machine. Cover meaningful event orders and retained invariants, not each handler once. Carry a prior defect case forward when the same causal path exists.
+- A passing fixture proves only the boundary it exercises. Exercise production adapters with representative stored values, including absent, legacy, and malformed ones when the schema allows them. Use real transactions for lock and rollback claims. Give a fixture no stronger schema than production has.
+- Report model, DOM, partial-browser, and full-application evidence separately. A DOM test or screenshot cannot establish deployed authorization, and test counts cannot establish completeness.
 
-For the detailed decision trees (style transition, mock flowchart, Humble Object refactor, integration-test rules — path selection, logging, pyramid — and the full anti-pattern catalog with before/after code), read `references/decision-trees.md`.
+## Reporting
 
-## Failure sequences and fixture boundaries
-
-For stateful or asynchronous changes, derive a small case table from the actual
-state machine before the first review. Include meaningful event orders and retained
-invariants, not just each handler once. Carry a prior defect case into a related
-slice when the same causal path exists. Read `advanced-react`'s async reference
-when editor cancellation, replacement, scope changes, or late responses apply.
-
-A passing fixture proves only the boundary it exercises. Check production adapters
-with representative stored values, including absent, legacy, and malformed values
-when the schema permits them. Use actual transactions for lock and rollback claims.
-Do not let a fixture create a stronger schema or cleaner data contract than production.
-A default or fallback for bad data must follow the product contract.
-
-Separate model tests, DOM interaction tests, partial application browser checks,
-and full application checks in the acceptance report. A DOM test or screenshot
-cannot establish deployed authorization. Test counts cannot establish completeness.
+For a test under review, score the four pillars and name the weakest. Then apply the lenses that fit. Each finding reads `file:line` → the rule → the fix. Recommend a rewrite or deletion when any pillar is near zero, and say plainly when a test is already good.

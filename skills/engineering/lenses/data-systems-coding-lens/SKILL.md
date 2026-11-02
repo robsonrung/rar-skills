@@ -5,144 +5,38 @@ description: "Review implementation risks in persistent state and asynchronous d
 
 # Data Systems Coding Lens
 
-Use this skill to add a practical data systems review pass to coding work. The goal is not to explain theory. The goal is to catch failure modes before they become production bugs.
+Catch data failure modes before they reach production. Apply it when a change touches persistent data, background work, or production operational risk; UI copy, styling, and throwaway scripts do not need it.
 
-Two leitwörter anchor every pass and recur in the checks below. **Source of truth**: name the one place that durably owns each fact, so derived copies (caches, indexes, read models) can always be rebuilt from it. **Idempotent**: every write that can be retried or replayed must produce the same result the second time — no duplicate money, emails, jobs, or records. State both by name as you review.
+Two leitwörter anchor every pass. Say them by name as you work:
 
-## First Pass
+- **Source of truth**: the one place that durably owns each fact. Caches, indexes, and read models are derived and must be rebuildable from it.
+- **Idempotent**: a retried or replayed write produces the same result the second time: no duplicate money, emails, jobs, or records.
 
-Start by identifying the state boundary:
+## First pass: the state boundary
 
-1. What data is created, read, updated, deleted, cached, derived, or emitted?
-2. What is the source of truth?
-3. Which paths are synchronous, asynchronous, retried, replayed, or user visible?
-4. Which invariant would make the feature incorrect if it broke, and where does the code assert it?
-5. Which failure would be silent, expensive, or hard to repair?
+1. What data is created, updated, deleted, cached, derived, or emitted, and what is its **source of truth**?
+2. Which paths are asynchronous, retried, replayed, or user-visible?
+3. Which invariant makes the feature wrong if it breaks, and where does the code enforce it?
+4. Which failure would be silent, expensive, or hard to repair?
 
-If the task is small, keep this pass brief and fold it into the implementation. If the task touches shared data contracts or production records, write the answer down before editing.
+On a small change, fold this into the work. When shared data contracts or production records are involved, write the answers down before editing.
 
-Do not overcomplicate pure UI copy, styling, one off scripts, docs only edits, or local throwaway utilities. In those cases, only apply the lens if the change touches persistent data, background work, or production operational risk.
+## Checks
 
-## Implementation Lens
+Work through the areas the change touches.
 
-When changing code, inspect these areas in order.
+**Contracts and evolution.** Old writers with new readers, and new writers with old readers, must both work. Look at nullability, enum growth, identifier stability, time zones, and migration defaults on existing rows. State the deploy order. Prefer a change that ships across several deploys, a migration that can pause and resume, and a rollback path. Name the flag, column, or job that needs cleanup afterward.
 
-### Data Model And Contracts
+**Query and storage.** Find what grows with users, tenants, rows, events, or time. Look for N+1 round trips, missing index coverage, unstable pagination sorts, and transaction or lock scope. For a cache, name the key shape and its cardinality, the invalidation trigger, and how much staleness the flow tolerates.
 
-Check schema shape, nullability, enum growth, identifier stability, time zones, ownership, uniqueness, and backward compatibility.
+**Reliability.** Trace a crash between two writes, an external call that succeeds while the local write fails, and a local write that succeeds while the external call times out. Every retry path is **idempotent**: an idempotency key, a unique constraint, or a version check. Poison messages have a dead-letter destination. Every file, lock, transaction, subscription, timer, and socket has one owner and is released on success, failure, and cancellation. When correctness depends on hidden timing, make the sequencing explicit with state, a queue, a lock, a transaction, or a version check.
 
-Ask:
+**Concurrency and distribution.** When more than one process, worker, region, store, or external system is involved, state which operations need strong consistency and which can reconcile later. Check two actors updating one entity, read-after-write needs, clock dependence, leases, and any assumption of a global order. Derived state must be rebuildable from the **source of truth**. Process topology itself belongs to `distributed-systems-patterns`.
 
-1. Can old writers coexist with new readers?
-2. Can new writers coexist with old readers?
-3. Is there a rollback path?
-4. Are migration defaults safe for existing data?
-5. Is the API contract precise enough for clients and jobs?
+**Operability.** An operator can detect and repair the failure from the logs, metrics, and traces of the real production path.
 
-### Query And Storage Path
+## Verification
 
-Check query cardinality, index coverage, pagination, sort stability, cache keys, cache invalidation, transaction scope, and lock behavior.
+Test at the real boundary the risk lives on: invariant and idempotency unit tests, integration tests against the database, queue, cache, or external API, migrations run against existing data shapes, concurrency tests for races and duplicate work, and query-plan or load checks when cardinality is the risk.
 
-Ask:
-
-1. What grows with user count, tenant count, rows, events, or time?
-2. Does the code accidentally turn one request into many database round trips?
-3. Is the query plan likely to change badly as data grows?
-4. Are writes idempotent when retried?
-5. Can the same operation race with itself?
-
-### Reliability And Failure
-
-Check retries, duplicate messages, partial writes, timeout behavior, poison messages, dead letter handling, and user visible recovery.
-
-Check process resources: every file, handle, lock, transaction, subscription, timer, and socket needs one clear owner and a cleanup path on success, failure, and cancellation.
-
-Ask:
-
-1. What happens after a crash between two writes?
-2. What happens if the external service succeeds but the local write fails?
-3. What happens if the local write succeeds but the external service times out?
-4. Can a retry create duplicate money, emails, notifications, jobs, or records?
-5. How does an operator detect and repair the failure?
-6. Does correctness depend on hidden time ordering? Break it — make sequencing explicit through state, queues, locks, transactions, idempotency keys, or version checks.
-
-### Distributed Behavior
-
-Use this when there is more than one process, worker, region, database, queue, cache, or external system. Topology — which Burns pattern the processes form (sidecar, shard, scatter/gather, election vs singleton, work queue) — is `distributed-systems-patterns`. This section is the code-level failure modes of those choices.
-
-Check ordering assumptions, stale reads, read after write needs, leader election, leases, clock dependence, consistency level, transaction boundaries, and reconciliation.
-
-Ask:
-
-1. Does correctness require a single global order?
-2. Is eventual consistency acceptable for this user flow?
-3. Which operation needs strong consistency, and which can be reconciled later?
-4. What happens when two actors update the same entity at the same time?
-5. Is there a source of truth that can rebuild derived state?
-
-### Evolution And Maintenance
-
-Check deploy order, feature flags, versioned payloads, schema migrations, backfills, rebuilds, observability, and cleanup plans.
-
-Ask:
-
-1. Can this change ship in multiple deploys?
-2. Can the migration be paused and resumed?
-3. Can derived data be rebuilt from durable inputs?
-4. Are logs, metrics, and traces enough to debug the real production path?
-5. What old code, data, flag, or job needs cleanup after the rollout?
-
-Under `design-gate`, use the caller's canonical gate result. This replaces standalone output and edit mechanics. Carry lens-specific conclusions in findings or `review_focus`, with stable finding IDs. In an interview, contribute decision fields to the existing decision record.
-
-## Output Patterns
-
-For implementation work, add a short note before coding when useful:
-
-```text
-Data systems lens:
-State touched:
-Invariant:
-Main risk:
-Verification:
-```
-
-For code review, lead with concrete findings:
-
-```text
-Finding:
-Why it matters:
-Failure case:
-Suggested fix:
-Verification:
-```
-
-For architecture or planning, use this compact decision record:
-
-```text
-Decision:
-Source of truth:
-Consistency requirement:
-Failure handling:
-Migration path:
-Observability:
-Open question:
-```
-
-## Verification Defaults
-
-Prefer verification that exercises real boundaries:
-
-1. Unit tests for invariants and idempotency.
-2. Integration tests for database, queue, cache, and external API boundaries.
-3. Migration checks with existing data shapes.
-4. Concurrency tests for races and duplicate work.
-5. Load or query plan checks when cardinality is the risk.
-6. Observability checks for logs, metrics, traces, and repair signals.
-
-## Final Response Contract
-
-When this skill changes the work, mention the highest value check in the final response. Keep it short:
-
-```text
-I also checked the data systems risk: [state or invariant], [main mitigation], [verification].
-```
+Report each finding as the failure case, why it matters, the fix, and how to verify it. When the lens changes the work, name the state or invariant, the mitigation, and its verification in one line of the final response.

@@ -120,8 +120,8 @@ def validate_policy(path, root, task_contracts=None):
                      and route.get("task_id") not in tasks
                      and local_file(root, route.get("input_path"), "final reviewer input") == feature_contract,
                      "final reviewer route must bind the feature contract and a separate role")
-    from task_queue import launcher_module
-    launcher_module().validate_route(route)
+    import routing_plan
+    routing_plan.validate_route(route)
     return policy
 
 
@@ -158,8 +158,7 @@ def validate_plan_policy(plan, root):
     if "review_policy" not in plan:
         return None
     root = Path(root).resolve()
-    from task_queue import launcher_module
-    launcher = launcher_module()
+    import routing_plan as plans
     evidence.require(plan.get("schema_version") == 1 and plan.get("approval", {}).get("status") == "approved",
                      "feature review requires an approved routing plan")
     inputs = plan.get("scope", {}).get("inputs")
@@ -168,21 +167,21 @@ def validate_plan_policy(plan, root):
     for row in inputs:
         evidence.require(isinstance(row, dict) and set(row) == {"path", "content_sha256"}, "invalid feature scope input")
         path = local_file(root, row["path"], "feature scope input")
-        evidence.require(row["path"] not in indexed and launcher.content_digest(path) == row["content_sha256"],
+        evidence.require(row["path"] not in indexed and plans.content_digest(path) == row["content_sha256"],
                          "feature scope input changed or is duplicated")
         indexed[row["path"]] = {"path": path, "content_sha256": row["content_sha256"]}
-    evidence.require(launcher.canonical_digest(launcher.normalized_scope_inputs(inputs))
+    evidence.require(plans.canonical_digest(plans.normalized_scope_inputs(inputs))
                      == plan["approval"].get("scope_digest"), "feature routing scope digest differs")
     routes = plan.get("routes")
     evidence.require(isinstance(routes, list) and bool(routes), "feature routing routes are missing")
     ids = set()
     for route in routes:
-        launcher.validate_route(route)
+        plans.validate_route(route)
         evidence.require(route["id"] not in ids, "duplicate feature routing role ID")
         ids.add(route["id"])
-    evidence.require(launcher.canonical_digest(launcher.normalized_routes(routes))
+    evidence.require(plans.canonical_digest(plans.normalized_routes(routes))
                      == plan["approval"].get("routes_digest"), "feature routing routes digest differs")
-    return launcher.bound_review_policy(plan, root, indexed)
+    return plans.bound_review_policy(plan, root, indexed)
 
 
 @evidence.validation_session
@@ -281,9 +280,9 @@ def reviewer_binding(policy, snapshot_path, receipt, ledger, root, critical_task
     validate_plan_policy(plan, root)
     for candidate in plan["routes"]:
         if candidate.get("role") == "implementer" and (critical_task is None or candidate.get("task_id") == critical_task):
-            from task_queue import launcher_module
+            import routing_plan
             evidence.require(all(variant.get("model") != route["model"]
-                                 for variant in launcher_module().route_variants(candidate)),
+                                 for variant in routing_plan.route_variants(candidate)),
                              "final reviewer model must differ from each implementer model")
     snapshot_path = Path(snapshot_path).resolve()
     evidence.require(intent.get("review_snapshot") == evidence.evidence_link(snapshot_path),
@@ -301,8 +300,8 @@ def reviewer_binding(policy, snapshot_path, receipt, ledger, root, critical_task
                      and execution.get("configured_effort") == route.get("effort"),
                      "final reviewer execution differs from the reserved call")
     evidence.checked_link(intent.get("input"), "final reviewer input")
-    from task_queue import launcher_module
-    mismatch = launcher_module().receipt_error(route, raw)
+    import routing_plan
+    mismatch = routing_plan.receipt_error(route, raw)
     evidence.require(mismatch is None, f"final reviewer receipt is invalid: {mismatch}")
     context = execution.get("context_id") or raw.get("session_id")
     contexts = ledger.get("contexts", {})

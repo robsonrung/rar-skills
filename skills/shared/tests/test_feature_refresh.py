@@ -47,7 +47,7 @@ class FeatureRefreshTests(unittest.TestCase):
             if key != "T1":
                 plan["routes"].append({**plan["routes"][0], "id": key + "-implementer", "task_id": key,
                                        "input_path": key + ".md"})
-        launcher = __import__("task_queue").launcher_module()
+        launcher = __import__("routing_plan")
         plan["approval"]["routes_digest"] = launcher.canonical_digest(launcher.normalized_routes(plan["routes"]))
         plan_path = self.artifacts / "plan.json"
         plan_path.write_text(json.dumps(plan))
@@ -370,7 +370,7 @@ class FeatureRefreshTests(unittest.TestCase):
         fx.setUp()
         self.addCleanup(fx.doCleanups)
         config, plan, ledger = fx.feature_fixture(("T1", "T2"))
-        fx.feature_implementation("T1", plan)
+        fx.feature_implementation("T1", plan, ledger)
         fx.feature_capture("T1", ledger)
         output = fx.artifacts / "refresh"
         proof = fx.artifacts / "environment-proof.txt"

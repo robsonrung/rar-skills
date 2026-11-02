@@ -21,7 +21,7 @@ API, separate unknown checks, and installation drift checks.
 ## Iterative roles
 
 Keep one explicit session per task and role when later turns are expected. Read
-the runner's continuation reference before its first call so persistence is
+the runner's Continue section before its first call so persistence is
 enabled and the returned session ID is captured. Use that exact ID for follow-up
 calls, never a shared last-session selector in a concurrent run. Pi needs an
 explicit unique session path from the first call. Preserve approved model,

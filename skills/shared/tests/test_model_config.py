@@ -110,11 +110,10 @@ class ModelConfigTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 routing.resolve_route(*args, **kwargs)
 
-    def test_runners_and_launcher_share_capabilities(self):
+    def test_runners_share_capabilities_with_the_routing_config(self):
         worker = module(runner_script("codex", root=SKILLS), "config_worker")
-        launcher = module(skill_dir("implement-and-review", root=SKILLS) / "scripts" / "launch.py", "config_launcher")
         self.assertEqual(worker.DEFAULT_MODEL, routing.default_model("codex"))
-        self.assertEqual(worker.MODEL_EFFORT_LEVELS, {k: tuple(v) for k, v in launcher.CODEX_MODEL_EFFORTS.items()})
+        self.assertEqual(worker.MODEL_EFFORT_LEVELS, {k: tuple(v) for k, v in routing.model_efforts("codex").items()})
         for name, constant in (("pi", "PI_SEATS"),):
             runner = module(runner_script(name, root=SKILLS), f"config_{name}")
             self.assertEqual(getattr(runner, constant), routing.seat_models(name))

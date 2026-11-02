@@ -5,80 +5,52 @@ description: "Implement behavior through the red-green-refactor loop. Apply it w
 
 # TDD — Test-First Execution
 
-Choose the branch before selecting a model. Coordinator work and deterministic commands proceed within invocation authority. Apply this method in the current role. It does not dispatch a worker. For a worker dispatch, use `shared/references/model-preview.md` and its one approved route snapshot. Nested skills and runners consume it without another selection or worker.
-
 ## The Iron Law
 
-**Establish a failing behavioral case before a requested behavior repair.** Reuse a captured failure when it proves the same defect on the same code.
-
-- Preserve existing valid work. Do not delete and recreate code solely to change the order of its history.
-- A passing new test can characterize existing behavior. It does not demonstrate a missing behavior or prove that the test is wrong. Use a relevant failure or controlled counterexample to establish what it detects.
-
-## Step 0 — whose code is this?
-
-For a risky change to untested legacy code, apply `safe-incremental-coding` for the missing characterization. Reuse existing behavioral and failure evidence that covers the changed surface. Proceed directly when that protection already exists.
+**No behavior repair without a failing behavioral case first.** A captured failure that proves the same defect on the same code counts. A new test that passes on arrival characterizes existing behavior; it proves nothing about a missing one until you have seen it fail against a relevant counterexample.
 
 ## The loop
 
-Run one loop per increment of behavior. Keep each pass small enough that you could throw it away without grief.
+One loop per increment of behavior, each small enough to throw away without grief.
 
-1. **Frame the smallest reversible move.** One caller-visible increment of behavior — the cheapest reversible learning step, smaller than feels natural. If you can't state the outcome in a sentence, the step is too big; split it. Say it while choosing: "the **smallest reversible move** here is…".
-2. **Write the test first, predict the failure, see it fail.** Express _what_ the code should do from its caller's perspective. Say the expected failure out loud before running — a different failure already taught you something.
-3. **Get to green the simplest way.** The least code that passes; naive is fine. This is a tactical step, not a design step — don't polish yet.
-4. **Refactor under green.** Improve a concrete design problem, then run the affected tests before the next behavior change. Apply `clean-code` to name a smell when one exists. Assert internal invariants where they must hold: an assertion is **executable documentation**, and its failure is a bug rather than a condition to catch and ignore.
-5. **Integrate coherent increments.** Keep each increment small and passing. Commit only when the user or caller has authorized it; use completed behavior and passing checks to choose the boundary, not a timer.
+1. **Frame the smallest reversible move.** One caller-visible increment, smaller than feels natural. If you can't state its outcome in a sentence, split it. Say it while choosing: "the **smallest reversible move** here is…".
+2. **Red.** Write the test from the caller's side, predict the failure out loud, run it. A different failure has already taught you something.
+3. **Green.** The least code that passes; naive is fine. Design waits.
+4. **Refactor under green.** Fix a concrete design problem, naming its smell (`clean-code`), and rerun the affected tests before the next behavior change. Assert invariants that must hold: an assertion is **executable documentation**, and its failure is a bug, never a condition to swallow.
+5. **Integrate** each coherent, passing increment. When the design needs to turn, steer green-to-green in small refactoring steps.
 
 ## Control the variables
 
-You can only learn from a step if you can attribute its effect:
-
-- **One change at a time.** Never bundle a refactor with a behavior change with a config tweak.
-- An intermittent test is a **failure**, never a pass to be re-run.
-- Avoid programming by coincidence. If the code passes, know why.
-- **Never game the check.** Deleting, skipping, weakening, narrowing, or mocking-away a test to reach green is forbidden; correct a proven test implementation error within repair authority. A change to the accepted product contract needs a decision (`shared/references/engineering-rules.md`, Contract integrity).
+- **One change at a time.** A refactor, a behavior change, and a config tweak are three steps.
+- An intermittent test is a **failure**, never a pass to re-run.
+- No programming by coincidence: know why it passes.
+- **Never game the check.** Deleting, skipping, weakening, narrowing, or mocking away a test to reach green is forbidden. Fix a proven test bug; a change to the accepted product contract is a decision, not a refactor.
 
 ## The test-writing bar
 
-Write-time rules. `test-lens` is the judge when an existing test's value is in question; these are the standards you write to so it never has to convict you.
+`test-lens` judges an existing test's value; these are the standards you write to.
 
-- Style ranking: **output-based** (assert a pure function's return) > state-based > communication-based (mocks). Push code toward output-based with a **functional core** (pure decisions) wrapped in a **mutable shell** (thin I/O glue).
-- Assert **observable behavior**, never implementation details. Never assert calls to a stub.
-- **AAA** — Arrange / Act / Assert, one of each — named as a domain statement of behavior: `delivery_with_a_past_date_is_invalid`, not `testIsValid_case3`.
-- A test that's hard to write is a design smell — fix the design, not the test.
-- Refactoring litmus: _if the implementation were swapped for a completely different one, would this test still be valid?_ It should be.
+- Rank styles **output-based** > state-based > communication-based. Push toward output-based with a **functional core** of pure decisions inside a thin **mutable shell** of I/O.
+- Assert **observable behavior**; never assert calls to a stub.
+- **AAA**, one of each, named as a domain statement: `delivery_with_a_past_date_is_invalid`, not `testIsValid_case3`.
+- A test that is hard to write is a design smell; fix the design.
+- Refactoring litmus: swap in a completely different implementation, and the test should still hold.
 
 ## Design and risk cues
 
-Use these cues while choosing tests and refactoring; they do not require another review pass before each integration.
+- **Farley's five levers** (modularity, cohesion, separation of concerns, abstraction, low coupling): repair a regression in any of them within the changed scope.
+- **"What happens if…?"**: pick the failure cases this behavior exposes (invalid input, dependency failure, concurrency, security, money loss).
 
-1. **Farley's five levers**: **modularity, cohesion, separation of concerns, abstraction, low coupling**. Address a regression in these properties within the changed scope.
-2. **"What happens if…?"**: select the failure cases exposed by this behavior, such as invalid input, dependency failure, concurrency, security, or money loss. Reuse cases and decisions already present in the acceptance contract.
+## Handoffs
 
-## Per-step output contract
-
-After each loop iteration (or coherent batch), report:
-
-1. `changed`: what was edited.
-2. `behavior`: what the code now does that it didn't before, or that behavior was preserved.
-3. `risk_guarded`: the main design or data risk this step's test now guards.
-4. `verification`: tests or checks run, or why they could not run.
-
-## Routing
-
-- Stored state, queues, retries, migrations, external APIs → reuse the approved data-systems-coding-lens findings. Run the lens only for an uncovered data risk or a changed design surface, not before every loop iteration.
-- Apply `clean-code` for smell vocabulary and naming during the refactor step.
-- Apply `test-lens` when judging whether an existing test is worth keeping.
-- Apply `diagnose` when an unexplained failure surfaces mid-loop. An understood red or regression stays in the current loop; use the existing evidence instead of starting a second investigation.
+Untested legacy code gets a **characterization test** net from `safe-incremental-coding` first. An unexplained failure mid-loop goes to `diagnose`; an understood red stays in the loop.
 
 ## Gotchas
 
-1. **Monster steps** — a half-day of code before the first test run.
-2. **Test-after** — a test fitted to existing code can miss the intended behavior. Check it against the acceptance contract and a relevant counterexample; preserve valid work.
-3. **Coverage-chasing** — coverage is a side effect of the loop, never the target.
-4. **Gold-plating in green** — designing while unsafe; design belongs in the refactor step.
-5. **"No time to test"** — there is no speed-vs-quality trade-off; the way to go faster is to keep rework low.
-6. Do not expand scope to clean unrelated code.
-7. Do not add layers, services, or helpers because they sound tidy.
-8. Do not weaken harmless local coupling when the cure adds more indirection than clarity.
-9. When the design needs to turn, steer green-to-green in small refactoring steps — changing your mind has a cost; that bill is the speed small steps bought you earlier.
-10. Do not quote or reconstruct source text from the books this skill distills.
+- **Monster steps**: hours of code before the first test run.
+- **Test-after**: a test fitted to existing code can miss the intended behavior. Check it against the acceptance contract and a counterexample, and keep valid work rather than deleting it to redo the history.
+- **Coverage-chasing**: coverage is a side effect of the loop, never the target.
+- **Gold-plating in green**: design belongs in the refactor step.
+- **"No time to test"**: speed comes from low rework, and small steps are what buy it.
+
+Do not quote or reconstruct source text from the books this skill distills.

@@ -91,7 +91,7 @@ and only within the host's authority.
 
 ## External session adapters
 
-Use the selected runner's actual command reference. The current adapters expose:
+Use the selected runner's SKILL.md and `--help`. The current adapters expose:
 
 | Runner | Persistent route |
 | --- | --- |
@@ -108,13 +108,10 @@ role from its checkpoint. Preserve call counts, write ownership, input revision,
 and approval. A changed model or transport follows the workflow's route-change
 rule. If the last call's outcome is uncertain, reconcile it before retrying.
 
-The implementation launcher controls external repairs and reviewer rechecks through
-`resume` and `review`. Compact input requires the completed session, exact route,
-contract and prior input bindings, request and tool policy, and intact receipt.
-Missing proof starts fresh full reconstruction; changed proof and uncertain outcomes block resend. Keep external
-and native contexts separate. The launcher resolves required role resources to
-absolute readable paths and embeds the response contract for native hosts without
-verified shared-file access.
+Continue an external role with its runner's recorded session, as the runner's SKILL.md
+describes. A lost session starts a fresh context with the full contract; an uncertain
+outcome is reconciled before any resend. Keep external and native contexts separate.
+Give native hosts without shared-file access the response contract inline.
 
 ## Browser and provider capabilities
 
@@ -188,8 +185,8 @@ python3 <shared-dir>/scripts/native_completion.py --raw <wait.json> \
 ```
 
 The task, host, and turn must match the scoped host response. This intermediate
-capture is not a launcher approval receipt. Keep it immutable and bind the
-launcher's required route and serving-model evidence separately. Missing serving
+capture is not an approval receipt. Keep it immutable and bind the
+required route and serving-model evidence separately. Missing serving
 identity remains unverified; never copy the configured model into an observed
 model field. Other host transports retain their raw completion format.
 

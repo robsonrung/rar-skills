@@ -445,7 +445,7 @@
               }
             }
           ],
-          "description": "Maximum UTF-8 bytes of the complete launcher-rendered worker input. Default 24000. Larger limits need a recorded reason and are bound by the route approval digest. Host-added context and retained role history remain unmeasured."
+          "description": "Maximum UTF-8 bytes of the complete rendered worker input. Default 24000. Larger limits need a recorded reason and are bound by the route approval digest. Host-added context and retained role history remain unmeasured."
         },
         "provider_routing": {
           "$ref": "#/definitions/provider_routing"

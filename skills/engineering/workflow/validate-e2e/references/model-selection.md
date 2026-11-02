@@ -40,7 +40,7 @@ A saved route includes `id`, `task_id`, `role`, `seat` if known, `model`, `effor
 
 Prefer exact native delegation when it supplies the required model, effort, tool access, isolated context, and receipt. If the host cannot dispatch a selected route, use its runner. An explicit user request for a runner takes precedence. A current coordinator can handle a role only if its exact route matches; otherwise record coordinator overhead separately. A preview cannot change the current host model by itself.
 
-Load only the selected runner's skill and command reference:
+Load only the selected runner's skill and its `--help`:
 
 | Runner | Control to verify |
 | --- | --- |

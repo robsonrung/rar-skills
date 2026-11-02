@@ -28,33 +28,22 @@ python3 <shared-dir>/scripts/context_packet.py verify --packet <brief.md.packet.
 ```
 
 The derived-note limit remains 24,000 UTF-8 bytes. `prepare --max-bytes` controls only
-those notes. It cannot increase the launcher's complete input limit.
+those notes.
 The packet hashes the brief and source revisions. Only an exact task status line can change
 without changing a decision hash. If decisions change, revise the affected brief and create a
 new packet path. Never replace old evidence to conceal drift.
 
-The launcher verifies `<brief-file>.packet.json` before dispatch. New workflow runs use this
-binding. Legacy briefs remain readable and receive the complete input check too. Interview,
-design, and handoff callers verify packets before their own worker dispatch. Reuse source
+Callers verify `<brief-file>.packet.json` before their own worker dispatch. Reuse source
 locators and revisions from the decision record; recheck changed or disputed facts. Resolve conflicting notes against current
 user decisions before sending the packet; a checksum cannot resolve their meaning.
 
 ## Check the complete rendered input
 
-The task launcher applies a separate default ceiling of **24,000 UTF-8 bytes** to the exact
-final text for implementation, review, and role followups. This includes the full task
-contract or validated continuation identity, derived notes, source locators, execution boundaries, appended review requirements,
-and evidence packet references. It never truncates required instructions or acceptance rules.
-
-The check runs before worktree creation or worker dispatch and before a review cycle or role
-followup is reserved. Oversized input returns the actual size and limit. Shorten derived notes,
-link supporting evidence, or split genuinely independent work within the existing mandate.
-Do not remove acceptance cases or restart a role merely to evade the limit.
-
-A route can set `context_budget: {"max_bytes": 32000, "reason": "Required acceptance cases need this space"}`.
-A positive integer is required; a limit above the default needs a nonempty reason. This field
-is bound by the existing route approval digest. There is no launch flag that overrides it.
-Preserve exact approved routes; use the normal plan change procedure when a larger limit is needed.
+Keep each complete worker input within **24,000 UTF-8 bytes** by default: the task contract,
+derived notes, source locators, execution boundaries, and evidence references. Never truncate
+required instructions or acceptance rules. When input is oversized, shorten derived notes, link
+supporting evidence, or split genuinely independent work; do not remove acceptance cases. A route
+can raise the limit with `context_budget: {"max_bytes": 32000, "reason": "..."}`.
 
 For a direct caller, check its final rendered file without writing or dispatching:
 
@@ -66,12 +55,7 @@ The command returns 0 within the limit and 2 when blocked. A direct caller can s
 `--max-bytes` and, above the default, `--reason`; these flags do not grant authority.
 The caller must use its approved allowance.
 
-The manifest stores `brief_binding.input_measurement`; the native handoff and runner metadata
-carry the same measurement. It includes the exact UTF-8 byte count, limit, and SHA-256 of the
-final text. The transport rechecks the file before live dispatch. Dry runs measure proposed text
-without creating files or starting workers.
-
-This measures launcher text, not the full provider context. Host instructions, tool schemas,
+This measures worker input text, not the full provider context. Host instructions, tool schemas,
 retained role history, and later file reads are unmeasured. Adapter text has its own
 `adapter_input_measurement` in the result envelope. `token_count` stays null. Use actual execution receipts for input and cached token totals per accepted task.
 Do not convert bytes to a claimed token saving or count a high cache hit rate as free input.
@@ -84,19 +68,12 @@ packet as its initial input; keep source files available on demand. For native d
 uses `fork_turns: none` for creation. Do not fork the coordinator's full conversation.
 
 Reuse the recorded context for that task's repairs and rechecks. Send changed facts
-and relevant evidence in the derived followup. The launcher can omit repeated
-acceptance text for a completed native or supported external context with a matching
-task, role, exact route, contract identity, intact receipt, and prior bound input.
-External proof also checks the saved session, request policy, tool policy, and
-isolated history. Keep these bindings in **the ledger, not the transcript**:
+and relevant evidence in the derived followup; a live context already holds the
+acceptance text. Keep the context IDs in **the ledger, not the transcript**:
 "The ledger proves this continuation; the role receives only the repair context."
 
-After proof validation, select the smaller full or compact UTF-8 rendering. The
-manifest stores `input_kind` and continuation proof. Reviewer input still includes
-the current snapshot, all required coverage, prior findings, and capture locators.
-The complete input remains subject to the byte ceiling. Adapters separately measure
-their added role instructions as `adapter_input_measurement` and enforce the same
-approved ceiling before provider execution.
+A fresh or reconstructed context receives the full contract. Reviewer input still
+includes the current snapshot, all required coverage, prior findings, and capture locators.
 
 Missing proof restores the full acceptance contract under the original route and
 remaining counters. Proof loss starts a fresh full reconstruction. An altered receipt, session, route,

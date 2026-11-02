@@ -15,11 +15,7 @@ from skill_paths import skill_dir  # noqa: E402
 import model_routing
 import discover_runners
 
-LAUNCH_PATH = REPO_ROOT / "engineering" / "engine" / "implement-and-review" / "scripts" / "launch.py"
-LAUNCH_SPEC = importlib.util.spec_from_file_location("model_routing_launch", LAUNCH_PATH)
-assert LAUNCH_SPEC and LAUNCH_SPEC.loader
-launcher = importlib.util.module_from_spec(LAUNCH_SPEC)
-LAUNCH_SPEC.loader.exec_module(launcher)
+import routing_plan as launcher
 
 
 def P(rel: str) -> Path:
@@ -99,7 +95,7 @@ class ModelRoutingContractTests(unittest.TestCase):
             {"host", "transport", "capability_source", "supported_efforts"},
         )
 
-    def test_native_route_checks_capability_and_exact_receipt(self):
+    def test_native_route_checks_capability_and_receipt(self):
         route = {
             "id": "impl-api",
             "task_id": "task1",
@@ -149,19 +145,8 @@ class ModelRoutingContractTests(unittest.TestCase):
             },
         }
         self.assertIsNone(launcher.receipt_error(route, receipt))
-        self.assertIsNone(
-            launcher.native_execution_error(
-                route,
-                receipt,
-                "task1",
-                {"call_id": "impl-call", "input_revision": "brief-digest", "tool_policy": "write"},
-            )
-        )
-        receipt["native_execution"]["host"] = "other-host"
-        self.assertIn(
-            "host or transport",
-            launcher.native_execution_error(route, receipt, "task1", None),
-        )
+        receipt["effective_effort"] = "max"
+        self.assertIsNotNone(launcher.receipt_error(route, receipt))
 
     def test_frontier_seats_are_opt_in_transport_probes(self):
         specs = {spec.seat: spec for spec in discover_runners.SEAT_SPECS}
@@ -290,7 +275,6 @@ class ModelRoutingContractTests(unittest.TestCase):
         self.assertIn("config.local.yaml", implementation)
         self.assertIn("never reread it after approval", implementation)
         self.assertIn("config.local.yaml", council)
-        self.assertIn("never reread it after approval", council)
 
 
 if __name__ == "__main__":

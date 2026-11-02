@@ -1,3 +1,3 @@
 interface:
   display_name: "Implement And Review"
-  short_description: "Build one approved task with exact routes, focused review, and captured evidence"
+  short_description: "Build one approved task, review it on a different model, fix until it passes"

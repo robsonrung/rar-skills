@@ -42,7 +42,7 @@ isolated implementer and an independent reviewer. Each role retains its own
 context for permitted fixes and rechecks. An unavailable route blocks its work
 unless its exact fallback was approved. Workspace selection and integration
 follow the engine's
-[isolation and integration contract](skills/engineering/engine/implement-and-review/references/worktree-and-integration.md).
+[isolation rules](skills/engineering/engine/implement-and-review/SKILL.md#isolation).
 Without delivery authorization, the result stays local and verified. The
 [read-only queue controller](skills/engineering/workflow/implement-tasks/references/queue-controller.md)
 projects readiness from bound contracts, manifests, and the existing call ledger.
@@ -105,13 +105,10 @@ entitlement, quota, and request privacy remain current-run facts.
 ## Optional council
 
 `models-consensus` is for a user who explicitly asks for more opinions. It is
-user-invoked only. Before it runs, it presents the mode, exact seats and
-transports, roles, effort, receipt policy, call budget, and unavailable seats.
-The user approves that council plan separately. `poll` retains the `standard`
-profile by default. Explicit `lean` is available for low-risk questions through
-`per_call` transport. Both judge routes remain approved and run when validated
-organizer evidence finds gaps, contradictions, low confidence, or high risk.
-The council provides deliberation only.
+user-invoked only. It runs a `poll`, `debate`, or `personas` council, and first
+shows the question, mode, each role's model, effort, and host route, and the
+call ceiling for approval. Each seat keeps one context for the whole run. The
+council provides deliberation only.
 
 `brainstorm` batches up to five independent decisions after its territory gate.
 `to-prototype` uses the smallest experiment that can settle one question, such as
@@ -198,14 +195,6 @@ Check the local transport with
 [docs/workflow.md](docs/workflow.md) and [workflow.html](workflow.html) describe
 the current workflow.
 
-[docs/skill-review.md](docs/skill-review.md) records the current skill-review
-coverage.
-
-[docs/pipeline.html](docs/pipeline.html),
-[docs/skills-atlas.html](docs/skills-atlas.html), and
-[docs/restructuring-2026-07-30.md](docs/restructuring-2026-07-30.md) are
-historical records. They do not define current routing or approval behavior.
-
 [docs/openhands.md](docs/openhands.md) explains how to run the current workflow
 with OpenHands.
 
@@ -224,7 +213,7 @@ it; approved run plans preserve exact selections as immutable snapshots.
 python3 skills/shared/scripts/model_routing.py resolve code-exploration --profile default
 python3 skills/shared/scripts/model_routing.py resolve routine-implementation --profile default
 python3 skills/shared/scripts/model_routing.py resolve isolated-implementation --profile default --risk high
-python3 skills/shared/scripts/model_routing.py council routine --poll-profile lean
+python3 skills/shared/scripts/model_routing.py council routine
 python3 skills/shared/scripts/model_routing.py validate
 ```
 

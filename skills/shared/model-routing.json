@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "description": "Single maintained source for model identities, adapter effort support, task routes, and panel defaults. Approved run plans are immutable snapshots, not additional defaults.",
+  "description": "Single maintained source for model identities, adapter effort support, task routes, and panel defaults. Approved run plans are immutable snapshots, not additional defaults. A route without an economy family uses its gpt family.",
   "evidence": "Task-fit policy. No measured quality, token, cost, or latency equivalence is claimed.",
   "effort_levels": [
     "none",
@@ -955,16 +955,6 @@
             "effort": "high"
           }
         },
-        "economy": {
-          "implementer": {
-            "seat": "sol",
-            "effort": "medium"
-          },
-          "reviewer": {
-            "seat": "astra",
-            "effort": "high"
-          }
-        },
         "saver": {
           "implementer": {
             "seat": "deepseek-flash",
@@ -1001,16 +991,6 @@
           },
           "reviewer": {
             "seat": "fable",
-            "effort": "high"
-          }
-        },
-        "economy": {
-          "implementer": {
-            "seat": "astra",
-            "effort": "medium"
-          },
-          "reviewer": {
-            "seat": "sol",
             "effort": "high"
           }
         },
@@ -1208,12 +1188,6 @@
             "seat": "fable",
             "effort": "high"
           }
-        },
-        "economy": {
-          "worker": {
-            "seat": "astra",
-            "effort": "high"
-          }
         }
       }
     },
@@ -1231,12 +1205,6 @@
         "claude": {
           "worker": {
             "seat": "fable",
-            "effort": "high"
-          }
-        },
-        "economy": {
-          "worker": {
-            "seat": "astra",
             "effort": "high"
           }
         },
@@ -1264,12 +1232,6 @@
             "seat": "fable",
             "effort": "high"
           }
-        },
-        "economy": {
-          "worker": {
-            "seat": "astra",
-            "effort": "high"
-          }
         }
       }
     },
@@ -1287,12 +1249,6 @@
         "claude": {
           "worker": {
             "seat": "fable",
-            "effort": "high"
-          }
-        },
-        "economy": {
-          "worker": {
-            "seat": "astra",
             "effort": "high"
           }
         }
@@ -1314,12 +1270,6 @@
             "seat": "fable",
             "effort": "high"
           }
-        },
-        "economy": {
-          "worker": {
-            "seat": "astra",
-            "effort": "high"
-          }
         }
       }
     },
@@ -1337,12 +1287,6 @@
         "claude": {
           "worker": {
             "seat": "fable",
-            "effort": "high"
-          }
-        },
-        "economy": {
-          "worker": {
-            "seat": "astra",
             "effort": "high"
           }
         },
@@ -1370,12 +1314,6 @@
             "seat": "fable",
             "effort": "high"
           }
-        },
-        "economy": {
-          "worker": {
-            "seat": "astra",
-            "effort": "xhigh"
-          }
         }
       }
     },
@@ -1401,16 +1339,6 @@
           },
           "reviewer": {
             "seat": "opus",
-            "effort": "high"
-          }
-        },
-        "economy": {
-          "implementer": {
-            "seat": "astra",
-            "effort": "high"
-          },
-          "reviewer": {
-            "seat": "sol",
             "effort": "high"
           }
         },
@@ -1453,16 +1381,6 @@
             "effort": "high"
           }
         },
-        "economy": {
-          "implementer": {
-            "seat": "astra",
-            "effort": "high"
-          },
-          "reviewer": {
-            "seat": "sol",
-            "effort": "high"
-          }
-        },
         "saver": {
           "implementer": {
             "seat": "astra",
@@ -1500,16 +1418,6 @@
             "effort": "high"
           }
         },
-        "economy": {
-          "implementer": {
-            "seat": "astra",
-            "effort": "high"
-          },
-          "reviewer": {
-            "seat": "sol",
-            "effort": "high"
-          }
-        },
         "saver": {
           "implementer": {
             "seat": "astra",
@@ -1544,16 +1452,6 @@
           },
           "reviewer": {
             "seat": "opus",
-            "effort": "high"
-          }
-        },
-        "economy": {
-          "implementer": {
-            "seat": "astra",
-            "effort": "xhigh"
-          },
-          "reviewer": {
-            "seat": "sol",
             "effort": "high"
           }
         },
@@ -1596,16 +1494,6 @@
             "effort": "high"
           }
         },
-        "economy": {
-          "implementer": {
-            "seat": "terra",
-            "effort": "xhigh"
-          },
-          "reviewer": {
-            "seat": "astra",
-            "effort": "high"
-          }
-        },
         "saver": {
           "implementer": {
             "seat": "deepseek-flash",
@@ -1634,12 +1522,6 @@
             "seat": "fable",
             "effort": "high"
           }
-        },
-        "economy": {
-          "reviewer": {
-            "seat": "astra",
-            "effort": "high"
-          }
         }
       }
     },
@@ -1657,12 +1539,6 @@
         "claude": {
           "reviewer": {
             "seat": "opus",
-            "effort": "high"
-          }
-        },
-        "economy": {
-          "reviewer": {
-            "seat": "sol",
             "effort": "high"
           }
         },
@@ -1691,12 +1567,6 @@
             "effort": "high"
           }
         },
-        "economy": {
-          "reviewer": {
-            "seat": "astra",
-            "effort": "high"
-          }
-        },
         "saver": {
           "reviewer": {
             "seat": "opus",
@@ -1719,12 +1589,6 @@
         "claude": {
           "reviewer": {
             "seat": "fable",
-            "effort": "xhigh"
-          }
-        },
-        "economy": {
-          "reviewer": {
-            "seat": "astra",
             "effort": "xhigh"
           }
         },
@@ -1754,12 +1618,6 @@
             "seat": "fable",
             "effort": "high"
           }
-        },
-        "economy": {
-          "reviewer": {
-            "seat": "astra",
-            "effort": "high"
-          }
         }
       }
     },
@@ -1781,12 +1639,6 @@
             "seat": "fable",
             "effort": "high"
           }
-        },
-        "economy": {
-          "reviewer": {
-            "seat": "astra",
-            "effort": "xhigh"
-          }
         }
       }
     },
@@ -1807,12 +1659,6 @@
           "worker": {
             "seat": "fable",
             "effort": "high"
-          }
-        },
-        "economy": {
-          "worker": {
-            "seat": "astra",
-            "effort": "max"
           }
         }
       }
@@ -1851,16 +1697,6 @@
             "seat": "opus",
             "effort": "medium"
           }
-        },
-        "economy": {
-          "interviewer": {
-            "seat": "astra",
-            "effort": "high"
-          },
-          "respondent": {
-            "seat": "sol",
-            "effort": "medium"
-          }
         }
       }
     },
@@ -1896,16 +1732,6 @@
           },
           "respondent": {
             "seat": "opus",
-            "effort": "medium"
-          }
-        },
-        "economy": {
-          "interviewer": {
-            "seat": "astra",
-            "effort": "high"
-          },
-          "respondent": {
-            "seat": "sol",
             "effort": "medium"
           }
         }
@@ -2203,12 +2029,6 @@
             "effort": "high"
           }
         },
-        "economy": {
-          "coordinator": {
-            "seat": "sol",
-            "effort": "medium"
-          }
-        },
         "saver": {
           "coordinator": {
             "seat": "sol",
@@ -2218,216 +2038,142 @@
       }
     }
   },
-  "council_policy": {
-    "low_confidence_threshold": 70,
-    "full_required_flags": [
-      "security",
-      "money",
-      "migrations",
-      "public_contracts",
-      "data_loss",
-      "deep_review",
-      "high_risk"
-    ],
-    "poll_profiles": {
-      "standard": {
-        "budget": {
-          "base_calls": 7,
-          "conditional_calls": 3,
-          "validation_retry_ceiling": 10,
-          "maximum_calls": 20
-        },
-        "conditional_stages": {
-          "gap_repair": 3,
-          "judge": 0
-        }
-      },
-      "lean": {
-        "budget": {
-          "base_calls": 5,
-          "conditional_calls": 5,
-          "validation_retry_ceiling": 10,
-          "maximum_calls": 20
-        },
-        "conditional_stages": {
-          "gap_repair": 3,
-          "judge": 2
-        }
-      }
-    }
-  },
   "councils": {
     "technical": {
       "openings": [
         {
-          "route": "technical-analysis",
-          "family": "gpt",
-          "role": "worker"
+          "seat": "astra",
+          "effort": "high"
         },
         {
-          "route": "technical-analysis",
-          "family": "claude",
-          "role": "worker"
+          "seat": "fable",
+          "effort": "high"
         },
         {
-          "route": "precision-review",
-          "family": "claude",
-          "role": "reviewer"
+          "seat": "opus",
+          "effort": "high"
         }
       ],
       "organizer": {
-        "route": "technical-analysis",
-        "family": "gpt",
-        "role": "worker"
+        "seat": "astra",
+        "effort": "high"
       },
       "judges": [
         {
-          "route": "broad-review",
-          "family": "claude",
-          "role": "reviewer"
+          "seat": "fable",
+          "effort": "high"
         },
         {
-          "route": "precision-review",
-          "family": "claude",
-          "role": "reviewer"
+          "seat": "opus",
+          "effort": "high"
         }
       ],
       "synthesis": {
-        "route": "technical-analysis",
-        "family": "gpt",
-        "role": "worker"
+        "seat": "astra",
+        "effort": "high"
       }
     },
     "analysis": {
       "openings": [
         {
-          "route": "architecture",
-          "family": "gpt",
-          "role": "worker"
+          "seat": "astra",
+          "effort": "high"
         },
         {
-          "route": "architecture",
-          "family": "claude",
-          "role": "worker"
+          "seat": "fable",
+          "effort": "high"
         },
         {
-          "route": "precision-review",
-          "family": "claude",
-          "role": "reviewer"
+          "seat": "opus",
+          "effort": "high"
         }
       ],
       "organizer": {
-        "route": "architecture",
-        "family": "claude",
-        "role": "worker"
+        "seat": "fable",
+        "effort": "high"
       },
       "judges": [
         {
-          "route": "broad-review",
-          "family": "gpt",
-          "role": "reviewer"
+          "seat": "astra",
+          "effort": "high"
         },
         {
-          "route": "precision-review",
-          "family": "claude",
-          "role": "reviewer"
+          "seat": "opus",
+          "effort": "high"
         }
       ],
       "synthesis": {
-        "route": "architecture",
-        "family": "claude",
-        "role": "worker"
+        "seat": "fable",
+        "effort": "high"
       }
     },
     "routine": {
       "openings": [
         {
-          "route": "routine-function",
-          "family": "gpt",
-          "role": "implementer"
+          "seat": "terra",
+          "effort": "medium"
         },
         {
-          "route": "technical-analysis",
-          "family": "gpt",
-          "role": "worker"
+          "seat": "astra",
+          "effort": "high"
         },
         {
-          "route": "architecture",
-          "family": "claude",
-          "role": "worker"
+          "seat": "fable",
+          "effort": "high"
         }
       ],
       "organizer": {
-        "route": "technical-analysis",
-        "family": "gpt",
-        "role": "worker"
+        "seat": "astra",
+        "effort": "high"
       },
       "judges": [
         {
-          "route": "broad-review",
-          "family": "claude",
-          "role": "reviewer"
+          "seat": "fable",
+          "effort": "high"
         },
         {
-          "route": "precision-review",
-          "family": "claude",
-          "role": "reviewer"
+          "seat": "opus",
+          "effort": "high"
         }
       ],
       "synthesis": {
-        "route": "technical-analysis",
-        "family": "gpt",
-        "role": "worker"
+        "seat": "astra",
+        "effort": "high"
       }
     },
     "security": {
       "openings": [
         {
-          "route": "security-review",
-          "family": "gpt",
-          "role": "reviewer"
+          "seat": "astra",
+          "effort": "xhigh"
         },
         {
-          "route": "security-review",
-          "family": "claude",
-          "role": "reviewer"
+          "seat": "fable",
+          "effort": "high"
         },
         {
-          "route": "precision-review",
-          "family": "claude",
-          "role": "reviewer"
+          "seat": "opus",
+          "effort": "high"
         }
       ],
       "organizer": {
-        "route": "technical-analysis",
-        "family": "gpt",
-        "role": "worker"
+        "seat": "astra",
+        "effort": "high"
       },
       "judges": [
         {
-          "route": "broad-review",
-          "family": "claude",
-          "role": "reviewer"
+          "seat": "fable",
+          "effort": "high"
         },
         {
-          "route": "precision-review",
-          "family": "claude",
-          "role": "reviewer"
+          "seat": "opus",
+          "effort": "high"
         }
       ],
       "synthesis": {
-        "route": "technical-analysis",
-        "family": "gpt",
-        "role": "worker"
+        "seat": "astra",
+        "effort": "high"
       }
-    }
-  },
-  "conditional_models": {
-    "security_specialist": {
-      "model": null,
-      "effort": null,
-      "available": false,
-      "reason": "Exact identity, account access, effort, and tools must be verified before registration. Use the security-review route when no specialist is approved."
     }
   },
   "discovery_presets": {

@@ -11,11 +11,11 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT / "shared" / "scripts"))
-from skill_paths import skill_dir, runner_script  # noqa: E402
+from skill_paths import runner_script  # noqa: E402
 
 from output_contract import validate_output_contract, validate_value, validate_schema, validate_document  # noqa: E402
 
-OPENING_SCHEMA = skill_dir("models-consensus", root=REPO_ROOT) / "schemas" / "opening-answer.schema.json"
+OPENING_SCHEMA = Path(__file__).resolve().parent / "fixtures" / "opening-answer.schema.json"
 
 
 def opening_answer() -> dict:
@@ -138,13 +138,6 @@ class OutputContractUnitTests(unittest.TestCase):
         result = validate_output_contract(json.dumps(malformed), OPENING_SCHEMA)
         self.assertFalse(result.valid)
         self.assertEqual(result.error_kind, "schema_invalid")
-
-    def test_all_bundled_consensus_schemas_use_the_supported_subset(self):
-        for schema in (skill_dir("models-consensus", root=REPO_ROOT) / "schemas").glob("*.json"):
-            with self.subTest(schema=schema.name):
-                validate_schema(json.loads(schema.read_text()))
-                result = validate_value({}, schema)
-                self.assertNotIn("unsupported schema keyword", result.error or "")
 
 
 class RunnerOutputContractTests(unittest.TestCase):

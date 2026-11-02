@@ -130,7 +130,7 @@ Otherwise prepare the exact implementation, independent review, and integration
 routes before dispatch. Task approval, `--auto`, a saved preference, or silence
 does not approve worker routes.
 
-Bind canonical inputs by content hash. The launcher's normalization excludes
+Bind canonical inputs by content hash. The routing plan's normalization excludes
 only recognized standalone progress status lines. It preserves acceptance and
 gate content. Local preferences inform the preview once and do not change an
 approved plan during execution.
@@ -142,12 +142,10 @@ unsupported route. Keep implementer, reviewer, and integration contexts
 separate. Reuse each context only for its own task and role.
 
 First calls and context reconstruction receive the full accepted contract.
-Confirmed native and supported runner continuations can receive the contract
-identity, changed facts, findings, and evidence locators. The launcher validates
-the prior input, receipt, completed turn, task, role, route, and contract before
-omitting repeated text. It uses the full rendering when that is smaller.
-Missing proof requires full reconstruction in a fresh role context. Conflicting
-proof blocks dispatch. Recovery keeps the approved route and consumed limits.
+A live role context receives only the changed facts, findings, and evidence
+locators.
+A lost context is rebuilt fresh with the full contract. Recovery keeps the
+approved route and consumed limits.
 
 Runner dispatch records retain provenance, receipts, hashes, and counters outside
 the role prompt. Explicit `prompt_context` selects required role context. The
@@ -170,10 +168,10 @@ approved merge plan permits overlap.
 
 Worker completion does not release dependents. Verify the combined source state,
 acceptance, interactions, and findings first. A complete single-task review does
-not require a duplicate panel. A current launcher review can supply matching
+not require a duplicate panel. A current task review can supply matching
 combined-state evidence. An extra integration reviewer call needs its separately
 approved scope and reserved allowance. Use the engine's
-[isolation and integration contract](../skills/engineering/engine/implement-and-review/references/worktree-and-integration.md)
+[isolation rules](../skills/engineering/engine/implement-and-review/SKILL.md#isolation)
 for workspaces and integration authority.
 
 For dependency release, the queue can use an immutable `carry_forward` link to
@@ -252,7 +250,7 @@ integrity. All required units must reference one current compatible snapshot.
 Repair can replace the snapshot within the same approved contract while keeping
 consumed limits.
 
-Before reserving a reviewer cycle, the launcher validates the complete evidence
+Before reserving a reviewer cycle, validate the complete evidence
 packet or explicit direct captures. Missing or changed captures block dispatch.
 Failed checks and observations remain review evidence and cannot satisfy
 readiness. Each reviewer brief includes the absolute response contract path and
@@ -340,10 +338,7 @@ measurements stay unknown; cached input is not free.
 
 Cost deltas require passed acceptance and equal observed defect counts under
 matching identities and the same defect observation protocol. Missing
-observations block comparison. Lower cost does not establish equivalent quality. The [measurement report](workflow-measurement.md)
-records the source baseline, deterministic checks, and limits. The
-[local runtime validation](workflow-runtime-validation.md) exercises capture
-across separate interview and implementation stages with synthetic receipts.
+observations block comparison. Lower cost does not establish equivalent quality.
 Invocation totals take precedence over message subtotals. A missing usage field
 in any counted request stays unknown in the total. No full workflow
 provider performance benchmark was run for these changes, and route defaults

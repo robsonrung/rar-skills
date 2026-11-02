@@ -1,46 +1,28 @@
 ---
 name: claude-runner
-description: Execute an external Claude CLI prompt in headless print mode. Use only for an explicit Claude CLI request, a selected Claude route unavailable as native host delegation, or an approved external fallback.
+description: Run a prompt on a Claude model through the local Claude CLI. Use when the host cannot run the selected Claude model natively, or the user asks for the Claude CLI.
 ---
 
 # Claude Runner
 
-Use `shared/references/model-preview.md` to choose the branch first. Deterministic checks need no model selection. Actual dispatch uses one concrete approved snapshot; nested calls consume it without re-resolution or extra workers.
+Run one prompt on a Claude model through the local `claude` CLI. A host that offers the model natively (a Claude Code subagent, a T3 Code provider) runs it there instead.
 
-Execute the caller's scoped prompt through the local CLI. Shared roles, envelope keys, and result handling live in `shared/references/runner-common.md`. Preserve **seat fidelity**: name the provider that actually answered, and report unavailable or unverified seats honestly.
-
-## Native routing
-
-Read `shared/references/host-model-execution.md` before choosing an external route. If the current host can dispatch the exact selected Claude model with the required effort, isolation, and receipt policy in a native subagent or task thread, use that route. `agents/openai.yaml` is host UI metadata; it does not dispatch a native model.
-
-## Invocation
-
-Set `SKILL_DIR` to this loaded skill directory in the same shell call:
+## Run
 
 ```bash
-SKILL_DIR="<absolute path of this skill directory>";
-python3 "$SKILL_DIR/scripts/run_claude.py" "<scoped prompt>" \
-  --model <approved-model-id> --effort <approved-effort> --disable-fallback --json
+python3 <skill-dir>/scripts/run_claude.py "<prompt>" --model <model> --effort <effort> \
+  --output-format json --disable-fallback --json
 ```
 
-Copy the exact model and effort from the selected snapshot. Add its role, tool mode, receipt policy, and limits. Omit an effort flag only for a selected runtime controlled route. Nested calls use these saved options without resolving defaults again. The example does not grant source sharing or tool authority.
+- `--prompt-file <file>` replaces the inline prompt for a long brief; `--working-dir <path>` sets the repository.
+- `--role implementer`, or no role, can edit files; every other role runs read-only.
+- `--background` returns a job id for `shared/scripts/runner_jobs.py` (`status`, `wait-many`, `result`, `cancel`).
+- `--help` lists the rest.
 
-## Runtime boundaries
+## Continue
 
-- Use the local authenticated `claude` CLI in print mode. Permission checks remain enabled.
-- Analysis roles default to `repo_read_only`: only Read, Glob, and Grep, with customizations disabled and an empty MCP configuration. `--restrict-tools` forces this profile; `--tool-profile no_tools` removes all tools. `--allow-write` or `--tool-profile write` keeps normal write permissions within the caller's authority.
-- Prompt and file context may be sent to the configured provider. Bare mode changes authentication behavior; read the runtime reference before using it.
-- The wrapper forwards model and effort. Primary assistant events can prove the serving model. Requested labels, initialization labels, synthetic events, and usage labels cannot. Missing evidence stays unverified; conflicting primary IDs or an exact model mismatch fail the result.
-- Direct calls can fall back once when the CLI is missing and the fallback can preserve the constraints. Tool profiles and native budget limits block fallback. Approved routes disable fallback; native session continuation must preserve the selected runner.
-
-Use `--max-turns`, `--max-budget-usd`, and `--timeout` for native turn, reported cost, and elapsed time limits. All must be positive and finite. A requested response length is advisory.
-
-## Load by need
-
-- [references/command-reference.md](references/command-reference.md): flags, examples, native mappings, and return codes when composing a non-basic invocation.
-- [references/runtime-reference.md](references/runtime-reference.md): authentication, fallback conditions, configuration, and extended envelope fields when configuring a route or interpreting its result.
-- [references/continuation.md](references/continuation.md): only when resuming a session or managing a background job.
+The envelope's `session_id` (present with `--output-format json`) is that role's context. Send the role's next turn with `--resume <session_id>`; every role keeps its own session.
 
 ## Result
 
-Read `agent_message` and the wrapper envelope. Check success, serving-model receipt, effective runner/provider, and any fallback or malformed-output status. A completed process alone does not prove the requested task or model was used. Report touched files when the caller authorized edits.
+Read `agent_message`. `--disable-fallback` keeps **seat fidelity**: the answer comes from this seat, or `success` is false. On failure, report `status` and the telling stderr lines, and leave the seat unanswered.

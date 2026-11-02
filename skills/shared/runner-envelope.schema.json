@@ -455,7 +455,7 @@
             "new-smallest-failing-test",
             "no-test-exception"
           ],
-          "description": "Which evidence route was taken (see implement-and-review references/evidence-strategy.md)."
+          "description": "Which evidence route was taken (see the Evidence section of implement-and-review)."
         },
         "no_test_reason": {
           "type": [

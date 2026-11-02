@@ -29,8 +29,8 @@ Neither removes unresolved findings. Exported validation packets use the same
 capture contract and still require independent coverage and findings. Generic
 status files and historical prose cannot become captured evidence.
 
-Confirmed persistent native rechecks use a compact continuation input after the
-launcher validates context and accepted contract identity. Initial or reconstructed
+A confirmed persistent reviewer context receives a compact recheck input with the
+changed facts and finding IDs. Initial or reconstructed
 reviewer contexts receive the full contract. Response format and input size are
 separate: every expanded review must still cover the whole current snapshot.
 A factual prose correction uses `addendum` only on unchanged source and requirements

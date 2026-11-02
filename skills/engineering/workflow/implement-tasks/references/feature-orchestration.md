@@ -32,11 +32,11 @@ Workers load selected lenses and practices when their task needs them. They cann
 Read `shared/references/host-model-execution.md` before dispatch. Use its native-first decision after the approved route and host capability check, not as a reason to replace the approved model or transport.
 
 1. Before the first task call, write the brief and create the recorded implementer context. Create a task reviewer context only for a critical feature task or task mode. Each context is fresh for its task and track; neither receives another task's history.
-2. Before dispatch, record the route ID, host, transport, task ID, role, input revision, pending call, and pending context entry in the feature ledger and task manifest. When the call returns, add its context or runner-session reference and receipt. Native task contexts live in `native_contexts[route_id]`; after polling, runner results supply `runner_session_id` and the manifest records it in `runner_contexts[route_id]`.
+2. Before dispatch, reserve the call in the feature ledger with `shared/scripts/run_state.py reserve` (route ID, task, role, input revision). When it returns, record the receipt with `complete`: a runner's JSON envelope (dispatched with `--metadata-json` carrying the call ID and input revision) is the receipt, and a native role's receipt comes from `shared/scripts/native_completion.py` as `shared/references/host-model-execution.md` describes. The ledger keeps the role's native context or runner session in `call_ledger.contexts[route_id]`.
 3. After a review finding, send the correction only to the same task's approved implementer context. Send the changed paths, evidence, and review report paths, not a copied transcript. Send the recheck to the same approved reviewer context. The approved cycle limit applies across these turns; it defaults to three.
 4. Route an approved evidence recovery to the same task role that can recover the missing proof. It must not reimplement unrelated work, add a model, or reset the review cycle. Record the attempt before dispatch.
 5. Keep a separate persistent integration context owned by the conductor for integration checks and seam review. It receives the current integration revision and task envelopes. It does not become a task implementer or reviewer, and task contexts do not become the integration context.
-6. On resume, inspect a pending call before resending it. Resume the recorded native context through the engine's documented native continuation, or the recorded runner session through that runner's documented resume path. If the context is lost, reconstruct it only from the same role's artifacts and under the unchanged approved route. Record the loss and replacement reference. Never use a global latest-session selector.
+6. On resume, inspect a pending call before resending it. Resume the recorded native context by messaging it (in T3 Code, `t3_thread_send`), or the recorded runner session through that runner's resume path. If the context is lost, reconstruct it only from the same role's artifacts and under the unchanged approved route. Record the loss and replacement reference. Never use a global latest-session selector.
 
 Keep each context available until its role is complete and all required evidence is captured. Do not close a reviewer after its first pass when fixes or rechecks remain. Release only resources owned by this run and only through the host lifecycle and current authority.
 
@@ -84,9 +84,9 @@ integration protocols apply only when no feature policy is bound.
 
 ## Legacy task mode integration
 
-Use the project's branch convention and preserve unrelated changes. Default to one sequential writer in the selected workspace and record acceptance after each task. Follow `references/worktree-and-integration.md` from the loaded `implement-and-review` skill for isolation and integration. Perform commit-based integration only when its required git actions are explicitly authorized.
+Use the project's branch convention and preserve unrelated changes. Default to one sequential writer in the selected workspace and record acceptance after each task. Follow the `Isolation` section of the loaded `implement-and-review` skill for isolation and integration. Perform commit-based integration only when its required git actions are explicitly authorized.
 
-Reuse a launcher-managed independent review when its exact approved route, contract, acceptance, and snapshot already match the current combined source. Its immutable manifest links must pass the shared verifier. Do not repeat that review only to release a dependency. Changed source or uncovered interactions require current integration evidence.
+Reuse an independent review when its exact approved route, contract, acceptance, and snapshot already match the current combined source and its record passes the shared verifier. Do not repeat that review only to release a dependency. Changed source or uncovered interactions require current integration evidence.
 
 Before the original review, an optional bounded `review_scope` can declare the
 complete dependency closure and exact prospective independent content. Use the
@@ -105,17 +105,17 @@ Link that snapshot as `batch_review` from every endorsed integration entry.
 This avoids a separate reviewer call per retained task. The exact legacy path,
 independence, pending ownership, route limits, and final feature gate still apply.
 
-Represent an additional integration review as an approved `role: reviewer` route with its own scope ID and canonical `input_path`, such as `integration-T1` bound to the T1 task contract for dependency release. Keep its context separate from both task roles. Reserve the call through the shared run-state helper with the combined `review_snapshot`, dispatch through the selected native host or runner, and record the actual receipt with `complete`. This review-only scope uses the shared ledger lifecycle; the per-task launcher still owns implementation/review pairs. Link the resulting immutable snapshot from the ledger's `integration_evidence[T1]`. A final feature review can bind the PRD as its canonical input.
+Represent an additional integration review as an approved `role: reviewer` route with its own scope ID and canonical `input_path`, such as `integration-T1` bound to the T1 task contract for dependency release. Keep its context separate from both task roles. Reserve the call through the shared run-state helper with the combined `review_snapshot`, dispatch through the selected native host or runner, and record the actual receipt with `complete`. Task implementation and review calls use the same ledger lifecycle. Link the resulting immutable snapshot from the ledger's `integration_evidence[T1]`. A final feature review can bind the PRD as its canonical input.
 
 Before an authorized merge, record a pending effect with task ID, source revision, and target revision. Merge, verify ancestry and acceptance, then confirm the effect. After a crash, inspect the repository before retrying a pending merge.
 
 Do not mark a task done on worker completion alone. Review conflict resolutions and capture applicable acceptance on the combined state before releasing dependents. Reuse a captured task result only when the relevant code, dependencies, environment, and acceptance contract still match and the caller does not require a fresh run. A failed task blocks descendants, not unrelated tasks.
 
-## Per-task launcher
+## Per-task dispatch
 
-Use the launcher bundled with the loaded `implement-and-review` skill when it supports the approved plan. Read its documented flags; do not construct a second frontend/backend workflow here. Pass `--routing-plan`, `--task-id`, the task namespace, base, and named task briefs through the documented `--track` arguments. Launcher defaults cannot override approval. For a native route, use the engine's documented native receipt and continuation flow with the same `native_contexts[route_id]` record. For a runner route, resume only its recorded session through that runner's documented adapter. Do not create a fresh role context for a review, correction, or evidence retry when the recorded context remains usable.
+Run each task through the loaded `implement-and-review` skill with its approved routes and tracks. Do not create a fresh role context for a review, correction, or evidence retry when the recorded context remains usable.
 
-If a launcher cannot represent a model, effort, or execution mode, report the mismatch before dispatch. Use an already approved adapter or ask for a route change. Report configured and observed models separately. A route without an observed serving-model receipt can continue only under its approved `allow_unverified` policy.
+If the host cannot provide an approved model, effort, or execution mode, report the mismatch before dispatch and use an already approved fallback or ask for a route change. Report configured and observed models separately. A route without an observed serving-model receipt can continue only under its approved `allow_unverified` policy.
 
 ## Completion
 
@@ -126,12 +126,12 @@ Capture combined acceptance and the approved final review using [completion.md](
 ## Context packet before dispatch
 
 Use `shared/scripts/context_packet.py` to bind the derived brief to current decisions
-and selected evidence. The launcher checks the complete final input against a 24,000-byte
-UTF-8 limit, including the full task contract and appended review instructions. Link source
+and selected evidence. Keep the complete final worker input within 24,000 UTF-8 bytes,
+including the full task contract and appended review instructions. Link source
 sections instead of embedding reports. A larger limit needs `context_budget` and a reason in
 the approved route; a packet's derived-note limit cannot override it.
 The packet must identify current decisions, evidence, and superseded material.
-Save it beside the brief as `<brief-name>.md.packet.json`; the launcher verifies it
+Save it beside the brief as `<brief-name>.md.packet.json` and verify it
 before dispatch. Missing packets remain compatible with older runs, but new runs
 use them. See `shared/references/context-packets.md` for the input contract.
 
@@ -142,7 +142,6 @@ between conflicting instructions. Keep the original sources available for inspec
 ## Completion and compact recovery
 
 For new ledger-managed reviews, bind `--review-snapshot` during reservation and use the shared
-`complete` command with the actual receipt. Keep the task launcher's route checks where it owns
-the task manifest. Do not reconstruct a successful receipt by scanning transcripts or editing
+`complete` command with the actual receipt. Do not reconstruct a successful receipt by scanning transcripts or editing
 metadata. A source or evidence mismatch blocks acceptance before another model is needed.
 Save the exact failed field, current contract, and prepared packet for any authorized recovery.

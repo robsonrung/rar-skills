@@ -1,7 +1,7 @@
 # Host interface metadata. This skill is user-invocable only.
 interface:
   display_name: "Models Consensus"
-  short_description: "User-approved council of independent model opinions"
-  default_prompt: "Use $models-consensus to gather extra model opinions on this decision. First show the exact seats, requested model labels, receipt requirement, roles, efforts, host and execution path, per-role session policy, and call budget. Wait for my approval before any model call."
+  short_description: "Council of independent model opinions: poll, debate, or personas"
+  default_prompt: "Use $models-consensus to gather extra model opinions on this decision. Show the council plan and wait for my approval before any model call."
 policy:
   allow_implicit_invocation: false

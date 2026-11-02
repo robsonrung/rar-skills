@@ -1,8 +1,8 @@
 # Complete the Implementation Run
 
 Read when task results are ready for integration review and delivery. For a bound
-feature policy, resolve `references/final-feature-review.md` from the loaded
-`implement-and-review` skill, apply that complete gate, then read only `Deliver
+feature policy, apply the final feature review in the `Feature policy` section of the
+loaded `implement-and-review` skill, then read only `Deliver
 and report` below. Without that policy, read `Verify the complete change` and
 `Deliver and report`. Existing task-mode review obligations remain unchanged.
 
@@ -16,8 +16,8 @@ prepare their current evidence together; it cannot pass this final gate. Feature
 acceptance needs the complete combined contract, checks, interaction evidence, an actual independent
 review receipt, and a passing policy assessment.
 
-Without a feature policy, each task must pass the launcher's `verify-review`
-before integration. Final readiness needs a current structured
+Without a feature policy, each task's review record must pass the shared
+`review_evidence.py verify` before integration. Final readiness needs a current structured
 record for the combined source state and intended PR base. If integration makes
 a task snapshot stale, use its report as context and assess affected interactions
 against a new combined snapshot. Task completion labels alone are insufficient.

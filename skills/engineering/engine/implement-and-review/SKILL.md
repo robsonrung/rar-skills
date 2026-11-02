@@ -1,40 +1,110 @@
 ---
 name: implement-and-review
-description: Implement and review one approved coding task through exact model routes and persistent role contexts. Use for a scoped task with an acceptance contract; use implement-tasks to coordinate a queue.
+description: Implement one approved coding task, have a reviewer on a different model check it, and fix what the review confirms until the acceptance contract passes. Use for a scoped task with acceptance criteria; implement-tasks coordinates a queue.
 ---
 
 # Implement And Review
 
-Build one approved task to its **acceptance contract**, or complete its bound feature review. A worker result is integration evidence. The parent alone accepts tasks after the applicable gate passes.
+Build one task to its **acceptance contract**. An implementer builds it, a reviewer on a different model checks it, and the implementer fixes what the review confirms. Worker success is evidence, not acceptance; you accept the task.
 
-## Authority and common rules
+## Plan
 
-An implementation request authorizes in-scope edits, stated verification, and reversible isolation. Commit, push, merge, pull request, deployment, external messages, and destructive cleanup need explicit authority. Reuse existing authorization. Ask only for a material unresolved scope, cost, or authority decision.
+1. Read the task, its acceptance contract, the code it touches, and the project's conventions. Settled design, security, and interface decisions are **already decided**; reopen only a boundary that changed.
+2. Choose the roles. Use the routes in a plan you inherited from `implement-tasks`, or else the models the user names. Otherwise run `python3 shared/scripts/model_routing.py resolve <route> [--risk high]` with the route that fits the task's shape, for example `routine-implementation`, `hard-implementation`, or `migration` (`show` lists every route). The reviewer's model always differs from the implementer's.
+3. Show the task, each role with its model, effort, and host route, and the limit of three review cycles. Ask: **"Approve this plan, or specify changes."** An inherited approved plan is already the approval.
 
-For worker dispatch, obtain or reuse one approved snapshot through `shared/references/model-preview.md`. Model and effort defaults come only from `shared/model-routing.json`. Dispatch, repairs, and resumes retain the exact route, provider controls, tools, privacy, source bindings, budget, fallback triggers, and call, time, concurrency, and recovery limits. A missing required capability blocks that route. Never call `models-consensus` here.
+## Roles
 
-Use separate persistent contexts for each task, track, and role. Reviewers use a different model and a separate context from every author in their scope. Native handoffs require `parent_history: none`. Keep native contexts in `native_contexts[route_id]` and runner sessions in `runner_contexts[route_id]`. Reconcile pending calls before retry or reconstruction. Context loss preserves counters and routes.
+Give each role one persistent context for the whole task. Fixes go back to the same implementer and rechecks to the same reviewer. The reviewer never sees the implementer's transcript, only the contract, the diff, and the evidence.
 
-The launcher validates approved input hashes before writes or dispatch. It includes the full contract for first calls and reconstruction, and validates continuation proof before selecting the smaller full or compact input. Derived notes cannot change acceptance. Its complete rendered input limit is 24,000 UTF-8 bytes; a larger approved `context_budget` needs a reason. Read `shared/references/context-packets.md` when preparing or recovering a packet.
+Route each role by host:
+- **T3 Code:** start it with `delegate_task` using the configured provider and model, and continue it with `t3_thread_send`.
+- **Claude Code or Codex:** use a native subagent when the host has the model, and continue it by messaging that same subagent.
+- **Model the host lacks:** use the matching `*-runner` skill. An unavailable role blocks its work, and you report it; never swap in another model.
 
-## Select one path
+The implementer edits only within the task's scope. Neither role commits, pushes, merges, opens a pull request, deploys, or messages an outside service. Tell the reviewer to leave every file unchanged.
 
-Use the approved policy, not a prose label. Without a bound `review_policy`, keep task mode. Existing plans and snapshots remain unchanged. A standalone small change uses task mode when its complete contract leaves no product, data, security, public contract, or dependency decision unresolved.
+## Brief the implementer
 
-Read only the selected row and its triggered references. Section pointers mean the named section, not the whole manual. Retain already loaded rules without rereading them.
+Hand over the contract path rather than its text. Then give:
+- the scope and the behavior that must stay unchanged;
+- the named risk;
+- the evidence route below;
+- at most three methods picked by trigger;
+- the boundary above.
 
-| Current work | Load |
+| Trigger | Method |
 | --- | --- |
-| Implement a feature task classified `deferred` | [task-implementation.md](references/task-implementation.md), then [deferred-task.md](references/deferred-task.md). |
-| Implement a critical feature task or a standalone/legacy task | [task-implementation.md](references/task-implementation.md), then [task-review.md](references/task-review.md) when implementation evidence is ready. |
-| Review a completed critical or standalone task | [task-review.md](references/task-review.md). |
-| Complete combined feature review under a bound policy | [final-feature-review.md](references/final-feature-review.md). |
-| Repair, recheck, or recover a selected path | Keep that path; load `Continue the same role` in [runner-invocations.md](references/runner-invocations.md#continue-the-same-role), plus `shared/references/incremental-review.md` for a reviewer recheck or prose addendum. |
+| Behavior changes | `tdd`: one failing check, the minimal change, refactor on green. |
+| Untested legacy behavior | `safe-incremental-coding`: a **characterization test** before the change. |
+| The cause is not established | `diagnose` before any fix. |
+| Unresolved module or public boundary | `coding-design-plan`, then `design-gate` if no lens has settled it. |
+| Stored state, queue, migration, retry, or external API | `data-systems-coding-lens`. |
+| Business rule or context boundary | `domain-driven-design`. |
+| Agent loop, durable state, tool retry, or human gate | `agent-architecture-lens`. |
+| UI composition, state, or fetch lifecycle | `advanced-react` or `frontend-design`. |
+| Concrete smell, or test choice that needs judgment | `clean-code` or `test-lens`. |
 
-For a new route selection, load the routing schema, `shared/references/task-shaped-model-routing.md`, and `shared/references/host-model-execution.md`. For runner execution, read only [Runner policy and receipts](references/runner-invocations.md#runner-policy-and-receipts). For native execution, read only [Native receipts](references/runner-invocations.md#native-receipts). For job inspection or authorized cleanup, read its `Poll and cleanup` section. A handoff or successful poll proves execution status only.
+Keep the change a **native diff**: touch only what the contract needs, in the house style.
 
-## Output contract
+## Evidence
 
-Return `status`, `acceptance`, `routes_used`, `review`, `changed_paths`, and `next_action`. Include required behavior and captured results, exact approved route IDs and effective receipts, applied or declined findings with evidence, and unresolved risks. Use `implemented` for provisional feature tasks; otherwise `complete`, `failed`, `ceiling_hit`, or `awaiting_human`. Critical task review readiness does not accept the feature. Name any pending final gate.
+| Situation | Required evidence |
+| --- | --- |
+| An existing test exposes the behavior | Its failing run before the change. |
+| A nearby test asserts the old behavior | Its updated expectation, failing before the change. |
+| Coverage misses the real path | The smallest new failing test. |
+| Automated testing is not meaningful | The reason, and a direct replacement check. |
 
-Write the task report under `.ai-workflow/impl-review/<session-id>/<task-id>/report.md` when available. Link snapshots, original captures, review records and verifier results where applicable, role contexts, reconstruction, changed paths, and remaining risks. Retain role contexts until fixes, rechecks, and evidence obligations finish. Return only a necessary decision, parent integration, or separately authorized delivery as `next_action`.
+A behavior change reports the tests inspected, the tests added or changed, the red baseline, the verification commands, and their results. **Only captured command results count as evidence**: save raw output under the task's report directory, and never claim a check ran that didn't. When the change crosses a callback, middleware, event, storage, external call, or second entry point, also prove the real path end to end. A mock alone cannot show that **observable behavior**.
+
+Before review, rerun the required checks yourself on the final source. When the caller needs review snapshots, as `implement-tasks` queues do, capture with `shared/scripts/review_evidence.py` as `shared/references/review-evidence.md` describes.
+
+After the task is green, have the implementer run a **behavior-preserving** cleanup with `coding-review-simplify`. Under a feature policy, save broad cleanup for the combined pass.
+
+## Review and repair
+
+Give the reviewer the contract, the changed paths and diff, the captured evidence, the named risk, the conclusions of the methods used, and any earlier findings. The reviewer checks:
+- observable behavior;
+- scope;
+- the evidence;
+- the named risk;
+- whether each cleanup preserved behavior, and whether a removed safeguard was required.
+
+The reviewer returns `ready` or `changes required`. Each finding has a severity, a location, and its evidence.
+
+Severity follows consequence. A P1 or P2 blocks acceptance. A confirmed P2 whose fix falls outside the scope stays blocking and goes to the user; never relabel it P3 to fit. For a seam, a public contract, or high residual risk, recommend `full-review`, and use it when the user selects it.
+
+Send confirmed findings to the same implementer and capture fresh evidence. Then ask the same reviewer to recheck, giving it the finding IDs and what changed. Stop after three review cycles; the plan may set another limit. When the limit runs out, return `ceiling_hit` with the open findings.
+
+## Feature policy
+
+Without a bound `review_policy`, run the task as above. Under the feature policy that `implement-tasks` binds (`shared/references/feature-review.md`), the policy classifies each task:
+
+- **Deferred:** implement it and capture its focused checks without a task reviewer. Return `implemented`, which is provisional.
+- **Critical:** review it as above. The result stays provisional.
+- **Final feature review,** once the combined work is ready:
+  1. Run one combined cleanup pass through the original implementers.
+  2. Run every required check on the final source.
+  3. Have one reviewer, independent of every author, review the whole change with `full-review`, followed by the same repair loop.
+
+  Only this gate accepts the feature and its tasks.
+
+## Isolation
+
+One track in the current working tree is the default: the **smallest reversible move**. Run tracks in parallel worktrees only when all of these hold:
+- their files are disjoint;
+- they share no type, API, migration, lockfile, generated artifact, or environment singleton;
+- each track has its own implementer and reviewer.
+
+If any of these is in doubt, work sequentially. Creating a worktree is within an implementation request. Committing or merging needs explicit authority. Remove worktrees only when asked. After integration, rerun the affected checks on the combined state.
+
+## Report
+
+Write `.ai-workflow/impl-review/<session>/<task>/report.md` and **lead with the outcome**. The status is `complete`, `implemented`, `failed`, `ceiling_hit`, or `awaiting_human`. Then give:
+- the acceptance evidence, as commands with their results;
+- the roles, with model, effort, and route;
+- the review verdict and the findings applied or declined;
+- the changed paths;
+- the residual risks;
+- the one next action.

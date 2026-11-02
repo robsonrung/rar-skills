@@ -1,57 +1,8 @@
 # Topologies
 
-Read this when the shape of the coordination is the open question. Ordered by cost. Choose the first one that satisfies the signals that fired — later entries subsume earlier ones and charge for it.
+Ordered by cost. Choose the first that answers the signals that fired; later entries subsume earlier ones and charge for it.
 
-## Single loop
-
-One model, one message list, tools called until it stops. The atom. Correct whenever no signal fires: a question answered from a knowledge base, a document summarized, a ticket classified.
-
-Failure boundary: everything is implicit. The model owns sequencing, retries, and termination. It works because nothing in the task punishes that.
-
-## Router
-
-One classification step routes to one of several handlers. The cheapest structure that is not a loop.
-
-Use when different inputs need genuinely different handling — billing vs shipping vs fraud — and the branches do not need to coordinate. Cost is one extra step and one test per route.
-
-Failure boundary: the router's own accuracy. A misroute is silent unless handlers validate their inputs.
-
-## Orchestrator-workers
-
-An orchestrator decomposes work, dispatches workers, and integrates results. Satisfies signals 4 and 5 together, which is why it is the common shape for anything at scale.
-
-Requirements it brings with it:
-
-- **Ownership.** Declare which state each side may read and write. `knowledge-graph/references/agent-access.md` defines exactly this table for the orchestrator/worker split.
-- **Per-worker tool scoping.** A researcher gets read and search; a writer gets edit; neither gets both. This is the concurrency guard that prompt instructions cannot provide.
-- **A join.** Every fan-out needs a defined point where results are collected, and a rule for what a failed branch does to the others — invalidate, degrade, or ignore.
-- **A worker ceiling.** Concurrency has a bound and total dispatch has a bound, both counted outside the model.
-
-## Evaluator-optimizer
-
-A generator step and a critic step in a bounded cycle: produce, evaluate, revise.
-
-Use when quality is measurable by a separate pass and the first attempt is reliably improvable. The critic must be a distinct step with its own model choice and its own tools — a self-critique inside one call is not this topology.
-
-Failure boundary: it is a loop, so it needs **three exits**. The cycle count is written down, the ceiling is enforced outside the critic's judgment, and "the critic is satisfied" is never the only exit.
-
-## Parallel fan-out with a join
-
-Independent subtasks executed concurrently, results merged at a barrier.
-
-Use only for genuinely independent work — checking three orders, researching three topics. The test: if branch B needs anything branch A produced, this is a sequence, not a fan-out.
-
-Requirements:
-
-- A write rule for every state field two branches can touch.
-- Rate-limit awareness when branches call the same external service.
-- A partial-failure rule decided in advance.
-
-Prefer a pipeline where each item flows through all stages independently over a barrier between every stage. A barrier is justified only when a stage genuinely needs all prior results at once — deduplication across the full set, an early exit on a total count, or a comparison across branches. "I need to reshape the results first" is not a barrier; that reshaping belongs inside a stage.
-
-## Choosing
-
-| Signals fired | Smallest topology that answers them |
+| Signals fired | Smallest topology |
 | --- | --- |
 | None | Single loop |
 | 1, 6 | Single loop with externalized state |
@@ -61,4 +12,31 @@ Prefer a pipeline where each item flows through all stages independently over a 
 | 5 | Orchestrator-workers |
 | Quality needs an independent pass | Evaluator-optimizer, bounded |
 
-Combining topologies is normal; adopting one whose signal never fired is the failure this table exists to prevent.
+Combining topologies is normal. Adopting one whose signal never fired is the failure this table prevents.
+
+## Single loop
+
+One model, one message list, tools until it stops. The model owns sequencing, retries, and termination, which works while nothing in the task punishes it.
+
+## Router
+
+One classification step sends input to one of several handlers that do not coordinate. Costs one step and one test per route. A misroute is silent unless handlers validate their input.
+
+## Orchestrator-workers
+
+An orchestrator decomposes, dispatches, and integrates. Answers signals 4 and 5 together. It owes:
+
+- **Ownership**: which state each side may read and write.
+- **Per-worker tool scoping**: a researcher reads and searches, a writer edits, neither does both. This is the concurrency guard that prompt instructions cannot give.
+- **A join**: where results are collected, and whether a failed branch invalidates, degrades, or is ignored.
+- **A worker ceiling** on concurrency and on total dispatch, counted outside the model.
+
+## Evaluator-optimizer
+
+A generator and a separate critic step, with its own model and tools, in a bounded cycle. Use when quality is measurable by a separate pass and the first attempt reliably improves. Self-critique inside one call is not this topology. It is a loop, so it needs **three exits**: the cycle count lives in state, the ceiling is enforced outside the critic, and "the critic is satisfied" is never the only exit.
+
+## Parallel fan-out with a join
+
+Concurrent independent subtasks merged at a barrier. If branch B needs anything branch A produced, it is a sequence. It owes a write rule for every shared field, rate-limit awareness on shared services, and a partial-failure rule decided in advance.
+
+Prefer a pipeline, where each item flows through all stages independently, over a barrier between stages. A barrier is justified only when a stage needs every prior result at once: deduplication across the full set, an early exit on a total count, or a comparison across branches. Reshaping results belongs inside a stage.

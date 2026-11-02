@@ -6,59 +6,33 @@ license: Complete terms in LICENSE.txt
 
 # Frontend Design
 
-Choose the branch before selecting a model. Coordinator work and deterministic commands proceed within invocation authority. Apply this method in the current role. It does not dispatch a worker. For a worker dispatch, use `shared/references/model-preview.md` and its one approved route snapshot. Nested skills and runners consume it without another selection or worker.
+Build distinctive, production-grade interfaces as real working code.
 
-This skill guides creation of distinctive, production-grade frontend interfaces: implement real working code with exceptional attention to aesthetic details and creative choices.
+The load-bearing idea is **conceptual integrity**: the interface commits to one design idea, and every typographic, color, motion, and layout choice serves it. Name that idea before coding and hold to it. A striking but incoherent screen fails.
 
-The load-bearing idea is **conceptual integrity**: every interface commits to one coherent design idea, and every typographic, color, motion, and layout choice serves it. State that aesthetic out loud before coding and obey it throughout — a striking-but-incoherent screen fails this skill.
+## Existing product or new direction
 
-For systematic style/color/font lookups from a design-system database, see ui-ux-pro-max; this skill is for purely creative, bespoke aesthetic direction.
+In an existing product, its components, theme, density, and interaction conventions are the direction. Extend them, and change an established font, control, or layout only when the user asks for a redesign.
 
-Note: this skill supersedes the bundled `frontend-design:frontend-design` plugin skill; its triggers and guidance are a superset of that copy. If both are available, prefer this one (or disable the plugin copy to avoid nondeterministic activation).
+For a new direction, decide:
 
-The user provides frontend requirements: a component, page, application, or interface to build. They may include context about the purpose, audience, or technical constraints.
+- **Purpose**: the problem the interface solves and for whom.
+- **Tone**: one committed extreme (brutally minimal, maximalist, retro-futuristic, editorial, brutalist, art deco, soft, industrial, or your own), never a blend that hedges.
+- **Constraints**: framework, performance, accessibility.
+- **Differentiation**: the one thing someone will remember.
 
-## Design Thinking
+## Aesthetics
 
-For an existing product, preserve its components, theme, density, and interaction conventions unless the user requests a new direction. Use the aesthetic guidance below only for a bespoke design or an authorized visual redesign. Do not replace an established font, control, or layout merely to make the result distinctive.
+- **Typography**: a characterful display face paired with a refined body face, chosen for this context.
+- **Color**: a dominant palette with sharp accents, held in CSS variables.
+- **Motion**: a few high-impact moments, such as one orchestrated load with staggered reveals, over scattered micro-interactions. CSS first for HTML; Motion for React when available.
+- **Composition**: asymmetry, overlap, diagonal flow, grid-breaking elements, and either generous negative space or controlled density.
+- **Atmosphere**: backgrounds and texture with depth, such as gradient meshes, noise, patterns, layered transparency, and grain, matched to the tone.
 
-When a new direction is requested, understand the context and select a clear aesthetic direction:
+Each new direction gets its own fonts, palette, and layout, unlike the templated defaults: Inter, Roboto, Arial, system stacks, Space Grotesk, purple-on-white gradients, card grids.
 
-- **Purpose**: What problem does this interface solve? Who uses it?
-- **Tone**: Pick an extreme: brutally minimal, maximalist chaos, retro-futuristic, organic/natural, luxury/refined, playful/toy-like, editorial/magazine, brutalist/raw, art deco/geometric, soft/pastel, industrial/utilitarian, etc. There are so many flavors to choose from. Use these for inspiration but design one that is true to the aesthetic direction.
-- **Constraints**: Technical requirements (framework, performance, accessibility).
-- **Differentiation**: What makes this UNFORGETTABLE? What's the one thing someone will remember?
+Match code complexity to the vision. Maximalism earns elaborate animation and effects; minimalism earns precision in spacing, type, and detail.
 
-**CRITICAL**: Choose a clear conceptual direction and execute it — this is conceptual integrity in practice.
+## Delivery
 
-Then implement working code (HTML/CSS/JS, React, Vue, etc.) that is:
-
-- Production-grade and functional
-- Visually striking and memorable
-- Cohesive with a clear aesthetic point-of-view
-
-## Frontend Aesthetics Guidelines
-
-Focus on:
-
-- **Typography**: Choose fonts that are beautiful, unique, and interesting. Avoid generic fonts like Arial and Inter; opt instead for distinctive choices that elevate the frontend's aesthetics; unexpected, characterful font choices. Pair a distinctive display font with a refined body font.
-- **Color & Theme**: Commit to a cohesive aesthetic. Use CSS variables for consistency. Dominant colors with sharp accents outperform timid, evenly-distributed palettes.
-- **Motion**: Use animations for effects and micro-interactions. Prioritize CSS-only solutions for HTML. Use Motion library for React when available. Focus on high-impact moments: one well-orchestrated page load with staggered reveals (animation-delay) creates more delight than scattered micro-interactions. Use scroll-triggering and hover states that surprise.
-- **Spatial Composition**: Unexpected layouts. Asymmetry. Overlap. Diagonal flow. Grid-breaking elements. Generous negative space OR controlled density.
-- **Backgrounds & Visual Details**: Create atmosphere and depth rather than defaulting to solid colors. Add contextual effects and textures that match the overall aesthetic. Apply creative forms like gradient meshes, noise textures, geometric patterns, layered transparencies, dramatic shadows, decorative borders, custom cursors, and grain overlays.
-
-For a new bespoke direction, avoid generic aesthetics: overused font families (Inter, Roboto, Arial, system fonts, and don't converge on Space Grotesk either), cliched color schemes (particularly purple gradients on white backgrounds), predictable layouts and component patterns, and cookie-cutter design that lacks context-specific character. Make unexpected choices that feel genuinely designed for the context. No two designs should be the same — vary themes, fonts, and aesthetics across generations.
-
-**IMPORTANT**: Match implementation complexity to the aesthetic vision. Maximalist designs need elaborate code with extensive animations and effects. Minimalist or refined designs need restraint and attention to spacing, typography, and subtle details. Elegance comes from executing the vision well.
-
-## Execution Contract
-
-Every delivery must include:
-
-1. Runnable code
-2. Accessibility notes
-3. Commands to run/verify it
-4. Tradeoffs made
-5. A one-paragraph desktop vs. mobile behavior summary
-
-If the requested framework/tooling is unavailable, ship a working plain HTML/CSS/JS fallback and say so.
+Ship runnable code with a note on accessibility, how desktop and mobile differ, the trade-offs the direction forced, and how to run it. When the requested framework is unavailable, ship plain HTML/CSS/JS and say so.
