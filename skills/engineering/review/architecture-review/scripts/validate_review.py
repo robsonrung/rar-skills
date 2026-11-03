@@ -21,7 +21,7 @@ ASSETS = Path(__file__).resolve().parent.parent / 'assets'
 DIMENSIONS = json.loads((ASSETS / 'dimensions.json').read_text())
 TEMPLATE_SCRIPT = re.search(r'<script>(.*?)</script>', (ASSETS / 'report.html').read_text(), re.S).group(1)
 # Constructs Python's HTMLParser and browsers can tokenize differently; the page never needs them.
-RAW_DIFFERENTIALS = re.compile(r'<!\[|--!>|<!--->?|<\?|</?(?:iframe|object|embed|form|base|frame|noscript|template|xmp|plaintext|noembed|noframes|math)\b', re.I)
+RAW_DIFFERENTIALS = re.compile(r'<!\[|--!>|<!---?>|<\?|</?(?:iframe|object|embed|form|base|frame|noscript|template|xmp|plaintext|noembed|noframes|math|textarea|listing)\b', re.I)
 SECTIONS = ['sec-verdict', 'sec-context', 'sec-architecture', 'sec-dimensions', 'sec-findings',
             'sec-strengths', 'sec-options', 'sec-roadmap', 'sec-evidence']
 STATUSES = {'adequate', 'attention', 'critical', 'unknown', 'not_applicable'}
@@ -44,6 +44,7 @@ class Node:
     def __init__(self, tag, attrs, parent):
         self.tag, self.attrs, self.parent, self.children, self.parts = tag, dict(attrs), parent, [], []
         self.repeated_attrs = len(attrs) != len({k for k, _ in attrs})
+        self.markup_in_tag = False
         self.raw = ''
 
     @property
@@ -74,6 +75,7 @@ class Tree(HTMLParser):
 
     def handle_starttag(self, tag, attrs):
         node = Node(tag, attrs, self.cur)
+        node.markup_in_tag = '<' in (self.get_starttag_text() or '')[1:]
         self.cur.children.append(node)
         self.cur.parts.append(node)
         if tag not in VOID:
@@ -81,6 +83,7 @@ class Tree(HTMLParser):
 
     def handle_startendtag(self, tag, attrs):
         node = Node(tag, attrs, self.cur)
+        node.markup_in_tag = '<' in (self.get_starttag_text() or '')[1:]
         self.cur.children.append(node)
         self.cur.parts.append(node)
 
@@ -160,6 +163,8 @@ def markup_problems(nodes) -> list[str]:
                 problems.append(f'{n.tag}[{k}]')
         if n.repeated_attrs:
             problems.append(f'{n.tag} repeats an attribute')
+        if n.markup_in_tag:
+            problems.append(f'{n.tag} has a raw < inside the tag; escape it as &lt;')
         if n.tag in ('script', 'style'):
             parent = n.parent.tag if n.parent else ''
             if parent not in ('head', 'body') or any(a.tag == 'svg' for a in ancestors(n)):
@@ -219,6 +224,7 @@ def validate(html: str, repo: Path | None = None, template: bool = False) -> lis
     check('no double-escaped entities', '&amp;lt;' not in html and '&amp;gt;' not in html)
     check('no secret-shaped strings', not SECRETS.search(html), 'matched a credential pattern; cite the name, not the value')
     if not template:
+        check('no comments', '<!--' not in html, 'a finished page carries no HTML comments')
         leftovers = sorted(set(m.group(0) for m in PLACEHOLDERS.finditer(html)))
         check('no unresolved template placeholders', not leftovers, f'found: {leftovers}')
 

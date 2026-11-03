@@ -23,8 +23,8 @@ class ShippedFiles(unittest.TestCase):
     def test_template_passes_in_template_mode(self):
         self.assertEqual(failures(TEMPLATE, template=True), [])
 
-    def test_template_fails_only_on_placeholders_in_strict_mode(self):
-        self.assertEqual(failures(TEMPLATE), ['no unresolved template placeholders'])
+    def test_template_fails_only_on_slots_in_strict_mode(self):
+        self.assertEqual(failures(TEMPLATE), ['no comments', 'no unresolved template placeholders'])
 
 
 class BrokenReports(unittest.TestCase):
@@ -104,8 +104,10 @@ class BrokenReports(unittest.TestCase):
     def test_parser_differentials(self):
         cases = {
             'only allowed markup': ('<a href="#F01" href="javascript:x">x</a>',
+                                    '<span title="</title><img src=x onerror=alert(1)>">x</span>',
                                     '<svg><style><img src=x onerror=alert(1)></style></svg>'),
-            'no parser-ambiguous markup': ('<![CDATA[x]]>', '<!-- x --!><img src=x>', '<!--->', '<?x?>',
+            'no parser-ambiguous markup': ('<![CDATA[x]]>', '<!-- x --!><img src=x>', '<!--->', '<!-->', '<?x?>',
+                                           '<textarea><p title="</textarea><img src=x>"></textarea>',
                                            '<noscript><p title="</noscript><img src=x>"></noscript>',
                                            '<math><mi>x</mi></math>'),
         }
@@ -113,6 +115,9 @@ class BrokenReports(unittest.TestCase):
             for tag in tags:
                 with self.subTest(tag=tag):
                     self.assertFails(EXAMPLE.replace('<p class="lede">', tag + '<p class="lede">', 1), check)
+
+    def test_finished_page_has_no_comments(self):
+        self.assertFails(EXAMPLE.replace('<p class="lede">', '<!-- note --><p class="lede">', 1), 'no comments')
 
     def test_script_must_match_template(self):
         self.assertFails(EXAMPLE.replace('<script>', '<script>alert(1);', 1), 'script matches the template')
