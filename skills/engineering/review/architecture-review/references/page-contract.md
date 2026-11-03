@@ -26,7 +26,7 @@ Nine sections in this order, ids fixed:
 - **Option:** `article.option` with `data-kind` (`keep`, `incremental`, `structural`) and `data-position` (`recommended`, `conditional`, `rejected`). One option keeps the current architecture; at most one is recommended.
 - **Verification:** `tr.check` with `data-status` (`pass`, `fail`, `not_run`, `blocked`, `not_applicable`). When any P0 or P1 finding exists, one row has `data-check="challenge"`.
 - Every `href="#..."` and `jump('...')` target exists, ids are unique, and no secret-shaped string appears.
-- Keep the template's Content-Security-Policy and its single inline script. Write repository text as escaped text, never as markup: the only event handlers are the template's `jump`, `setAll` and `filterPriority` calls, and no link uses `javascript:`.
+- Keep the template's Content-Security-Policy and its single inline script. Write repository text as escaped text, never as markup: the only event handlers are the template's `jump`, `setAll` and `filterPriority` calls, and URLs are only fragments, relative paths, `https:` or `data:image/`.
 
 The validator proves structure, not judgment. It cannot tell whether a finding is right or whether a cited line says what the finding claims; the challenge pass does that.
 

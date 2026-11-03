@@ -82,9 +82,15 @@ class BrokenReports(unittest.TestCase):
         self.assertFails(EXAMPLE.replace("onclick=\"setAll(true)\"", "onclick=\"fetch('//x')\"", 1),
                          'only known event handlers')
 
-    def test_javascript_url(self):
-        self.assertFails(EXAMPLE.replace('<p class="lede">', '<p class="lede"><a href="javascript:alert(1)">x</a>', 1),
-                         'no javascript: URLs')
+    def test_unsafe_urls(self):
+        for url in ('javascript:alert(1)', 'java&#9;script:alert(1)', '&#1;javascript:alert(1)', 'JaVaScRiPt:x',
+                    'vbscript:x', 'data:text/html,x', 'http://example.com'):
+            with self.subTest(url=url):
+                self.assertFails(EXAMPLE.replace('<p class="lede">', f'<p class="lede"><a href="{url}">x</a>', 1),
+                                 'only safe URLs')
+        for tag in ('<object data="javascript:x"></object>', '<form action="java\nscript:x"></form>'):
+            with self.subTest(tag=tag):
+                self.assertFails(EXAMPLE.replace('<p class="lede">', tag + '<p class="lede">', 1), 'only safe URLs')
 
     def test_second_inline_script(self):
         self.assertFails(EXAMPLE.replace('<p class="lede">', '<script>alert(1)</script><p class="lede">', 1),

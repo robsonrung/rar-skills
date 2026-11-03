@@ -94,6 +94,20 @@ REQUIRED_CSP = ("default-src 'none'", "connect-src 'none'", "base-uri 'none'", "
 ALLOWED_ONCLICK = re.compile(r"jump\('[\w-]+'\)|setAll\((?:true|false)\)|filterPriority\('[\w ]+'\)")
 
 
+URL_ATTRS = {'href', 'src', 'srcset', 'action', 'formaction', 'xlink:href', 'data', 'poster', 'background', 'ping', 'cite'}
+
+
+def safe_url(value: str) -> bool:
+    """Allow fragments, relative paths, https: and data:image/ after WHATWG-style normalization."""
+    url = re.sub(r'[\t\n\r]', '', value).strip('\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f'
+                                                  '\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f ')
+    scheme = re.match(r'([a-zA-Z][a-zA-Z0-9+.-]*):', url)
+    if not scheme:
+        return True
+    name = scheme.group(1).lower()
+    return name == 'https' or (name == 'data' and url[5:].lower().startswith('image/'))
+
+
 def validate(html: str, repo: Path | None = None, template: bool = False) -> list[tuple[str, bool, str]]:
     results = []
 
@@ -126,9 +140,8 @@ def validate(html: str, repo: Path | None = None, template: bool = False) -> lis
     handlers = [f'{n.tag}[{k}]' for n in nodes for k, v in n.attrs.items()
                 if k.startswith('on') and not (k == 'onclick' and ALLOWED_ONCLICK.fullmatch(v or ''))]
     check('only known event handlers', not handlers, f'unexpected handlers: {handlers[:5]}')
-    js_urls = [v for n in nodes for k, v in n.attrs.items()
-               if k in ('href', 'src', 'action', 'formaction', 'xlink:href') and re.match(r'\s*javascript:', v or '', re.I)]
-    check('no javascript: URLs', not js_urls, f'found: {js_urls[:3]}')
+    bad_urls = [v for n in nodes for k, v in n.attrs.items() if k in URL_ATTRS and not safe_url(v or '')]
+    check('only safe URLs', not bad_urls, f'found: {bad_urls[:3]}')
     duplicates = sorted(i for i, v in by_id.items() if len(v) > 1)
     check('ids unique', not duplicates, f'duplicated: {duplicates[:8]}')
     dangling = sorted({h for n in nodes for h in n.links()} - set(by_id))
