@@ -17,7 +17,11 @@ import sys
 from html.parser import HTMLParser
 from pathlib import Path
 
-DIMENSIONS = json.loads((Path(__file__).resolve().parent.parent / 'assets' / 'dimensions.json').read_text())
+ASSETS = Path(__file__).resolve().parent.parent / 'assets'
+DIMENSIONS = json.loads((ASSETS / 'dimensions.json').read_text())
+TEMPLATE_SCRIPT = re.search(r'<script>(.*?)</script>', (ASSETS / 'report.html').read_text(), re.S).group(1)
+# Constructs Python's HTMLParser and browsers can tokenize differently; the page never needs them.
+RAW_DIFFERENTIALS = re.compile(r'<!\[|--!>|<!--->?|<\?|</?(?:iframe|object|embed|form|base|frame|noscript|template|xmp|plaintext|noembed|noframes|math)\b', re.I)
 SECTIONS = ['sec-verdict', 'sec-context', 'sec-architecture', 'sec-dimensions', 'sec-findings',
             'sec-strengths', 'sec-options', 'sec-roadmap', 'sec-evidence']
 STATUSES = {'adequate', 'attention', 'critical', 'unknown', 'not_applicable'}
@@ -39,6 +43,8 @@ VOID = {'area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link', 'met
 class Node:
     def __init__(self, tag, attrs, parent):
         self.tag, self.attrs, self.parent, self.children, self.parts = tag, dict(attrs), parent, [], []
+        self.repeated_attrs = len(attrs) != len({k for k, _ in attrs})
+        self.raw = ''
 
     @property
     def classes(self):
@@ -86,7 +92,9 @@ class Tree(HTMLParser):
             self.cur = node.parent
 
     def handle_data(self, data):
-        if self.cur.tag not in ('script', 'style'):
+        if self.cur.tag in ('script', 'style'):
+            self.cur.raw += data
+        else:
             self.cur.parts.append(data)
 
 
@@ -131,6 +139,13 @@ def safe_url(tag: str, value: str) -> bool:
     return not scheme or scheme.group(1).lower() == 'https'
 
 
+def ancestors(node):
+    node = node.parent
+    while node is not None:
+        yield node
+        node = node.parent
+
+
 def markup_problems(nodes) -> list[str]:
     problems = []
     for n in nodes:
@@ -143,6 +158,12 @@ def markup_problems(nodes) -> list[str]:
         for k in n.attrs:
             if not (k in allowed or k.startswith(('data-', 'aria-'))):
                 problems.append(f'{n.tag}[{k}]')
+        if n.repeated_attrs:
+            problems.append(f'{n.tag} repeats an attribute')
+        if n.tag in ('script', 'style'):
+            parent = n.parent.tag if n.parent else ''
+            if parent not in ('head', 'body') or any(a.tag == 'svg' for a in ancestors(n)):
+                problems.append(f'<{n.tag}> outside head or body')
         if n.tag == 'meta' and n.attrs.get('http-equiv') and n.attrs['http-equiv'].lower() != 'content-security-policy':
             problems.append(f'meta[http-equiv={n.attrs["http-equiv"]}]')
     return problems
@@ -181,6 +202,12 @@ def validate(html: str, repo: Path | None = None, template: bool = False) -> lis
                 if k.startswith('on') and not (k == 'onclick' and ALLOWED_ONCLICK.fullmatch(v or ''))]
     check('only known event handlers', not handlers, f'unexpected handlers: {handlers[:5]}')
     check('only allowed markup', not markup_problems(nodes), f'not allowed: {markup_problems(nodes)[:5]}')
+    raw = RAW_DIFFERENTIALS.findall(html)
+    check('no parser-ambiguous markup', not raw and len(re.findall(r'<script\b', html, re.I)) <= 1,
+          f'found: {raw[:5]}')
+    scripts = [n for n in nodes if n.tag == 'script']
+    check('script matches the template', all(n.raw == TEMPLATE_SCRIPT for n in scripts),
+          'the inline script must be the template script, unchanged')
     bad_urls = [v for n in nodes for k, v in n.attrs.items() if k in ('href', 'src') and not safe_url(n.tag, v or '')]
     check('only safe URLs', not bad_urls, f'found: {bad_urls[:3]}')
     duplicates = sorted(i for i, v in by_id.items() if len(v) > 1)

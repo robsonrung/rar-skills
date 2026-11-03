@@ -101,6 +101,22 @@ class BrokenReports(unittest.TestCase):
             with self.subTest(tag=tag):
                 self.assertFails(EXAMPLE.replace('<p class="lede">', tag + '<p class="lede">', 1), 'only allowed markup')
 
+    def test_parser_differentials(self):
+        cases = {
+            'only allowed markup': ('<a href="#F01" href="javascript:x">x</a>',
+                                    '<svg><style><img src=x onerror=alert(1)></style></svg>'),
+            'no parser-ambiguous markup': ('<![CDATA[x]]>', '<!-- x --!><img src=x>', '<!--->', '<?x?>',
+                                           '<noscript><p title="</noscript><img src=x>"></noscript>',
+                                           '<math><mi>x</mi></math>'),
+        }
+        for check, tags in cases.items():
+            for tag in tags:
+                with self.subTest(tag=tag):
+                    self.assertFails(EXAMPLE.replace('<p class="lede">', tag + '<p class="lede">', 1), check)
+
+    def test_script_must_match_template(self):
+        self.assertFails(EXAMPLE.replace('<script>', '<script>alert(1);', 1), 'script matches the template')
+
     def test_raster_data_image_allowed(self):
         html = EXAMPLE.replace('<p class="lede">', '<img src="data:image/png;base64,iVBOR" alt="chart"><p class="lede">', 1)
         self.assertNotIn('only safe URLs', failures(html))
