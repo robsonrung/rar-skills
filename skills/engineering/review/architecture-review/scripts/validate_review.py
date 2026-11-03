@@ -94,18 +94,58 @@ REQUIRED_CSP = ("default-src 'none'", "connect-src 'none'", "base-uri 'none'", "
 ALLOWED_ONCLICK = re.compile(r"jump\('[\w-]+'\)|setAll\((?:true|false)\)|filterPriority\('[\w ]+'\)")
 
 
-URL_ATTRS = {'href', 'src', 'srcset', 'action', 'formaction', 'xlink:href', 'data', 'poster', 'background', 'ping', 'cite'}
+# Allowlists: the page may use only this markup. Anything else (object, iframe, form, base,
+# SVG animation, meta refresh, inline style, unknown attributes) fails validation.
+ALLOWED_TAGS = set("""
+html head meta title style script body header nav main section article aside footer div span p a
+h1 h2 h3 h4 h5 h6 ul ol li dl dt dd table caption thead tbody tfoot tr th td colgroup col details summary
+code pre kbd em strong b i small sub sup mark abbr time blockquote br hr figure figcaption img button
+svg g path rect circle ellipse line polyline polygon text tspan defs marker desc
+""".split())
+GLOBAL_ATTRS = {'class', 'id', 'role', 'lang', 'title', 'dir'}
+TAG_ATTRS = {
+    'meta': {'charset', 'name', 'content', 'http-equiv'}, 'a': {'href'}, 'img': {'src', 'alt', 'width', 'height'},
+    'button': {'type', 'onclick'}, 'g': {'onclick', 'transform', 'fill', 'stroke'},
+    'th': {'scope', 'colspan', 'rowspan'}, 'td': {'colspan', 'rowspan'}, 'col': {'span'}, 'colgroup': {'span'},
+    'details': {'open'}, 'time': {'datetime'}, 'ol': {'start'},
+}
+SVG_ATTRS = {'viewbox', 'width', 'height', 'x', 'y', 'x1', 'y1', 'x2', 'y2', 'cx', 'cy', 'r', 'rx', 'ry', 'd',
+             'points', 'fill', 'stroke', 'stroke-width', 'stroke-dasharray', 'transform', 'marker-end',
+             'marker-start', 'text-anchor', 'dominant-baseline', 'refx', 'refy', 'markerwidth', 'markerheight',
+             'orient', 'xmlns', 'preserveaspectratio', 'font-size', 'font-weight', 'opacity'}
+SVG_TAGS = {'svg', 'g', 'path', 'rect', 'circle', 'ellipse', 'line', 'polyline', 'polygon', 'text', 'tspan',
+            'defs', 'marker', 'desc'}
+RASTER_DATA = re.compile(r'data:image/(?:png|jpeg|gif|webp)[;,]', re.I)
 
 
-def safe_url(value: str) -> bool:
-    """Allow fragments, relative paths, https: and data:image/ after WHATWG-style normalization."""
-    url = re.sub(r'[\t\n\r]', '', value).strip('\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0a\x0b\x0c\x0d\x0e\x0f'
-                                                  '\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1a\x1b\x1c\x1d\x1e\x1f ')
+def normalized_url(value: str) -> str:
+    """Normalize the way browsers do before reading a scheme."""
+    return re.sub(r'[\t\n\r]', '', value).strip(''.join(map(chr, range(0x21))))
+
+
+def safe_url(tag: str, value: str) -> bool:
+    url = normalized_url(value)
+    if tag == 'img':
+        return bool(RASTER_DATA.match(url))
     scheme = re.match(r'([a-zA-Z][a-zA-Z0-9+.-]*):', url)
-    if not scheme:
-        return True
-    name = scheme.group(1).lower()
-    return name == 'https' or (name == 'data' and url[5:].lower().startswith('image/'))
+    return not scheme or scheme.group(1).lower() == 'https'
+
+
+def markup_problems(nodes) -> list[str]:
+    problems = []
+    for n in nodes:
+        if n.tag == '#root':
+            continue
+        if n.tag not in ALLOWED_TAGS:
+            problems.append(f'<{n.tag}>')
+            continue
+        allowed = GLOBAL_ATTRS | TAG_ATTRS.get(n.tag, set()) | (SVG_ATTRS if n.tag in SVG_TAGS else set())
+        for k in n.attrs:
+            if not (k in allowed or k.startswith(('data-', 'aria-'))):
+                problems.append(f'{n.tag}[{k}]')
+        if n.tag == 'meta' and n.attrs.get('http-equiv') and n.attrs['http-equiv'].lower() != 'content-security-policy':
+            problems.append(f'meta[http-equiv={n.attrs["http-equiv"]}]')
+    return problems
 
 
 def validate(html: str, repo: Path | None = None, template: bool = False) -> list[tuple[str, bool, str]]:
@@ -140,7 +180,8 @@ def validate(html: str, repo: Path | None = None, template: bool = False) -> lis
     handlers = [f'{n.tag}[{k}]' for n in nodes for k, v in n.attrs.items()
                 if k.startswith('on') and not (k == 'onclick' and ALLOWED_ONCLICK.fullmatch(v or ''))]
     check('only known event handlers', not handlers, f'unexpected handlers: {handlers[:5]}')
-    bad_urls = [v for n in nodes for k, v in n.attrs.items() if k in URL_ATTRS and not safe_url(v or '')]
+    check('only allowed markup', not markup_problems(nodes), f'not allowed: {markup_problems(nodes)[:5]}')
+    bad_urls = [v for n in nodes for k, v in n.attrs.items() if k in ('href', 'src') and not safe_url(n.tag, v or '')]
     check('only safe URLs', not bad_urls, f'found: {bad_urls[:3]}')
     duplicates = sorted(i for i, v in by_id.items() if len(v) > 1)
     check('ids unique', not duplicates, f'duplicated: {duplicates[:8]}')

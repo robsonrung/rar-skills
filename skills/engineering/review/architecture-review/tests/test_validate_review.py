@@ -84,13 +84,27 @@ class BrokenReports(unittest.TestCase):
 
     def test_unsafe_urls(self):
         for url in ('javascript:alert(1)', 'java&#9;script:alert(1)', '&#1;javascript:alert(1)', 'JaVaScRiPt:x',
-                    'vbscript:x', 'data:text/html,x', 'http://example.com'):
+                    'vbscript:x', 'data:text/html,x', 'data:image/svg+xml,x', 'http://example.com'):
             with self.subTest(url=url):
                 self.assertFails(EXAMPLE.replace('<p class="lede">', f'<p class="lede"><a href="{url}">x</a>', 1),
                                  'only safe URLs')
-        for tag in ('<object data="javascript:x"></object>', '<form action="java\nscript:x"></form>'):
+        self.assertFails(EXAMPLE.replace('<p class="lede">', '<img src="data:image/svg+xml,x" alt=""><p class="lede">', 1),
+                         'only safe URLs')
+
+    def test_disallowed_markup(self):
+        for tag in ('<object data="x"></object>', '<iframe srcdoc="x"></iframe>', '<form action="x"></form>',
+                    '<base href="https://x">', '<meta http-equiv="refresh" content="0;url=https://x">',
+                    '<svg><a xlink:href="javascript:x"><text>x</text></a></svg>',
+                    '<svg><set attributeName="href" to="javascript:x"/></svg>',
+                    '<svg><animate attributeName="href" values="javascript:x"/></svg>',
+                    '<p style="background:url(x)">x</p>', '<embed src="x">'):
             with self.subTest(tag=tag):
-                self.assertFails(EXAMPLE.replace('<p class="lede">', tag + '<p class="lede">', 1), 'only safe URLs')
+                self.assertFails(EXAMPLE.replace('<p class="lede">', tag + '<p class="lede">', 1), 'only allowed markup')
+
+    def test_raster_data_image_allowed(self):
+        html = EXAMPLE.replace('<p class="lede">', '<img src="data:image/png;base64,iVBOR" alt="chart"><p class="lede">', 1)
+        self.assertNotIn('only safe URLs', failures(html))
+        self.assertNotIn('only allowed markup', failures(html))
 
     def test_second_inline_script(self):
         self.assertFails(EXAMPLE.replace('<p class="lede">', '<script>alert(1)</script><p class="lede">', 1),
