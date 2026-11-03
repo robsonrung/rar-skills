@@ -90,6 +90,10 @@ class Tree(HTMLParser):
             self.cur.parts.append(data)
 
 
+REQUIRED_CSP = ("default-src 'none'", "connect-src 'none'", "base-uri 'none'", "form-action 'none'")
+ALLOWED_ONCLICK = re.compile(r"jump\('[\w-]+'\)|setAll\((?:true|false)\)|filterPriority\('[\w ]+'\)")
+
+
 def validate(html: str, repo: Path | None = None, template: bool = False) -> list[tuple[str, bool, str]]:
     results = []
 
@@ -111,10 +115,20 @@ def validate(html: str, repo: Path | None = None, template: bool = False) -> lis
     check('html lang set', any(n.tag == 'html' and n.attrs.get('lang') for n in nodes))
     external = [n.attrs.get('src') or n.attrs.get('href') for n in nodes
                 if (n.tag in ('script', 'img', 'iframe', 'embed', 'source') and re.match(r'(https?:)?//', n.attrs.get('src') or ''))
-                or (n.tag == 'link' and re.match(r'(https?:)?//', n.attrs.get('href') or '')
-                    and 'fonts.googleapis.com' not in n.attrs['href'])]
+                or (n.tag == 'link' and re.match(r'(https?:)?//', n.attrs.get('href') or ''))]
     css_urls = re.findall(r'url\(\s*["\']?(?:https?:)?//', html)
     check('self-contained', not external and not css_urls, f'external resources: {external[:5]}')
+    csp = next((n.attrs.get('content') or '' for n in nodes if n.tag == 'meta'
+                and (n.attrs.get('http-equiv') or '').lower() == 'content-security-policy'), '')
+    check('content security policy', all(d in csp for d in REQUIRED_CSP), f'CSP must include {REQUIRED_CSP}')
+    check('one inline script', sum(n.tag == 'script' for n in nodes) <= 1
+          and not any(n.tag == 'script' and n.attrs.get('src') for n in nodes), 'only one inline <script> is allowed')
+    handlers = [f'{n.tag}[{k}]' for n in nodes for k, v in n.attrs.items()
+                if k.startswith('on') and not (k == 'onclick' and ALLOWED_ONCLICK.fullmatch(v or ''))]
+    check('only known event handlers', not handlers, f'unexpected handlers: {handlers[:5]}')
+    js_urls = [v for n in nodes for k, v in n.attrs.items()
+               if k in ('href', 'src', 'action', 'formaction', 'xlink:href') and re.match(r'\s*javascript:', v or '', re.I)]
+    check('no javascript: URLs', not js_urls, f'found: {js_urls[:3]}')
     duplicates = sorted(i for i, v in by_id.items() if len(v) > 1)
     check('ids unique', not duplicates, f'duplicated: {duplicates[:8]}')
     dangling = sorted({h for n in nodes for h in n.links()} - set(by_id))

@@ -70,6 +70,26 @@ class BrokenReports(unittest.TestCase):
         self.assertFails(EXAMPLE.replace('<script>', '<script src="https://cdn.example.com/x.js"></script><script>'),
                          'self-contained')
 
+    def test_missing_content_security_policy(self):
+        html = '\n'.join(l for l in EXAMPLE.splitlines() if 'Content-Security-Policy' not in l)
+        self.assertFails(html, 'content security policy')
+
+    def test_unknown_event_handler(self):
+        self.assertFails(EXAMPLE.replace('<p class="lede">', '<p class="lede" onmouseover="alert(1)">', 1),
+                         'only known event handlers')
+
+    def test_injected_onclick(self):
+        self.assertFails(EXAMPLE.replace("onclick=\"setAll(true)\"", "onclick=\"fetch('//x')\"", 1),
+                         'only known event handlers')
+
+    def test_javascript_url(self):
+        self.assertFails(EXAMPLE.replace('<p class="lede">', '<p class="lede"><a href="javascript:alert(1)">x</a>', 1),
+                         'no javascript: URLs')
+
+    def test_second_inline_script(self):
+        self.assertFails(EXAMPLE.replace('<p class="lede">', '<script>alert(1)</script><p class="lede">', 1),
+                         'one inline script')
+
     def test_dangling_evidence_link(self):
         self.assertFails(EXAMPLE.replace('<a href="#E004">', '<a href="#E099">', 1), 'every #anchor')
 
