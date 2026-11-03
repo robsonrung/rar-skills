@@ -23,7 +23,7 @@ Per-checkout, user-local preferences for model previews. Committed example:
 `quorum`, `work_engine_preferences`, and `runner_base_path` are no longer read.
 Remove them from local files. Legacy `models` entries are ignored and reported. Move maintained model or
 effort settings to `shared/model-routing.json`. Explicit user selections belong
-in the proposed run snapshot, never a second default roster.
+in the proposed plan, never a second default roster.
 
 ## Reading it
 

@@ -35,7 +35,7 @@ It writes `state.json`, `briefs/<peer>.md`, and the reply slots `replies/<peer>.
 Route each peer by host:
 - **T3 Code:** `delegate_task` with the configured provider and model; continue with `t3_thread_send`.
 - **Claude Code or Codex:** a native subagent with the model; continue by messaging that same subagent.
-- **Model the host lacks:** the matching `*-runner` skill. An unavailable peer blocks its work; never swap in another model.
+- **Model the host lacks:** `cli-runner`, `pi-runner`, or `muse-runner`. An unavailable peer blocks its work; never swap in another model.
 
 Give each peer one persistent context for its role, and record its context ID. A terminal or runner job ID alone does not identify a model session.
 

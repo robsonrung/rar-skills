@@ -1,6 +1,6 @@
 ---
 name: response-unslop
-description: Remove AI writing patterns from prose, a draft, or your own reply. Use when the user asks to unslop, de-AI, or plain-speak text. For code cleanup use code-deslop.
+description: Remove AI writing patterns from prose, a draft, or your own reply. Use when the user asks to unslop, de-AI, or plain-speak text. For code cleanup use coding-review-simplify.
 disable-model-invocation: true
 ---
 

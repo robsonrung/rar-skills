@@ -10,6 +10,17 @@ import sys
 from html.parser import HTMLParser
 from pathlib import Path
 
+HERE = Path(__file__).resolve().parent
+for _root in HERE.parents:
+    if (_root / "shared" / "scripts" / "html_guard.py").is_file():
+        sys.path.insert(0, str(_root / "shared" / "scripts"))
+        break
+import html_guard  # noqa: E402
+
+TEMPLATE = (HERE.parent / "assets" / "template.html").read_text(encoding="utf-8")
+# Markup the template uses beyond html_guard's base allowlist: the confidence meter width.
+EXTRA_ATTRS = {"span": {"style": r"--value: ?\d{1,3}%"}}
+
 REQUIRED_IDS = {
     "overview",
     "verdict",
@@ -52,8 +63,6 @@ class SummaryParser(HTMLParser):
         self.title_text: list[str] = []
         self.in_title = False
         self.has_doctype = False
-        self.external_script = False
-        self.external_stylesheet = False
         self.seat_rows = 0
         self.in_seat_table = False
         self.in_tbody = False
@@ -80,10 +89,6 @@ class SummaryParser(HTMLParser):
                 self.role_stack.append((role, tag.lower(), self.depth))
         if tag.lower() == "title":
             self.in_title = True
-        if tag.lower() == "script" and "src" in normalized:
-            self.external_script = True
-        if tag.lower() == "link" and normalized.get("rel", "").lower() == "stylesheet":
-            self.external_stylesheet = True
         if normalized.get("class", "").split() and "seat-table" in normalized.get("class", "").split():
             self.in_seat_table = True
         if self.in_seat_table and tag.lower() == "tbody":
@@ -123,6 +128,11 @@ class SummaryParser(HTMLParser):
 
 def nonempty(parts: list[str]) -> bool:
     return bool("".join(parts).strip())
+
+
+def guard_problems(text: str, allow_comments: bool = False) -> list[str]:
+    return html_guard.problems(text, template_script=html_guard.template_script(TEMPLATE),
+                               extra_attrs=EXTRA_ATTRS, allow_comments=allow_comments)
 
 
 def validate(path: Path) -> tuple[list[str], dict[str, object]]:
@@ -173,10 +183,7 @@ def validate(path: Path) -> tuple[list[str], dict[str, object]]:
         errors.append("seat table must contain at least one body row")
     if not re.search(r"class=[\"'][^\"']*\bsource(?:-label)?\b", text, re.IGNORECASE):
         errors.append("missing a source label or source block")
-    if parser.external_script:
-        errors.append("external script dependency found; keep JavaScript inline")
-    if parser.external_stylesheet:
-        errors.append("external stylesheet dependency found; keep CSS inline")
+    errors.extend(f"markup safety: {problem}" for problem in guard_problems(text))
     if not re.search(r"<html\b[^>]*\blang=[\"'][^\"']+[\"']", text, re.IGNORECASE):
         errors.append("html element must declare a language")
     if not re.search(r"<meta\b[^>]*charset=", text, re.IGNORECASE):

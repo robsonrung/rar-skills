@@ -7,7 +7,7 @@ How to run an approved worker route on the current host. [model-preview.md](mode
 1. Inspect what the host actually exposes: tools, model catalog, effort control, role isolation, result collection, and follow-up support. Don't infer capabilities from the app name or the coordinator's model.
 2. **T3 Code:** start the role with `delegate_task` using the configured provider and model, and continue it with `t3_thread_send`.
 3. **Claude Code or Codex:** use a native subagent when the host has the exact model. Don't start a runner to call a model the host already runs natively. The parent session is not a separate worker.
-4. **Model the host lacks,** or a native path that cannot meet the route: use the matching `*-runner` skill ([runner-common.md](runner-common.md)). An explicit user request for a CLI or transport wins.
+4. **Model the host lacks,** or a native path that cannot meet the route: use `cli-runner`, `pi-runner`, or `muse-runner` ([runner-common.md](runner-common.md)). An explicit user request for a CLI or transport wins.
 5. If no path meets the model, effort, isolation, tools, or receipt policy, report it. Run only an exact alternate the plan names; never substitute the coordinator's model.
 
 | Host | Native | Runner when needed |
@@ -19,17 +19,13 @@ How to run an approved worker route on the current host. [model-preview.md](mode
 
 These are hints, not guarantees. An installed CLI or `agents/openai.yaml` metadata does not create a native seat. A native tool may inherit a model only when its exact identity matches the route. Creating, renaming, or deleting user-owned tasks needs the user's request.
 
-In an implementation plan, a native route uses `mode: native` and `effort_control: native`, and its `native` object records `host`, `transport` (`subagent` or `thread`), `capability_source`, and `supported_efforts`. The selected effort must be in that observed list. `runner` stays as the family key; it does not mean a CLI call.
-
 ## Keep role contexts through iterations
 
 Start one isolated context per task and role, with no parent conversation history (`fork_turns: none` where the host offers it), and give it the bounded brief from [handoff-contract.md](handoff-contract.md). Reuse that context for the same role's later turns: interview rounds, fixes, rechecks, debate rounds. Start a new one for a different task, an independent role, a blind opening, or an approved model change.
 
 An implementer and its reviewer never share a context. Consensus seats don't see each other's answers before the protocol allows it. Judges start without seat history. Repeated turns from one context are one opinion, not several.
 
-Record each role's route ID, host, transport, actual context ID or session path, configured model and effort, last input revision, completed turn, and pending call in the run's existing state ([run-state-contract.md](run-state-contract.md)). A background job ID, a requested model, or a setup token is not a context ID; wait for the real handle before sending work. Continue with that recorded ID, never a "most recent session" selector while several roles run. Runner session handling is in each runner's Continue section.
-
-Reserve each call before sending it, including repairs and rechecks. On resume, reconcile a pending call with its actual outcome before resending. A lost session is rebuilt from that role's artifacts under the same route and counters, and the report says it was a reconstruction. Keep a reviewer open while fix cycles remain. Release only what this run owns.
+Keep each role's actual context ID or session path with the run's work state ([work-state.md](work-state.md)). A background job ID, a requested model, or a setup token is not a context ID; wait for the real handle before sending work. Continue with that ID, never a "most recent session" selector while several roles run; each runner documents its own session handling. A lost session is rebuilt from that role's artifacts under the same route, and the report says it was a reconstruction. Keep a reviewer open while fix cycles remain.
 
 ## Browser and provider capabilities
 
@@ -39,19 +35,9 @@ For Pi gateway routes, carry the route's `provider_routing` into every request, 
 
 ## Evidence and authority
 
-The configured model, the observed serving model, and completion are separate facts. Record a serving model only from a native or provider event. Native transport does not make a receipt verified or enforce read-only tools; when tools can't enforce the scope, use a no-tools brief or a restricted route, and don't call a prompt instruction a sandbox. The calling workflow owns approval, budgets, writes, and the terminal status.
+The configured model, the observed serving model, and completion are separate facts. Record a serving model only from a native event or the model the CLI or provider reports, such as Claude's or Grok's `modelUsage`. Native transport does not make a receipt verified or enforce read-only tools; when tools can't enforce the scope, use a no-tools brief or a restricted route, and don't call a prompt instruction a sandbox. The calling workflow owns approval, budgets, writes, and the terminal status.
 
-Save raw completion output as soon as a call returns. A missing session ID or malformed result is a receipt failure to reconcile, not permission to restart.
-
-For a saved T3 Code task wait response, `native_completion.py` extracts the exact final message and binds it to the raw event and dispatch record:
-
-```bash
-python3 <shared-dir>/scripts/native_completion.py --raw <wait.json> \
-  --dispatch <native-dispatch.json> --context-id <actual-task-id> --host-id <host-id> \
-  --turn-id <expected-turn-id> --completed-turn <role-turn-number> --output <capture.json>
-```
-
-The task, host, and turn must match the response. The capture marks the model unverified; never copy the configured model into an observed field.
+Save raw completion output as soon as a call returns. A missing session ID or malformed result is a receipt failure to reconcile, not permission to restart. A native completion that reports no model stays unverified; never copy the configured model into an observed field.
 
 ## Environment
 

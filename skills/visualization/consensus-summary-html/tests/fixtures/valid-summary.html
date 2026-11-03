@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; font-src 'none'; connect-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Consensus summary: approve with changes</title>
 <style>body{font-family:system-ui}.source{color:#567}.seat-table{width:100%}</style>
@@ -12,9 +13,14 @@
 <div data-role="answer-confidence">High</div><div data-role="diversity-confidence">Medium</div>
 <section id="agreements"><article><p>Agreement point</p><span class="source">report.md</span></article></section>
 <section id="divergences"><article><p>Resolved disagreement</p><span class="source">report.md § Dissent</span></article></section>
-<section id="evidence"><div class="seat-table-wrap"><table class="seat-table"><tbody><tr><td>Seat A</td><td>provider/model</td><td>complete</td><td>independent</td></tr></tbody></table></div><span class="source">report.md § Seats</span></section>
+<section id="evidence"><div class="seat-table-wrap"><div class="meter"><span style="--value: 70%"></span></div><table class="seat-table"><tbody><tr><td>Seat A</td><td>provider/model</td><td>complete</td><td>independent</td></tr></tbody></table></div><span class="source">report.md § Seats</span></section>
 <section id="confidence"><p>Answer and diversity confidence are separate.</p></section>
 <section id="next-step"><h2 data-role="next-step">Land the guard workflow.</h2></section>
 <section id="limits"><p>One seat had no file access.</p><span class="source">report.md § Seats</span></section>
+<script>
+  function setAll(open) {
+    document.querySelectorAll('details').forEach(function (item) { item.open = open; });
+  }
+</script>
 </body>
 </html>

@@ -20,7 +20,7 @@ Give each role one persistent context for the whole task. Fixes go back to the s
 Route each role by host:
 - **T3 Code:** start it with `delegate_task` using the configured provider and model, and continue it with `t3_thread_send`.
 - **Claude Code or Codex:** use a native subagent when the host has the model, and continue it by messaging that same subagent.
-- **Model the host lacks:** use the matching `*-runner` skill. An unavailable role blocks its work, and you report it; never swap in another model.
+- **Model the host lacks:** use `cli-runner`, `pi-runner`, or `muse-runner`. An unavailable role blocks its work, and you report it; never swap in another model.
 
 The implementer edits only within the task's scope. Neither role commits, pushes, merges, opens a pull request, deploys, or messages an outside service. Tell the reviewer to leave every file unchanged.
 
@@ -56,11 +56,11 @@ Keep the change a **native diff**: touch only what the contract needs, in the ho
 | Coverage misses the real path | The smallest new failing test. |
 | Automated testing is not meaningful | The reason, and a direct replacement check. |
 
-A behavior change reports the tests inspected, the tests added or changed, the red baseline, the verification commands, and their results. **Only captured command results count as evidence**: save raw output under the task's report directory, and never claim a check ran that didn't. When the change crosses a callback, middleware, event, storage, external call, or second entry point, also prove the real path end to end. A mock alone cannot show that **observable behavior**.
+A behavior change reports the tests inspected, the tests added or changed, the red baseline, the verification commands, and their results. **Only captured command results count as evidence**: capture each check with `shared/scripts/capture_check.py run` into the task's `evidence/` folder (`shared/references/work-state.md`), and never claim a check ran that didn't. When the change crosses a callback, middleware, event, storage, external call, or second entry point, also prove the real path end to end. A mock alone cannot show that **observable behavior**.
 
-Before review, rerun the required checks yourself on the final source. When the caller needs review snapshots, as `implement-tasks` queues do, capture with `shared/scripts/review_evidence.py` as `shared/references/review-evidence.md` describes.
+Before review, rerun the required checks yourself on the final source, so the reviewer sees current evidence.
 
-After the task is green, have the implementer run a **behavior-preserving** cleanup with `coding-review-simplify`. Under a feature policy, save broad cleanup for the combined pass.
+After the task is green, have the implementer run a **behavior-preserving** cleanup with `coding-review-simplify`. In feature mode, save broad cleanup for the combined pass.
 
 ## Review and repair
 
@@ -75,11 +75,11 @@ The reviewer returns `ready` or `changes required`. Each finding has a severity,
 
 Severity follows consequence. A P1 or P2 blocks acceptance. A confirmed P2 whose fix falls outside the scope stays blocking and goes to the user; never relabel it P3 to fit. For a seam, a public contract, or high residual risk, recommend `full-review`, and use it when the user selects it.
 
-Send confirmed findings to the same implementer and capture fresh evidence. Then ask the same reviewer to recheck, giving it the finding IDs and what changed. Stop after three review cycles; the plan may set another limit. When the limit runs out, return `ceiling_hit` with the open findings.
+Send confirmed findings to the same implementer and capture fresh evidence. Then ask the same reviewer to recheck, giving it the finding IDs and what changed. Stop after three review cycles, counted in the report; the plan may set another limit. When the limit runs out, return `ceiling_hit` with the open findings.
 
 ## Feature policy
 
-Without a bound `review_policy`, run the task as above. Under the feature policy that `implement-tasks` binds (`shared/references/feature-review.md`), the policy classifies each task:
+In task mode, run the task as above. In the feature mode that `implement-tasks` approves, the plan classifies each task:
 
 - **Deferred:** implement it and capture its focused checks without a task reviewer. Return `implemented`, which is provisional.
 - **Critical:** review it as above. The result stays provisional.
@@ -101,9 +101,9 @@ If any of these is in doubt, work sequentially. Creating a worktree is within an
 
 ## Report
 
-Write `.ai-workflow/impl-review/<session>/<task>/report.md` and **lead with the outcome**. The status is `complete`, `implemented`, `failed`, `ceiling_hit`, or `awaiting_human`. Then give:
+Write the task's `report.md` in the layout of `shared/references/work-state.md` and **lead with the outcome**. The status is `accepted`, `implemented`, `blocked` (with its reason), or `ceiling_hit`. Then give:
 - the acceptance evidence, as commands with their results;
-- the roles, with model, effort, and route;
+- the roles, with model, effort, and route, and the model each call reported;
 - the review verdict and the findings applied or declined;
 - the changed paths;
 - the residual risks;

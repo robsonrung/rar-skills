@@ -31,6 +31,19 @@ class DiscoverRunnersTests(unittest.TestCase):
         self.assertEqual(result["checks"]["compatibility"]["status"], "unknown")
         run.assert_not_called()
 
+    def test_each_runner_seat_names_one_runner_skill(self):
+        skills_root = Path(__file__).resolve().parents[2]
+        expected = {"opus": "cli-runner", "astra": "cli-runner", "gemini": "cli-runner", "grok": "cli-runner",
+                    "kimi": "pi-runner", "muse-wonder-full": "muse-runner"}
+        with patch.object(discover_runners.shutil, "which", return_value=None):
+            for spec in discover_runners.SEAT_SPECS:
+                with self.subTest(seat=spec.seat):
+                    skill = discover_runners.probe_seat(spec, "no", 1).skill
+                    self.assertEqual(skill, expected.get(spec.seat, skill))
+                    self.assertEqual(len(list(skills_root.glob(f"**/{skill}/SKILL.md"))), 1)
+        opus = next(s for s in discover_runners.SEAT_SPECS if s.seat == "opus")
+        self.assertIsNone(discover_runners.probe_seat(opus, "yes", 1).skill)
+
     def test_unknown_version_is_not_compatible(self):
         model = model_routing.load_config()["models"]["opus"]["model"]
         result = discover_runners.claude_compatibility(model, "unrecognized version")

@@ -9,9 +9,9 @@ Run `python3 shared/scripts/model_routing.py resolve <route>` for each route the
 - Precedence: the user's instructions, then [local preferences](local-config.md) (`--local-profile <name>`, plus `route_overrides` as `--role ROLE=SEAT[:EFFORT]`), then the central default. An explicit `--profile` wins over the local one. `runtime` selects null effort where a model has no effort control.
 - [`model-routing.json`](../model-routing.json) is the only source of exact models and efforts. Never copy one into a skill.
 - Add `--risk high` for a task that meets `policy.high_risk_triggers`. One sensitive task does not promote the rest of a feature.
-- For a future queue, `resolve-batch` resolves every task and the future coordinator at once ([task-shaped-model-routing.md](task-shaped-model-routing.md#future-task-plans)). A preview never changes the model of the session already running.
+- For a queue, resolve each task's route on its own risk. A preview never changes the model of the session already running.
 
-Check each role's path before showing it: native delegation first, then the matching runner ([host-model-execution.md](host-model-execution.md)). An installed CLI is not proof the route works.
+Check each role's path before showing it: native delegation first, then `cli-runner`, `pi-runner`, or `muse-runner` ([host-model-execution.md](host-model-execution.md)). An installed CLI is not proof the route works.
 
 ## Show and approve
 
@@ -31,4 +31,4 @@ Use the mode the user named or the caller passed. Otherwise use the skill's safe
 
 ## After approval
 
-The approved plan is fixed. Dispatch, repair, retry, and resume use it as saved; nested skills and runners reuse it and never re-resolve, reread local preferences, or add workers. Keep **seat fidelity**: an unavailable model, unsupported effort, receipt mismatch, or failed privacy check blocks that route. Only an exact alternate named in the plan may run without a new decision. Allow one attempt and one repair with new evidence before considering more effort; recovery never resets the call ceilings. A change the user requests before dispatch replaces the plan for unfinished work only.
+The approved plan is fixed ([work-state.md](work-state.md)). Dispatch, repair, retry, and resume use it as saved; nested skills and runners reuse it and never re-resolve, reread local preferences, or add workers. Keep **seat fidelity**: an unavailable model, unsupported effort, receipt mismatch, or failed privacy check blocks that route. Only an exact alternate named in the plan may run without a new decision. Allow one attempt and one repair with new evidence before considering more effort; recovery never resets the call ceilings. A change the user requests before dispatch replaces the plan for unfinished work only.

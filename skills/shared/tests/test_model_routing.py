@@ -3,7 +3,6 @@
 
 from __future__ import annotations
 
-import json
 import importlib.util
 import sys
 import unittest
@@ -14,8 +13,6 @@ sys.path.insert(0, str(REPO_ROOT / "shared" / "scripts"))
 from skill_paths import skill_dir  # noqa: E402
 import model_routing
 import discover_runners
-
-import routing_plan as launcher
 
 
 def P(rel: str) -> Path:
@@ -45,108 +42,6 @@ class ModelRoutingContractTests(unittest.TestCase):
         roles = model_routing.resolve_route("routine-function", "gpt")["roles"]
         self.assertEqual((roles["implementer"]["seat"], roles["implementer"]["effort"]), ("terra", "medium"))
         self.assertEqual((roles["reviewer"]["seat"], roles["reviewer"]["effort"]), ("astra", "high"))
-
-    def test_routing_plan_binds_approval_scope_and_routes(self):
-        schema = json.loads(
-            self.read("shared/references/implementation-routing-plan.schema.json")
-        )
-        self.assertEqual(schema["properties"]["schema_version"]["const"], 1)
-        self.assertIn("scope", schema["required"])
-        self.assertIn("approval", schema["required"])
-        scope = schema["properties"]["scope"]
-        self.assertIn("inputs", scope["required"])
-        input_schema = scope["properties"]["inputs"]["items"]
-        self.assertIn("content_sha256", input_schema["required"])
-        approval = schema["properties"]["approval"]
-        self.assertEqual(approval["properties"]["status"]["const"], "approved")
-        self.assertEqual(
-            set(approval["required"]),
-            {"status", "decided_at", "reference", "scope_digest", "routes_digest"},
-        )
-        route = schema["definitions"]["route"]
-        self.assertTrue(
-            {
-                "id",
-                "task_id",
-                "input_path",
-                "track",
-                "role",
-                "seat",
-                "runner",
-                "model",
-                "model_verification",
-                "effort",
-                "effort_control",
-                "mode",
-                "unavailable",
-            }.issubset(route["required"])
-        )
-        actions = {
-            option["properties"]["action"]["const"]
-            for option in schema["definitions"]["unavailable"]["oneOf"]
-        }
-        self.assertEqual(actions, {"block", "use"})
-        self.assertNotIn("dcode", schema["definitions"]["runner"]["enum"])
-        self.assertIn("native", route["properties"])
-        self.assertIn("native", route["properties"]["effort_control"]["enum"])
-        native = schema["definitions"]["native"]
-        self.assertEqual(
-            set(native["required"]),
-            {"host", "transport", "capability_source", "supported_efforts"},
-        )
-
-    def test_native_route_checks_capability_and_receipt(self):
-        route = {
-            "id": "impl-api",
-            "task_id": "task1",
-            "input_path": "task.md",
-            "track": "api",
-            "role": "implementer",
-            "seat": "astra",
-            "runner": "codex",
-            "model": "gpt-6-astra",
-            "model_verification": "required",
-            "effort": "high",
-            "effort_control": "native",
-            "mode": "native",
-            "native": {
-                "host": "codex-app",
-                "transport": "subagent",
-                "capability_source": "checked host catalog",
-                "supported_efforts": ["high", "max"],
-            },
-            "unavailable": {"action": "block"},
-        }
-        launcher.validate_route(route)
-        receipt = {
-            "success": True,
-            "effective_runner": "codex",
-            "configured_model": "gpt-6-astra",
-            "effective_model": "gpt-6-astra",
-            "configured_effort": "high",
-            "effective_effort": "high",
-            "model_receipt": {
-                "status": "verified",
-                "source": "native_event",
-                "observed_model": "gpt-6-astra",
-            },
-            "native_execution": {
-                "host": "codex-app",
-                "transport": "subagent",
-                "context_id": "impl-context",
-                "role": "implementer",
-                "task_id": "task1",
-                "configured_model": "gpt-6-astra",
-                "configured_effort": "high",
-                "tool_policy": "write",
-                "call_id": "impl-call",
-                "input_revision": "brief-digest",
-                "completed_turn": 1,
-            },
-        }
-        self.assertIsNone(launcher.receipt_error(route, receipt))
-        receipt["effective_effort"] = "max"
-        self.assertIsNotNone(launcher.receipt_error(route, receipt))
 
     def test_frontier_seats_are_opt_in_transport_probes(self):
         specs = {spec.seat: spec for spec in discover_runners.SEAT_SPECS}

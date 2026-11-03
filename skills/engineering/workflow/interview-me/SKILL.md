@@ -36,7 +36,7 @@ Start with `# Decision Record: <feature name>` and `**Status:** draft`. Include:
 5. Nonmaterial defaults and out-of-scope items.
 6. Glossary entries and ADRs written, with paths.
 7. Any prototype answer that shaped a decision.
-8. A compact source index. Each row has `source_id`, `path` or message URI, `locator`, `authority` (user instruction, approved decision, repository fact, or inference), and `content_revision` (a commit or digest; a branch name or timestamp is not a revision). Capture user answers as `shared/references/answer-evidence.md` describes.
+8. A compact source index. Each row has `source_id`, `path` or message URI, `locator`, `authority` (user instruction, approved decision, repository fact, or inference), and `content_revision` (a commit or digest; a branch name or timestamp is not a revision). For a user answer, record the user's actual words or the host's message locator, never a generated paraphrase.
 
 A source row records authority; it cannot grant authority its source lacks. On a correction, keep the decision ID and earlier evidence, add the new source, and state what it supersedes.
 

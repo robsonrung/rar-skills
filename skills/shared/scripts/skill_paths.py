@@ -25,6 +25,10 @@ from pathlib import Path
 
 _MARKER = ("shared", "scripts", "runner_jobs.py")
 
+# Runner skills that serve more than their name prefix. Any other `<id>-runner`
+# skill serves the runner id `<id>` from shared/model-routing.json.
+RUNNER_SKILLS = {"cli-runner": ("claude", "codex", "gemini", "grok")}
+
 # Where a skill may live relative to the skills root, in lookup order.
 _SEARCH_GLOBS = ("{name}", "engineering/*/{name}", "visualization/{name}", "extras/{name}", "*/{name}", "*/*/{name}")
 
@@ -56,9 +60,14 @@ def skill_dir(name: str, root: Path | None = None, start: Path | None = None) ->
     return root / name
 
 
+def runner_skill(runner: str) -> str:
+    """Name of the skill that serves a model-routing.json runner id."""
+    return next((skill for skill, ids in RUNNER_SKILLS.items() if runner in ids), f"{runner}-runner")
+
+
 def runner_script(name: str, root: Path | None = None, start: Path | None = None) -> Path:
-    """Path of `<name>-runner/scripts/run_<name>.py`, resolved by skill name."""
-    return skill_dir(f"{name}-runner", root=root, start=start) / "scripts" / f"run_{name}.py"
+    """Path of a wrapper runner's `scripts/run_<name>.py` (pi, muse), resolved by skill name."""
+    return skill_dir(runner_skill(name), root=root, start=start) / "scripts" / f"run_{name}.py"
 
 
 def iter_skill_dirs(root: Path):

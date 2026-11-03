@@ -33,7 +33,7 @@ A seat is one reviewer with one lens from [lenses.md](references/lenses.md) and 
 
 - **T3 Code**: `delegate_task` with the route's provider and model; continue with `t3_thread_send` to its thread.
 - **Claude Code or Codex**: a native subagent with the route's model; continue by messaging that same subagent.
-- **A model the host lacks**: the matching `*-runner` skill; continue by resuming its session.
+- **A model the host lacks**: `cli-runner`, `pi-runner`, or `muse-runner`; continue by resuming its session.
 
 **Seat fidelity**: a seat's findings come only from its approved model. An unavailable seat is reported as unavailable ("the security seat did not run; authorization is unreviewed"), and a different model needs a new yes.
 

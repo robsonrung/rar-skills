@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Leitwörter regression guard.
 
-Enforces the leitwörter convention (see LEITWORTER.md) against the registry in
+Enforces the leitwörter convention (see
+skills/extras/skill-expert/references/leitworter.md) against the registry in
 leitworter.json. Two failure modes are gated (exit 1):
 
   - deletion: a `must_contain` leitwort disappeared from the skill that owns it.

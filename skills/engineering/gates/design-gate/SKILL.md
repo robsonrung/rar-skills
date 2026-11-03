@@ -33,8 +33,8 @@ When a decision carries a real trade-off but no row fits, run only the `architec
 
 ## Output
 
-Return the gate result defined in `shared/references/gate-result.md`. Keep finding IDs stable across merges and rechecks. Security classification belongs to `security-gate`.
+Return `proceed` or `revise`, the lenses run with their evidence, each finding with a stable ID, its lens, evidence, and status (`open`, `resolved` with the evidence, or `dismissed` with the reason), the required changes, any decision only the user can make, and the review focus for implementation. `proceed` needs no open blocking finding, change, or decision. Keep finding IDs stable across merges and rechecks. Security classification belongs to `security-gate`.
 
 ## Seats
 
-Before dispatching other models, show the plan (seats, models, briefs) and get a clear yes. Defaults come from `shared/model-routing.json`. Inside T3 Code, use `delegate_task` with the configured provider and model, and continue with `t3_thread_send`. In Claude Code or Codex, use a native subagent when the host has the model, and continue by messaging it. Otherwise use the matching `*-runner` skill. Send follow-ups, such as a blocker recheck, to the same seat so it keeps its context. Tell lens seats to leave files unchanged.
+Before dispatching other models, show the plan (seats, models, briefs) and get a clear yes. Defaults come from `shared/model-routing.json`. Inside T3 Code, use `delegate_task` with the configured provider and model, and continue with `t3_thread_send`. In Claude Code or Codex, use a native subagent when the host has the model, and continue by messaging it. Otherwise use `cli-runner`, `pi-runner`, or `muse-runner`. Send follow-ups, such as a blocker recheck, to the same seat so it keeps its context. Tell lens seats to leave files unchanged.

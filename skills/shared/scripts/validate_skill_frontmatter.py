@@ -11,10 +11,11 @@ Checks, across every top-level skill dir (any dir containing SKILL.md):
      skill undiscoverable on AgentSkills hosts). Upstream prefixes like `ce-`
      are banned in skill names.
   3. `description:` present and at least 20 characters (enough to route on).
-  4. Runner parity: every `*-runner/` dir is either registered in shared/model-routing.json or explicitly
-     allowlisted below as a non-seat runner. A new runner dir that is neither
-     fails CI — adding a runner skill without registering its seat is the
-     drift this guard exists to catch.
+  4. Runner parity: every runner id a `*-runner/` skill serves (RUNNER_SKILLS,
+     or its name prefix) is registered with a discovery seat in
+     shared/model-routing.json, unless allowlisted below as a non-seat runner;
+     and every registered runner is served by exactly one runner skill. An
+     unregistered runner skill, or a registered runner with no skill, fails CI.
   5. Invocation parity: `disable-model-invocation: true` is Claude-Code-specific;
      Codex hosts need agents/openai.yaml with `allow_implicit_invocation: false`.
      A skill carrying one without the other is manual-only on one harness and
@@ -37,7 +38,7 @@ except ImportError:  # keep the guard runnable without the dep
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from skill_paths import iter_skill_dirs  # noqa: E402
+from skill_paths import RUNNER_SKILLS, iter_skill_dirs  # noqa: E402
 from model_routing import load_config, model_aliases  # noqa: E402
 
 # AgentSkills name rule: lowercase alphanumerics separated by single hyphens.
@@ -141,14 +142,22 @@ def check_runner_parity(failures: list[str]) -> None:
         runner for runner in config["runners"]
         if any(spec["seat"] in model_aliases(runner, config) for spec in config["discovery"])
     }
+    served: dict[str, list[str]] = {}
     for runner_dir in sorted(d for d in iter_skill_dirs(REPO_ROOT) if d.name.endswith("-runner")):
-        if not runner_dir.is_dir():
+        if runner_dir.name in NON_SEAT_RUNNERS:
             continue
-        prefix = runner_dir.name.removesuffix("-runner")
-        if prefix not in registered and runner_dir.name not in NON_SEAT_RUNNERS:
+        for runner in RUNNER_SKILLS.get(runner_dir.name, (runner_dir.name.removesuffix("-runner"),)):
+            served.setdefault(runner, []).append(runner_dir.name)
+            if runner not in registered:
+                failures.append(
+                    f"{runner_dir.name}: runner {runner!r} is not registered in model-routing.json "
+                    "and the skill is not in NON_SEAT_RUNNERS — register the seat or allowlist it deliberately"
+                )
+    for runner in sorted(registered):
+        skills = served.get(runner, [])
+        if len(skills) != 1:
             failures.append(
-                f"{runner_dir.name}: not registered in model-routing.json and not in "
-                "NON_SEAT_RUNNERS — register the seat or allowlist it deliberately"
+                f"runner {runner!r} must be served by exactly one runner skill, found {skills or 'none'}"
             )
 
 

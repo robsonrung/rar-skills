@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="{{lang}}">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; font-src 'none'; connect-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>{{title}}</title>
+<style>
+  :root { --ink:#182c3e; --muted:#526377; --paper:#f3f6f8; --panel:#fff; --line:#d9e2e8; --accent:#087d75;
+          --ok:#28745a; --warn:#946015; --bad:#a82b35; --na:#647b8c; --code:#edf3f7; }
+  @media (prefers-color-scheme: dark) {
+    :root { --ink:#e6edf3; --muted:#9fb0bf; --paper:#0f1a23; --panel:#16232e; --line:#2a3b49; --accent:#43b8ad;
+            --ok:#6fd0a4; --warn:#e0b060; --bad:#f08a93; --na:#9fb0bf; --code:#1d2a35; }
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font: 15px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 28px 18px 80px; }
+  h1 { font-size: 26px; margin: 0 0 6px; }
+  h2 { font-size: 19px; margin: 0 0 6px; }
+  h3 { font-size: 16px; margin: 0 0 6px; }
+  .subtitle, .lede { color: var(--muted); max-width: 900px; }
+  .toc { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0 8px; }
+  .toc a { font-size: 13px; color: var(--muted); text-decoration: none; border: 1px solid var(--line); border-radius: 999px; padding: 3px 12px; }
+  .controls { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0 22px; }
+  button { font: inherit; font-size: 13px; color: var(--ink); background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 4px 12px; cursor: pointer; }
+  section.card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 22px 24px; margin-bottom: 22px; }
+  .scroll { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  th, td { text-align: left; vertical-align: top; border-bottom: 1px solid var(--line); padding: 6px 8px; }
+  code, pre { font: 13px/1.45 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; background: var(--code); border-radius: 4px; }
+  code { padding: 1px 4px; }
+  pre { padding: 10px 12px; overflow-x: auto; }
+  .badge { display: inline-block; font-size: 12px; font-weight: 600; border: 1px solid currentColor; border-radius: 5px; padding: 0 6px; }
+  .adequate { color: var(--ok); } .attention { color: var(--warn); } .critical { color: var(--bad); }
+  .unknown, .not_applicable { color: var(--na); }
+  .P0, .P1 { color: var(--bad); } .P2 { color: var(--warn); } .P3 { color: var(--na); }
+  article { border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; margin: 12px 0; }
+  details.drill { margin-top: 8px; }
+  details.drill > summary { cursor: pointer; color: var(--accent); font-size: 14px; }
+  dl { display: grid; grid-template-columns: minmax(120px, 180px) 1fr; gap: 6px 14px; margin: 10px 0 0; }
+  dt { font-weight: 600; color: var(--muted); }
+  dd { margin: 0; }
+  .diagram { border: 1px solid var(--line); border-radius: 10px; padding: 10px; overflow-x: auto; }
+  .diagram svg { display: block; min-width: 680px; width: 100%; height: auto; }
+  svg .node rect { fill: var(--panel); stroke: var(--line); }
+  svg text { fill: var(--ink); font: 13px system-ui, sans-serif; }
+  svg .edge { stroke: var(--muted); fill: none; }
+  svg .proposed { stroke-dasharray: 6 4; }
+  svg .clickable { cursor: pointer; }
+  svg marker path { fill: var(--muted); }
+  .first-move { font-size: 12px; font-weight: 600; color: var(--accent); }
+  footer { color: var(--muted); font-size: 13px; margin-top: 30px; }
+  @media print { .toc, .controls { display: none; } details.drill { display: block; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+{{body}}
+</div>
+<script>
+  function jump(id) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    el.querySelectorAll('details').forEach(function (d) { d.open = true; });
+    el.scrollIntoView({ block: 'start' });
+  }
+  function setAll(open) {
+    document.querySelectorAll('details').forEach(function (d) { d.open = open; });
+  }
+  function filterPriority(set) {
+    document.querySelectorAll('article.finding').forEach(function (a) {
+      a.hidden = set !== 'all' && set.split(' ').indexOf(a.dataset.priority) < 0;
+    });
+  }
+</script>
+</body>
+</html>

@@ -9,7 +9,7 @@ Two small jobs. While the user is still choosing the feature, ask the **threat-m
 
 ## Threat-model-lite — spec-time checklist (interactive)
 
-Run this inside the requirements interview. Resolve repository facts from evidence and return only unresolved security decisions to the interview's frontier; ask only the questions the feature exposes. They share the interview's five-question limit; do not send a second batch. Record the answers in the decision record using `shared/references/answer-evidence.md` for portable source authority. `to-prd` carries them into the PRD's Security Decisions section.
+Run this inside the requirements interview. Resolve repository facts from evidence and return only unresolved security decisions to the interview's frontier; ask only the questions the feature exposes. They share the interview's five-question limit; do not send a second batch. Record the answers in the decision record with the user's actual words or the host's message locator. `to-prd` carries them into the PRD's Security Decisions section.
 
 Reuse recorded decisions by their stable IDs and source-index references. Each slice still evaluates its own deep-pass triggers; a shared decision is not a shared risk classification. Use a safe scoped default only for a nonmaterial detail. Ask only when the answer changes access, data handling, scope, cost, permitted effect, or an unresolved security decision. Silence is not approval.
 

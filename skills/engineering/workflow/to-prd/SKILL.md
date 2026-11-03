@@ -19,6 +19,6 @@ Turn `.ai-workflow/work/<feature-slug>/decision-record.md`, status `ready-for-pr
    7. Out of scope, assumptions, and remaining risks.
    8. Decision IDs for each outcome and constraint, linked to the record rather than copied.
 3. Use the glossary's terms and define any new one once. Where a rule stays ambiguous, add a short scenario naming the actor, record, and outcome.
-4. Present the path and the material choices. Revise from user corrections. Mark it `approved` only on explicit acceptance, captured as `shared/references/answer-evidence.md` describes; silence does not approve it. An `--auto` handoff from `interview-me` still needs this approval.
+4. Present the path and the material choices. Revise from user corrections. Mark it `approved` only on explicit acceptance, recording the user's actual words or the host's message locator; silence does not approve it. An `--auto` handoff from `interview-me` still needs this approval.
 
 The approved PRD is the only input `to-tasks` accepts.

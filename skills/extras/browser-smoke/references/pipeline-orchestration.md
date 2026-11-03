@@ -20,7 +20,7 @@ ports, process handles, fixture identity, driver transport, and captured readine
 Reuse a service only after its ownership and relevant identity match. Stop only owned resources.
 Check browser access before expensive server preparation. No browser access means no business
 interaction occurred; record that preflight result separately.
-For `validate-e2e`, use its `preflight` command and the same immutable input snapshot as the attempt.
+Record that result with `shared/scripts/browser_preflight.py record`.
 Classify known baseline console and service errors before execution. A required failed gate stays
 failed until its cause is fixed or the acceptance contract is explicitly changed.
 

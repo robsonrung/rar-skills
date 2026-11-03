@@ -49,7 +49,30 @@ class ValidateConsensusSummaryTest(unittest.TestCase):
         text = FIXTURE.read_text(encoding="utf-8").replace(
             "</head>", '<script src="https://example.com/x.js"></script></head>'
         )
-        self.assertTrue(any("external script" in error for error in self.check(text)))
+        self.assertTrue(any(error.startswith("markup safety") for error in self.check(text)))
+
+    def test_bundled_template_passes_the_guard(self):
+        self.assertEqual(validator.guard_problems(validator.TEMPLATE, allow_comments=True), [])
+
+    def test_injected_council_text_fails(self):
+        fixture = FIXTURE.read_text(encoding="utf-8")
+        cases = [
+            fixture.replace("<p>Agreement point</p>", "<p>Agreement <img src=x onerror=alert(1)></p>"),
+            fixture.replace("<p>Agreement point</p>", "<svg><title><img src=x onerror=alert(1)></title></svg>"),
+            fixture.replace("<p>Agreement point</p>", '<p><a href="javascript:alert(1)">report</a></p>'),
+            fixture.replace("--value: 70%", "--value: 70%; background: url(https://x/y)"),
+            fixture.replace("function setAll(open) {", "function setAll(open) { fetch('//x');"),
+            fixture.replace("<p>Agreement point</p>", "<!-- seat said --><p>Agreement point</p>"),
+            "\n".join(line for line in fixture.splitlines() if "Content-Security-Policy" not in line),
+        ]
+        for text in cases:
+            with self.subTest(text=text[:0]):
+                self.assertTrue(any(error.startswith("markup safety") for error in self.check(text)), self.check(text))
+
+    def test_escaped_council_text_passes(self):
+        text = FIXTURE.read_text(encoding="utf-8").replace(
+            "<p>Agreement point</p>", "<p>Seat A wrote &lt;script&gt;alert(1)&lt;/script&gt; verbatim.</p>")
+        self.assertEqual(self.check(text), [])
 
 
 if __name__ == "__main__":

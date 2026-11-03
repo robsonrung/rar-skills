@@ -1,5 +1,5 @@
 {
-  "_comment": "Machine-readable registry for the leitwörter convention (see LEITWORTER.md). The `guards` block is enforced by scripts/check_leitworter.py and the CI workflow: must_contain entries are deletion tripwires (the leitwort must still be present), must_not_contain entries are drift tripwires (an old generic phrasing must not return). The `canon` block is the cross-skill vocabulary, used by skill-expert and for warn-only drift hints. Matching is case-insensitive substring.",
+  "_comment": "Machine-readable registry for the leitwörter convention (see skills/extras/skill-expert/references/leitworter.md). The `guards` block is enforced by scripts/check_leitworter.py, which CI runs in .github/workflows/skill-guards.yml: must_contain entries are deletion tripwires (the leitwort must still be present), must_not_contain entries are drift tripwires (an old generic phrasing must not return). The `canon` block is the cross-skill vocabulary, used by skill-expert and for warn-only drift hints. Matching is case-insensitive substring.",
   "guards": [
     {
       "file": "skills/engineering/practice/clean-code/SKILL.md",
@@ -164,7 +164,7 @@
       "must_not_contain": []
     },
     {
-      "file": "skills/shared/references/run-state-contract.md",
+      "file": "skills/shared/references/work-state.md",
       "concept": "the ledger, not the transcript / the model never decides the retry / three exits / crash-resume test",
       "must_contain": [
         "the ledger, not the transcript",

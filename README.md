@@ -1,124 +1,49 @@
 # rar-skills
 
-`rar-skills` is an engineering skill library. Its feature workflow turns a
-request into a verified local result through four stages:
+`rar-skills` is a library of engineering skills for coding agents. Each skill is
+a `SKILL.md` with its own references and scripts. The skills plan a feature,
+implement it task by task with independent review, and deliver it. Shared
+contracts, model routing, and runner scripts live in
+[`skills/shared/`](skills/shared/SKILL.md), which installs beside the skills.
 
-`interview-me` → `to-prd` → `to-tasks` → `implement-tasks`
+Each skill owns its rules. This README only points to them.
 
-For one bounded, specified change with clear acceptance and no unresolved
-material decision, use `implement-and-review` directly. It retains exact worker
-approval and independent review without a feature PRD or task graph.
-See [docs/workflow.md](docs/workflow.md) for the workflow guide and owning contracts.
+## Install
+
+```bash
+npx skills@latest add robsonrung/rar-skills --skill '*'
+```
+
+From a local checkout, run
+[`scripts/install-skills.sh`](scripts/install-skills.sh) `/path/to/project`. It
+installs to `.agents/skills/` and `.claude/skills/` (`--layout` picks one, and
+`--copy` copies instead of symlinking). If a host hides a skill, tell the agent
+to read `.agents/skills/<name>/SKILL.md` and follow it.
+
+[docs/machine-setup.md](docs/machine-setup.md) lists the tools, CLIs,
+credentials, and environment variables. `bash scripts/check-environment.sh`
+checks them.
 
 ## Workflow
 
-| Stage | Output | Main responsibility |
-| --- | --- | --- |
-| `interview-me` | `decision-record.md` | Use relevant repository facts, then ask at most five independent questions in one turn. With `--auto`, keep two isolated role contexts: resolve the product or technical interview roles from the central routing configuration. The respondent can provide evidence and alternatives, but cannot settle a material user decision. Record settled decisions and scope; the record becomes `ready-for-prd` when the interview closes. |
-| `to-prd` | `prd.md` | Turn a `ready-for-prd` decision record into a draft PRD. The user reviews it before it becomes approved. |
-| `to-tasks` | Canonical task files, compact `tasks-draft.md`, and `queue.json` | Write each complete task contract once. The index links contracts and dependencies. Task-only approval is the default. When execution is requested, one explicit response can approve the queue and exact worker plan. Drafts cannot run. |
-| `implement-tasks` | Verified local result | Dispatch ready tasks through `implement-and-review` with the approved implementation, independent review, and integration routes. Verify the combined state before releasing dependents. |
+1. [`brainstorm`](skills/engineering/workflow/brainstorm/SKILL.md): decide whether an idea is worth building.
+2. [`interview-me`](skills/engineering/workflow/interview-me/SKILL.md): settle the decisions.
+3. [`to-prd`](skills/engineering/workflow/to-prd/SKILL.md): write the PRD for approval.
+4. [`to-tasks`](skills/engineering/workflow/to-tasks/SKILL.md): split the PRD into an approved task queue.
+5. [`implement-tasks`](skills/engineering/workflow/implement-tasks/SKILL.md): run the queue, one [`implement-and-review`](skills/engineering/engine/implement-and-review/SKILL.md) per task.
+6. [`pre-pr-review`](skills/engineering/workflow/pre-pr-review/SKILL.md) and [`validate-e2e`](skills/engineering/workflow/validate-e2e/SKILL.md): check the finished change.
+7. [`open-pr`](skills/engineering/deliver/open-pr/SKILL.md): commit, push, and open the pull request when asked.
 
-Task approval defines the work. Model approval defines the exact worker routes
-and controls. They remain separate decisions even when one response covers both.
-The [shared preview](skills/shared/references/model-preview.md) first selects the
-branch. Coordinator work, inline methods, and deterministic commands need no
-worker selection. Actual dispatch needs one concrete preview with roles, tools,
-privacy controls, receipt policy, fallbacks, and budgets. Nested skills reuse
-the approved snapshot. A request to use defaults and run permits the unchanged
-resolved setup within source sharing authority and accepted receipt limits.
-Silence cannot approve it.
+[`models-consensus`](skills/engineering/workflow/models-consensus/SKILL.md) is
+optional: a council of model opinions, only on request. A single bounded change
+can go straight to `implement-and-review`.
 
-[`model-routing.json`](skills/shared/model-routing.json) owns profile names,
-exact models, and effort defaults. Workflow previews resolve `--profile default`,
-with a validated local preference or explicit override when supplied. Profiles
-include `saver`, `economy`, and `balanced`; the configuration selects the default.
-Legacy family routes remain selectable. Approved snapshots retain their exact routes when configuration
-changes. Static checks do not prove model quality, latency, or cost savings.
+The feature files (decision record, PRD, tasks, reports, evidence) live under
+`.ai-workflow/work/<feature>/`, as
+[work-state.md](skills/shared/references/work-state.md) describes. Models and
+effort come from [`model-routing.json`](skills/shared/model-routing.json).
 
-`implement-tasks` checks native host capability before external runner
-availability and preserves the approved route and effort. Each task has an
-isolated implementer and an independent reviewer. Each role retains its own
-context for permitted fixes and rechecks. An unavailable route blocks its work
-unless its exact fallback was approved. Workspace selection and integration
-follow the engine's
-[isolation rules](skills/engineering/engine/implement-and-review/SKILL.md#isolation).
-Without delivery authorization, the result stays local and verified. The
-[read-only queue controller](skills/engineering/workflow/implement-tasks/references/queue-controller.md)
-projects readiness from bound contracts, manifests, and the existing call ledger.
-It starts no worker and changes no state. The conductor reserves each call before
-dispatch, keeps write ownership through pending calls and integration, and
-enforces dependency and concurrency limits.
-
-A requested or configured model is not proof that it served a run. Each route
-records `model_verification` as `required` or `allow_unverified`. `required`
-needs `model_receipt.status: verified` from a native or provider event. An
-`allow_unverified` route needs explicit approval and reports that limit clearly.
-
-The stage rules are in
-[workflow-stage-routing.md](skills/shared/references/workflow-stage-routing.md).
-Model choices are in
-[task-shaped-model-routing.md](skills/shared/references/task-shaped-model-routing.md)
-and [model-roster.md](skills/shared/references/model-roster.md). The host and
-session rules are in
-[host-model-execution.md](skills/shared/references/host-model-execution.md).
-
-### Engineering practices in the workflow
-
-| Moment | Skills |
-| --- | --- |
-| Discover risk and behavior | `security-gate`, a broad lens only when it changes the next question, and `to-prototype` when a runnable question blocks a decision |
-| Plan a task slice | `design-gate` once with at most three inline lenses, `security-gate` for the security classification, and `test-lens` for a real test-design decision |
-| Resolve an implementation shape | `coding-design-plan` when the shape is unresolved; reuse inherited gate constraints |
-| Build new behavior | `tdd`, then `clean-code` for a refactor decision and `test-lens` for a test-design decision |
-| Change untested legacy code | `safe-incremental-coding` before broad edits |
-| Investigate an unexpected failure | `diagnose` |
-| Review a completed change | Approved scoped review; `full-review` for integration seams or named risks, `coding-review-simplify` for a useful simplification, and `browser-smoke` for affected web flows |
-
-Routine lenses are read-only procedures in the assigned role. A material risk
-or unresolved question can require an approved independent specialist. The final
-code review remains independent. Routine reviews do not start a council.
-
-The [shared evidence contract](skills/shared/references/review-evidence.md)
-selects affected checks from declared inputs. It retains matching captures,
-requires an explicit transfer assessment for changed source identity, and runs
-affected or required fresh checks. Unknown dependencies use whole-source scope.
-Keep original logs and immutable snapshots. A passing command or completion
-label alone cannot establish review readiness.
-
-## Feature validation
-
-[`validate-e2e`](skills/engineering/workflow/validate-e2e/SKILL.md) validates an
-existing feature against a finite acceptance contract. Command-only work runs
-directly. Worker work uses the exact approved routes and reserved budgets.
-Validation exports current captured checks and browser observations through the
-same evidence packet used by review. Required behavior and runtime gates remain
-separate. `pre-pr-review` reuses evidence only after the shared verifier accepts
-it. Approved recovery allowances retain total limits across native and runner
-resumes. A scoped pass does not prove universal coverage.
-
-## Optional council
-
-`models-consensus` is for a user who explicitly asks for more opinions. It is
-user-invoked only. It runs a `poll`, `debate`, or `personas` council, and first
-shows the question, mode, each role's model, effort, and host route, and the
-call ceiling for approval. Each seat keeps one context for the whole run. The
-council provides deliberation only.
-
-`brainstorm` batches up to five independent decisions after its territory gate.
-`to-prototype` uses the smallest experiment that can settle one question, such as
-one visual fixture or two useful alternatives. Prototype code remains disposable.
-
-## Delivery
-
-The workflow stops at a local, verified result unless the user explicitly asks
-to commit, push, open or update a pull request, or create or change a tracker
-item. Those actions are never implied by task or model-plan approval.
-
-## Library map
-
-The following map keeps the skills discoverable while leaving detailed
-instructions in each `SKILL.md`. The shared library installs beside them.
+## Skills
 
 | Domain | Skills |
 | --- | --- |
@@ -127,93 +52,29 @@ instructions in each `SKILL.md`. The shared library installs beside them.
 | Gates | `design-gate`, `security-gate` |
 | Lenses | `advanced-react`, `agent-architecture-lens`, `architecture-lens`, `data-systems-coding-lens`, `distributed-systems-patterns`, `domain-driven-design`, `software-design-philosophy` |
 | Practice | `clean-code`, `diagnose`, `frontend-design`, `safe-incremental-coding`, `tdd`, `test-lens` |
-| Review | `architecture-review`, `code-deslop`, `coding-review-simplify`, `full-review` |
+| Review | `architecture-review`, `coding-review-simplify`, `full-review` |
 | Delivery | `capture-learning`, `open-pr`, `resolve-pr-feedback`, `session-handoff` |
-| Model seats | `claude-runner`, `codex-runner`, `gemini-runner`, `grok-runner`, `pi-runner`, `muse-runner` |
-| Independent utilities | `browser-smoke`, `diverse-plan`, `environment-check`, `knowledge-graph`, `peer-sessions`, `response-unslop`, `skill-expert`, `verify-changes` |
-| Visualizations | `consensus-summary-html`, `html-explainer` |
+| Model seats | `cli-runner`, `pi-runner`, `muse-runner` |
+| Extras | `browser-smoke`, `diverse-plan`, `environment-check`, `knowledge-graph`, `peer-sessions`, `response-unslop`, `skill-expert`, `verify-changes` |
+| Visualization | `consensus-summary-html`, `html-explainer` |
 
-## Install
+Skills live under `skills/<domain>/`. Engineering skills sit one level deeper,
+in `skills/engineering/<group>/<name>/`.
 
-See the [machine setup checklist](docs/machine-setup.md) for required tools,
-optional runners, browser setup, credentials and environment variables.
-Run `bash scripts/check-environment.sh` to check local prerequisites.
+## Other docs
 
-```bash
-npx skills@latest add robsonrung/rar-skills
-```
+- [CONCEPTS.md](CONCEPTS.md): the shared vocabulary.
+- [docs/solutions/](docs/solutions/README.md): learnings recorded by `capture-learning`.
 
-Install every skill:
+## Contributing
 
-```bash
-npx skills@latest add robsonrung/rar-skills --skill '*'
-```
-
-Install from a local checkout:
-
-```bash
-scripts/install-skills.sh /path/to/your-project
-```
-
-Skills install under `.agents/skills/`. Shared references and runner scripts
-install next to them under `.agents/skills/shared/`.
-
-## Model seats
-
-Most planning, design, practice, and review skills run in a compatible host.
-For an exact model available in that host, use its native delegation first.
-Keep each role's session through later rounds while keeping independent roles
-separate. A runner is for a foreign model or a native route that cannot meet the
-approved plan. Check external runner availability before selecting one:
-
-```bash
-python3 skills/shared/scripts/discover_runners.py probe
-```
-
-Resolve model identifiers from the central configuration. A successful probe
-confirms a transport, not the model
-that later serves the request.
-
-[`muse-runner`](skills/engineering/seats/muse-runner/SKILL.md) provides the optional
-`muse-wonder-full` implementation worker. Select it with
-`python3 skills/shared/scripts/model_routing.py resolve routine-implementation --profile default --role implementer=muse-wonder-full:high`.
-The selected profile reviewer and current defaults stay unchanged. Subscription
-ZDR is recorded as user confirmed on 16 October 2026 for the current account,
-not independently verified or applicable to other accounts. Workflow dispatch
-requires the exact serving receipt, keeps Contributor mode off, and supports
-background jobs with sandboxed test commands. Persistent resume is unsupported.
-Check the local transport with
-`python3 skills/engineering/seats/muse-runner/scripts/run_muse.py --preflight --json`.
-
-## Documentation
-
-[docs/workflow.md](docs/workflow.md) and [workflow.html](workflow.html) describe
-the current workflow.
-
-[docs/openhands.md](docs/openhands.md) explains how to run the current workflow
-with OpenHands.
+Write and change skills with
+[`skill-expert`](skills/extras/skill-expert/SKILL.md). It owns the authoring
+guidance and the leitwörter convention
+([leitworter.md](skills/extras/skill-expert/references/leitworter.md)). Run
+`python3 scripts/check_leitworter.py` and
+`python3 skills/shared/scripts/validate_skill_frontmatter.py` before committing.
 
 ## License
 
 See [LICENSE](LICENSE).
-
-## Model routing
-
-[`skills/shared/model-routing.json`](skills/shared/model-routing.json) is the
-single maintained configuration for model IDs, aliases, reasoning levels,
-runner capabilities, task routes, and council roles. Skills and adapters read
-it; approved run plans preserve exact selections as immutable snapshots.
-
-```bash
-python3 skills/shared/scripts/model_routing.py resolve code-exploration --profile default
-python3 skills/shared/scripts/model_routing.py resolve routine-implementation --profile default
-python3 skills/shared/scripts/model_routing.py resolve isolated-implementation --profile default --risk high
-python3 skills/shared/scripts/model_routing.py council routine
-python3 skills/shared/scripts/model_routing.py validate
-```
-
-Resolution is read only. It does not dispatch workers or change an approved plan.
-Bounded tasks use smaller workers with evidence requirements; implementation
-routes include an independent stronger reviewer. Risk and escalation rules stay
-in the same configuration. These are task defaults, not measured savings or a
-guarantee of equal results.

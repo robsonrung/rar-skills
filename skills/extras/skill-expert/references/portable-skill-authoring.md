@@ -1,44 +1,29 @@
 # Portable Skill Authoring
 
-Use this reference when a change touches model routing, host capabilities, authority, or a protocol several skills share.
+Use this when a skill dispatches models or relies on a host capability. A skill that dispatches nothing says nothing about routing.
 
-## Model routing
+## The routing pattern
 
-`shared/model-routing.json` owns every model and effort mapping. Skill prose names a route or role, never a model ID; concrete IDs belong in that file, run plans, receipts, and test fixtures.
+`shared/model-routing.json` owns every model and effort setting. Skill prose names a route or role, never a model ID. A skill that dispatches models uses this pattern and nothing longer:
 
-A skill that dispatches models uses this pattern and nothing longer:
+1. Use the routes in a plan the skill inherited, or else the models the user names. Otherwise run `python3 shared/scripts/model_routing.py resolve <route> [--risk high]` with the route that fits the work (`show` lists every route).
+2. Show each role with its model, effort, and host route, plus any ceiling. Ask: **"Approve this plan, or specify changes."** An inherited approved plan is already the approval.
+3. Route each role by host:
+   - **T3 Code:** start it with `delegate_task` and continue it with `t3_thread_send`.
+   - **Claude Code or Codex:** use a native subagent when the host has the model, and continue it by messaging the same subagent.
+   - **A model the host lacks:** use `cli-runner`, `pi-runner`, or `muse-runner`.
+4. Give each role one persistent context for the whole task. Different roles never share a context.
+5. **Seat fidelity**: an unavailable model blocks its role, and the skill reports it. Never swap in another model or the host's own.
 
-1. Use the models the user names, or the routes in a plan the skill inherited. Otherwise run `python3 shared/scripts/model_routing.py resolve <route>` with the route that fits the work (`show` lists them).
-2. Show the plan: each role with its model, effort, and host route, plus any ceiling. Ask: **"Approve this plan, or specify changes."** An inherited approved plan is already the approval.
-3. Route each role by host. T3 Code: `delegate_task`, continued with `t3_thread_send`. Claude Code or Codex: a native subagent, continued by messaging the same subagent. A model the host lacks: the matching `*-runner` skill.
-4. One persistent context per role for the whole task. Later turns of a role go to its context; different roles never share one.
-5. **Seat fidelity**: an unavailable model blocks its role, and the skill reports it. It never swaps in another model or the host's own.
+`skills/engineering/engine/implement-and-review/SKILL.md` is the reference implementation. Copy its shape, not its roles.
 
-A skill that does not dispatch models says nothing about routing, and no skill opens with routing ceremony. `skills/engineering/engine/implement-and-review/SKILL.md` is the reference implementation.
+## Delegation
 
-## Protocol and judgment
+Having a multi-agent tool is not a reason to delegate. Delegate independent, sizeable work that can run in parallel. Do not delegate a handful of tool calls or the check of your own work. Each worker gets a scope, an output contract, and an owner who integrates its result. The lead keeps working while workers run.
 
-Keep a rule whose omission could change authority, state, coverage, counts, output fields, or a downstream handoff.
+## Host behavior
 
-| Keep explicit | Leave to judgment |
-| --- | --- |
-| Output paths, fields, enums, schemas | Order of independent investigations |
-| Dependencies and required state transitions | Number of alternatives to sketch |
-| Approval, mutation, and isolation boundaries | Generic self-checks and reread loops |
-| Evidence and coverage a consumer needs | Repeated rationale and quality reminders |
-| Bounded retries and terminal outcomes | Choice among several valid techniques |
-
-Put each rule beside the action it governs, and state it once, in its owner. Another skill points to the owner rather than restating it.
-
-## Authority
-
-An explicit change request authorizes its necessary reversible work; an audit request authorizes none. Reuse approval already given for the same scope; silence is not new approval. Ask only when a choice changes scope, cost, permitted effects, or an unresolved decision, and keep working on whatever that choice does not block.
-
-A multi-agent tool being present is no reason to use it. Delegation needs a reason (independent, sizeable, parallel work), and each worker needs a scope, an output contract, and an owner who integrates its result.
-
-## Portability
-
-Inspect the real adapter or consumer when a change depends on its behavior. A prompt-only restriction is not a sandbox, and one missing binary does not prove the host lacks every equivalent capability. Use deterministic checks for metadata, paths, schemas, and scripts; claim a behavioral improvement only from a bounded comparison, never from fewer words or one good run.
+Inspect the real adapter or consumer before relying on its behavior. A restriction stated only in the prompt is not a sandbox. One missing binary does not prove the host lacks every equivalent.
 
 ---
 

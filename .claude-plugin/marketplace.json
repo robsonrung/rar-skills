@@ -7,7 +7,7 @@
     {
       "name": "engineering",
       "source": "./skills/engineering",
-      "description": "The four-step development workflow and everything it calls.",
+      "description": "The development workflow and everything it calls.",
       "skills": [
         "./deliver/capture-learning",
         "./deliver/open-pr",
@@ -31,12 +31,11 @@
         "./practice/safe-incremental-coding",
         "./practice/tdd",
         "./practice/test-lens",
+        "./review/architecture-review",
         "./review/coding-review-simplify",
         "./review/full-review",
-        "./seats/claude-runner",
-        "./seats/codex-runner",
-        "./seats/gemini-runner",
-        "./seats/grok-runner",
+        "./seats/cli-runner",
+        "./seats/muse-runner",
         "./seats/pi-runner",
         "./workflow/brainstorm",
         "./workflow/implement-tasks",
@@ -45,7 +44,8 @@
         "./workflow/pre-pr-review",
         "./workflow/to-prd",
         "./workflow/to-prototype",
-        "./workflow/to-tasks"
+        "./workflow/to-tasks",
+        "./workflow/validate-e2e"
       ]
     },
     {
@@ -72,8 +72,10 @@
       "skills": [
         "./browser-smoke",
         "./diverse-plan",
+        "./environment-check",
         "./knowledge-graph",
         "./peer-sessions",
+        "./response-unslop",
         "./skill-expert",
         "./verify-changes"
       ]

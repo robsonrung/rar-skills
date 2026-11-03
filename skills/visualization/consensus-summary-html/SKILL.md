@@ -31,7 +31,7 @@ Use **selection over compression**: cut repeated prose, never evidence, caveats,
 
 Copy `assets/template.html` from this skill's directory to `<report directory>/<session>-summary.html`, or to `docs/consensus/<slug>-summary.html` for a pasted report. An explicit request to update an existing page authorizes that edit; otherwise use a new path. Read `shared/references/html-page-conventions.md` for self-containment, the three depths, status in text as well as color, and escaping.
 
-Keep the section ids in this order: `overview` (question, status, mode, session), `verdict`, `agreements`, `divergences`, `evidence` (the phases the report records, the seat table, the report path), `confidence`, `next-step`, `limits`. **Lead with the outcome**: the first screen shows the question, status, verdict, next step, and any open divergence. Keep cards short, put long text in `<details>`, and never paste the report wholesale.
+Keep the section ids in this order: `overview` (question, status, mode, session), `verdict`, `agreements`, `divergences`, `evidence` (the phases the report records, the seat table, the report path), `confidence`, `next-step`, `limits`. **Lead with the outcome**: the first screen shows the question, status, verdict, next step, and any open divergence. Keep cards short, put long text in `<details>`, and never paste the report wholesale. Council text is data: escape it, and use only the template's markup, policy, and script.
 
 Write in the user's language: ASD-STE100 Simplified Technical English for English, plain Brazilian Portuguese for Portuguese. Keep names, paths, grades, and quoted council text unchanged.
 
@@ -41,6 +41,6 @@ Write in the user's language: ASD-STE100 Simplified Technical English for Englis
 SKILL_DIR="<absolute path of this consensus-summary-html directory>"; python3 "$SKILL_DIR/scripts/validate_consensus_summary.py" <output-file.html>
 ```
 
-The validator checks the eight section ids, one `data-role="next-step"`, separate `answer-confidence` and `diversity-confidence` values, a seat table with at least one row, a source label, self-containment, and leftover template tokens. Fix every failure, then render the page as the shared conventions describe.
+The validator checks the eight section ids, one `data-role="next-step"`, separate `answer-confidence` and `diversity-confidence` values, a seat table with at least one row, a source label, leftover template tokens, and the markup safety floor (`shared/scripts/html_guard.py`), which rejects any HTML comment. Fix every failure, then render the page as the shared conventions describe.
 
 The **acceptance contract**: the validator exits 0, the page opens from disk, the first screen holds the verdict, and navigation reaches every section. Report the output path first, then the council status, the verdict, the next step, the validation result, and anything you could not check visually.

@@ -11,7 +11,7 @@ Read only when the invocation includes `--auto`. Two roles advance the design tr
 
 Give each role one persistent context for the whole run; every later round goes to that same context. The roles see only the decision record, the question and answer packets, and cited evidence, never each other's transcript. Leave secrets and unrelated personal data out of packets; after the first, send only changed decisions and open questions.
 
-Route each role by host: T3 Code `delegate_task` (continue with `t3_thread_send`); Claude Code or Codex a native subagent with the role's model (continue by messaging it); otherwise the matching `*-runner` skill (continue by resuming its session). Both roles are read-only. An unavailable role pauses the run for the user; never swap in another model.
+Route each role by host: T3 Code `delegate_task` (continue with `t3_thread_send`); Claude Code or Codex a native subagent with the role's model (continue by messaging it); otherwise `cli-runner`, `pi-runner`, or `muse-runner` (continue by resuming its session). Both roles are read-only. An unavailable role pauses the run for the user; never swap in another model.
 
 | Role | Job | Returns |
 | --- | --- | --- |
@@ -26,7 +26,7 @@ One interviewer call and one respondent call make a round. Keep going without pa
 
 Ceilings: 5 rounds, 5 questions per round, 20 calls in total. A malformed reply or transient failure gets one repair prompt to the same context; a second failure ends the run `failed`. Reaching a ceiling ends it `ceiling_hit`. Do not extend a ceiling or start a fresh run without the user.
 
-Keep the run under `.ai-workflow/work/<feature-slug>/interview-auto/<run-id>/`: the round packets and a run state per `shared/references/run-state-contract.md`. Record the run ID and state path under `## Auto interview run` in the decision record, and resume from there with the same role contexts.
+Keep the run under `.ai-workflow/work/<feature-slug>/interview-auto/<run-id>/`: the round packets and a `state.md` with the round and call counts, written before each call, and each role's context ID. Record the run path under `## Auto interview run` in the decision record, and resume from there with the same role contexts, never from the transcript.
 
 ## Ready-for-PRD gate
 

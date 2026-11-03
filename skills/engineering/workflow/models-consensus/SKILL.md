@@ -24,7 +24,7 @@ Route each seat by host:
 
 - **T3 Code**: `delegate_task` with the seat's configured provider and model; continue with `t3_thread_send` to its thread.
 - **Claude Code or Codex**: a native subagent with the seat's model; continue by messaging that same subagent.
-- **A model the host lacks**: the matching `*-runner` skill; continue by resuming its session.
+- **A model the host lacks**: `cli-runner`, `pi-runner`, or `muse-runner`; continue by resuming its session.
 
 Every call carries the brief:
 

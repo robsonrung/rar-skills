@@ -16,17 +16,17 @@ Produce captured evidence for the repository's required gates and the requested 
 
 Read [command-discovery.md](references/command-discovery.md). Prefer the repository's named scripts and read-only CI configuration over reconstructed commands, and record the detected build systems and command sources in `commandSurface`.
 
-Use the caller's base when supplied; if the caller also passes an evidence snapshot, the two must resolve to the same commit, and a mismatch blocks affected checks until corrected. Otherwise resolve `origin/HEAD`, code-host metadata, then `main`. Save the selected ref, resolved commit, and where it came from in `scope.json` inside `evidenceDir`, and name that path in the report; keep it out of the schema result. For the current worktree, include committed, staged, and unstaged changes. Use native affected-package support when available; otherwise pick safe package or file checks from the repository's own commands, and fall back to whole-repository checks when no narrower valid check exists. Record `workspacesScoped.supported: false` when native scoping is absent.
+Use the caller's base when supplied. Otherwise resolve `origin/HEAD`, code-host metadata, then `main`. Save the selected ref, resolved commit, and where it came from in `scope.json` inside `evidenceDir`, and name that path in the report; keep it out of the schema result. For the current worktree, include committed, staged, and unstaged changes. Use native affected-package support when available; otherwise pick safe package or file checks from the repository's own commands, and fall back to whole-repository checks when no narrower valid check exists. Record `workspacesScoped.supported: false` when native scoping is absent.
 
 ## Execute
 
-When the caller supplies an evidence snapshot, run only its declared checks through `shared/scripts/review_evidence.py` (`select-checks`, then act on each decision: run with `run-check`, reuse the captured result, or assess with `transfer-check`), as `shared/references/review-evidence.md` describes. The snapshot is the scope contract; a missing requirement means a new snapshot, never an edited one.
+When the caller names its required checks, run exactly those and capture each with `shared/scripts/capture_check.py run` into the caller's `evidence/` folder (`shared/references/work-state.md`). Reuse a capture only while `capture_check.py stale` reports it current; a missing check goes back to the caller, never into an invented one.
 
 - Follow real command dependencies. Build first only when later checks need its output. Install only when dependencies need preparation or a clean-environment check was requested.
 - Use the lockfile-respecting install command. Never modify lockfiles or install global tools to invent a check.
 - Run an aggregate script once when it already covers build, type, lint, or test, and record what it covers instead of rerunning its parts.
 - Absent commands are `not-applicable`. Deliberately unrun commands are `skipped` with a reason.
-- Prior evidence counts only through the shared selector and transfer rules. Label its original command and path; never claim it ran in this invocation. A request for fresh runs gets fresh runs.
+- Prior evidence counts only while it is current. Label its original command and path; never claim it ran in this invocation. A request for fresh runs gets fresh runs.
 - Capture exit code, duration, and decisive output in a temporary evidence directory outside the project. The default per-check timeout is 15 minutes unless the caller sets another.
 
 Capture the tracked working-tree state before and after. `treeClean` describes the final tracked state; `treeChanged` describes changes verification introduced. Preserve pre-existing changes; never stash, reset, or clean the tree.

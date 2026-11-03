@@ -21,6 +21,6 @@ Before a shell command, set `SHARED_DIR` to that resolved absolute directory in 
 ## Contents
 
 1. `model-routing.json`: the single source for model identities, reasoning settings, and role routes. Use `scripts/model_routing.py` to inspect, resolve, or validate it.
-2. `references/`: workflow stages, model routing and approval, runner behavior, evidence, handoffs, and run state. `references/model-preview.md` owns plan approval and mode selection.
-3. `scripts/`: checks a model cannot reliably do by hand: runner discovery, jobs, output contracts, digests, receipts, provider privacy routing, review evidence, and validation.
+2. `references/`: workflow stages, model routing and approval, runner behavior, handoffs, and the feature work state. `references/model-preview.md` owns plan approval and mode selection; `references/work-state.md` owns a feature's files under `.ai-workflow/work/`.
+3. `scripts/`: checks a model cannot reliably do by hand: runner discovery, jobs, output contracts, model receipts, provider privacy routing, browser preflight, and captured command evidence bound to the working tree.
 4. `tests/`, schemas, and hooks: executable checks and shared formats.

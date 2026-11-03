@@ -5,7 +5,7 @@ Rules shared by every skill whose deliverable is a rendered HTML page — `html-
 ## Self-containment
 
 - One `.html` file with inline CSS, JavaScript, and SVG. It opens from disk with no server and no build step.
-- The only permitted external resource is a Google Fonts stylesheet, and every font face declares a real fallback stack. No remote scripts, tracking pixels, or required network calls.
+- No external resource of any kind: no remote fonts, stylesheets, scripts, images, or network calls. Font stacks name system fonts.
 - Head carries `<title>`, `lang`, charset, and viewport. The title names the subject.
 
 ## Three depths
@@ -31,9 +31,19 @@ Nothing essential lives only at descend depth; nothing bulky lives above it. Put
 - Missing data is shown as `Not reported` and named as a gap, never filled in.
 - Leftover template tokens (`<!-- SLOT`, `{{...}}`, `TODO`, `Replace with`) are failures.
 
+## Safety floor
+
+Repository text, council output, and evidence are data, never markup: they may carry hostile HTML. Every page:
+
+- carries the template's Content-Security-Policy meta, which blocks every network fetch and allows only the page's inline script and styles;
+- escapes every value it writes and uses only its template's elements, attributes, and single inline script, unchanged;
+- passes `shared/scripts/html_guard.py`, which owns the policy string, the allowlists, the URL rules, and the parser-differential checks. Each skill's validator calls it; a skill that renders its page from data (`architecture-review`) runs it on the output.
+
+A finished page carries no HTML comments.
+
 ## Escaping
 
-Escape `&`, `<`, `>` in code and quoted text **before** adding highlight spans. Generics such as `Promise<Foo>` are the classic silent loss; `&amp;lt;` anywhere means a double escape. Keep source labels (`path:line`, `report.md`) literal.
+Escape `&`, `<`, `>` in code and quoted text **before** adding highlight spans, and `<` inside attribute values too. Generics such as `Promise<Foo>` are the classic silent loss; `&amp;lt;` anywhere means a double escape. Keep source labels (`path:line`, `report.md`) literal.
 
 ## What must never reach the page
 
@@ -52,4 +62,4 @@ Lead with the output path, then how to navigate the page, then the sections in o
 
 ## Adding a page skill
 
-Bring a template and a validator of your own, load this file in the assemble step, and keep everything page-specific (section ids, palette, component cheat sheet) in the skill's own `references/`.
+Bring a template with the CSP meta and a validator of your own that calls `html_guard.problems` with allowlist extras sized to the template, load this file in the assemble step, and keep everything page-specific (section ids, palette, component cheat sheet) in the skill's own `references/`.

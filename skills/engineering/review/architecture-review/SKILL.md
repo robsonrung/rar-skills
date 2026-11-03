@@ -5,7 +5,7 @@ description: "Assess an existing system's architecture from repository evidence 
 
 # Architecture Review
 
-Decide whether the current architecture is **fit for purpose** now and under plausible growth, and what to preserve, fix, simplify, investigate, or defer. Recommend the **smallest reversible move** that meets the requirements. The deliverable is one `report.html` built from `assets/report.html`.
+Decide whether the current architecture is **fit for purpose** now and under plausible growth, and what to preserve, fix, simplify, investigate, or defer. Recommend the **smallest reversible move** that meets the requirements. The deliverable is one self-contained `report.html` that `scripts/render_review.py` renders from your `review.json`.
 
 Sophistication is not quality: DDD tactics, Clean Architecture, events, CQRS, and microservices are options, not ingredients, and a review may recommend no structural change. Do not claim a formal ATAM evaluation or a certification.
 
@@ -28,7 +28,7 @@ Ratings, priorities, options, and the target stay with you. Dispatch models only
 - **Exploration** of a repository too large to read directly, split by subsystem, never by finding. Workers return facts with `path:line` and the exact search behind any absence claim; they never rate or prioritize.
 - **The challenge pass** (step 7), which needs a reviewer that did not produce the claims.
 
-Resolve each role with `python3 shared/scripts/model_routing.py resolve <route>`, for example `code-exploration` or `design-review` (`show` lists routes). Show the roles with model, effort, and host route, and ask: **"Approve this plan, or specify changes."** Then route by host: in T3 Code start the role with `delegate_task` and continue it with `t3_thread_send`; in Claude Code or Codex use a native subagent; for a model the host lacks use the matching `*-runner` skill. Keep one persistent context per role. Seat fidelity follows `shared/references/runner-common.md`. A model served by an external provider receives private source code, which needs the user's explicit approval.
+Resolve each role with `python3 shared/scripts/model_routing.py resolve <route>`, for example `code-exploration` or `design-review` (`show` lists routes). Show the roles with model, effort, and host route, and ask: **"Approve this plan, or specify changes."** Then route by host: in T3 Code start the role with `delegate_task` and continue it with `t3_thread_send`; in Claude Code or Codex use a native subagent; for a model the host lacks use `cli-runner`, `pi-runner`, or `muse-runner`. Keep one persistent context per role. Seat fidelity follows `shared/references/runner-common.md`. A model served by an external provider receives private source code, which needs the user's explicit approval.
 
 ## Workflow
 
@@ -85,15 +85,15 @@ Give every P0/P1 finding and structural recommendation to the challenge reviewer
 
 Check category errors: a Bounded Context is not a deployment unit; a seam is not a Bounded Context; ACID is not linearizability; MVCC is not Serializable Snapshot Isolation; CDC is not Event Sourcing; broker delivery is not **end-to-end correctness**.
 
-### 8. Write and verify the page
+### 8. Write the data and render the page
 
-Copy `assets/report.html` to `$OUT/report.html` and fill it following `references/page-contract.md` and `shared/references/html-page-conventions.md`; `examples/example-report.html` is a filled page. Unknown is better than invented. Then run:
+Write `$OUT/review.json` following `references/page-contract.md`; `examples/example-review.json` is a complete one. You write data, never markup: the renderer escapes every value and owns the page's structure, policy, and script. Unknown is better than invented. Then run:
 
 ```sh
-python3 "$SKILL_DIR/scripts/validate_review.py" "$OUT/report.html" --repo "$REPO"
+python3 "$SKILL_DIR/scripts/render_review.py" "$OUT/review.json" --out "$OUT/report.html" --repo "$REPO"
 ```
 
-Fix failures until it exits 0. With a browser, check narrow and desktop widths, both color schemes, the diagram, and the controls; otherwise report that the visual check did not run.
+It validates the data, renders, checks the page with `shared/scripts/html_guard.py`, and writes nothing until all pass. Fix the data until it exits 0. With a browser, check narrow and desktop widths, both color schemes, the diagram, and the controls; otherwise report that the visual check did not run.
 
 ### 9. Close
 

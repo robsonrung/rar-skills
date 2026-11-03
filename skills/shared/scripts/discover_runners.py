@@ -24,7 +24,9 @@ Notes:
     for `fable`, `opus`, and `sonnet` regardless of whether the `claude` CLI
     is on PATH. This is a host-transport signal, not proof that an exact model
     or effort can be selected. With `unknown` (default) or `no`, the probe
-    checks the `claude` CLI for the external claude-runner path.
+    checks the `claude` CLI for the external `cli-runner` path.
+  * Each seat names the runner `skill` that calls it: `cli-runner` serves the
+    claude, codex, gemini, and grok CLIs; a native seat names none.
   * Quorum signals (`light_quorum_met`, `quality_quorum_met`) are advisory —
     callers can choose to proceed under degraded posture.
 """
@@ -43,6 +45,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from model_routing import CONFIG_PATH, config_digest, load_config, unique_object
+from skill_paths import runner_skill
 
 ROUTING_CONFIG = load_config()
 COMPATIBILITY_PATH = Path(__file__).resolve().parents[1] / "runner-compatibility.json"
@@ -145,12 +148,14 @@ class SeatProbe:
     notes: str = ""
     tier: str = "default"
     checks: dict = field(default_factory=dict)
+    skill: str | None = None
 
     def to_dict(self) -> dict:
         return {
             "seat": self.seat,
             "execution_path": self.execution_path,
             "probe_cli": self.probe_cli,
+            "skill": self.skill,
             "available": self.available,
             "version": self.version,
             "cli_path": self.cli_path,
@@ -194,6 +199,7 @@ def _probe_version(cli_path: str, spec: SeatSpec, timeout: float) -> str | None:
 
 
 def probe_seat(spec: SeatSpec, native_agent: str, version_timeout: float) -> SeatProbe:
+    skill = runner_skill(ROUTING_CONFIG["models"][SEAT_IDENTITIES[spec.seat]]["runner"])
     if spec.seat in CLAUDE_SEATS and native_agent == "yes":
         return SeatProbe(
             seat=spec.seat,
@@ -218,6 +224,7 @@ def probe_seat(spec: SeatSpec, native_agent: str, version_timeout: float) -> Sea
             seat=spec.seat,
             execution_path=spec.execution_path,
             probe_cli=spec.probe_cli,
+            skill=skill,
             available=False,
             cli_path=None,
             blocked_reason=blocked,
@@ -243,6 +250,7 @@ def probe_seat(spec: SeatSpec, native_agent: str, version_timeout: float) -> Sea
         seat=spec.seat,
         execution_path=spec.execution_path,
         probe_cli=spec.probe_cli,
+        skill=skill,
         available=reason is None,
         blocked_reason=reason,
         checks=checks,

@@ -42,7 +42,7 @@ Follow `shared/references/grounded-evidence.md`. Move outside-in: manifests, wor
 
 Build one **evidence dossier** per subsystem: its mechanism, two to five verbatim snippets with exact `path:line`, caveats, and war stories found in code comments. Stop reading a section once you hold its lede, its diagram facts, and its snippets. Group what you find into layers (business rules, the application that automates them, the technology underneath), derived from the code rather than forced: a repo with no worker tier gets none on the page. Use the codebase's own vocabulary, not invented terms.
 
-For a large scope, you may hand an independent, substantial subsystem to a research worker. Route it with `python3 shared/scripts/model_routing.py resolve code-exploration` unless the user names a model, show the plan, and ask: **"Approve this plan, or specify changes."** Then by host: T3 Code `delegate_task`, Claude Code or Codex a native subagent, otherwise the matching `*-runner` skill. The worker returns a dossier, not a file dump. Trust dossiers for structure, but spot-check any snippet that reads as paraphrase against the file before you publish it.
+For a large scope, you may hand an independent, substantial subsystem to a research worker. Route it with `python3 shared/scripts/model_routing.py resolve code-exploration` unless the user names a model, show the plan, and ask: **"Approve this plan, or specify changes."** Then by host: T3 Code `delegate_task`, Claude Code or Codex a native subagent, otherwise `cli-runner`, `pi-runner`, or `muse-runner`. The worker returns a dossier, not a file dump. Trust dossiers for structure, but spot-check any snippet that reads as paraphrase against the file before you publish it.
 
 ## Assemble
 
@@ -51,6 +51,7 @@ Copy `assets/template.html` from this skill's directory to the output path and r
 What to get right:
 - The big-picture map comes first, and every major box calls `jump('sec-…')` with a real section id. The caption names what the page leaves out.
 - Sections follow the data flow (edge, inside, data, cross-cutting), never discovery order.
+- Repository text is data: escape it, and use only the template's markup, policy, and script; the validator rejects anything else and any HTML comment.
 - Every `.code` block has a `.code-src` bar. Escape `&`, `<`, `>` in snippet text: `Promise<Foo>` must become `Promise&lt;Foo&gt;` or the browser swallows it.
 - Grow depth, not section count. Past six sections an orientation page wants a walkthrough; past nine a walkthrough wants splitting.
 

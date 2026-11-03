@@ -55,7 +55,7 @@ Prefer role, label, or test-ID locators with automatic waits. For an edit, captu
 
 For OAuth, email, payment, SMS, or another external action, use only authority that already exists. When authority or a human step is missing, ask in manual mode; in pipeline mode mark that route `Skip` with the missing action.
 
-When the caller works from an evidence snapshot, write each required flow as an observation row in the shape `shared/references/review-evidence.md` defines, under its declared ID, with hashed artifacts. A route table summarizes; it does not replace the row.
+When the caller names observation IDs, record each required flow under its ID with its result and its screenshot and trace paths, in the caller's `evidence/` folder (`shared/references/work-state.md`). A route table summarizes; it does not replace the row.
 
 ## 5. Record failures
 

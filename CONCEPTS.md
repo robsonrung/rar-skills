@@ -1,107 +1,112 @@
 # Concepts
 
-Shared domain vocabulary for this repository — entities, named processes, and conventions with repo-specific meaning. Glossary only, not a spec or catch-all. Direct edits are fine; the capture-learning skill accretes entries as learnings surface domain terms.
+Terms with a meaning specific to this repository. Each entry names the file that
+owns the rule; read that file for the details. `capture-learning` may add a term
+when a learning needs one.
 
-## Seats and runners
+## Models and runners
 
 ### Seat
 
-One model's chair at a multi-model table (council, roundtable, review panel). A seat is an identity ("the Kimi seat"), not a transport: it may be served natively (host `Agent` tool) or by a runner skill wrapping a local CLI.
-
-### Native seat vs runner seat
-
-A native seat runs through the host's own agent-spawning tool (e.g. `Agent` in Claude Code). A runner seat shells out to a local CLI through a `*-runner` skill. Deterministic preference: native over runner, always.
-
-### Runner skill / runner shim
-
-A skill that runs a prompt on one model CLI when the host lacks the model. `claude-runner`, `codex-runner`, `gemini-runner`, and `grok-runner` call their CLI directly; `pi-runner` and `muse-runner` wrap theirs in a script that emits the shared envelope. One runner can serve several named seats (`pi-runner --seat kimi`), each with its own pinned model and seat label.
-
-### Envelope
-
-The normalized JSON the Pi and Muse wrapper scripts return (`shared/runner-envelope.schema.json`): success, stdout/stderr, `runner`, `effective_runner`, `effective_model`, `effective_provider`, `agent_message`, and friends. Locked by `shared/tests/test_runner_parity.py`.
+One model's place in a run or a council, such as "the Kimi seat". A seat is an
+identity, not a transport. A **native seat** runs through the host's own agent
+tool; a **runner seat** calls a local CLI through `cli-runner`, `pi-runner`, or
+`muse-runner`. Native comes first:
+[host-model-execution.md](skills/shared/references/host-model-execution.md).
 
 ### Seat fidelity
 
-The invariant that a seat never silently answers with a different provider's model. Missing CLI, failed auth, or a different reported model leaves the seat explicitly unanswered instead of falling back.
+A seat never answers with a different model. A missing CLI, failed login, or
+different reported model leaves the seat unanswered.
+Owner: [runner-common.md](skills/shared/references/runner-common.md#seat-fidelity).
 
-### Model identity receipt
+### Model receipt
 
-The serving backend's own report of which model actually handled a run (`effective_model` / native model id in the envelope), recorded alongside the requested model so the two can disagree visibly. Cross-model agreement is weighted by the receipt, never by the request or the model's self-claim.
+The serving backend's own report of which model ran (`model_receipt`), kept
+apart from the requested and configured model. A route with
+`model_verification: required` blocks without a matching receipt. Owners:
+[runner-common.md](skills/shared/references/runner-common.md#approved-routes)
+and [model-roster.md](skills/shared/references/model-roster.md).
 
-### Cross-model pass
+### Envelope
 
-An additive delegated run that sends a review or judgment brief through a different provider's seat and folds the structured result back into the host synthesis. Counts as independent corroboration only with a verified model identity receipt.
-
-### Quorum
-
-The minimum count of independent seats a multi-model skill needs before its output claims full strength (`discover_runners.py` emits advisory light/quality quorum signals). Below quorum, skills proceed under a declared degraded posture.
-
-### Effective runner
-
-The transport that actually executed (envelope key `effective_runner`) — e.g. the Kimi seat currently executes via the `pi` CLI while keeping seat identity `kimi`.
-
-## Skills and conventions
-
-### Moment
-
-One of the five points in a working turn — intake, diagnosis, decision, implementation, reporting. A moment is about _posture_ (how a request is read, how evidence is weighed, how a result is reported) rather than a domain or a procedure; the procedural counterpart of each moment lives in its own skill (`diagnose`, `coding-design-plan`, `tdd`, `session-handoff`).
+The JSON the Pi and Muse wrapper scripts return, including `agent_message`,
+`effective_runner`, and `model_receipt`. Schema:
+`skills/shared/runner-envelope.schema.json`. Not the same as the handoff
+envelope below.
 
 ### Seat tier
 
-Whether a seat joins a default fan-out (`default`) or is probed only when named explicitly (`frontier`, `backup`, `candidate`, `legacy`). Backup (muse / gemma / minimax) and candidate (qwen, the Pi gateway candidates) seats never join a fan-out uninvited. Declared in `discovery` inside `shared/model-routing.json`; adding a non-default seat never silently enlarges or re-prices an existing council.
+Whether a seat joins a default probe (`default`) or only when named (`frontier`,
+`backup`, and others). Set in `discovery` in
+[model-routing.json](skills/shared/model-routing.json).
 
-### ZDR seat admission
+### Seat admission and effort scaling
 
-The rule that a seat enters `shared/model-routing.json` only when at least one serving provider offers a verified zero-data-retention policy. Benchmark position never overrides it; `policy.seat_admission` records the rule and a dated rejection list (first rejection: `xiaomi/mimo-v2.6-pro`, 2026-09-22). Field contract in `shared/references/model-roster.md`.
+A seat enters the routing configuration only with a verified zero-retention
+provider. `effort_scaling` records whether more reasoning effort helps a seat.
+Owner: [model-roster.md](skills/shared/references/model-roster.md).
 
-### Effort scaling
+## Running the work
 
-A per-seat `effort_scaling` field in the routing configuration recording how observed quality changes with reasoning effort — `monotonic`, `flat`, `flat-above-high`, or `non-monotonic` — with dated external evidence. It exists so route design stops assuming more effort always helps: flat seats waste money above their routed level, non-monotonic seats can regress.
+### Work state
 
-### Leitwort (pl. leitwörter)
+A feature's files under `.ai-workflow/work/<feature>/`. Progress lives in
+**the ledger, not the transcript**: `tasks.md` and the task reports.
+Owner: [work-state.md](skills/shared/references/work-state.md).
 
-A deliberately distinctive word planted in a skill's prose to make routing and provenance greppable. Registered in `leitworter.json`; guarded by `scripts/check_leitworter.py` in CI. Deleting one from its owning skill fails the build.
+### Ceiling and the three exits
 
-### `shared/` (`skills/shared/` in the source checkout)
+A limit counted outside the model's judgment: review cycles, attempts, or calls.
+Every task ends `accepted`, `blocked`, or `ceiling_hit`.
+Owner: [work-state.md](skills/shared/references/work-state.md).
 
-The one sanctioned cross-skill directory: envelope schema, runner discovery, parity tests, common references. Everything else in a skill stays self-contained — no `../other-skill` paths.
+### Handoff
 
-### Model tier
-
-A semantic cost class for a dispatched subagent — extraction (cheapest capable), generation (mid-tier), ceiling (orchestrator's own model, inherited by omission) — declared once per skill and referenced by tier name so concrete model ids never hardcode into skill content.
-
-### Learning
-
-A documented solution to a past problem, stored under `docs/solutions/` with structured frontmatter by the capture-learning skill — the unit of compounded knowledge. The refresh sibling (`refresh-learnings`) is gated on the pilot's graduation signal.
-
-### Script ownership
-
-Every ported or shared script has a named owner skill; a script reused by more than one skill lives in `shared/`, never as per-skill byte-identical copies.
-
-### Run state
-
-The durable JSON file a long-running orchestration skill keeps at `.ai-workflow/<skill>/<run-id>/run-state.json`, holding status, phase, attempt counters, ceilings, gate decisions, side-effect keys, and the step trace. Contract in `shared/references/run-state-contract.md`. It is the source of truth for progress — **the ledger, not the transcript** — so a run survives a crash, a compaction, or a restart.
-
-### Station handoff
-
-The file-based contract between two steps of an orchestrated run: a **brief** the orchestrator writes, a **report** the worker writes (seven fixed sections), and a **station envelope** — under 15 lines — that is the only thing crossing back into the orchestrator's context. Contract in `shared/references/handoff-contract.md`; `implement-tasks`'s per-task binding in `implement-tasks/SKILL.md`. The rule it enforces is **hand off the path, not the payload**: inputs and outputs are file paths, never pasted bodies. Distinct from the runner [Envelope](#envelope), which is a transport wrapper around one CLI call.
+**Hand off the path, not the payload.** A step gets a brief, writes a report,
+and returns a short envelope naming the paths and the verdict.
+Owner: [handoff-contract.md](skills/shared/references/handoff-contract.md).
 
 ### Thin conductor
 
-An orchestrator that owns routing, gates, integration, and the final report — and nothing else. Every step that does not need the user runs in its own subagent, so the conductor's context grows by one envelope per step rather than by the size of each step's work. `implement-tasks` is the pipeline's thin conductor; `peer-sessions` coordinates the general form.
+An orchestrator that owns routing, scheduling, integration, and delivery, and
+leaves each task's work to a subagent. `implement-tasks` is one.
+Owner: [implement-tasks](skills/engineering/workflow/implement-tasks/SKILL.md).
 
-### Ceiling
+### Mode selection
 
-A bound on a run counted outside the model's judgment — cycles, dispatched agents, spend, or a deadline — recorded in the run state's `ceilings`. Distinct from a stop condition, which depends on the work converging. Every run ends through one of **three exits**: success, retries exhausted, or ceiling hit.
-
-### Mode prompt
-
-The rule that invoking a skill with selectable modes (safe mode, council modes, `--auto`, a browser mechanism) requires asking the user which mode, unless the user already named it. Silence never selects a mode; a default applies only after confirmation. Normative text in `shared/references/model-preview.md` (mode selection).
+How a skill with modes picks one: the named mode, else a safe default, asking
+only when the choice changes scope, cost, or effects.
+Owner: [model-preview.md](skills/shared/references/model-preview.md#mode-selection).
 
 ### Local config
 
-Per-checkout, user-local preferences for multi-model skills live in `.rar-skills/config.local.yaml` (gitignored; committed example alongside). All keys optional; invalid values fall through to defaults; never credentials; config always loses to direct instructions in chat.
+Per-checkout preferences in `.rar-skills/config.local.yaml` (gitignored, never
+credentials). Chat instructions win.
+Owner: [local-config.md](skills/shared/references/local-config.md).
+
+## Repository conventions
+
+### `shared/`
+
+The library every skill may load by path: references, model routing, runner
+scripts, and tests. A path such as `shared/references/...` is relative to the
+installed skills, not the project.
+Owner: [skills/shared/SKILL.md](skills/shared/SKILL.md).
+
+### Leitwort (plural leitwörter)
+
+A short phrase a skill has the agent repeat while acting, so the phrase steers its
+behavior. Registered in `leitworter.json` and checked by `scripts/check_leitworter.py`.
+Owner: [leitworter.md](skills/extras/skill-expert/references/leitworter.md).
+
+### Learning
+
+One verified solution to a past problem, written by `capture-learning` under
+`docs/solutions/`. Owner: [docs/solutions/README.md](docs/solutions/README.md).
 
 ## Provenance
 
-Material adapted from Every's compound-engineering-plugin (MIT) carries a per-file provenance line and is credited in `NOTICE`. Upstream skill names (`ce-*`) appear only in provenance notes, never as skill names here.
+Material adapted from Every's compound-engineering-plugin (MIT) carries a
+provenance line and is credited in `NOTICE`. Upstream names (`ce-*`) appear only
+in provenance notes, never as skill names.

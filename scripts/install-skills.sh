@@ -5,10 +5,9 @@
 #   scripts/install-skills.sh <target-repo> [--copy] [--layout agents|claude|both]
 #
 # Layouts (default: both — the two are complementary, not alternatives):
-#   agents  → <target>/.agents/skills/   AgentSkills location. Read by OpenHands'
-#             own agent and by the Codex CLI.
-#   claude  → <target>/.claude/skills/   Read by the Claude Code CLI, which is what
-#             actually runs the skills when OpenHands drives it over ACP.
+#   agents  → <target>/.agents/skills/   AgentSkills location, read by the Codex CLI
+#             and other AgentSkills hosts.
+#   claude  → <target>/.claude/skills/   Read by the Claude Code CLI.
 #
 # Default is symlinks (edits in this checkout flow through); --copy makes the
 # target self-contained. Re-running is idempotent.
@@ -69,10 +68,11 @@ for dest in "${dests[@]}"; do
     printf '%s\n' "$SOURCE_DIR/skills/shared"
     find "$SOURCE_DIR/skills/engineering" "$SOURCE_DIR/skills/visualization" "$SOURCE_DIR/skills/extras" -name SKILL.md -not -path '*/node_modules/*' -exec dirname {} \; | sort
   )
+  # Drop links this checkout left for skills it no longer ships (renamed or merged).
+  find "$dest" -maxdepth 1 -type l -lname "$SOURCE_DIR/*" ! -exec test -e {} \; -delete
   echo "  $dest — $count entries"
   installed=$((installed + count))
 done
 
 echo "installed $installed entries across ${#dests[@]} layout(s) ($([[ $MODE == copy ]] && echo copies || echo symlinks))"
-echo "verify: OpenHands  → openhands, then /skills"
-echo "        Claude CLI → claude -p 'list your available skills' from the target repo"
+echo "verify: claude -p 'list your available skills' from the target repo"

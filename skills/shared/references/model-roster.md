@@ -21,7 +21,8 @@ Use `profiles` and `routes.<task>.families` to select roles. Updated workflow
 callers explicitly select a profile; `--family gpt` and the legacy CLI default
 remain available. Apply [model-preview.md](model-preview.md) before dispatch.
 `models` resolves seats to exact IDs and adapters. `effort_profiles` describes adapter capabilities; `runners`
-defines direct-call defaults and accepted flags. `discovery` supplies probe
+defines direct-call defaults and accepted flags per runner id; `cli-runner`
+serves the `claude`, `codex`, `gemini`, and `grok` ids. `discovery` supplies probe
 metadata. None of these fields proves account access or serving identity.
 The native host can expose controls that differ from its external adapter;
 verify the exact route with [host-model-execution.md](host-model-execution.md).
@@ -62,7 +63,7 @@ fewer tokens, lower cost, or faster completion.
 
 A CLI probe confirms a transport only. An envelope separates `requested_model`,
 `configured_model`, and observed `effective_model`. Only a verified
-`model_receipt` from a native or provider event identifies the serving model.
+`model_receipt` from a native, CLI, or provider event identifies the serving model.
 A configured label, wrapper echo, or self-description is not serving evidence.
 A route with `model_verification: required` blocks without a matching receipt.
 An `allow_unverified` route needs the authority specified by its caller.

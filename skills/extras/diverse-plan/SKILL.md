@@ -15,7 +15,7 @@ Use this only when alternative designs can change the implementation decision. I
 3. Resolve each branch with `python3 shared/scripts/model_routing.py resolve <route>`, using `deep-analysis`, `architecture`, or `technical-analysis` (defined in `shared/model-routing.json`; shapes in `shared/references/task-shaped-model-routing.md`), and `precision-review` only for a named semantic risk. Branches run on distinct models.
 4. Show the branches with their premise, model, effort, and host route, plus the synthesis and completeness-check roles. Ask: **"Approve this plan, or specify changes."**
 
-Route each role by host: T3 Code `delegate_task`, continued with `t3_thread_send`; Claude Code or Codex, a native subagent; otherwise the matching `*-runner` skill. Each branch keeps one context for its later critique and reply; synthesis gets its own. **Seat fidelity**: an unavailable branch is reported, never replaced. With fewer than two distinct branches, stop and offer the single-model `to-prd` path.
+Route each role by host: T3 Code `delegate_task`, continued with `t3_thread_send`; Claude Code or Codex, a native subagent; otherwise `cli-runner`, `pi-runner`, or `muse-runner`. Each branch keeps one context for its later critique and reply; synthesis gets its own. **Seat fidelity**: an unavailable branch is reported, never replaced. With fewer than two distinct branches, stop and offer the single-model `to-prd` path.
 
 ## Run
 

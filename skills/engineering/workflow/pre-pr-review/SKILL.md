@@ -14,13 +14,13 @@ Running this skill authorizes local simplification, scoped fixes, and verificati
 
 Confirm the intended base branch from the task or repository configuration, asking only if it stays ambiguous, and pass that same base and the requirements to every stage. Review committed and uncommitted changes against it. No changes means `no-changes`; an unreadable diff is a blocker.
 
-Start from the artifact locators in the run state or caller input. A report path or completion label is not proof; structured evidence is:
+Start from the work folder or reports the caller names (`shared/references/work-state.md`). A report path or completion label is not proof; captured evidence and a recorded review are:
 
-- **Feature run with a `review_policy`:** run `shared/scripts/task_queue.py schedule` and require `feature_review.status` to be `ready`, per the `Final acceptance` section of `shared/references/feature-review.md`. A passing final feature gate already covers routine tasks; their missing separate reviews are not gaps.
-- **Validation run:** the packet exported by `validation_control.py evidence-packet` supplies captured facts, not reviewer judgment.
-- **Any run:** the current combined review record must pass `shared/scripts/review_evidence.py verify` against the intended base with `ready`, as `shared/references/review-evidence.md` describes. Do not run it twice when the feature check already did.
+- **Feature run:** the final `full-review` that accepted the feature must cover the current source. A passing final review already covers deferred tasks; their missing separate reviews are not gaps.
+- **Validation run:** `validate-e2e`'s captured evidence supplies facts, not reviewer judgment.
+- **Any run:** the combined review must name the intended base and the revision it reviewed, and `shared/scripts/capture_check.py stale` must report the required checks current.
 
-Reuse evidence only while the source (including post-review edits), base, contract, check plan, dependencies, and environment still match; a commit ID change alone does not invalidate it. Never repair stale evidence by editing hashes or copying labels.
+Reuse evidence only while the source (including post-review edits), base, contract, check definitions, dependencies, and environment still match; a commit ID change alone does not invalidate it. Never repair stale evidence by editing it or copying labels.
 
 If the records show complete combined coverage, passing required checks and affected interface flows, no open or disputed finding, no deferred P0 to P2, and a reason for each deferred P3, return `ready` without further work. Otherwise name the specific gaps and continue.
 
@@ -36,7 +36,7 @@ If the records show complete combined coverage, passing required checks and affe
 | Confirmed or disputed findings | Section 3. |
 | A concrete simplification need | `coding-review-simplify` on that scope, **behavior-preserving**. |
 
-A missing simplification report is not a gap after a complete task review. Recheck through the existing approved reviewer context when one remains. A new reviewer runs on a route resolved with `python3 shared/scripts/model_routing.py resolve independent-review`, shown to the user with "Approve this plan, or specify changes.", and routed by host as `implement-and-review` describes; its model differs from the implementer's. Keep reports outside the project, give the reviewer the base, snapshot, and evidence packet, and require the shared verifier to return `ready` on its structured response.
+A missing simplification report is not a gap after a complete task review. Recheck through the existing approved reviewer context when one remains. A new reviewer runs on a route resolved with `python3 shared/scripts/model_routing.py resolve independent-review`, shown to the user with "Approve this plan, or specify changes.", and routed by host as `implement-and-review` describes; its model differs from the implementer's. Give the reviewer the base, the diff, and the captured evidence, and accept its verdict only with a severity, location, and evidence for each finding.
 
 ## 3. Correct and recheck
 

@@ -2,7 +2,7 @@
 
 Rules shared by the runner skills. Use [host-model-execution.md](host-model-execution.md) first: a host that runs the model natively takes precedence over a runner unless the user selected a transport. Model identifiers live in [model-roster.md](model-roster.md); `shared/scripts/discover_runners.py` checks which runner CLIs are present and does not prove access.
 
-Two kinds of runner exist. `claude-runner`, `codex-runner`, `gemini-runner`, and `grok-runner` call their CLI directly; their SKILL.md shows the command. `pi-runner` and `muse-runner` ship a wrapper script, because Pi enforces provider privacy routing and Muse checks workspace trust before any call.
+Two kinds of runner exist. `cli-runner` calls the Claude, Codex, Antigravity (`agy`), and Grok CLIs directly; its SKILL.md shows each command. `pi-runner` and `muse-runner` ship a wrapper script, because Pi enforces provider privacy routing and Muse checks workspace trust before any call.
 
 ## Seat fidelity
 
@@ -24,7 +24,7 @@ Every role except `implementer` is an analysis seat and runs read-only: Claude i
 
 ## Iterative roles
 
-Keep one session per task and role when later turns are expected. Read the runner's Continue section before its first call so the session ID is captured, and use that exact ID for follow-ups; never a shared "most recent" selector while several roles run. Pi needs a unique session file from the first call; Muse keeps no session, so each turn resends the full context. A transcript handoff is a disclosed reconstruction, not resumption.
+Keep one session per task and role when later turns are expected. Read the runner's Continue instructions before its first call so the session ID is captured, and use that exact ID for follow-ups; never a shared "most recent" selector while several roles run. Pi needs a unique session file from the first call; Muse keeps no session, so each turn resends the full context. A transcript handoff is a disclosed reconstruction, not resumption.
 
 ## Long calls
 

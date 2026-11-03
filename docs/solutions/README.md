@@ -4,7 +4,7 @@ Use `capture-learning` to record one verified, non-obvious solution. Each docume
 
 ## Frontmatter contract
 
-Every document carries YAML frontmatter for searching by field. The [schema](../../skills/engineering/deliver/capture-learning/references/schema.yaml) defines required fields, values, track rules, and destination directories. The [quick reference](../../skills/engineering/deliver/capture-learning/references/yaml-schema.md) explains the same contract. Manually written documents follow these rules too.
+Every document carries YAML frontmatter for searching by field. The [schema](../../skills/engineering/deliver/capture-learning/references/schema.yaml) defines required fields, values, track rules, and destination directories. Manually written documents follow these rules too.
 
 ## One learning per run
 

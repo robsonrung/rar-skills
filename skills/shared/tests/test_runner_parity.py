@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
-"""Cross-runner parity tests for the wrapper scripts (claude, codex, gemini,
-grok, pi) and the named seats they serve (pi: kimi, glm, qwen, gemma,
-minimax, mistral-small) via `--seat`.
+"""Cross-runner parity tests for the Pi wrapper script and the named seats it
+serves (kimi, glm, qwen, gemma, minimax, mistral-small) via `--seat`.
 
 Locks in the family-wide contract so the per-script copies cannot drift:
 

@@ -23,7 +23,7 @@ The PRD reuses decisions by ID and rechecks only missing, changed, or disputed s
 
 | Need | Skill |
 | --- | --- |
-| Repeated settled choices across tasks | [planning-reuse.md](planning-reuse.md) |
+| Repeated settled choices across tasks | Assess once; cite the decision IDs in each task |
 | Unresolved or changed boundary | `design-gate`; recheck only the blocking lens after a fix |
 | Security level per task (`deep` or `standard`) | `security-gate` |
 | Real test-design decision (integration or mock boundary, concurrency, brittle test) | `test-lens` |
@@ -32,7 +32,7 @@ Otherwise express acceptance as observable behavior.
 
 ## 4. Implement Tasks: apply the selected constraints
 
-`implement-and-review` builds each task from its approved contract and the inherited `design-gate` constraints, rerouting only when implementation changes the design surface. A bound `review_policy` follows [feature-review.md](feature-review.md) and the engine's `Feature policy` section.
+`implement-and-review` builds each task from its approved contract and the inherited `design-gate` constraints, rerouting only when implementation changes the design surface. Feature mode follows [work-state.md](work-state.md) and the engine's `Feature policy` section.
 
 | Trigger | Skill | When |
 | --- | --- | --- |
@@ -40,7 +40,7 @@ Otherwise express acceptance as observable behavior.
 | Untested legacy code must change | `safe-incremental-coding`, then `tdd` | Characterization test first |
 | Cause unknown | `diagnose` | Before any fix |
 | Local smell, naming, or comment | `clean-code` | Refactor step |
-| Behavior-preserving simplification | `coding-review-simplify` | After green; under a feature policy, in the combined pass |
+| Behavior-preserving simplification | `coding-review-simplify` | After green; in feature mode, in the combined pass |
 | Test value or mock boundary | `test-lens` | Before writing or keeping the test |
 | Stored state, migration, queue, cache, retry, concurrency, external API | `data-systems-coding-lens` | Before the step and in verification |
 | Domain logic or context integration | `domain-driven-design` | Before the step |

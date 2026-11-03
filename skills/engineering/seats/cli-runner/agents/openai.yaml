@@ -1,0 +1,6 @@
+# `agents/openai.yaml` is the interface descriptor the Codex agent host reads;
+# the filename names that host, not the providers this skill reaches.
+interface:
+  display_name: "CLI Runner"
+  short_description: "Run prompts through the Claude, Codex, Antigravity, or Grok CLI"
+  default_prompt: "Use $cli-runner to run this prompt through the matching model CLI from the current workspace."
