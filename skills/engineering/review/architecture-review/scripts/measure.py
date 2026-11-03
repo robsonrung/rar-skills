@@ -29,12 +29,39 @@ import json
 import os
 from pathlib import Path
 import re
+import shutil
 import subprocess
 import sys
-from inventory import excluded, git, EXCLUDED_DIRS
+
+EXCLUDED_DIRS = {'.git', '.hg', '.svn', 'node_modules', 'vendor', '.venv', 'venv', '__pycache__',
+                 '.next', '.nuxt', 'dist', 'build', 'coverage', '.cache', '.terraform', 'target',
+                 '.idea', '.vscode', '.aws', '.ssh', 'secrets', 'credentials', 'dumps', 'backups'}
+SENSITIVE_SUFFIXES = {'.pem', '.key', '.p12', '.pfx', '.jks', '.keystore', '.sqlite', '.db', '.dump', '.bak'}
 
 JS_EXT = ('.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs')
 TEST_PARTS = {'test', 'tests', '__tests__', 'e2e', 'spec'}
+
+
+def excluded(path: Path) -> bool:
+    """Dependency, build and secret-bearing paths are never read."""
+    lower = [x.lower() for x in path.parts]
+    if any(x in EXCLUDED_DIRS for x in lower[:-1]):
+        return True
+    name = path.name.lower()
+    return (name.startswith('.env') or name in ('.npmrc', '.pypirc', '.netrc', 'id_rsa', 'id_ed25519')
+            or any(x in name for x in ('credential', 'secret', 'token', 'private-key'))
+            or path.suffix.lower() in SENSITIVE_SUFFIXES)
+
+
+def git(repo: Path, *args: str) -> str:
+    """Read-only git call: no optional locks, no prompts, no fsmonitor."""
+    binary = shutil.which('git')
+    if not binary:
+        raise OSError('git not available')
+    env = dict(os.environ, GIT_OPTIONAL_LOCKS='0', GIT_TERMINAL_PROMPT='0')
+    result = subprocess.run([binary, '-c', 'core.fsmonitor=false', '-C', str(repo), *args],
+                            capture_output=True, timeout=30, check=True, env=env)
+    return result.stdout.decode('utf-8', errors='replace')
 
 
 # ---------------------------------------------------------------- file walking

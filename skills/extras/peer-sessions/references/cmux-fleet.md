@@ -4,7 +4,7 @@ Use this reference only when the user wants visible interactive terminal peers a
 
 ## Preconditions
 
-1. Create the fleet record with `scripts/init_fleet.py`. When a composing skill owns the response artifacts, pass `--delivery-mode coordinator`; its peers wait for the first terminal prompt and do not write mailbox replies.
+1. Create the fleet record with `scripts/init_fleet.py`.
 2. Use one interactive command per peer. Do not use a one-shot or print-only command because it cannot receive the brief.
 3. Build a manifest outside the skill directory. It must use absolute paths and an argv array for every command.
 
@@ -70,6 +70,6 @@ Use `--dry-run` first only when diagnosing a failed cleanup. The teardown verifi
 
 ## Relay rule
 
-After launch, send each peer only its generated brief path. The **terminal relay** must never copy one peer's terminal transcript into another peer's prompt. With the default mailbox delivery, read replies from `replies/<peer>.json`; with coordinator delivery, the composing skill reads its declared artifact instead. Then pass a compact, authorized decision or digest through a new brief if another peer needs it.
+After launch, send each peer only its generated brief path. The **terminal relay** must never copy one peer's terminal transcript into another peer's prompt. Read replies from `replies/<peer>.json`, then pass a compact, authorized decision or digest through a new brief if another peer needs it.
 
 If `cmux` is absent, inaccessible, or returns malformed JSON, report the terminal transport unavailable and use native delegation. Do not change system socket settings, parse undocumented socket protocols, or turn a failed terminal layout into a reason to keep polling.

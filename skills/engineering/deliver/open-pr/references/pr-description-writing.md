@@ -29,5 +29,3 @@ For a performance claim, include the measured before and after result. For a use
 Use only evidence that changes reviewer confidence: captured test output, a manual check, a benchmark, an API result, a rollout observation, or an honest statement that a check could not run. Do not invent screenshots, links, or results.
 
 Preserve an existing related-work reference when rewriting. Use a closing reference only when the pull request fully resolves the item and the project's tracker syntax is known. Otherwise use a neutral related reference or omit it.
-
-Never add generated-by lines, badges, authorship claims, or co-author trailers. Never claim a test passed without captured evidence.

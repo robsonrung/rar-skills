@@ -20,4 +20,4 @@ After an edit, run the mechanical validator again. Finish only when every remain
 
 ## Independent check
 
-Use one read-only reviewer only when the document makes material claims that current source and validator output cannot settle. Before dispatch, bind that reviewer to the approved snapshot from `../../../../shared/references/model-preview.md`. Give the reviewer the document and the specific claims to check. Correct contradicted claims and soften unverifiable ones. Do not add a review pass for routine, well-cited documentation.
+Use one read-only reviewer only when the document makes material claims that current source and validator output cannot settle. Route it with `python3 shared/scripts/model_routing.py resolve independent-review` unless the user names a model, show the plan, and ask: **"Approve this plan, or specify changes."** Then by host: T3 Code `delegate_task`, Claude Code or Codex a native subagent, otherwise the matching `*-runner` skill. Give the reviewer the document and the specific claims to check. Correct contradicted claims and soften unverifiable ones. Do not add a review pass for routine, well-cited documentation.

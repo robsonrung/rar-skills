@@ -12,10 +12,6 @@ import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 
-from execution_metrics import aggregate_metrics, normalize_metrics
-from usage_accounting import (bind_policy, check_policy_binding, evaluate_budget, ingest_snapshot,
-                              ingest_subscription, receipt_usage, summarize_usage, token_log_snapshot)
-
 
 def now():
     return datetime.now(timezone.utc).isoformat()
@@ -62,21 +58,16 @@ def require(value, message):
         raise ValueError(message)
 
 
-def initialize(state, plan_path, run_id, limits, usage_policy_path=None):
+def initialize(state, plan_path, run_id, limits):
     plan_path = Path(plan_path).resolve()
     plan = json.loads(plan_path.read_text())
     require(plan.get("approval", {}).get("status") == "approved", "an approved route plan is required")
     require(limits and all(type(v) is int and v > 0 for v in limits.values()), "positive call ceilings are required")
     reference = {"path": str(plan_path), "sha256": sha(plan_path)}
-    usage_binding = bind_policy(plan, usage_policy_path) if usage_policy_path else {}
     require(state.get("run_id", run_id) == run_id, "run ID differs")
     if "call_ledger" in state:
         require(state["call_ledger"]["plan"] == reference and state["call_ledger"]["limits"] == limits,
                 "existing ledger has different plan or ceilings")
-        if usage_policy_path:
-            require(all(state["call_ledger"].get(key) == value for key, value in usage_binding.items()),
-                    "existing ledger has a different usage policy")
-        check_policy_binding(state)
         return
     # Extend an existing run; never replace its steps, counters, gates or authority.
     state.setdefault("run_id", run_id)
@@ -86,8 +77,6 @@ def initialize(state, plan_path, run_id, limits, usage_policy_path=None):
                        "steps": [], "side_effects": []}.items():
         state.setdefault(key, value)
     state["call_ledger"] = {"plan": reference, "limits": limits, "calls": {}, "contexts": {}}
-    state["call_ledger"].update(usage_binding)
-    state.setdefault("workflow_measurement", {}).setdefault("ledger_started_at", now())
 
 
 def reserve(state, route_id, call_id, brief, phase, setup_reference=None, review_snapshot=None, root=None):
@@ -118,10 +107,6 @@ def reserve(state, route_id, call_id, brief, phase, setup_reference=None, review
         require(root is not None, "feature role reservation requires an explicit source root")
         from feature_review import validate_plan_policy
         validate_plan_policy(plan, Path(root).resolve())
-    check_policy_binding(state)
-    budget = evaluate_budget(state)
-    require(budget["dispatch_allowed"], "usage budget blocks future dispatch: " + json.dumps(budget["reasons"]))
-    require("completed_at" not in state.get("workflow_measurement", {}), "workflow measurement is terminal")
     require(not any(c["intent"]["route"]["id"] == route_id and c["status"] == "pending" for c in calls.values()),
             "route has a pending call; reconcile it before another reservation")
     attempts = state["attempts"]
@@ -170,9 +155,6 @@ def reconcile(state, call_id, receipt_path):
     if call["status"] != "pending":
         require(call.get("receipt_ref") == reference, "completed call has a different receipt")
         return call
-    require(all(reference["sha256"] != item["receipt_ref"]["sha256"]
-                for item in state.get("workflow_measurement", {}).get("coordinator_calls", {}).values()),
-            "worker receipt duplicates a coordinator receipt")
     receipt = json.loads(Path(receipt_path).read_text())
     execution = receipt.get("native_execution", receipt)
     if "dispatch_metadata" in receipt:
@@ -200,8 +182,7 @@ def reconcile(state, call_id, receipt_path):
                 "receipt context belongs to another role")
         if receipt["success"]:
             ledger["contexts"][route["id"]] = context
-    call.update(status="completed" if receipt["success"] else "failed", receipt_ref=reference,
-                receipt={"metrics": normalize_metrics(receipt)}, observed_usage=receipt_usage(receipt), completed_at=now())
+    call.update(status="completed" if receipt["success"] else "failed", receipt_ref=reference, completed_at=now())
     state["steps"].append({"step": call_id, "result": call["status"], "artifact": reference["path"]})
     return call
 
@@ -227,212 +208,12 @@ def complete(state, call_id, receipt_path):
     return result
 
 
-def capture(state, event):
-    """Record observed facts atomically; execution authority stays with its owner."""
-    from workflow_comparison import IDENTITY_FIELDS, CASE_KINDS, timestamp, elapsed_ms
-    import re
-
-    require(isinstance(event, dict), "capture event must be an object")
-    schemas = {
-        "start": {"identity"}, "identity": {"identity"}, "stage-start": {"stage"}, "stage-end": {"stage"},
-        "wait-start": {"wait"}, "wait-end": {"wait"},
-        "command": {"key", "evidence", "started_at", "exit_code"},
-        "repair": {"call_id"}, "coordinator": {"receipt"}, "stage-ledger": {"stage", "ledger"},
-        "coverage": {"areas"}, "outcome": {"acceptance", "missed_defects"},
-        "terminal": {"status"},
-    }
-    kind = event.get("kind")
-    require(isinstance(kind, str) and kind in schemas, "unknown capture kind")
-    required = {"id", "kind"} | schemas[kind]
-    require(required <= event.keys() <= required | {"at"}, "capture fields do not match kind")
-    require(isinstance(event["id"], str) and event["id"].strip(), "event id is required")
-    candidate = copy.deepcopy(state)
-    measurement = candidate.setdefault("workflow_measurement", {})
-    events = measurement.setdefault("events", {})
-    if event["id"] in events:
-        require(events[event["id"]]["input"] == event, "event id has different facts")
-        return {"event_id": event["id"], "capture": "existing"}
-    at = event.get("at", now())
-    timestamp(at)
-    if "completed_at" in measurement:
-        require(kind in {"coverage", "outcome"}, "workflow measurement is terminal")
-    if "started_at" in measurement:
-        require(timestamp(at) >= timestamp(measurement["started_at"]), "event precedes workflow start")
-
-    def put(key, value):
-        require(key not in measurement or measurement[key] == value, f"measurement {key} already has different facts")
-        measurement[key] = value
-
-    def nonempty(value, name):
-        require(isinstance(value, str) and value.strip(), f"{name} must be a nonempty string")
-
-    def evidence(value):
-        require(isinstance(value, dict) and set(value) == {"path", "sha256"}, "evidence needs path and sha256")
-        nonempty(value["path"], "evidence path")
-        require(sha(value["path"]) == value["sha256"], "evidence hash differs")
-        return {"path": str(Path(value["path"]).resolve()), "sha256": value["sha256"]}
-
-    if kind in {"start", "identity"}:
-        identity = event["identity"]
-        require(isinstance(identity, dict) and set(identity) <= set(IDENTITY_FIELDS), "unknown comparison identity field")
-        for key, value in identity.items():
-            nonempty(value, key)
-            if key.endswith("_sha256"):
-                require(re.fullmatch(r"[0-9a-f]{64}", value), f"invalid {key}")
-        if "source_start_revision" in identity:
-            require(re.fullmatch(r"[0-9a-f]{40}|[0-9a-f]{64}", identity["source_start_revision"]), "full source revision required")
-        if "case_kind" in identity:
-            require(identity["case_kind"] in CASE_KINDS, "unsupported case kind")
-        # A late observer may supply the actual earlier start, never a later one.
-        if kind == "start":
-            if state.get("started_at"):
-                require(timestamp(at) <= timestamp(state["started_at"]), "capture start follows existing run start")
-            require(all(timestamp(item["at"]) >= timestamp(at) for item in events.values()), "workflow start follows captured events")
-            put("started_at", at)
-        bound = measurement.setdefault("identity", {})
-        for key, value in identity.items():
-            require(key not in bound or bound[key] == value, f"identity {key} already has different facts")
-            bound[key] = value
-        measurement.setdefault("capture_version", 1)
-    elif kind in {"stage-start", "stage-end", "wait-start", "wait-end"}:
-        category = "stage" if kind.startswith("stage") else "wait"
-        name = event[category]
-        nonempty(name, category)
-        records = measurement.setdefault("stages" if category == "stage" else "waits", {})
-        record = records.setdefault(name, {})
-        field = "started_at" if kind.endswith("start") else "completed_at"
-        require(field not in record or record[field] == at, f"{category} boundary already recorded")
-        if field == "completed_at":
-            require("started_at" in record, f"{category} start is missing")
-            elapsed_ms(record["started_at"], at)
-        record[field] = at
-    elif kind == "command":
-        nonempty(event["key"], "command key")
-        require(type(event["exit_code"]) is int, "command exit_code must be an integer")
-        elapsed_ms(event["started_at"], at)
-        if measurement.get("started_at"):
-            require(timestamp(event["started_at"]) >= timestamp(measurement["started_at"]), "command precedes workflow start")
-        measurement.setdefault("commands", {})[event["id"]] = {
-            "key": event["key"], "evidence": evidence(event["evidence"]),
-            "started_at": event["started_at"], "completed_at": at, "exit_code": event["exit_code"]}
-    elif kind == "repair":
-        nonempty(event["call_id"], "call_id")
-        require(event["call_id"] in candidate.get("call_ledger", {}).get("calls", {}), "repair call is missing")
-        repairs = measurement.setdefault("repair_call_ids", [])
-        if event["call_id"] not in repairs:
-            repairs.append(event["call_id"])
-    elif kind == "stage-ledger":
-        nonempty(event["stage"], "stage")
-        ref = evidence(event["ledger"])
-        source = json.loads(Path(ref["path"]).read_text())
-        require(isinstance(source, dict) and isinstance(source.get("call_ledger"), dict), "stage ledger is missing")
-        terminal = source.get("workflow_measurement", {}).get("terminal_status", source.get("status"))
-        require(isinstance(terminal, str) and terminal in {"complete", "failed", "ceiling_hit", "cancelled"},
-                "stage ledger is not terminal")
-        calls = source["call_ledger"].get("calls")
-        require(isinstance(calls, dict), "stage ledger calls are missing")
-        require(all(isinstance(call, dict) and isinstance(call.get("status"), str) and call["status"] in {"completed", "failed"}
-                    for call in calls.values()), "stage ledger has unresolved calls")
-        imported = copy.deepcopy(calls)
-        for call in imported.values():
-            receipt_ref = evidence(call.get("receipt_ref"))
-            require(all(receipt_ref["sha256"] != item["receipt_ref"]["sha256"]
-                        for item in measurement.get("coordinator_calls", {}).values()),
-                    "stage worker receipt duplicates a coordinator receipt")
-            raw = json.loads(Path(receipt_ref["path"]).read_text())
-            require(isinstance(raw, dict), "stage receipt must be an object")
-            call["receipt"] = {"metrics": normalize_metrics(raw)}
-            call["observed_usage"] = receipt_usage(raw)
-        from workflow_comparison import call_timing
-        call_timing(imported, measurement.get("started_at"), at)
-        source_measurement = source.get("workflow_measurement", {})
-        repairs = source_measurement.get("repair_call_ids",
-                                         [] if "repairs" in source_measurement.get("coverage", []) else None)
-        if "events" in source_measurement and "repairs" not in source_measurement.get("coverage", []):
-            repairs = None
-        if repairs is not None:
-            require(isinstance(repairs, list) and all(isinstance(item, str) and item in imported for item in repairs),
-                    "stage repair IDs must belong to the imported ledger")
-        coordinators = copy.deepcopy(source_measurement.get("coordinator_calls", {}))
-        for call in coordinators.values():
-            receipt_ref = evidence(call.get("receipt_ref"))
-            raw = json.loads(Path(receipt_ref["path"]).read_text())
-            require(isinstance(raw, dict), "stage coordinator receipt must be an object")
-            call["receipt"] = {"metrics": normalize_metrics(raw)}
-            call["observed_usage"] = receipt_usage(raw)
-        record = {"ledger_ref": ref, "calls": imported, "repair_call_ids": repairs,
-                  "coordinator_calls": coordinators, "coverage": source_measurement.get("coverage", []),
-                  "stage_ledgers": copy.deepcopy(source_measurement.get("stage_ledgers", {})),
-                  "usage_accounting": copy.deepcopy(source.get("usage_accounting", {}))}
-        stages = measurement.setdefault("stage_ledgers", {})
-        require(event["stage"] not in stages or stages[event["stage"]] == record, "stage ledger already has different facts")
-        stages[event["stage"]] = record
-    elif kind == "coordinator":
-        ref = evidence(event["receipt"])
-        require(all(ref["sha256"] != call.get("receipt_ref", {}).get("sha256") for call in candidate.get("call_ledger", {}).get("calls", {}).values()),
-                "coordinator receipt duplicates a worker receipt")
-        require(all(ref["sha256"] != call["receipt_ref"]["sha256"]
-                    for stage in measurement.get("stage_ledgers", {}).values() for call in stage["calls"].values()),
-                "coordinator receipt duplicates an imported worker receipt")
-        records = measurement.setdefault("coordinator_calls", {})
-        require(all(ref["sha256"] != call["receipt_ref"]["sha256"] for call in records.values()), "coordinator receipt already recorded")
-        receipt = json.loads(Path(ref["path"]).read_text())
-        require(isinstance(receipt, dict), "coordinator receipt must be an object")
-        records[event["id"]] = {"receipt_ref": ref, "receipt": {"metrics": normalize_metrics(receipt)},
-                                "observed_usage": receipt_usage(receipt)}
-    elif kind == "coverage":
-        areas = event["areas"]
-        allowed = {"workers", "coordinator", "commands", "waits", "repairs"}
-        require(isinstance(areas, list) and all(isinstance(a, str) and a in allowed for a in areas)
-                and len(set(areas)) == len(areas), "invalid coverage areas")
-        require("completed_at" in measurement, "capture coverage after terminal observation")
-        coverage = measurement.setdefault("coverage", [])
-        measurement["coverage"] = sorted(set(coverage) | set(areas))
-        if "workers" in areas:
-            require("call_ledger" in candidate or measurement.get("stage_ledgers"), "worker coverage requires a call ledger")
-            put("worker_calls_complete", True)
-    elif kind == "outcome":
-        for name in ("acceptance", "missed_defects"):
-            value = event[name]
-            fields = {"passed", "evidence"} if name == "acceptance" else {"count", "evidence", "observation_window"}
-            require(isinstance(value, dict) and set(value) == fields, f"invalid {name} fields")
-            if name == "acceptance":
-                require(type(value["passed"]) is bool, "acceptance passed must be boolean")
-            else:
-                require(type(value["count"]) is int and value["count"] >= 0, "defect count must be nonnegative")
-                nonempty(value["observation_window"], "observation_window")
-            ref = evidence(value["evidence"])
-            put(name, {**value, "evidence": ref["path"]})
-            put(name + "_evidence", ref)
-    elif kind == "terminal":
-        require(isinstance(event["status"], str) and event["status"] in {"complete", "failed", "ceiling_hit", "cancelled"}, "invalid terminal status")
-        require("started_at" in measurement, "workflow start observation is required")
-        require(not any(c["status"] == "pending" for c in candidate.get("call_ledger", {}).get("calls", {}).values()), "reconcile pending calls before terminal observation")
-        for group in ("stages", "waits"):
-            require(all("completed_at" in item for item in measurement.get(group, {}).values()), f"open {group} remain")
-        from workflow_comparison import call_timing
-        call_timing(candidate.get("call_ledger", {}).get("calls", {}), measurement["started_at"], at)
-        observed = [item["at"] for item in events.values()]
-        require(all(timestamp(value) <= timestamp(at) for value in observed), "terminal time precedes captured event")
-        put("completed_at", at)
-        put("terminal_status", event["status"])
-    events[event["id"]] = {"input": copy.deepcopy(event), "at": at}
-    state.clear()
-    state.update(candidate)
-    return {"event_id": event["id"], "capture": "new"}
-
-
 def status(state):
     ledger = state["call_ledger"]
     calls = ledger["calls"]
-    tasks = {}
-    for call in calls.values():
-        task = call["intent"]["route"]["task_id"]
-        tasks.setdefault(task, []).append(call)
     return {"run_id": state["run_id"], "phase": state["phase"], "status": state["status"],
             "attempts": state["attempts"],
-            "calls": {key: {"status": value["status"], "route": value["intent"]["route"]["id"]} for key, value in calls.items()},
-            "metrics_by_task": {key: aggregate_metrics(value) for key, value in tasks.items()}}
+            "calls": {key: {"status": value["status"], "route": value["intent"]["route"]["id"]} for key, value in calls.items()}}
 
 
 def summary(state):
@@ -469,14 +250,9 @@ def status_query(state, args):
         calls = [(key, value) for key, value in state["call_ledger"]["calls"].items()
                  if not args.task or value["intent"]["route"]["task_id"] == args.task]
         page = calls[args.offset:args.offset + args.limit]
-        result = {"total": len(calls), "offset": args.offset,
-                  "next_offset": args.offset + len(page) if args.offset + len(page) < len(calls) else None,
-                  "calls": [call_summary(state, key) for key, _ in page]}
-        if args.metrics:
-            result["metrics"] = aggregate_metrics([value for _, value in calls])
-        return result
-    if args.metrics:
-        return {"metrics_by_task": status(state)["metrics_by_task"]}
+        return {"total": len(calls), "offset": args.offset,
+                "next_offset": args.offset + len(page) if args.offset + len(page) < len(calls) else None,
+                "calls": [call_summary(state, key) for key, _ in page]}
     return summary(state)
 
 
@@ -489,7 +265,6 @@ def main():
     init.add_argument("--plan", required=True)
     init.add_argument("--run-id", required=True)
     init.add_argument("--limits", required=True, help="JSON file: total_role_calls and ceilings by route ID")
-    init.add_argument("--usage-policy", help="policy JSON file already bound as an approved scope input")
     reserve_parser = commands.add_parser("reserve")
     for name in ("route", "call", "brief", "phase"):
         reserve_parser.add_argument("--" + name, required=True)
@@ -500,16 +275,6 @@ def main():
         sub = commands.add_parser(name)
         sub.add_argument("--call", required=True)
         sub.add_argument("--" + option, required=True)
-    capture_parser = commands.add_parser("capture", help="record immutable observed facts without changing authority")
-    capture_parser.add_argument("--event", required=True, help="JSON event file; see workflow-measurement reference")
-    for action in ("usage-snapshot", "usage-subscription"):
-        usage_parser = commands.add_parser(action, help="import observed usage without dispatching")
-        usage_parser.add_argument("--snapshot", required=True, help="saved observed snapshot JSON")
-    log_parser = commands.add_parser("usage-token-log", help="import saved cumulative token observations")
-    log_parser.add_argument("--log", required=True, help="saved JSONL token_count events")
-    log_parser.add_argument("--metadata", required=True, help="snapshot identity and explicit covered records JSON")
-    log_parser.add_argument("--baseline", required=True, help="explicit cumulative baseline metrics JSON")
-    commands.add_parser("usage-status", help="summarize observed usage and optional dispatch budget")
     query = commands.add_parser("status")
     selection = query.add_mutually_exclusive_group()
     selection.add_argument("--call", help="read one complete call record")
@@ -517,28 +282,14 @@ def main():
     selection.add_argument("--details", action="store_true", help="list a page of calls")
     query.add_argument("--offset", type=int, default=0)
     query.add_argument("--limit", type=int, default=20)
-    query.add_argument("--metrics", action="store_true", help="aggregate stored usage only when requested")
     args = parser.parse_args()
     try:
         path = Path(args.state)
         def apply(state):
             if args.action == "status":
                 return status_query(state, args)
-            if args.action == "capture":
-                return capture(state, json.loads(Path(args.event).read_text()))
-            if args.action == "usage-status":
-                check_policy_binding(state)
-                return {"usage": summarize_usage(state), "budget": evaluate_budget(state)}
-            if args.action in {"usage-snapshot", "usage-subscription"}:
-                snapshot = json.loads(Path(args.snapshot).read_text())
-                ingest = ingest_snapshot if args.action == "usage-snapshot" else ingest_subscription
-                return ingest(state, snapshot)
-            if args.action == "usage-token-log":
-                snapshot = token_log_snapshot(args.log, json.loads(Path(args.metadata).read_text()),
-                                              json.loads(Path(args.baseline).read_text()))
-                return ingest_snapshot(state, snapshot)
             if args.action == "init":
-                initialize(state, args.plan, args.run_id, json.loads(Path(args.limits).read_text()), args.usage_policy)
+                initialize(state, args.plan, args.run_id, json.loads(Path(args.limits).read_text()))
             elif args.action == "reserve":
                 existed = args.call in state["call_ledger"]["calls"]
                 reserve(state, args.route, args.call, args.brief, args.phase, args.setup_reference, args.review_snapshot, args.root)
@@ -553,7 +304,7 @@ def main():
             elif args.action == "resolve-context":
                 resolve_context(state, args.call, args.event)
             return summary(state) if args.action == "init" else call_summary(state, args.call)
-        if args.dry_run or args.action in {"status", "usage-status"}:
+        if args.dry_run or args.action == "status":
             result = apply(json.loads(path.read_text()) if path.exists() else {})
         else:
             with locked(path) as state:

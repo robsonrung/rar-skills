@@ -5,35 +5,29 @@ description: Build a throwaway experiment to answer a design question that readi
 
 # Prototype
 
-For a direct invocation, use `shared/references/model-preview.md` to choose the branch first. Coordinator work and deterministic commands proceed within invocation authority. An actual worker branch uses one approved route snapshot. Nested calls reuse it without route selection or added workers.
-
-Answer one decision-changing question with throwaway code. **Prototype code never graduates**: the next production task rebuilds the selected behavior under its acceptance contract. A prototype produces evidence and a decision, not a finished feature.
+Answer one decision-changing question with throwaway code. **Prototype code never graduates**: the production task rebuilds the chosen behavior under its own acceptance contract. A prototype yields evidence and a decision, not a feature.
 
 ## 1. State the question
 
-Identify the unknown, the observation that would answer it, and the time or scope limit. Read existing code and docs first. A question already answered by those sources does not need a prototype.
+Name the unknown, the observation that would answer it, and the time or scope limit. Read the code and docs first; a question they already answer needs no prototype. Pick the smallest form:
 
-Choose the smallest useful form:
+1. A visual decision: [references/ui.md](references/ui.md).
+2. Logic or state behavior a person must explore: a standalone HTML demo, [references/logic.md](references/logic.md).
+3. A technical property such as integration behavior, latency, or library support: a small script or harness that records input, output, and measurement, with no UI.
 
-1. Visual decision: read `references/ui.md`. Start with one fixture or static screen for one question. When a comparison can change the decision, use two alternatives. An explicit user request for a different bounded set controls. Use a host page or switcher only when real app context changes the observation.
-2. Logic or state behavior that a person must explore: read `references/logic.md`. Use a standalone HTML demo.
-3. A technical property such as integration behavior, latency, or library support: write a small local script or harness that records the relevant input, output, and measurement. Do not add a UI that cannot help answer the question.
+## 2. Run it
 
-## 2. Run the experiment
-
-Keep the work isolated in a scratch location or local worktree. Name it as a prototype and give one command or file path to run it. Use safe memory backed or scratch data. Use real services only when that access is authorized and necessary to the question.
-
-Skip production scaffolding and unrelated polish. Keep enough checks and error output to trust the experiment. Record actual observations and failed attempts. Stop at the agreed limit if the question remains unresolved.
+Work in a scratch location or local worktree, name it as a prototype, and give one command or path to run it. Use memory-backed or scratch data; touch real services only when authorized and necessary. Skip production scaffolding and polish, but keep enough checks and error output to trust the result. Record observations and failed attempts. Stop at the agreed limit even if the question stays open.
 
 ## 3. Return the decision
 
-Return these four fields:
+Return:
 
-1. `question`: the single question tested.
-2. `answer`: the decision, evidence, limitations, and any unresolved result.
-3. `snippets`: only decision-bearing state, schema, or type shapes; no production-ready claim.
-4. `disposition`: the artifact path and whether it is retained or removed. No prototype code is promoted to production.
+1. `question`: the one question tested.
+2. `answer`: the decision, its evidence and limits, or the open result.
+3. `snippets`: only decision-bearing state, schema, or type shapes.
+4. `disposition`: the artifact path, and whether it is kept or removed.
 
-Save the evidence beside the caller's decision record or task plan, with its decision revision or content hash. A later decision change marks the affected prototype superseded. For a visual decision, record an actual browser review before claiming the layout is verified; model or DOM checks do not prove visual usability. If browser review is unavailable, retain that open limit rather than claiming acceptance. Keep a local artifact when useful; commit a throwaway branch or update a tracker only when authorized. Do not delete unrelated files during cleanup.
+Save the evidence beside the caller's decision record or task plan, with the decision revision it answers; a later decision change marks it superseded. A visual decision needs an actual browser review; a model or DOM check does not prove usability, so without one the decision stays open. Commit a throwaway branch or update a tracker only when authorized, and delete only what the prototype created.
 
-Return to `interview-me` to settle its question, or to `coding-design-plan` to revise the slice plan. An unresolved result returns an open decision rather than a fabricated answer. This closes the prototype's acceptance contract.
+Return to `interview-me` or `coding-design-plan` with the answer. An unresolved result comes back as an open decision, never a fabricated answer.

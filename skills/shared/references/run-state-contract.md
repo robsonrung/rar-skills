@@ -1,6 +1,6 @@
 # Run State Contract
 
-Canonical, agent-facing rules for the durable run state shared by every long-running orchestration skill (`implement-tasks`, `implement-and-review`, `dynamic-harness`, and `interview-me --auto`). Each skill's SKILL.md points here and keeps inline only its own field names and ceilings.
+Canonical, agent-facing rules for the durable run state shared by every long-running orchestration skill (`implement-tasks`, `implement-and-review`, `peer-sessions`, and `interview-me --auto`). Each skill's SKILL.md points here and keeps inline only its own field names and ceilings.
 
 A long run's progress lives in **the ledger, not the transcript**. Anything the run must know after a crash, a compaction, or a restart is written to this file; anything held only in the message history is lost with it.
 
@@ -97,20 +97,11 @@ Legacy records with `done_at` and no status mean confirmed completion. Stable ke
 
 Append one entry per completed step: the step name, its result, and the path to its artifact. This is what answers "what ran, in what order, and where is the output" after the run is over. Append; never rewrite history.
 
-A step that was **delegated** records its `brief` and `report` paths alongside `result` (shapes in `handoff-contract.md`), so a resumed run recovers the step's reasoning and not only its name. The report is evidence to inspect, not a completion flag. Mark the step complete only when its recorded result, acceptance evidence, and input/output revisions agree. A partial report or obsolete revision cannot release dependent work.
+A **delegated** step also records its `brief` and `report` paths ([handoff-contract.md](handoff-contract.md)), so a resumed run recovers the step's reasoning and not only its name.
 
 ### Persistent role contexts
 
-Use [host-model-execution.md](host-model-execution.md) for context ownership and
-adapter-specific resume. Store each role's actual context ID or session path,
-route ID, input revision, last completed turn, pending call, and receipt with the
-existing run state. Keep the approved route immutable. A repeated turn uses the
-same task and role context; an independent role starts separately.
-
-On resume, inspect each pending call before retrying. A missing session can be
-reconstructed from that role's artifacts only under the existing route and
-authority. Record the loss of native context and keep attempts intact. Do not
-close a context that still has review, repair, interview, or debate turns pending.
+Store each role's actual context ID or session path, route ID, input revision, last completed turn, and pending call here; [host-model-execution.md](host-model-execution.md) owns how contexts are kept, resumed, and rebuilt.
 
 ### Cadence
 
@@ -131,10 +122,7 @@ A resume path that was never exercised does not work. Once per skill that adopts
 
 ## Supported call ledger
 
-Use `shared/scripts/run_state.py` for feature-level call reservations and compact
-status. Extend the existing run-state file; do not create a second feature ledger.
-The feature ledger owns total calls, per-route reservations, role contexts, host
-setup correlation, and links to completion receipts.
+`shared/scripts/run_state.py` keeps the call ledger inside the existing run-state file; never create a second one. It owns total and per-route call reservations, role contexts, host setup correlation, and links to receipts. It holds a POSIX file lock, replaces state atomically, and expects one writer per run. It never launches a job, grants authority, resets counters, or accepts a task.
 
 ```bash
 python3 <shared-dir>/scripts/run_state.py --state <run-state.json> init \
@@ -143,153 +131,20 @@ python3 <shared-dir>/scripts/run_state.py --state <run-state.json> reserve \
   --route <route-id> --call <call-id> --brief <bound-brief.md> --phase <phase>
 python3 <shared-dir>/scripts/run_state.py --state <run-state.json> reconcile \
   --call <call-id> --receipt <actual-completion-receipt.json>
-python3 <shared-dir>/scripts/run_state.py --state <run-state.json> status
-python3 <shared-dir>/scripts/run_state.py --state <run-state.json> status --details --limit 20 --offset 0
-python3 <shared-dir>/scripts/run_state.py --state <run-state.json> status --task <task-id> --metrics
-python3 <shared-dir>/scripts/run_state.py --state <run-state.json> status --call <call-id>
+python3 <shared-dir>/scripts/run_state.py --state <run-state.json> status \
+  [--details --limit 20 --offset 0 | --task <task-id> | --call <call-id>]
 ```
 
-Default status returns task and call counts, execution counts, and the remaining
-total call budget. It does not return call history or aggregate usage. Mutations
-return the affected call, execution status, remaining call budgets, and state path.
-An existing reservation still requires reconciliation before dispatch.
+- `init` takes the approved plan and limits: `total_role_calls` plus one ceiling per route ID. Reinitializing keeps existing attempts and ceilings.
+- `reserve` before every call. Repeating a reservation is idempotent bookkeeping, not permission to dispatch again; a pending call must be reconciled at its host first.
+- `reconcile` binds the receipt's call ID, input revision, configured model and effort, and context to the reservation. Save raw output before writing the receipt. Task acceptance stays with the conductor.
+- `status` is compact by default: counts and remaining budget. `--details` pages at most 100 calls, `--task` filters by task, and `--call` returns one full record. Queries never write.
+- `--dry-run` before the subcommand previews without saving.
 
-Use `--details` for a page of calls. Pages contain at most 100 calls and return
-`next_offset`, or null at the end. `--task` filters the page by task ID. `--call`
-returns one full stored record. Queries do not write state. Read pages from a stable
-ledger when an exact export is required. Request `--metrics` to aggregate usage;
-with `--task`, totals cover all calls for that task, including calls outside the
-page. Without a task filter, totals cover the full run. Unknown usage stays unknown.
-The Python `status(state)` function retains its detailed return shape.
+For a queued host task, reserve with `--setup-reference`, then bind the real context with `resolve-context --call <id> --event <event.json>`. The event carries `call_id`, `setup_reference`, the actual `context_id`, `host`, and `evidence: {"path", "sha256"}` of the raw host record. A setup token is never a context ID.
 
-Limits contain `total_role_calls` and each route ID. Reuse the already approved
-ceilings and existing attempts. A repeated reservation is idempotent bookkeeping,
-not permission to dispatch again. A pending call must be inspected at its host.
-The helper never launches a job, grants authority, resets counters, or marks a task
-accepted. Use `--dry-run` before the subcommand for a read-only preview.
-
-For queued task creation, reserve with `--setup-reference`. Resolve through the
-host's scoped task lookup or creation event, then use `resolve-context --call <id>
---event <event.json>`. The adapter event has `call_id`, `setup_reference`, actual
-`context_id`, `host`, and `evidence: {"path": "...", "sha256": "..."}` pointing to
-the raw host evidence. A queued
-setup token is never the actual context ID. Do not scan or copy whole transcripts.
-
-Receipts bind call ID, input revision, configured model and effort, and the actual
-context. Save raw completion output before making a normalized receipt. Reconcile
-only that receipt; task acceptance remains the conductor's decision. Keep missing metrics unknown. Per-task totals report
-measured sums and missing-call counts, including failed calls and repairs.
-
-The helper uses a POSIX file lock and atomically replaces state; each run has one
-conductor writer. Prefer host waits with
-cursors. For runners use bounded waits with backoff, no longer than the host's
-responsive wait limit. Read reports on a change or failure, not every poll.
-
-Record loaded skill and script hashes, the routing configuration digest, runner
-version when available, and runtime facts. `execution_provenance.py` captures only
-explicitly named resources. Never read credential or advisory local configuration
-files to produce provenance. A changed skill version is execution drift to assess;
-it cannot alter a previously approved route or historical receipt.
-
-## Compare workflow cost
-
-Capture operational facts with the [measurement hook](workflow-measurement.md).
-It supports early workflow start, stage boundaries, waits, command evidence,
-repairs, coordinator receipts, coverage, and terminal observations in this ledger.
-
-
-Use **the ledger, not the transcript** for measurements. Keep the existing call
-ledger and add optional `workflow_measurement` metadata to that run state. The
-read-only `shared/scripts/workflow_comparison.py --baseline <before.json>
---candidate <after.json>` compares two recorded runs. It launches no calls,
-updates no state, and grants no acceptance or approval. Exit 0 means matching,
-complete measurement inputs; it does not mean acceptance passed. Exit 1 means
-invalid, mismatched, or incomplete inputs. Input read errors return exit 2.
-
-Bind known facts at workflow start with `workflow_measurement.identity`. Add each
-remaining fact once when it becomes fixed. Every field below is required before
-comparison can produce deltas:
-
-| Field | Required identity |
-| --- | --- |
-| `case_id` | Same task and fixture in both runs |
-| `case_kind` | `bounded-fix`, `routine-feature`, `ui`, `permissions`, or `migration-concurrency` |
-| `source_start_revision` | Full source commit ID; use the same starting code in both runs |
-| `requirements_sha256` | SHA256 of the unchanged acceptance contract |
-| `checks_sha256` | SHA256 of the independent acceptance cases, command definitions, and fault probes |
-| `environment_sha256` | SHA256 of recorded runtime, dependency, fixture, and external-state facts |
-
-Record the baseline and candidate workflow resource revisions with existing
-execution provenance. They are expected to differ. The source start revision,
-requirements, checks, and environment must match. The helper compares these
-identities; the caller must verify their evidence and fingerprints. Missing
-identity, acceptance, or defect observations block all deltas. Both runs must
-finish execution and report passed acceptance and equal missed-defect counts
-before deltas are shown. A failed acceptance result, unequal defect count, mismatched identity, or defect observation window
-returns `mismatched`; malformed data returns `invalid`.
-
-The capture hook keeps whole workflow `started_at` and `completed_at` under
-`workflow_measurement`, separate from execution authority. Comparison prefers
-these observed bounds and its `terminal_status`. Legacy states can keep whole
-workflow `started_at` and `completed_at` on the existing state.
-`updated_at` is not a completion timestamp. Available ledger `reserved_at` and
-`completed_at` events must fall within the known workflow bounds; completion
-cannot precede reservation. `call_timing` reports checked and unknown event
-counts. Missing events make timing validation incomplete; they do not supply
-invented timestamps. Malformed status values and inconsistent event times return
-`invalid`. Optional measurement fields are:
-
-| Field | Measurement |
-| --- | --- |
-| `worker_calls_complete` | Explicit `true` only when the ledger includes every worker call, including failed calls and repairs |
-| `coordinator_receipts` | All coordinator usage receipts, separate from worker ledger calls; null or absent means unknown |
-| `approval_wait_intervals` | Recorded objects with `started_at` and `completed_at`; overlapping waits count once |
-| `repair_call_ids` | Unique ledger call IDs used for repairs; absent means unknown |
-| `command_keys` | One stable command and working-directory identity per actual execution, including failures; repeated keys count repeated executions |
-| `acceptance` | `{ "passed": true, "evidence": "<independent acceptance report>" }`, or null |
-| `missed_defects` | `{ "count": 0, "evidence": "<defect assessment>", "observation_window": "<shared observation protocol>" }`, or null |
-
-An empty list means observed none. Use null or omit a field when capture is
-incomplete. Coordinator receipts must cover the full run without duplicating
-worker calls. Use the same command identity scheme for both runs. Repeated
-commands are counts, not proof of wasted work; a repair can require another run.
-A defect count of zero means none found by the recorded protocol, not proof that
-none exist.
-
-`workflow_elapsed_ms` is the time between workflow start and completion. Worker
-`duration_ms.measured_sum` is the sum of call durations and can exceed elapsed
-time when workers overlap. Approval waiting and coordinator duration are separate.
-Do not infer either from gaps between worker calls. Usage reports measured sums,
-measured-call counts, and unknown-call counts for input, cached input, cache writes,
-output, reasoning output, duration, and reported cost. Cached input remains part
-of total input and is not free. Report actual receipt cost; do not infer a price
-or treat missing cost as zero. `total_reported_cost_usd` requires complete worker
-coverage, resolved calls, and complete worker and coordinator cost receipts.
-
-Deltas are candidate minus baseline. A metric with missing call measurements has
-no delta; partial measured sums remain visible. Incomplete capture returns
-`incomplete`. `observed_acceptance_match` only compares reported passed acceptance
-and equal missed-defect counts under matched identities. Evidence still needs
-independent review. `quality_equivalence` remains `not-established`, including
-when the candidate costs less. Offline tests prove arithmetic and refusal rules,
-not execution quality or percentage savings.
-
-A performance claim needs bounded, repeated comparisons across all five case
-kinds, including acceptance failures and missed defects. Record host, routes,
-models, receipt limits, repairs, and all calls per accepted result. Obtain approval
-for new paid comparison routes and bounds; reuse existing approval when it covers
-that exact comparison. Keep route defaults unchanged until the evidence supports
-a change.
+Prefer host waits with cursors; for runners, use bounded waits with backoff. Read reports on a change or failure, not on every poll.
 
 ## Completion without transcript reconstruction
 
-For new reviewer calls, reserve with `--review-snapshot <snapshot.json>`. The ledger binds the
-snapshot before dispatch. The host adapter or runner supplies the actual execution receipt.
-Use `run_state.py --state <state.json> complete --call <call-id> --receipt <receipt.json>`.
-This validates route, context, input revision, snapshot, and evidence, then records the call and review reference.
-It returns execution status separately from review readiness. An open finding remains `needs-work`.
-The CLI returns review status and the review artifact reference, without the full
-assessment. Use the evidence assessment command when its details are needed.
-An identical retry is idempotent. A changed receipt or missing snapshot binding is rejected.
-The command does not synthesize execution metadata or mark a task queue complete. Legacy calls
-can still use `reconcile` and their existing review recorder.
+For a reviewer call, reserve with `--review-snapshot <snapshot.json>` so the snapshot is bound before dispatch. Then `run_state.py --state <state.json> complete --call <call-id> --receipt <receipt.json>` validates route, context, input revision, snapshot, and evidence, records the call and its review, and returns execution status separately from review readiness: an open finding stays `needs-work`. An identical retry is idempotent; a changed receipt or a missing snapshot binding is rejected. It never fabricates execution metadata or completes a queue task.

@@ -11,7 +11,8 @@ Use the repository's own checks for the contracts an edit affects. Required repo
 | Shared protocol, schema, or runner | Existing consumer, schema, parity, and affected runner tests. |
 | Added or changed script | Representative success and failure inputs, plus the narrow relevant tests. |
 | Named project convention | The repository's convention guard and any affected registry entries. |
-| Behavioral claim | A bounded baseline comparison from `references/evaluation.md`, with actual outputs and limitations. |
+| Deleted or merged skill | No remaining link, manifest entry, or guard names it. |
+| Behavioral claim | A bounded baseline comparison from [evaluation.md](evaluation.md), with actual outputs and limitations. |
 
 In this collection, frontmatter and runner registration are checked by `skills/shared/scripts/validate_skill_frontmatter.py`; named vocabulary is checked by `scripts/check_leitworter.py`. Resolve these from the confirmed source checkout root. Other repositories may provide different commands.
 

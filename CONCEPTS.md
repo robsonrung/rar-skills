@@ -44,7 +44,7 @@ The transport that actually executed (envelope key `effective_runner`) — e.g. 
 
 ### Moment
 
-One of the five points in a working turn — intake, diagnosis, decision, implementation, reporting. A moment is about _posture_ (how a request is read, how evidence is weighed, how a result is reported) rather than a domain or a procedure; the procedural counterpart of each moment lives in its own skill (`diagnose`, `coding-design-plan`, `tdd`, `summarize`).
+One of the five points in a working turn — intake, diagnosis, decision, implementation, reporting. A moment is about _posture_ (how a request is read, how evidence is weighed, how a result is reported) rather than a domain or a procedure; the procedural counterpart of each moment lives in its own skill (`diagnose`, `coding-design-plan`, `tdd`, `session-handoff`).
 
 ### Seat tier
 
@@ -68,7 +68,7 @@ The one sanctioned cross-skill directory: envelope schema, runner discovery, par
 
 ### Model tier
 
-A semantic cost class for a dispatched subagent — extraction (cheapest capable), generation (mid-tier), ceiling (orchestrator's own model, inherited by omission) — declared once per skill and referenced by tier name so concrete model ids never hardcode into skill content. (See skill-expert's portable-skill-authoring reference.)
+A semantic cost class for a dispatched subagent — extraction (cheapest capable), generation (mid-tier), ceiling (orchestrator's own model, inherited by omission) — declared once per skill and referenced by tier name so concrete model ids never hardcode into skill content.
 
 ### Learning
 
@@ -84,11 +84,11 @@ The durable JSON file a long-running orchestration skill keeps at `.ai-workflow/
 
 ### Station handoff
 
-The file-based contract between two steps of an orchestrated run: a **brief** the orchestrator writes, a **report** the worker writes (seven fixed sections), and a **station envelope** — under 15 lines — that is the only thing crossing back into the orchestrator's context. Contract in `shared/references/handoff-contract.md`; `implement-tasks`'s per-task binding in `implement-tasks/references/feature-orchestration.md`. The rule it enforces is **hand off the path, not the payload**: inputs and outputs are file paths, never pasted bodies. Distinct from the runner [Envelope](#envelope), which is a transport wrapper around one CLI call.
+The file-based contract between two steps of an orchestrated run: a **brief** the orchestrator writes, a **report** the worker writes (seven fixed sections), and a **station envelope** — under 15 lines — that is the only thing crossing back into the orchestrator's context. Contract in `shared/references/handoff-contract.md`; `implement-tasks`'s per-task binding in `implement-tasks/SKILL.md`. The rule it enforces is **hand off the path, not the payload**: inputs and outputs are file paths, never pasted bodies. Distinct from the runner [Envelope](#envelope), which is a transport wrapper around one CLI call.
 
 ### Thin conductor
 
-An orchestrator that owns routing, gates, integration, and the final report — and nothing else. Every step that does not need the user runs in its own subagent, so the conductor's context grows by one envelope per step rather than by the size of each step's work. `implement-tasks` is the pipeline's thin conductor; `dynamic-harness`'s manager mode is the general form.
+An orchestrator that owns routing, gates, integration, and the final report — and nothing else. Every step that does not need the user runs in its own subagent, so the conductor's context grows by one envelope per step rather than by the size of each step's work. `implement-tasks` is the pipeline's thin conductor; `peer-sessions` coordinates the general form.
 
 ### Ceiling
 
@@ -96,7 +96,7 @@ A bound on a run counted outside the model's judgment — cycles, dispatched age
 
 ### Mode prompt
 
-The rule that invoking a skill with selectable modes (safe mode, council modes, `--auto`, a browser mechanism) requires asking the user which mode, unless the user already named it. Silence never selects a mode; a default applies only after confirmation. Normative text in `shared/references/engineering-rules.md` (mode selection).
+The rule that invoking a skill with selectable modes (safe mode, council modes, `--auto`, a browser mechanism) requires asking the user which mode, unless the user already named it. Silence never selects a mode; a default applies only after confirmation. Normative text in `shared/references/model-preview.md` (mode selection).
 
 ### Local config
 

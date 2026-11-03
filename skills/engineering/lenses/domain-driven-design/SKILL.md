@@ -10,7 +10,7 @@ Review the domain shape of a change through Vlad Khononov's _Learning Domain-Dri
 - **Strategic**: where the boundaries are. Bounded contexts, **ubiquitous language**, and how contexts integrate.
 - **Tactical**: how one context is built. The business-logic pattern, and whether aggregates and value objects hold their invariants and publish events safely.
 
-When a change does both, run strategic first; the boundaries constrain the internal design. Layering and connascence belong to `architecture-lens`, and system style and service decomposition to `macro-architecture`.
+When a change does both, run strategic first; the boundaries constrain the internal design. Layering belongs to `software-design-philosophy`, connascence to `coding-review-simplify`, and system style and service decomposition to `architecture-lens`.
 
 Derive the context map from the repository's service and module layout before reviewing: each service or module that owns a model and a slice of the language is a candidate bounded context. A **subdomain** is a problem area (pricing, dispatch, compliance); a **bounded context** is the solution boundary where one model and one language hold. They often align, but not always.
 

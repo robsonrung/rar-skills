@@ -1,67 +1,76 @@
 ---
 name: software-design-philosophy
-description: "Reduce design complexity through deep modules, information hiding, and coherent interfaces. Use when a module or API is hard to understand or change; use clean-code for local cleanup."
+description: "Design and review module-level structure: deep modules, information hiding, placement, cohesion, dependency direction, scope, and whether a design pattern is earned. Use when a module or API is hard to understand or change; use clean-code for local cleanup and architecture-lens for system shape."
 ---
 
-# A Philosophy of Software Design
+# Software Design Philosophy
 
-Use Ousterhout's _A Philosophy of Software Design_, 2nd edition, to reduce the cost of understanding and changing software. Brooks' **conceptual integrity** is the second anchor. Return a named design or fix, its reason, and the next move.
+Reduce the cost of understanding and changing a module, following Ousterhout's _A Philosophy of Software Design_ with Brooks' **conceptual integrity** as the second anchor. Return a named design or fix, its reason, and the next move.
 
-## Select the route
+Use `clean-code` for local naming or structure with no boundary decision, `architecture-lens` for system style and service boundaries, `tdd` for test-first execution, and the **Connascence Pass** in `coding-review-simplify` for coupling inside a diff.
 
-| Work | Method to load |
-| --- | --- |
-| New module or consequential API/interface shape | [references/design-mode.md](references/design-mode.md) |
-| Change existing code while reducing its complexity | [references/improve-mode.md](references/improve-mode.md) |
-| Assess a diff, design, PR, or `design-gate` input | [references/review-mode.md](references/review-mode.md) |
+## Leitwörter
 
-Use `clean-code` for a local naming or structure cleanup with no boundary decision, and `tdd` for test-first execution. Continue the requested work through that skill; selecting the proper method is not a new approval gate.
+Use these by name to explain an actual decision:
 
-## Shared design rules
+- **strategic** versus **tactical**: invest a little design now so the next change is cheaper. A tactical special case is how systems rot.
+- **deep module**: a simple interface hiding a lot. A shallow module costs about as much to learn as to inline.
+- **information leakage**: one design decision reflected in two or more modules. That is a **change ownership** failure; give the decision one owner.
+- **design it twice**: for a consequential unresolved interface, compare two or three meaningfully different shapes before coding. Reuse a settled interface unless new evidence challenges it.
+- **stay strategic**: when modifying code, don't tack on a special case that makes the design worse. Fit the change, or improve the design, or say why you won't.
+- **decide what matters**: name the few invariants, error behaviors, and compatibility needs the situation depends on, give that knowledge one owner, emphasize it, hide the rest.
+- **reader, not writer**: complexity is judged by the next person to change the code. If a caller needs a fact absent from the interface, that is leakage or obscurity.
+- **smallest coherent shape**: one model, no larger than the problem.
 
-Use these **leitwörter** to explain an actual design decision:
+Modelled sentence: _"`backspace(cursor)` is a **false abstraction**: the UI still has to know which characters vanish. One `delete(start, end)` is deeper, and **design it twice** keeps **conceptual integrity**; the cost is an hour now versus **information leakage** later."_
 
-- **strategic** — invest a little design now so the next change is cheaper. The opposite is **tactical** ("just make it work") and the **tactical tornado** (the person who ships fastest by leaving a mess).
-- **deep module** — a simple interface hiding a lot of functionality. Cost is the interface; benefit is what it hides. A **shallow module** costs about as much to learn as to inline.
-- **information leakage** — one design decision reflected in two or more modules. That _is_ a **change ownership** failure; give the decision one owner.
-- **design it twice** — for a consequential unresolved interface, compare two or three meaningfully different shapes before coding. Reuse a settled interface unless new evidence challenges it.
-- **stay strategic** — when modifying existing code, do not tack on a special case that makes the design worse. Fit the change, or improve the design.
-- **decide what matters** — name the few things this situation depends on, minimize that set, and emphasize only those.
-- **reader, not writer** — complexity is judged by the next person to change the code. If it is simple only to you, it is complex.
-- **conceptual integrity** / **smallest coherent shape** — one model, no larger than the problem.
+## Interface judgment
 
-Modelled sentence: _"This is **tactical** — a special case on a **shallow module**. **Design it twice** keeps **conceptual integrity**; the cost is one extra hour now vs **information leakage** later."_
+- **Somewhat general.** Functionality reflects today's needs; the interface does not encode today's specific caller. Fewer, more general methods usually beat special-purpose ones. One planned call site is a sign the method is too special. If callers must write a lot of glue, you over-generalized.
+- **Push specialization up or down.** Feature code owns the special case (backspace, selection); the lower module keeps the general mechanism. Represent the edge as the normal case (`start == end`, not `hasSelection`).
+- **Pull complexity down**, but not a policy the module cannot know. Define errors out of existence where the caller has nothing useful to do, but keep errors the caller must handle.
+- **Depth before length.** After a few dozen lines, shortening a function rarely lowers system complexity; more tiny functions means more interfaces and conjoined methods. Small classes that each half-know one format should usually merge.
+- **Fix the seam, not the callsite.** When the obvious call on a public seam does the wrong thing, move the invariant into the seam: make the default safe, narrow the type so bad states can't be represented, or rename the dangerous path. "Remember to call X first" is documentation standing in for design.
+- `private` plus a getter is not information hiding. Lots of documentation is often a **hard to describe** flag; simplify the design. Comments follow clean-code's **earned comment** rule.
 
-A second modelled sentence, from the official extract: _"`backspace(cursor)` is a **false abstraction** — the UI still has to know which characters vanish. One `delete(start, end)` has **leverage**; the special methods do not."_
+## Module structure
 
-## Evidence and authority
+Infer the repo's equivalents of domain, application, and infrastructure code before judging.
 
-Inspect enough of the live code or stated design to identify the abstraction, the informal interface (everything a caller must know), and a relevant red flag or principle. Read further only when it could change the decision. With no repository, use the supplied constraints and mark assumptions.
+- **Placement.** Business rules with money, compliance, or lifecycle consequences live in domain code and are reused, not re-derived in a route handler, component, worker, or migration. SQL, cloud SDKs, queue payloads, and HTTP shapes stay out of domain code.
+- **Cohesion.** Write a one-line purpose for the element. If it needs an "and," suspect two concerns. A `utils` grab-bag, a component that fetches, decides, and renders, or an entity carrying an unrelated concern is modeling two things.
+- **Dependency direction.** Domain code never imports application or frontend code. Depend on a sibling's public interface, not its internals. A direct call that bypasses an async boundary recreates the coupling the boundary removed.
+- **Scope.** An abstraction earns its boundary by enforcing an invariant, hiding real complexity, or giving a decision clear **change ownership**; one caller can justify that. Speculative config, plugin points, and generic engines do not. Call out refactors that crept past the stated goal: "X is in scope; Y looks speculative. Split or drop?"
 
-Ask **reader, not writer**: would the next developer need a fact absent from the interface? That is evidence of leakage or obscurity. Reuse settled choices; alternatives belong to a consequential unresolved design decision, not every local edit.
+## Pattern pressure
 
-`review` and all `design-gate` invocations are read-only: findings only, no edits or test runs. `design` and `improve` may edit within the user's request. They do not authorize unrelated refactors.
+Most code should not use a named pattern. Reach for one only once the need has emerged: repeated change in one spot, or an extension point you keep fighting, not a hypothetical future. Work in order: name the pressure, try the plain fix (a function, a map, an early return, one of the module rules above), then match a pattern, preferring the one with less machinery. Once a pattern genuinely fits, name it; the shared name carries the design to the next reader.
 
-In an interview, record the boundary decision, rationale, constraints, and source references in the existing decision record. Code edits, interface comments, test mechanics, and standalone reports belong to their later authorized stage.
+Every recommendation names its cost in classes and indirection, and why that cost is worth paying here. "None needed, here's the three-line version" is a success.
 
-## Acceptance contract
+Judge "overkill when" before recommending: Strategy when there is one behavior or two that will never grow (an `if` or a passed function is clearer); Observer for one fixed listener, or when the platform already has events; Factory when creation does not vary by subtype; Singleton almost always (a module value or an injected instance is testable); State with few trivial transitions (an enum and `switch`); Decorator or Proxy added "just in case"; Visitor when element types change often; Mediator that is growing into a god object.
 
-Use the selected mode's output fields. Name the official red flag or principle behind each finding. Report real rejected alternatives, or state that no new design choice was required. For edits, identify changed files, behavior-preserving work or exact behavior changes, and checks run or unavailable.
+## Modes
 
-Under `design-gate`, use the caller's canonical gate result and put the conceptual integrity conclusion in `review_focus`. A leaked decision, shallow new public interface, or tactical special case can block when it is load-bearing; cosmetic naming is advisory.
+Match effort to stakes; a one-line fix is not a design exercise. Inspect enough live code to identify the abstraction, its informal interface (everything a caller must know), and the relevant red flag. With no repository, use the supplied constraints and mark assumptions.
 
-## Gotchas
+- **Design** a new module or consequential interface: state in one sentence what the caller can safely ignore, apply the interface judgment, and **design it twice** only if the choice is open.
+- **Improve** existing code: **stay strategic**. Leave a deeper abstraction, not a new branch: no boolean that forks a deep module into two models, no copy "just this once." Pin behavior with a characterization test before a risky structural change. Match the codebase's strongest local convention unless that convention is what you are fixing; never mix two in one change. Reread the diff for comments it made false.
+- **Review** a diff, design, or PR: walk [references/red-flags.md](references/red-flags.md), name each finding, and judge **conceptual integrity**, **change ownership**, and the **smallest coherent shape** at the affected boundary. Consistency is not integrity: a mistake repeated consistently is still a defect. `clean` is a valid result.
 
-1. Do not turn a one-line bug fix into a design exercise. Match effort to stakes.
-2. Do not preserve an existing pattern when the broken model _is_ the request.
-3. Do not confuse consistency with conceptual integrity — repeating a mistake consistently is still a defect.
-4. Do not invent findings to fill a category. `clean` is valid.
-5. Do not quote or reconstruct source text from the book this skill distills.
-6. **Depth before length** (ch. 9.8). After a few dozen lines, shortening a function rarely helps the system. More tiny functions means more interfaces and **conjoined methods**. Do not replace an **earned comment** with a ten-word method name. Small classes that leak one format are usually _too many_ classes — merge them.
-7. Do not hide a design decision in a commit message. Comments belong in the code.
-8. `private` plus a getter is not information hiding. If callers must know the field exists, it is in the interface.
-9. Lots of documentation is often a **hard to describe** flag, not a virtue. Simplify the design.
+Standalone output:
 
-## Chapter lookup
+```text
+Mode: design | improve | review
+Abstraction: <one sentence>
+Findings: [file:line] <red flag or rule>: <what's complex>. Fix: <structural change>. (or clean)
+Conceptual integrity: <holds or where it breaks>
+Rejected: <a real alternative and its cost, or no new choice>
+Next move: <one action>
+```
 
-The selected mode links to its needed principles, red flags, and methods. Load [references/chapter-map.md](references/chapter-map.md) only to locate a question that does not fit those routes.
+If you edited code, add files touched, **behavior-preserving** or the exact behavior change, and checks run.
+
+## Authority
+
+Review and every `design-gate` call are read-only: findings only, no edits or test runs. Under `design-gate`, return the caller's canonical gate result and put the conceptual integrity conclusion in `review_focus`. A leaked decision, a shallow new public interface, or a load-bearing tactical special case can block; cosmetic naming is advisory. Design and improve may edit within the user's request, never unrelated refactors. In an interview, record the boundary decision, rationale, constraints, and sources in the existing decision record. Don't hide a design decision in a commit message, and don't reproduce text from the book.

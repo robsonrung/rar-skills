@@ -1,47 +1,260 @@
-<!doctype html>
-<html lang="@@LANG@@">
+<!DOCTYPE html>
+<html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light dark">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; font-src 'none'; connect-src 'none'; base-uri 'none'; form-action 'none'">
-<title>@@TITLE@@</title>
+<!-- SLOT: title, "<System> Architecture Review" -->
+<title>{{System}} Architecture Review</title>
 <style>
-:root{--ink:#182c3e;--muted:#526377;--paper:#f3f6f8;--panel:#fff;--line:#d9e2e8;--nav:#14293b;--teal:#087d75;--blue:#2363a0;--amber:#946015;--red:#a82b35;--radius:15px;--cc0820a:#c0820a;--cffffff:#ffffff;--c455a6c:#455a6c;--cfff5d9:#fff5d9;--ce6cd8c:#e6cd8c;--c684610:#684610;--cedf3f7:#edf3f7;--cd7e4ec:#d7e4ec;--cedf1f5:#edf1f5;--c475b6d:#475b6d;--c085d48:#085d48;--ce1f2e9:#e1f2e9;--c754e12:#754e12;--cfff0cf:#fff0cf;--c8e2634:#8e2634;--cfce5e8:#fce5e8;--c586572:#586572;--cf4f5f6:#f4f5f6;--c075d57:#075d57;--cdff2ee:#dff2ee;--ca4b1bd:#a4b1bd;--ccc942f:#cc942f;--c087d75:#087d75;--cd9a53d:#d9a53d;--cb9404b:#b9404b;--ca8b4c0:#a8b4c0;--cdfe4e9:#dfe4e9;--cbecbd5:#becbd5;--cc2cfd8:#c2cfd8;--cfbfcfd:#fbfcfd;--cf5f8fa:#f5f8fa;--ce5ebf0:#e5ebf0;--c193247:#193247;--c506273:#506273;--c40586c:#40586c;--c647b8c:#647b8c;--cba3a48:#ba3a48;--cf6f8fa:#f6f8fa;--cbcc8d1:#bcc8d1;--cb9d1d5:#b9d1d5;--cf4f7fa:#f4f7fa;--svg-sync:#47758d;--svg-async:#087d75;--svg-dep:#82718e;--svg-label-bg:#f7fafc;--svg-node:#ffffff;--svg-node-ext:#eaf3f7;--svg-node-data:#e7f3ee;--svg-stroke:#b8cad6;--svg-stripe:#48738c;--svg-stripe-domain:#087d75;--svg-stripe-data:#28745a;--svg-title:#193247;--svg-detail:#506273;--svg-edge-label:#40586c;--svg-id:#647b8c}
-@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){color-scheme:dark;--ink:#e6edf3;--muted:#9fb0bf;--paper:#0f1a23;--panel:#16232e;--line:#2a3b49;--nav:#0b141b;--teal:#43b8ad;--blue:#7fb4e6;--amber:#e0b060;--red:#f08a93;--cc0820a:#f9d795;--cffffff:#16232e;--c455a6c:#bfcbd6;--cfff5d9:#4e3f17;--ce6cd8c:#edd8a1;--c684610:#f3d9b0;--cedf3f7:#232f36;--cd7e4ec:#303e47;--cedf1f5:#272e35;--c475b6d:#bfcad5;--c085d48:#aff8e6;--ce1f2e9:#294034;--c754e12:#f2d7ad;--cfff0cf:#554219;--c8e2634:#e9abb3;--cfce5e8:#421a1f;--c586572:#c0c7ce;--cf4f5f6:#282a2c;--c075d57:#aff9f4;--cdff2ee:#29423d;--ca4b1bd:#bec7d0;--ccc942f:#e6c385;--c087d75:#a6f9f4;--cd9a53d:#edd199;--cb9404b:#db8f96;--ca8b4c0:#bdc7d0;--cdfe4e9:#34393f;--cbecbd5:#bac9d4;--cc2cfd8:#455058;--cfbfcfd:#1d242a;--cf5f8fa:#21292f;--ce5ebf0:#2c343b;--c193247:#c0d6e9;--c506273:#bec8d2;--c40586c:#beccd8;--c647b8c:#a2b2be;--cba3a48:#dc8891;--cf6f8fa:#21272e;--cbcc8d1:#bcc8d2;--cb9d1d5:#b8d1d6;--cf4f7fa:#202831;--svg-sync:#82acc2;--svg-async:#a6f9f4;--svg-dep:#b9afc0;--svg-label-bg:#16232e;--svg-node:#1b2a36;--svg-node-ext:#1d3040;--svg-node-data:#18302a;--svg-stroke:#3a5163;--svg-stripe:#83aac1;--svg-stripe-domain:#a6f9f4;--svg-stripe-data:#b4e5d5;--svg-title:#c0d6e9;--svg-detail:#bec8d2;--svg-edge-label:#beccd8;--svg-id:#a2b2be}}
-:root[data-theme="dark"]{color-scheme:dark;--ink:#e6edf3;--muted:#9fb0bf;--paper:#0f1a23;--panel:#16232e;--line:#2a3b49;--nav:#0b141b;--teal:#43b8ad;--blue:#7fb4e6;--amber:#e0b060;--red:#f08a93;--cc0820a:#f9d795;--cffffff:#16232e;--c455a6c:#bfcbd6;--cfff5d9:#4e3f17;--ce6cd8c:#edd8a1;--c684610:#f3d9b0;--cedf3f7:#232f36;--cd7e4ec:#303e47;--cedf1f5:#272e35;--c475b6d:#bfcad5;--c085d48:#aff8e6;--ce1f2e9:#294034;--c754e12:#f2d7ad;--cfff0cf:#554219;--c8e2634:#e9abb3;--cfce5e8:#421a1f;--c586572:#c0c7ce;--cf4f5f6:#282a2c;--c075d57:#aff9f4;--cdff2ee:#29423d;--ca4b1bd:#bec7d0;--ccc942f:#e6c385;--c087d75:#a6f9f4;--cd9a53d:#edd199;--cb9404b:#db8f96;--ca8b4c0:#bdc7d0;--cdfe4e9:#34393f;--cbecbd5:#bac9d4;--cc2cfd8:#455058;--cfbfcfd:#1d242a;--cf5f8fa:#21292f;--ce5ebf0:#2c343b;--c193247:#c0d6e9;--c506273:#bec8d2;--c40586c:#beccd8;--c647b8c:#a2b2be;--cba3a48:#dc8891;--cf6f8fa:#21272e;--cbcc8d1:#bcc8d2;--cb9d1d5:#b8d1d6;--cf4f7fa:#202831;--svg-sync:#82acc2;--svg-async:#a6f9f4;--svg-dep:#b9afc0;--svg-label-bg:#16232e;--svg-node:#1b2a36;--svg-node-ext:#1d3040;--svg-node-data:#18302a;--svg-stroke:#3a5163;--svg-stripe:#83aac1;--svg-stripe-domain:#a6f9f4;--svg-stripe-data:#b4e5d5;--svg-title:#c0d6e9;--svg-detail:#bec8d2;--svg-edge-label:#beccd8;--svg-id:#a2b2be}
-*{box-sizing:border-box}html{scroll-behavior:smooth;scroll-padding-top:26px}body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}a{color:var(--blue);text-decoration-thickness:1px;text-underline-offset:3px}a:hover{text-decoration:underline}a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible{outline:3px solid var(--cc0820a);outline-offset:4px}button,input,select{font:inherit}button{cursor:pointer}h1,h2,h3,h4,p{margin-top:0}h1{font-size:clamp(32px,3.1vw,51px);line-height:1.13;letter-spacing:-1.5px;max-width:850px;margin-bottom:20px}h2{font-size:27px;line-height:1.3;letter-spacing:-.6px;margin-bottom:12px}h3{font-size:19px;line-height:1.4;margin-bottom:12px}h4{font-size:14px;margin:18px 0 6px}p{margin-bottom:14px}small,.small{font-size:13px}.muted{color:var(--muted)}.mono,code{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:.86em}code{overflow-wrap:anywhere}.skip{position:fixed;top:-100px;left:20px;z-index:10;background:var(--cffffff);padding:12px}.skip:focus{top:12px}.sidebar{width:238px;position:fixed;inset:0 auto 0 0;background:var(--nav);color:#f1f6fa;padding:30px 22px;overflow-y:auto}.brand{font-size:19px;line-height:1.35;font-weight:750;letter-spacing:-.5px}.brand span{display:block;color:#8fc6c5;font-size:11px;letter-spacing:2px;text-transform:uppercase;margin-bottom:8px}.nav-note{font-size:12px;color:#b8c8d6;border-top:1px solid #365063;padding-top:18px;margin-top:24px}.sidebar nav{display:grid;gap:4px;margin-top:30px}.sidebar nav a{color:#cad9e4;text-decoration:none;padding:9px 11px;border-radius:6px;font-size:13px}.sidebar nav a:hover{background:#264154;color:#fff}.nav-num{color:#7aa8b5;margin-right:12px;font-size:11px}.workspace{margin-left:238px;padding:32px 42px 72px;max-width:1770px}.topline{display:flex;justify-content:space-between;align-items:center;gap:16px;font-size:12px;color:var(--muted);margin-bottom:22px}.pill{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:999px;padding:4px 10px;font-size:11px;font-weight:650;line-height:1.5;background:var(--cffffff);white-space:nowrap}.hero{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:36px 38px;margin-bottom:22px;border-top:5px solid var(--teal)}.eyebrow{text-transform:uppercase;font-size:11px;font-weight:750;letter-spacing:2px;color:var(--teal);margin-bottom:14px}.lead{font-size:18px;line-height:1.65;max-width:970px;color:var(--c455a6c)}.demo-banner{background:var(--cfff5d9);border:1px solid var(--ce6cd8c);color:var(--c684610);padding:12px 17px;border-radius:8px;font-size:13px;margin:0 0 22px}.verdict-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;border-top:1px solid var(--line);padding-top:23px;margin-top:26px}.verdict-grid .label{font-size:11px;font-weight:750;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:8px}.verdict-grid p{margin:0}.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:20px 0 28px}.stat{padding:18px 21px;background:var(--cffffff);border:1px solid var(--line);border-radius:12px}.stat strong{font-size:31px;line-height:1.25;display:block;letter-spacing:-1px}.stat span{font-size:12px;color:var(--muted)}section{margin:42px 0 0;scroll-margin-top:26px}.section-head{display:flex;gap:18px;align-items:flex-start;margin-bottom:20px}.section-no{display:grid;place-items:center;flex:0 0 39px;height:39px;font:12px ui-monospace,monospace;border:1px solid var(--line);border-radius:10px;background:var(--cffffff);color:var(--teal)}.section-head p{font-size:14px;color:var(--muted);margin:0;max-width:900px}.panel{background:var(--cffffff);border:1px solid var(--line);border-radius:var(--radius);padding:24px;margin:16px 0}.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}.grid2>.panel,.grid3>.panel{margin:0}.context-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}.context-item{background:var(--cffffff);border:1px solid var(--line);padding:17px 19px;border-radius:10px}.context-item h3{font-size:12px;color:var(--muted);margin:0 0 8px}.context-item p{font-size:15px;margin:0 0 10px}.refs{display:flex;gap:5px;flex-wrap:wrap;align-items:center;margin-top:9px}.refs a{font-size:10px;font-family:ui-monospace,monospace;padding:2px 6px;background:var(--cedf3f7);border:1px solid var(--cd7e4ec);border-radius:4px;text-decoration:none}.tag{font-size:10px;font-weight:750;border-radius:5px;padding:4px 7px;line-height:1.4;display:inline-block;background:var(--cedf1f5);color:var(--c475b6d)}.tag.adequate,.tag.pass,.tag.verified{color:var(--c085d48);background:var(--ce1f2e9)}.tag.attention,.tag.P2,.tag.proposed,.tag.conditional{color:var(--c754e12);background:var(--cfff0cf)}.tag.critical,.tag.P0,.tag.P1,.tag.fail,.tag.failed{color:var(--c8e2634);background:var(--cfce5e8)}.tag.unknown,.tag.not_run,.tag.blocked{color:var(--c586572);background:var(--cedf1f5)}.tag.not_applicable{color:var(--c586572);background:var(--cf4f5f6)}.tag.recommended{color:var(--c075d57);background:var(--cdff2ee)}.card-top{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px}.card-top .id{font-size:11px;color:var(--muted);margin-right:auto}.dim-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}.dimension{background:var(--cffffff);border:1px solid var(--line);border-left:4px solid var(--ca4b1bd);padding:19px 20px;border-radius:9px}.dimension.adequate{border-left-color:var(--teal)}.dimension.attention{border-left-color:var(--ccc942f)}.dimension.critical{border-left-color:var(--red)}.dimension h3{font-size:16px;margin-bottom:8px}.dimension p{font-size:13px;color:var(--muted);margin:0}.quality-bar{display:flex;width:100%;height:12px;overflow:hidden;border-radius:10px;margin:16px 0}.quality-bar span.adequate{background:var(--c087d75)}.quality-bar span.attention{background:var(--cd9a53d)}.quality-bar span.critical{background:var(--cb9404b)}.quality-bar span.unknown{background:var(--ca8b4c0)}.quality-bar span.not_applicable{background:var(--cdfe4e9)}.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:12px;color:var(--muted)}.toolbar{display:flex;align-items:center;gap:12px;margin:20px 0}.toolbar label{font-size:12px;font-weight:650}.toolbar input{min-width:0;flex:1;background:var(--cffffff);border:1px solid var(--cbecbd5);border-radius:8px;padding:10px 12px}.toolbar select{background:var(--cffffff);border:1px solid var(--cbecbd5);border-radius:8px;padding:9px;max-width:210px}.button{border:1px solid var(--cc2cfd8);border-radius:7px;padding:7px 12px;background:var(--cffffff);color:var(--ink);font-size:12px}.diagram{margin:18px 0;border:1px solid var(--line);border-radius:13px;background:var(--cffffff);overflow:hidden}.diagram-header{padding:22px 25px 12px}.diagram-header h3{margin:8px 0}.diagram-header p{font-size:14px;color:var(--muted);margin:0}.diagram-scroll{overflow-x:auto;background:linear-gradient(var(--cfbfcfd),var(--cf5f8fa));border-top:1px solid var(--ce5ebf0);border-bottom:1px solid var(--ce5ebf0);padding:15px 18px}.diagram svg{display:block;width:100%;min-width:650px;height:auto}.diagram-footer{padding:15px 25px}.diagram-footer p{font-size:12px;margin:7px 0}.diagram svg text{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}.diagram svg .node-title{font-size:16px;font-weight:700;fill:var(--svg-title)}.diagram svg .node-detail{font-size:12px;fill:var(--c506273)}.diagram svg .edge-label{font-size:11px;font-weight:650;fill:var(--c40586c)}.diagram svg .node-id{font-size:9px;letter-spacing:1px;fill:var(--c647b8c)}details{margin:12px 0}summary{cursor:pointer;font-size:13px;font-weight:650;color:var(--blue);padding:5px 0}details[open]>summary{margin-bottom:13px}.finding{border-left:4px solid var(--cd9a53d)}.finding.P0,.finding.P1{border-left-color:var(--cba3a48)}.finding .impact{background:var(--cf6f8fa);border-radius:8px;padding:13px 16px;font-size:14px}.finding p{font-size:14px}.detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px 30px}.detail-grid p{font-size:13px}.detail-grid h4{font-size:12px;color:var(--muted)}.option{border-top:4px solid var(--cbcc8d1)}.option.recommended{border-top-color:var(--teal)}.option p,.option li{font-size:13px}.option h3{margin-top:12px}ul{padding-left:20px;margin:8px 0 14px}li{margin:5px 0}.roadmap{border-left:2px solid var(--cb9d1d5);margin-left:12px;padding-left:27px}.step{position:relative;margin:18px 0;background:var(--cffffff);padding:22px;border:1px solid var(--line);border-radius:11px}.step:before{content:"";position:absolute;width:12px;height:12px;border-radius:50%;background:var(--teal);left:-35px;top:29px;border:3px solid var(--paper)}.step p,.step li{font-size:13px}.step h3{margin:8px 0}.table-wrap{overflow-x:auto;max-width:100%}table{border-collapse:collapse;width:100%;font-size:12px;background:var(--cffffff)}th{text-align:left;font-size:10px;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);background:var(--cf4f7fa)}th,td{padding:13px 14px;border-bottom:1px solid var(--line);vertical-align:top}td{overflow-wrap:anywhere}table .refs{margin-top:5px}.table-wrap table{min-width:570px}.evidence{border-top:1px solid var(--line);padding-top:17px;margin-top:20px}.evidence h3{font-size:15px}.evidence p{font-size:13px}.location{font-size:11px;color:var(--muted);overflow-wrap:anywhere}.source h3{font-size:14px;margin-bottom:5px}.source p{font-size:12px;margin-bottom:7px}.source+.source{border-top:1px solid var(--line);padding-top:17px;margin-top:17px}.glossary{display:grid;grid-template-columns:1fr 1fr;gap:10px 30px}.glossary dt{font-size:13px;font-weight:700}.glossary dd{font-size:13px;color:var(--muted);margin:3px 0 14px}.empty{font-size:14px;color:var(--muted);padding:12px 0}.footer{font-size:12px;color:var(--muted);border-top:1px solid var(--line);margin-top:42px;padding-top:18px}.confidence{font-size:11px;color:var(--muted)}[hidden]{display:none!important}.noscript{background:var(--cfff0cf);padding:12px;font-size:13px}.callout{background:var(--cfff5d9);border:1px solid var(--ce6cd8c);border-radius:8px;padding:10px 14px;margin:12px 0;font-size:13px}.callout p{margin:6px 0 0}.summary-block{background:var(--cf6f8fa);border-radius:8px;padding:12px 16px;margin:0 0 14px}.summary-block p{margin:0 0 6px}.wins{display:flex;flex-wrap:wrap;gap:6px;list-style:none;padding:0;margin:8px 0 0}.wins li{margin:0;font-size:12px;border:1px solid var(--line);border-radius:999px;padding:2px 10px}pre{overflow-x:auto;background:var(--cf6f8fa);border-radius:8px;padding:12px;font-size:12px;max-width:100%}
-@media(max-width:1150px){.workspace{padding:24px 25px 60px}.sidebar{width:208px;padding:25px 16px}.workspace{margin-left:208px}.grid3,.context-grid{grid-template-columns:repeat(2,1fr)}.hero{padding:30px}.stats{grid-template-columns:repeat(2,1fr)}}
-@media(max-width:760px){html{scroll-padding-top:12px}.sidebar{position:relative;width:100%;height:auto;padding:18px 20px}.brand{font-size:17px}.brand span{font-size:9px;margin-bottom:3px}.sidebar nav{display:flex;overflow-x:auto;gap:3px;margin-top:14px}.sidebar nav a{white-space:nowrap;font-size:11px;padding:6px 9px}.sidebar .nav-note{display:none}.workspace{margin:0;padding:20px 16px 48px}.hero{padding:25px 21px}.hero h1{font-size:33px;letter-spacing:-1px}.lead{font-size:16px}.verdict-grid,.grid2,.grid3,.context-grid,.dim-grid,.detail-grid,.glossary{grid-template-columns:1fr}.stats{gap:9px}.stat{padding:15px}.stat strong{font-size:27px}.topline{font-size:10px;align-items:flex-start}.section-head{gap:11px}.section-head h2{font-size:24px}.section-head p{font-size:13px}.panel{padding:19px}.toolbar{flex-wrap:wrap}.toolbar input{flex-basis:70%}.toolbar select{flex:1;max-width:none}.diagram-header,.diagram-footer{padding-left:18px;padding-right:18px}section{margin-top:32px}.diagram svg{min-width:650px}.roadmap{padding-left:20px}.step:before{left:-28px}}
-@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
-@media print{@page{margin:14mm}body{font:10pt/1.45 sans-serif;background:#fff}.sidebar,.toolbar,.button,.skip,.topline .pill,.noscript{display:none!important}.workspace{margin:0;padding:0;max-width:none}.hero{padding:20px;border:1px solid #ccc;break-inside:avoid}h1{font-size:25pt}h2{font-size:18pt}h3{font-size:13pt}.lead{font-size:12pt}.panel,.dimension,.step,.context-item,.stat{box-shadow:none;break-inside:avoid}.diagram{break-inside:avoid}.diagram svg{min-width:0}.diagram-scroll{overflow:visible;padding:5px}.table-wrap{overflow:visible}.table-wrap table{min-width:0}.grid3{grid-template-columns:repeat(2,1fr)}.dim-grid{grid-template-columns:1fr 1fr}.refs a{text-decoration:none}a{color:inherit}section{margin-top:24px}.demo-banner{break-inside:avoid}.stats{grid-template-columns:repeat(4,1fr)}.legend{font-size:9pt}}
+  :root { --ink:#182c3e; --muted:#526377; --paper:#f3f6f8; --panel:#fff; --line:#d9e2e8; --accent:#087d75;
+          --ok:#28745a; --warn:#946015; --bad:#a82b35; --na:#647b8c; --code:#edf3f7; }
+  @media (prefers-color-scheme: dark) {
+    :root { --ink:#e6edf3; --muted:#9fb0bf; --paper:#0f1a23; --panel:#16232e; --line:#2a3b49; --accent:#43b8ad;
+            --ok:#6fd0a4; --warn:#e0b060; --bad:#f08a93; --na:#9fb0bf; --code:#1d2a35; }
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font: 15px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 28px 18px 80px; }
+  h1 { font-size: 26px; margin: 0 0 6px; }
+  h2 { font-size: 19px; margin: 0 0 6px; }
+  h3 { font-size: 16px; margin: 0 0 6px; }
+  .subtitle, .lede { color: var(--muted); max-width: 900px; }
+  .toc { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0 8px; }
+  .toc a { font-size: 13px; color: var(--muted); text-decoration: none; border: 1px solid var(--line); border-radius: 999px; padding: 3px 12px; }
+  .controls { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0 22px; }
+  button { font: inherit; font-size: 13px; color: var(--ink); background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 4px 12px; cursor: pointer; }
+  section.card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 22px 24px; margin-bottom: 22px; }
+  .scroll { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  th, td { text-align: left; vertical-align: top; border-bottom: 1px solid var(--line); padding: 6px 8px; }
+  code, pre { font: 13px/1.45 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; background: var(--code); border-radius: 4px; }
+  code { padding: 1px 4px; }
+  pre { padding: 10px 12px; overflow-x: auto; }
+  .badge { display: inline-block; font-size: 12px; font-weight: 600; border: 1px solid currentColor; border-radius: 5px; padding: 0 6px; }
+  .adequate { color: var(--ok); } .attention { color: var(--warn); } .critical { color: var(--bad); }
+  .unknown, .not_applicable { color: var(--na); }
+  .P0, .P1 { color: var(--bad); } .P2 { color: var(--warn); } .P3 { color: var(--na); }
+  article { border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; margin: 12px 0; }
+  details.drill { margin-top: 8px; }
+  details.drill > summary { cursor: pointer; color: var(--accent); font-size: 14px; }
+  dl { display: grid; grid-template-columns: minmax(120px, 180px) 1fr; gap: 6px 14px; margin: 10px 0 0; }
+  dt { font-weight: 600; color: var(--muted); }
+  dd { margin: 0; }
+  .diagram { border: 1px solid var(--line); border-radius: 10px; padding: 10px; overflow-x: auto; }
+  .diagram svg { display: block; min-width: 680px; width: 100%; height: auto; }
+  svg .node rect { fill: var(--panel); stroke: var(--line); }
+  svg text { fill: var(--ink); font: 13px system-ui, sans-serif; }
+  svg .edge { stroke: var(--muted); fill: none; }
+  svg .proposed { stroke-dasharray: 6 4; }
+  svg .clickable { cursor: pointer; }
+  footer { color: var(--muted); font-size: 13px; margin-top: 30px; }
+  @media print { .toc, .controls { display: none; } details.drill { display: block; } }
 </style>
 </head>
 <body>
-<a class="skip" href="#main">@@SKIP@@</a>
-<aside class="sidebar"><div class="brand"><span>Architecture Review</span>@@BRAND@@</div><nav aria-label="@@NAVLABEL@@">@@NAV@@</nav><p class="nav-note">@@NAVNOTE@@</p></aside>
-<main id="main" class="workspace">
-<div class="topline"><span>@@META@@</span><!--PRINT--><button class="button" id="print-button" type="button">@@PRINT@@</button><!--/PRINT--></div>
-@@DEMO@@
-<noscript><p class="noscript">@@NOSCRIPT@@</p></noscript>
-@@CONTENT@@
-<footer class="footer">@@FOOTER@@</footer>
-</main>
+<div class="wrap">
+<header>
+  <h1>{{System}} Architecture Review</h1>
+  <!-- SLOT: subtitle — revision audited, date, scope, mode (full, triage, or focus), and how to navigate -->
+  <p class="subtitle">{{Revision, date, scope, mode. Click a section chip or a diagram box to jump; open "Details" panels for evidence.}}</p>
+  <nav class="toc">
+    <a href="#sec-verdict">Verdict</a>
+    <a href="#sec-context">Context</a>
+    <a href="#sec-architecture">Architecture</a>
+    <a href="#sec-dimensions">Dimensions</a>
+    <a href="#sec-findings">Findings</a>
+    <a href="#sec-strengths">Strengths</a>
+    <a href="#sec-options">Options and target</a>
+    <a href="#sec-roadmap">Roadmap</a>
+    <a href="#sec-evidence">Evidence and verification</a>
+  </nav>
+  <div class="controls">
+    <button type="button" onclick="setAll(true)">Expand all</button>
+    <button type="button" onclick="setAll(false)">Collapse all</button>
+  </div>
+</header>
+
+<section class="card" id="sec-verdict">
+  <h2>1. Verdict</h2>
+  <!-- SLOT: the central decision in 3-5 sentences: is the system fit for purpose for which scenarios, what limits that conclusion, and the one move you recommend first -->
+  <p class="lede">{{Central decision.}}</p>
+  <!-- SLOT: status counts from the dimensions table, as text -->
+  <p>{{n adequate, n attention, n critical, n unknown, n not applicable.}}</p>
+  <h3>Decisions needed</h3>
+  <!-- SLOT: business or team decisions the review cannot make, each with the decision it unblocks -->
+  <ul><li>{{Decision needed, and what it unblocks.}}</li></ul>
+  <h3>Top findings</h3>
+  <!-- SLOT: the P0/P1 findings and first moves, each linking to its card -->
+  <ul><li><a href="#F01">F01</a> {{one-line summary}}</li></ul>
+</section>
+
+<section class="card" id="sec-context">
+  <h2>2. Context</h2>
+  <!-- SLOT: purpose, stage, team, criticality, workload, growth horizon, constraints; each fact marked observed, declared, or assumed -->
+  <p class="lede">{{What the system does and what it must stay fit for.}}</p>
+  <h3>Scope and coverage</h3>
+  <!-- SLOT: revision audited, upstream ahead/behind, uncommitted files, inventory denominator, sample inspected, exclusions -->
+  <div class="scroll"><table>
+    <tr><th>Revision</th><td>{{commit, branch, ahead/behind upstream, uncommitted files}}</td></tr>
+    <tr><th>Coverage</th><td>{{modules known / inspected, how the sample was chosen}}</td></tr>
+    <tr><th>Exclusions</th><td>{{what was not inspected and why}}</td></tr>
+  </table></div>
+  <h3>Quality Attribute Scenarios</h3>
+  <!-- SLOT: one row per scenario; never invent targets — write Not reported -->
+  <div class="scroll"><table>
+    <tr><th>ID</th><th>Stimulus and environment</th><th>Expected response and measure</th><th>Origin</th><th>Observed</th></tr>
+    <tr id="Q1"><td>Q1</td><td>{{stimulus}}</td><td>{{response, measure}}</td><td>{{agreed, declared, or assumed}}</td><td>{{status, evidence}}</td></tr>
+  </table></div>
+  <h3>Assumptions, unknowns, and open questions</h3>
+  <ul><li>{{Assumption or question, and the decision that depends on it.}}</li></ul>
+</section>
+
+<section class="card" id="sec-architecture">
+  <h2>3. Implemented architecture</h2>
+  <!-- SLOT: the implemented structure in 3-4 sentences, ending with "Click a box to jump to its finding." -->
+  <p class="lede">{{Implemented architecture.}}</p>
+  <div class="diagram">
+    <!-- SLOT: observed view. Source dependencies and runtime calls are different views; label proposed elements with class="proposed". Each box that has a finding gets onclick="jump('F..')". -->
+    <svg viewBox="0 0 720 160" role="img" aria-label="{{diagram description}}">
+      <g class="node clickable" onclick="jump('F01')"><rect x="20" y="50" width="200" height="56" rx="8"/><text x="36" y="83">{{component}}</text></g>
+      <path class="edge" d="M220 78 H500"/>
+      <g class="node"><rect x="500" y="50" width="200" height="56" rx="8"/><text x="516" y="83">{{component}}</text></g>
+    </svg>
+  </div>
+  <h3>Flows</h3>
+  <!-- SLOT: main read, main write, and one integration, job, or failure path, including the ambiguous-outcome path; cite evidence -->
+  <details class="drill"><summary>{{Flow name}}</summary><ol><li>{{step}} <a href="#E001">E001</a></li></ol></details>
+</section>
+
+<section class="card" id="sec-dimensions">
+  <h2>4. Dimensions</h2>
+  <!-- SLOT: lede — what the pattern of statuses says. Keep all 20 rows. Set data-status and data-confidence; repeat them as visible text. -->
+  <p class="lede">{{What the dimensions show together. No overall score.}}</p>
+  <div class="scroll"><table>
+    <tr><th>ID</th><th>Dimension</th><th>Status</th><th>Confidence</th><th>Assessment</th><th>Evidence</th></tr>
+    <tr class="dim" id="D01" data-status="unknown" data-confidence="unknown"><td>D01</td><td>Fitness for purpose and sufficiency</td><td><span class="badge unknown">unknown</span></td><td>unknown</td><td class="d-note">{{assessment, or why unknown}}</td><td class="d-evidence"></td></tr>
+    <tr class="dim" id="D02" data-status="unknown" data-confidence="unknown"><td>D02</td><td>Domain model and Bounded Contexts</td><td><span class="badge unknown">unknown</span></td><td>unknown</td><td class="d-note">{{assessment, or why unknown}}</td><td class="d-evidence"></td></tr>
+    <tr class="dim" id="D03" data-status="unknown" data-confidence="unknown"><td>D03</td><td>Component Cohesion and Component Coupling</td><td><span class="badge unknown">unknown</span></td><td>unknown</td><td class="d-note">{{assessment, or why unknown}}</td><td class="d-evidence"></td></tr>
+    <tr class="dim" id="D04" data-status="unknown" data-confidence="unknown"><td>D04</td><td>Code design and refactorability</td><td><span class="badge unknown">unknown</span></td><td>unknown</td><td class="d-note">{{assessment, or why unknown}}</td><td class="d-evidence"></td></tr>
+    <tr class="dim" id="D05" data-status="unknown" data-confidence="unknown"><td>D05</td><td>Deployment topology</td><td><span class="badge unknown">unknown</span></td><td>unknown</td><td class="d-note">{{assessment, or why unknown}}</td><td class="d-evidence"></td></tr>
+    <tr class="dim" id="D06" data-status="unknown" data-confidence="unknown"><td>D06</td><td>APIs and integration</td><td><span class="badge unknown">unknown</span></td><td>unknown</td><td class="d-note">{{assessment, or why unknown}}</td><td class="d-evidence"></td></tr>
+    <tr class="dim" id="D07" data-status="unknown" data-confidence="unknown"><td>D07</td><td>Data modeling and integrity</td><td><span class="badge unknown">unknown</span></td><td>unknown</td><td class="d-note">{{assessment, or why unknown}}</td><td class="d-evidence"></td></tr>
+    <tr class="dim" id="D08" data-status="unknown" data-confidence="unknown"><td>D08</td><td>Persistence, ORM, and concurrency</td><td><span class="badge unknown">unknown</span></td><td>unknown</td><td class="d-note">{{assessment, or why unknown}}</td><td class="d-evidence"></td></tr>
+    <tr class="dim" id="D09" data-status="unknown" data-confidence="unknown"><td>D09</td><td>Events and distributed consistency</td><td><span class="badge unknown">unknown</span></td><td>unknown</td><td class="d-note">{{assessment, or why unknown}}</td><td class="d-evidence"></td></tr>
+    <tr class="dim" id="D10" data-status="unknown" data-confidence="unknown"><td>D10</td><td>Capacity, performance, and scalability</td><td><span class="badge unknown">unknown</span></td><td>unknown</td><td class="d-note">{{assessment, or why unknown}}</td><td class="d-evidence"></td></tr>
+    <tr class="dim" id="D11" data-status="unknown" data-confidence="unknown"><td>D11</td><td>Reliability and recovery</td><td><span class="badge unknown">unknown</span></td><td>unknown</td><td class="d-note">{{assessment, or why unknown}}</td><td class="d-evidence"></td></tr>
+    <tr class="dim" id="D12" data-status="unknown" data-confidence="unknown"><td>D12</td><td>Security and privacy</td><td><span class="badge unknown">unknown</span></td><td>unknown</td><td class="d-note">{{assessment, or why unknown}}</td><td class="d-evidence"></td></tr>
+    <tr class="dim" id="D13" data-status="unknown" data-confidence="unknown"><td>D13</td><td>Testing and testability</td><td><span class="badge unknown">unknown</span></td><td>unknown</td><td class="d-note">{{assessment, or why unknown}}</td><td class="d-evidence"></td></tr>
+    <tr class="dim" id="D14" data-status="unknown" data-confidence="unknown"><td>D14</td><td>Build, delivery, and dependencies</td><td><span class="badge unknown">unknown</span></td><td>unknown</td><td class="d-note">{{assessment, or why unknown}}</td><td class="d-evidence"></td></tr>
+    <tr class="dim" id="D15" data-status="unknown" data-confidence="unknown"><td>D15</td><td>Observability and operations</td><td><span class="badge unknown">unknown</span></td><td>unknown</td><td class="d-note">{{assessment, or why unknown}}</td><td class="d-evidence"></td></tr>
+    <tr class="dim" id="D16" data-status="unknown" data-confidence="unknown"><td>D16</td><td>Economics and total cost</td><td><span class="badge unknown">unknown</span></td><td>unknown</td><td class="d-note">{{assessment, or why unknown}}</td><td class="d-evidence"></td></tr>
+    <tr class="dim" id="D17" data-status="unknown" data-confidence="unknown"><td>D17</td><td>User interface and experience</td><td><span class="badge unknown">unknown</span></td><td>unknown</td><td class="d-note">{{assessment, or why unknown}}</td><td class="d-evidence"></td></tr>
+    <tr class="dim" id="D18" data-status="unknown" data-confidence="unknown"><td>D18</td><td>Team, documentation, and learning</td><td><span class="badge unknown">unknown</span></td><td>unknown</td><td class="d-note">{{assessment, or why unknown}}</td><td class="d-evidence"></td></tr>
+    <tr class="dim" id="D19" data-status="unknown" data-confidence="unknown"><td>D19</td><td>Agent legibility</td><td><span class="badge unknown">unknown</span></td><td>unknown</td><td class="d-note">{{assessment, or why unknown}}</td><td class="d-evidence"></td></tr>
+    <tr class="dim" id="D20" data-status="unknown" data-confidence="unknown"><td>D20</td><td>Agent execution and verification</td><td><span class="badge unknown">unknown</span></td><td>unknown</td><td class="d-note">{{assessment, or why unknown}}</td><td class="d-evidence"></td></tr>
+  </table></div>
+</section>
+
+<section class="card" id="sec-findings">
+  <h2>5. Findings</h2>
+  <!-- SLOT: lede — the root causes behind the findings, most severe first -->
+  <p class="lede">{{Root causes, most severe first.}}</p>
+  <div class="controls">
+    <button type="button" onclick="filterPriority('all')">All</button>
+    <button type="button" onclick="filterPriority('P0 P1')">P0 and P1</button>
+    <button type="button" onclick="filterPriority('P2')">P2</button>
+    <button type="button" onclick="filterPriority('P3')">P3</button>
+  </div>
+  <!-- SLOT: one article per finding, ordered by priority. data-leitwort names the decision anchor; it must appear in the decision and again in the recommendation or acceptance. -->
+  <article class="finding" id="F01" data-priority="P1" data-confidence="high" data-dimension="D03" data-leitwort="smallest reversible move">
+    <h3><span class="badge P1">P1</span> {{Finding title}}</h3>
+    <p class="f-summary">{{One-sentence problem. One-sentence change. Wins as short phrases.}}</p>
+    <p class="f-decision">{{Decision statement: the smallest reversible move is ..., because ... (E001).}}</p>
+    <details class="drill"><summary>Details</summary>
+      <dl>
+        <dt>Observation</dt><dd class="f-observation">{{what the code does, where}}</dd>
+        <dt>Impact</dt><dd class="f-impact">{{consequence and affected requirement}}</dd>
+        <dt>Recommendation</dt><dd class="f-recommendation">{{the smallest reversible move, its cost, and what it introduces}}</dd>
+        <dt>Alternatives</dt><dd class="f-alternatives">{{including doing nothing}}</dd>
+        <dt>When not to act</dt><dd class="f-when-not">{{conditions under which the change is not justified}}</dd>
+        <dt>Acceptance</dt><dd class="f-acceptance">{{an externally checkable criterion and how to verify it}}</dd>
+        <dt>Rollback</dt><dd class="f-rollback">{{how to undo, or why reconciliation is needed}}</dd>
+        <dt>Evidence</dt><dd class="f-evidence"><a href="#E001">E001</a></dd>
+      </dl>
+    </details>
+  </article>
+</section>
+
+<section class="card" id="sec-strengths">
+  <h2>6. Strengths and respected decisions</h2>
+  <!-- SLOT: working mechanisms to preserve, each with evidence; then documented decisions (ADRs) the review deliberately did not flag -->
+  <ul>
+    <li id="S1">{{Strength}} <a href="#E001">E001</a></li>
+  </ul>
+  <h3>Respected decisions</h3>
+  <ul><li>{{Decision, its source, and why the review respects it}}</li></ul>
+</section>
+
+<section class="card" id="sec-options">
+  <h2>7. Options and target</h2>
+  <!-- SLOT: lede — which option is recommended and why. Always include keeping the current architecture (data-kind="keep"); at most one option is data-position="recommended". -->
+  <p class="lede">{{Recommended option and the requirement that decides it.}}</p>
+  <article class="option" id="O1" data-kind="keep" data-position="conditional">
+    <h3>{{Keep the current architecture}}</h3>
+    <p>{{Benefits, losses, costs, reversibility, and the trigger that would reopen the choice.}}</p>
+  </article>
+  <h3>Target and guardrails</h3>
+  <!-- SLOT: when structure should change — modules with what each owns and may depend on, the rules with their status today, and the fitness function that enforces each against a baseline that can only shrink. Otherwise say no structural change is recommended. -->
+  <p>{{Target structure, or "No structural change recommended."}}</p>
+</section>
+
+<section class="card" id="sec-roadmap">
+  <h2>8. Roadmap</h2>
+  <!-- SLOT: small steps with dependencies, role, relative effort, acceptance, rollback, and stop condition. Mark at most three first moves with data-first-move. Name must-preserve invariants on steps that move safety-critical code. -->
+  <ol>
+    <li class="step" id="R1" data-first-move>{{Step, acceptance, rollback}} (<a href="#F01">F01</a>)</li>
+  </ol>
+</section>
+
+<section class="card" id="sec-evidence">
+  <h2>9. Evidence and verification</h2>
+  <p class="lede">{{What was read, measured, and run; what was not.}}</p>
+  <h3>Evidence register</h3>
+  <!-- SLOT: one row per record. data-kind is code, config, documentation, measurement, user_input, inference, or hypothesis. Code and config cite path:line or path:start-end in <code class="loc">; measurements give the exact command in <code class="cmd">. -->
+  <div class="scroll"><table>
+    <tr><th>ID</th><th>Kind</th><th>Location or command</th><th>Observation</th></tr>
+    <tr class="evidence" id="E001" data-kind="code"><td>E001</td><td>code</td><td><code class="loc">path/to/file.py:1-2</code></td><td>{{observation}}</td></tr>
+  </table></div>
+  <h3>Verification</h3>
+  <!-- SLOT: each procedure with status pass, fail, not_run, blocked, or not_applicable. Record the challenge pass with data-check="challenge" and how many priorities it changed. -->
+  <div class="scroll"><table>
+    <tr><th>ID</th><th>Procedure</th><th>Status</th><th>Result</th></tr>
+    <tr class="check" id="V1" data-check="challenge" data-status="not_run"><td>V1</td><td>{{Challenge pass by an independent reviewer}}</td><td>not_run</td><td>{{verdicts and priorities changed}}</td></tr>
+  </table></div>
+  <h3>Glossary</h3>
+  <!-- SLOT: each term the report relies on, defined once -->
+  <dl><dt>{{Term}}</dt><dd>{{Definition}}</dd></dl>
+</section>
+
+<footer>{{Date, revision, reviewer roles, limitations.}}</footer>
+</div>
 <script>
-(()=>{'use strict';
- const search=document.getElementById('report-search');
- const priority=document.getElementById('priority-filter');
- const normalize=s=>s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
- function apply(){const q=normalize(search.value.trim()),p=priority.value;let n=0;
- document.querySelectorAll('.searchable').forEach(el=>{const found=!q||normalize(el.textContent).includes(q);const ok=!el.dataset.priority||p==='all'||el.dataset.priority===p;el.hidden=!(found&&ok);if(el.classList.contains('finding')&&!el.hidden)n++;});
- document.getElementById('filter-count').textContent=String(n);}
- if(search&&priority){search.addEventListener('input',apply);priority.addEventListener('change',apply);}
- document.addEventListener('click',ev=>{const a=ev.target.closest('a[href^="#"]');if(!a)return;const id=a.getAttribute('href').slice(1);const target=document.getElementById(id);if(!target)return;target.hidden=false;let d=target.closest('details');while(d){d.open=true;d=d.parentElement.closest('details');}});
-/*PRINT*/ let printState=[];let hiddenState=[];
- window.addEventListener('beforeprint',()=>{printState=[...document.querySelectorAll('details')].map(d=>[d,d.open]);printState.forEach(([d])=>d.open=true);hiddenState=[...document.querySelectorAll('[hidden]')];hiddenState.forEach(e=>e.hidden=false);});
- window.addEventListener('afterprint',()=>{printState.forEach(([d,open])=>d.open=open);hiddenState.forEach(e=>e.hidden=true);});
- document.getElementById('print-button').addEventListener('click',()=>window.print());/*/PRINT*/
-})();
+  function jump(id) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    el.querySelectorAll('details').forEach(function (d) { d.open = true; });
+    el.scrollIntoView({ block: 'start' });
+  }
+  function setAll(open) {
+    document.querySelectorAll('details').forEach(function (d) { d.open = open; });
+  }
+  function filterPriority(set) {
+    document.querySelectorAll('article.finding').forEach(function (a) {
+      a.hidden = set !== 'all' && set.split(' ').indexOf(a.dataset.priority) < 0;
+    });
+  }
 </script>
 </body>
 </html>

@@ -496,8 +496,8 @@ def main() -> int:
     resolve = commands.add_parser("resolve", help="Resolve a task into exact role selections")
     resolve.add_argument("route")
     selection = resolve.add_mutually_exclusive_group()
-    selection.add_argument("--family", help="Legacy family; defaults to gpt without a profile")
-    selection.add_argument("--profile", help="Preview profile; use default for the configured preference")
+    selection.add_argument("--family", help="Legacy family instead of a profile")
+    selection.add_argument("--profile", help="Preview profile; omitted or default uses the configured preference")
     resolve.add_argument("--local-profile", help="Local preview preference, below an explicit profile")
     resolve.add_argument("--role", action="append", default=[], metavar="ROLE=SEAT[:EFFORT]", help="Change one preview role; use runtime for a model without effort control")
     resolve.add_argument("--risk", default="normal")
@@ -517,15 +517,14 @@ def main() -> int:
         if args.command == "validate":
             output = dict(valid=True, models=len(config["models"]), routes=len(config["routes"]), config_digest=config_digest(config))
         elif args.command == "resolve":
-            use_profile = args.profile is not None or args.local_profile is not None
-            require(not (args.family is not None and use_profile), "Select either a family or a profile")
-            require(use_profile or not args.role, "Role overrides require a profile")
-            if use_profile:
+            require(args.family is None or args.local_profile is None, "Select either a family or a profile")
+            require(args.family is None or not args.role, "Role overrides require a profile")
+            if args.family is None:
                 output = resolve_profile(args.route, None if args.profile == "default" else args.profile,
                                          local_profile=args.local_profile, role_overrides=parse_role_overrides(args.role),
                                          risk=args.risk, config=config)
             else:
-                output = resolve_route(args.route, args.family or "gpt", risk=args.risk, config=config)
+                output = resolve_route(args.route, args.family, risk=args.risk, config=config)
         elif args.command == "resolve-batch":
             payload = json.loads(args.tasks.read_text(encoding="utf-8"), object_pairs_hook=unique_object)
             require(isinstance(payload, dict) and set(payload) == {"tasks"}, "Task batch file requires only tasks")

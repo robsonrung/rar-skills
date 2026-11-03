@@ -1,10 +1,8 @@
 # Canonical task contracts
 
-Use this reference when drafting, approving, or reading an existing queue. A task file owns its full Slice Contract. The index owns navigation and the approval reference. The existing task manifest and call ledger own execution progress.
+The task file owns its full slice contract. `tasks-draft.md` owns navigation and the approval link. `queue.json` owns scheduling inputs. The run ledger owns execution progress.
 
-## Canonical task
-
-Write `tasks/T<N>-<slug>.md` before approval:
+## Task file
 
 ```text
 # T<N>: <title>
@@ -30,49 +28,31 @@ Test lens: <conclusion when it resolved a real choice, otherwise none>
 <rollback path>
 
 ## Expected review focus
-<risks and affected contracts>
+<the gate's review_focus by reference, plus task-specific risks>
 
 ## Parallelization
 <owned paths, shared migrations/interfaces/security surfaces, and merge plan or serialization>
 
 ## Blocked by
-<stable IDs or none; distinguish product blockers from write conflicts>
+<stable IDs or none; product blockers separate from write conflicts>
 ```
 
-Use a new ID for a split or a replacement. Deletion leaves an ID gap. Keep every acceptance, gate, security, rollback, review, and ownership field when revising an unstarted draft. Approval cannot clear an unresolved finding or decision by changing its label.
+The queue controller parses the exact `Verdict:`, `Decision required:`, and `Security:` labels, and they must agree with the JSON gate record. When rendering gates from shared conclusions, keep the full rendered gate in the task as `shared/references/planning-reuse.md` describes; the renderer grants no approval and does not carry security over between tasks. When revising an unstarted draft, keep every field. Approval cannot clear an unresolved finding or decision by relabeling it.
 
-## Canonical gate result
+## Index
 
-Read `shared/references/gate-result.md` for the canonical fields and finding contract. Use the task Markdown labels shown above; the queue controller requires the exact `Verdict:`, `Decision required:`, and `Security:` labels. The versioned JSON holds the complete gate record; these labels must agree with it. Run `shared/scripts/gate_contract.py <task.md>` before approval.
-
-For shared conclusions, use `shared/references/planning-reuse.md` to render these same fields from verified decisions and task differences. Keep the full rendered gate in this contract, bind the immutable render request and decision records with the other approval inputs, and retain the source index as evidence authority. The renderer grants no approval and does not inherit task security.
-
-Carry the gate's `review_focus` into Expected review focus by reference and add only task-specific risks there. Legacy task fields remain readable; fill missing fields when revising an unstarted draft, without rewriting a started contract.
-
-## Compact index
-
-Write `tasks-draft.md` with `# Task Queue: <feature>`, `**Status:** draft`, and `**Parent:** <approved PRD path>`. Follow them with a dependency table:
+`tasks-draft.md` starts with `# Task Queue: <feature>`, `**Status:** draft`, and `**Parent:** <approved PRD path>`, then a dependency table:
 
 | ID and task path | Title | Blocked by | Type | Contract reference | Gates and security | Ownership |
 | --- | --- | --- | --- | --- | --- | --- |
 | T1; tasks/T1-example.md | Concrete behavior | none | AFK | Task's Acceptance contract section | proceed; standard | Named scope |
 
-The table links canonical contracts and scheduling metadata. Keep acceptance text only in each task file; read it there when presenting the human preview. Link `queue.json` and its validation result. Use `shared/scripts/task_queue.py --help` for the scheduling input shape; `approval-inputs --queue <queue.json> --root <project-root>` checks drafts without dispatch. After approval, add the actual response reference, decision time, immutable approval record, and whether the response covered `task_queue` only or both `task_queue` and `model_plan`.
+Acceptance text lives only in the task files. Link `queue.json` and its validation result. After approval, add the response reference, decision time, and whether it covered the task queue alone or the queue and model plan.
 
-## Approval binding
+## Queue and approval binding
 
-Before presenting the queue, capture the current PRD, index, queue configuration, and task identities in an immutable preview. Capture the proposed execution routes only for combined approval. Retain the actual response with `shared/references/answer-evidence.md`; a generated approval sentence, preference, or silence is not a response.
+`shared/scripts/task_queue.py --help` documents the `queue.json` shape. `task_queue.py approval-inputs --queue <queue.json> --root <project-root>` checks the drafts without dispatch and reports each task's current and prospective ready-state hashes; `shared/scripts/routing_plan.py --help` covers the digests for a combined approval. The scripts own the hashing and normalization rules.
 
-Bind each draft's current hash and its prospective ready-state content hash. The prospective text differs only by replacing its exact `**Status:** draft` line with `**Status:** ready-for-agent`. Use the routing plan's content normalization (`shared/scripts/routing_plan.py`) for the prospective hash. The normalization excludes an exact ready, in-progress, done, or blocked status line; it retains all acceptance and gate content. Do not change the shared normalization rule to exclude arbitrary status prose.
-
-Recheck the draft identities before promotion. If any input changed, update the concrete preview and get a decision for the changed scope. On approval, change only the task status. Verify the resulting task content hashes against the prospective hashes, then build the standard approved routing scope from those hashes when models were approved. Keep the original preview and response unchanged. Index status and added approval links are administrative changes; retain the exact reviewed index as evidence rather than treating the live index as immutable scope.
-
-A task-only response authorizes the queue, not worker models. A combined response must explicitly cover both decisions and bind all preview inputs. `implement-tasks` owns its model plan and records separate gate entries for the two decisions using that one response. Commits, push, merge, publication, deployment, external messages, and council execution keep their own authority.
-
-## Existing queues
-
-Read published `T<N>-<slug>.md` files from a legacy queue as canonical. The old `tasks-draft.md` can retain its copied contracts and approval history. Do not require its rewrite to execute an approved queue. If only a legacy draft index exists, derive each task once before approval, compare every field with the source, and record the derivation. No draft can run.
-
-The controller can read legacy task Markdown and dependencies. Supply approved ownership and manifest locators when a legacy queue lacks machine scheduling inputs. Add these as a separate routing scope input before dispatch. This new binding does not grant model approval or change an existing started contract. Missing ownership, approval, or integration evidence blocks only the work that needs it.
+Capture the queue's state before presenting it, and recheck it before promotion; a changed input needs a fresh decision for what changed. Promotion changes only the `**Status:**` line. A task-only response authorizes the queue, not worker models. Commits, push, merge, publication, deployment, external messages, and councils keep their own authority.
 
 _Stable-ID and test-expectation contracts adapted from Every's compound-engineering-plugin (`ce-plan`)._

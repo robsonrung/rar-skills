@@ -268,14 +268,6 @@ remains a gap.
 
 ## Preflight and recovery
 
-Claude preflight caches stable transport, compatibility, and effort capabilities.
-The cache uses a current fingerprint of CLI identity and version, routing and
-preflight code, configuration, policy, launch context, model, and effort, with a 24-hour limit. A mismatch,
-expiry, or corrupt entry requires a fresh capability check. Each launch still
-checks authentication visibility and installation drift. Local login metadata
-does not prove live account entitlement. Serving receipts, quota, per-request
-privacy, and tool permissions remain current-run facts.
-
 Before each native or runner call, reserve its approved allowance and pending
 state. Reconcile an uncertain completion before retrying. Keep raw output,
 receipt limits, input identity, and role context references. Defaults are three
@@ -312,37 +304,6 @@ organizer evidence establishes `conditional-not-needed`. A caller's reason
 alone cannot skip a judge. Report answer confidence and verified diversity
 confidence separately. The council remains read-only and cannot implement or
 approve its recommendation.
-
-## Measure the complete workflow
-
-Choose one feature measurement state before the first stage. Use the
-[measurement capture hook](../skills/shared/references/workflow-measurement.md)
-at stage, wait, command, repair, and terminal boundaries. Start with known
-identity fields and bind remaining fields once when they become fixed. Later
-route initialization preserves these early observations.
-
-Keep a separate automatic interview route ledger under its own authority.
-After its calls resolve and its owner records terminal status, import its
-completed ledger by hash into the feature state. The import retains the source
-plan and counters. Comparison counts each receipt hash once. Record full
-coverage only when every relevant call and event is captured. Measurement
-completion does not grant acceptance or change execution authority.
-
-Compare recorded runs with the read-only `shared/scripts/workflow_comparison.py`
-helper and the [run-state measurement contract](../skills/shared/references/run-state-contract.md#compare-workflow-cost).
-Use the same source start revision, acceptance cases, requirements, and runtime
-identity. Keep workflow elapsed time separate from summed worker duration,
-approval waiting, and coordinator usage. Include failures, repairs, repeated
-commands, token categories, actual reported cost, and missed defects. Unknown
-measurements stay unknown; cached input is not free.
-
-Cost deltas require passed acceptance and equal observed defect counts under
-matching identities and the same defect observation protocol. Missing
-observations block comparison. Lower cost does not establish equivalent quality.
-Invocation totals take precedence over message subtotals. A missing usage field
-in any counted request stays unknown in the total. No full workflow
-provider performance benchmark was run for these changes, and route defaults
-remain unchanged.
 
 ## Delivery boundary and limits
 

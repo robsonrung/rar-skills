@@ -170,12 +170,12 @@
     <button type="button" onclick="setAll(false)">Collapse details</button>
   </div>
 
-  <div class="metrics" aria-label="Run snapshot">
+  <div class="metrics" aria-label="Run summary">
     <!-- SLOT: keep four short metrics; the two confidence roles are required -->
     <div class="metric"><span class="metric-label">Status</span><strong class="metric-value">Complete</strong></div>
     <div class="metric"><span class="metric-label">Answer confidence</span><strong class="metric-value" data-role="answer-confidence">Not reported</strong></div>
     <div class="metric"><span class="metric-label">Diversity confidence</span><strong class="metric-value" data-role="diversity-confidence">Not reported</strong></div>
-    <div class="metric"><span class="metric-label">Independent sources</span><strong class="metric-value">Not reported</strong></div>
+    <div class="metric"><span class="metric-label">Distinct models</span><strong class="metric-value">Not reported</strong></div>
   </div>
 
   <main>
@@ -185,7 +185,7 @@
       <div class="card-grid">
         <!-- SLOT: add 3 to 6 insight cards, each with a source label -->
         <article class="insight-card"><h3>Agreement point</h3><p>Replace with a concise, evidence-based point.</p><span class="source">report.md</span></article>
-        <article class="insight-card"><h3>Agreement point</h3><p>Replace with a concise, evidence-based point.</p><span class="source">state.json</span></article>
+        <article class="insight-card"><h3>Agreement point</h3><p>Replace with a concise, evidence-based point.</p><span class="source">report.md § Seats</span></article>
       </div>
     </section>
 
@@ -201,32 +201,31 @@
           <div class="position"><strong>Position B</strong><span>Strongest case for the other side.</span></div>
         </div>
         <p class="resolution"><strong>Resolution:</strong> State the recorded resolution and why it won.</p>
-        <span class="source">round-2-digest.md</span>
+        <span class="source">report.md § Dissent</span>
       </article>
     </section>
 
     <section class="section" id="evidence">
       <div class="section-heading"><span class="kicker">03</span><h2>Evidence and seat fidelity</h2></div>
-      <p class="section-intro">Show how the result formed. Use effective provider and model values only when the state records them.</p>
+      <p class="section-intro">Show how the result formed. Name a seat's model only as the report records it.</p>
       <div class="rounds">
-        <!-- SLOT: add one round per recorded round -->
-        <div class="round"><div class="round-number">Round 1</div><p>Replace with the round outcome and convergence state.</p></div>
+        <!-- SLOT: one row per phase the report records: openings, gap repair, judge rulings, or each debate round and the end state -->
+        <div class="round"><div class="round-number">Openings</div><p>Replace with what this phase settled or left open.</p></div>
       </div>
       <div class="seat-table-wrap">
         <table class="seat-table">
-          <thead><tr><th>Seat</th><th>Provider and model</th><th>Result</th><th>Independence note</th></tr></thead>
+          <thead><tr><th>Seat</th><th>Model and host route</th><th>Result</th><th>Note</th></tr></thead>
           <tbody>
-            <!-- SLOT: add one row per selected, omitted, or unavailable seat -->
+            <!-- SLOT: one row per seat in the report, including failed seats -->
             <tr><td>Not reported</td><td>Not reported</td><td>Not reported</td><td>Seat data was not recorded.</td></tr>
           </tbody>
         </table>
       </div>
       <details>
-        <summary>Source files and run notes</summary>
+        <summary>Source report and run notes</summary>
         <div>
-          <!-- SLOT: list report path, state path, artifact mode, and material run notes -->
-          <p class="source">report.md</p>
-          <p class="source">state.json</p>
+          <!-- SLOT: the report path and material run notes -->
+          <p class="source">.ai-workflow/consensus/session.md</p>
         </div>
       </details>
     </section>
@@ -248,7 +247,7 @@
           <div class="confidence-value">Not reported</div>
           <div class="meter" aria-label="Diversity confidence"><span style="--value: 0%"></span></div>
           <p>Replace with the recorded band and the independence caveat.</p>
-          <span class="source">state.json</span>
+          <span class="source">report.md § Seats</span>
         </article>
       </div>
     </section>
@@ -268,18 +267,18 @@
       <p class="section-intro">A trustworthy summary states what the council could not establish.</p>
       <div class="card-grid">
         <!-- SLOT: add one limit-card per material gap; keep the evidence gap explicit -->
-        <article class="limit-card"><h3>Evidence gap</h3><p>Replace with missing context, omitted seat, malformed output, or open question.</p><span class="source">state.json</span></article>
+        <article class="limit-card"><h3>Evidence gap</h3><p>Replace with missing context, omitted seat, malformed output, or open question.</p><span class="source">report.md § Seats</span></article>
       </div>
       <details>
-        <summary>Raw report boundaries</summary>
-        <div><p>Replace with a short note about what this page leaves in the source files.</p></div>
+        <summary>What this page leaves in the report</summary>
+        <div><p>Replace with a short note about what this page leaves in the report.</p></div>
       </details>
     </section>
   </main>
 
   <footer>
     <!-- SLOT: generation date, session id, and source paths -->
-    Generated from the recorded council result · session · source report
+    Generated from the council report · session · report path
   </footer>
 </div>
 <script>

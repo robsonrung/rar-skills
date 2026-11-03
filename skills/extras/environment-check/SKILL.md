@@ -5,63 +5,14 @@ description: "Check local prerequisites and present the result. Use when the use
 
 # Environment Check
 
-Run the repository's environment checker and present its report. Choose the
-branch before selecting a model. This deterministic command runs within
-invocation authority and dispatches no worker.
-
-## Run
-
-The checker ships in the shared library, so it is present wherever the skills
-are installed. Resolve `SHARED_DIR` exactly as the shared library contract
-describes (the loaded `shared` skill's directory; `skills/shared/` in a source
-checkout; `shared/` beside the installed skills), then run:
+Run the shared checker and present what it reports:
 
 ```bash
-SHARED_DIR="<absolute shared skill directory>"
-python3 "$SHARED_DIR/scripts/check_environment.py" --json
+SHARED_DIR="<absolute path of the shared skill directory>"; python3 "$SHARED_DIR/scripts/check_environment.py" --json [--project <repo>] [--browser auto|playwright-cli|agent-browser|none] [--native-models]
 ```
 
-In a rar-skills source checkout, `bash scripts/check-environment.sh` is an
-equivalent wrapper and stays the documented form for setup guides.
+Add a flag only when the user's context calls for it. If `python3` is missing or older than 3.11, nothing ran: point to section 1 of `docs/machine-setup.md` and stop.
 
-If `python3` itself is missing or below 3.11, the script cannot start. Present
-the Python setup instructions from `docs/machine-setup.md` (section 1) and
-stop; no other check ran.
+Lead with `summary.status`, then a table of `checks` (MISSING, then WARN, then OK, optional checks labelled), then each non-empty `action` verbatim, then `limits`. Actions are for the user; run no install, login, or browser launch for them.
 
-Add flags only when the user's context calls for them:
-
-- `--project /absolute/path/to/repo` when the user asks about a specific project.
-- `--browser auto|playwright-cli|agent-browser|none` when browser work matters.
-  Use an explicit or inherited selection when supplied. Otherwise `auto` is the
-  safe scoped default. Ask only when a choice changes scope, cost, permitted
-  effects, or a material unresolved decision.
-- `--native-models` when the user relies on host model access instead of
-  external CLIs.
-
-## Present
-
-Parse the JSON and show:
-
-1. **Verdict line** from `summary.status`:
-   - `local_checks_passed` — every required check is OK.
-   - `needs_verification` — nothing missing, but named warnings need the
-     user's action or a live test.
-   - `missing_requirements` — required tools are absent; setup is incomplete.
-2. **Check table**: one row per entry in `checks` — status (OK / WARN /
-   MISSING), name, whether it is required, and its `detail`. Group MISSING
-   first, then WARN, then OK. Do not drop optional checks; label them.
-3. **Actions**: for every WARN or MISSING row with a non-empty `action`,
-   list the action verbatim, numbered, in check order. These are instructions
-   for the user — do not execute installs, logins, or browser launches on
-   their behalf.
-4. **Limits**: show the `limits` list so the user knows what was not tested
-   (no provider request, no installation, no login; a present credential is
-   not a valid one).
-
-Keep the report to the verdict, the table, the actions, and the limits. Point
-to `docs/machine-setup.md` in the rar-skills repository for setup detail.
-
-The load-bearing rule is **green only from a fresh run**: a check is OK only
-because this invocation's output says so. Never carry a green forward from
-memory, an earlier session, or the user's claim; suggest re-running after the
-user completes an action and report only what the new output shows.
+**Green only from a fresh run**: a check is OK only because this run's output says so, never from memory, an earlier session, or the user's word. After the user acts, run it again.

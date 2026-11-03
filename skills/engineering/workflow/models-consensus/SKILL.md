@@ -1,6 +1,6 @@
 ---
 name: models-consensus
-description: Run a read-only council of independent model opinions as a poll, debate, or personas panel, and return one recommendation.
+description: Run a read-only council of independent model opinions as a poll, debate, or personas panel, return one recommendation, and walk the user through any open disagreement.
 disable-model-invocation: true
 ---
 
@@ -82,3 +82,7 @@ Write `.ai-workflow/consensus/<session>.md`, leading with the outcome:
 3. A reversal trigger when the decision is costly to undo.
 4. Answer confidence and diversity confidence, separately. Diversity counts distinct models that answered; personas is low by construction.
 5. Each seat's model, host route, and any failure.
+
+## Open disagreements
+
+When material dissent survives the report, walk the user through it: one packet per open point, in the report's order. A packet holds the neutral topic, each seat's position with its evidence (or "no position recorded"), and every distinct option, adding a combined option when it beats each part. Lead with the pick: "I recommend option N, because <decisive trade>; the strongest alternative costs <cost>." This is a **recommendation, not survey**: a majority is not proof, and thin evidence makes "defer and collect <evidence>" a valid pick. Ask one question per topic with the host's question tool. With no answer, mark the point `awaiting_human`; never default to the recommendation. Skip points the council settled, and leave the report unchanged.

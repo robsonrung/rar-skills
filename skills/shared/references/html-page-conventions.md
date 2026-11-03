@@ -1,6 +1,6 @@
 # Self-contained HTML page conventions
 
-Rules shared by every skill whose deliverable is a rendered HTML page — `explain-architecture`, `html-explainer`, and `consensus-summary-html` load this file by path. Each skill keeps its own template, page anatomy, and validator; this file holds what they have in common so a new page skill starts from the same floor.
+Rules shared by every skill whose deliverable is a rendered HTML page — `html-explainer`, `consensus-summary-html`, and `architecture-review` load this file by path. Each skill keeps its own template, page anatomy, and validator; this file holds what they have in common so a new page skill starts from the same floor.
 
 ## Self-containment
 

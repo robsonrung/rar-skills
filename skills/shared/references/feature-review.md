@@ -108,58 +108,6 @@ required checks. Existing plans without `reuse_scope` retain their current revie
 requirements. The separate `review_scope` protocol for exact prospective changes
 remains unchanged.
 
-## Batch evidence refresh
-
-Use `shared/scripts/feature_refresh.py` after integration changes to refresh
-selected task evidence together. It reads the approved policy and ledger, selects
-valid captured checks, and identifies missing, affected, or required fresh checks.
-The refresh phase makes no reviewer calls and leaves plans and the ledger unchanged.
-
-```bash
-SHARED_DIR="<absolute path of the loaded shared skill>"
-python3 "$SHARED_DIR/scripts/feature_refresh.py" \
-  --policy <policy.json> --root <project-root> --base <review-base> \
-  --ledger <run-state.json> --output <new-evidence-directory>
-```
-
-Selected task snapshots must share their original artifact directory. Choose a
-new output directory inside it; retain that artifact boundary during refresh.
-Select critical tasks only when their policy includes `reuse_scope`; other
-critical tasks retain the current independent review flow.
-
-The default is a read-only preview of tasks with existing integration evidence.
-Add repeated `--task T1` options to limit the batch. The preview can omit
-`--environment`; it returns `request.source_id`, `request.context_id`, and
-`environment_required: true` without writing files or running commands. A supplied
-environment file is validated in preview too.
-
-Add `--execute --environment <current-environment.json>` to prepare immutable
-snapshots and packets, transfer valid captures, and run required commands.
-Compatible nonfresh checks can serve several task snapshots. Required fresh
-checks still execute for each target snapshot. Declared aggregate coverage follows
-the shared contract above: capture or reuse the aggregate first, then create the
-child coverage records. A failed aggregate cannot produce a ready refresh patch.
-
-Bind the environment evidence to the preview's current IDs using `to_source_id`
-and `context_id`. Include `runtime`, `dependencies`, `external_state`, and
-`base_interactions` assessments.
-Each assessment needs a reason and captured evidence. The helper validates these
-bindings before transfer; a claim that the environment is unchanged is insufficient.
-
-A ready `result.json` includes a complete `integration_evidence_patch`. Apply it
-with `feature_refresh.py --root <project-root> --apply-result <result.json>`.
-This validates the original ledger hash, current source and environment, task
-implementation receipts, and critical reviews under the ledger lock before writing.
-The ledger must be outside captured source. A repeated application returns
-`already-applied` only while its evidence remains valid. Project readiness after
-application. Original review links and call history remain intact. The refreshed
-packets establish provisional evidence only.
-
-A failed or blocked batch keeps its captures and returns an empty patch. After repair,
-use a new output directory and `--resume-from <prior/result.json>` to select still
-valid captures without replacing the prior records. Run affected or missing
-checks again. Complete the final gate below even when all refresh results pass.
-
 ## Final acceptance
 
 Complete combined simplification before the final source snapshot. Prepare final requirements from the same check plan and collect every required acceptance command and observation, including relevant task interactions. Review the full behavior against the feature acceptance contract and task contracts. A review limited to integration seams is incomplete.

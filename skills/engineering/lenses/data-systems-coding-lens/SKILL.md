@@ -1,6 +1,6 @@
 ---
 name: data-systems-coding-lens
-description: "Review implementation risks in persistent state and asynchronous data paths. Use for schemas, migrations, queues, caches, retries, or concurrent writes; use macro-architecture to decide service and data ownership."
+description: "Review implementation risks in persistent state and asynchronous data paths. Use for schemas, migrations, queues, caches, retries, or concurrent writes; use architecture-lens to decide service and data ownership."
 ---
 
 # Data Systems Coding Lens

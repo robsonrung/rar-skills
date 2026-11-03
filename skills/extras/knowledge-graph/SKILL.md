@@ -6,13 +6,7 @@ disable-model-invocation: true
 
 # Knowledge Graph: Four Prompts, One Schema
 
-Choose the branch before selecting a model. Before running graph prompts, use `shared/references/model-preview.md` to bind the extraction and generation routes in one approved snapshot.
-
-Structured outputs replace four separate trained systems with four prompts that share one schema: **the schema is the only training data**. Adapting to a new domain means changing the schema and prompt, then evaluating the result.
-
-Say it while working:
-
-> "No NER model to train — the schema is the only training data; tightening the `type` Literal is our retraining step."
+Structured outputs replace four separate trained systems with four prompts that share one schema: **the schema is the only training data**. Adapting to a new domain means changing the schema and prompt, then evaluating the result: "No NER model to train; tightening the `type` Literal is our retraining step."
 
 ## When a graph is the right tool
 
@@ -28,14 +22,11 @@ Route before you build. A knowledge graph pays off only when facts must be chain
 | Evaluator needs ground truth | Knowledge graph | Fact-checking needs provenance |
 | Overnight persistent loop | Knowledge graph | Memory must survive context flushes |
 
-Say the routing-out sentence when it applies:
-
-> "This is single-hop retrieval over one collection — RAG, not a graph; stopping here."
+When the table routes out, say so and stop: "This is single-hop retrieval over one collection — RAG, not a graph."
 
 ## The four-prompt pipeline
 
-Use the extraction tier for schema-constrained volume and the generation tier for judgment over conflicting evidence. Resolve those routes in the approved snapshot, then reuse it for every prompt; do not pin model ids in this workflow.
-Record the planned prompt count, retries, and call ceiling in that snapshot before the first prompt.
+Use the extraction tier for schema-constrained volume and the generation tier for judgment over conflicting evidence. Pick a model for each with `python3 shared/scripts/model_routing.py resolve <route>` (`show` lists routes) unless the user names them, and never pin model IDs in this workflow. Show both models with the planned prompt count, retries, and call ceiling, and ask: **"Approve this plan, or specify changes."**
 
 | Prompt | Model tier | Why this tier |
 | --- | --- | --- |
@@ -71,9 +62,7 @@ Every question forks first on whether it has a seed in the graph to start from.
 - **Local search** — the question names an entity. Link the mention through the alias map to its canonical node, serialize the k-hop neighborhood as `(subject) --[predicate]--> (object)` triples, reason over them. k=2 is the sweet spot: it captures the chains that make the graph valuable without flooding the context. When the alias map has no match, the answer is _"the graph contains no entity matching X"_ — not a fallback to pretraining.
 - **Global search** — the question names no entity and asks for themes, patterns, recurrence, or coverage. There is no seed to walk from, and the answer is a property of the whole graph. Cluster the graph into communities, summarize each once, and map-reduce the question over those reports: [references/global-search.md](references/global-search.md).
 
-Say which fork you took:
-
-> "This question names no entity — **global search** over community reports, not a k-hop neighborhood."
+Name the fork you took: "This question names no entity — **global search** over community reports, not a k-hop neighborhood."
 
 Global search adds no fifth model to the pipeline: a community report is prompt 3's move at a coarser granularity — summarize a cluster instead of a node — and runs on the same judgment tier.
 

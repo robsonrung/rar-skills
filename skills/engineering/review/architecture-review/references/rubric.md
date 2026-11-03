@@ -1,215 +1,85 @@
-# Architecture assessment rubric
+# Architecture rubric
 
-Report all 20 dimensions, with depth proportional to applicability and risk. This is a practical synthesis, not a scientific scoring scale or certification. Preserve working mechanisms as well as identifying risks. Use `adequate`, `attention`, `critical`, `unknown`, or `not_applicable` with confidence, evidence, and reasons. Do not average away a critical risk or convert unknown into zero.
+Rate all 20 dimensions as `adequate`, `attention`, `critical`, `unknown`, or `not_applicable`, each with confidence, a short assessment, and evidence. Depth follows applicability and risk. Unknown is not zero, and not applicable needs a reason; an area you did not inspect is unknown, not not applicable. Never compute an overall score or average a critical risk away.
 
-Each checkpoint below is a question, not a conclusion. The answer must invoke the applicable canonical concept in the finding or decision, connect it to evidence, and constrain an action or check. Read detailed definitions only when needed in `terminology.md`.
+Each dimension lists what reviewers tend to miss, then the checkpoint question its rating must answer. Activate a concept only when the evidence makes it relevant: a small single-database application does not need LSM-Trees, quorums, consensus, or Event Sourcing because they appear here.
 
 ## D01. Fitness for purpose and sufficiency
-
-**Investigate:** Confirm purpose, stage, criticality, workload, team, cost of failure, and expected lifetime. Judge current adequacy separately from unknown future capacity. Look for requirements already met, unnecessary complexity, and unsupported requirements. A small stable product may already be sufficient.
-
-**Decision checkpoint:** Which Quality Attribute Scenario makes this design fit for purpose, and what evidence limits that conclusion?
-
-**Useful evidence:** Requirements, stakeholder statements, incidents, workload measurements, and explicit constraints.
-
-**Source lenses:** B01, B02, W01.
+Judge current adequacy separately from unknown future capacity. A small stable product may already be sufficient, and keeping the design is a valid verdict. Look for complexity no requirement asks for as well as requirements left unmet.
+**Checkpoint:** Which Quality Attribute Scenario makes this design fit for purpose, and what evidence limits that conclusion?
 
 ## D02. Domain model and Bounded Contexts
-
-**Investigate:** Establish Ubiquitous Language, subdomains, Bounded Contexts, and an evidence-backed Context Map. Inspect invariants, ownership, and write paths. Within a context, evaluate Tactical Building Blocks: Entities, Value Objects, Aggregates and Aggregate Roots, Domain Services, Repositories, Factories, and Specifications where justified. Check Side-Effect-Free Functions and Intention-Revealing Interfaces. Distinguish Strategic Design from mandatory tactical ceremony.
-
-Run the concept duplication investigation in `module-design.md`: for each core concept, count the places that declare it, the modules that write it and the places that change its state. A concept with several differing copies and no owning module is usually a missing Bounded Context owner, not a naming issue.
-
-**Decision checkpoint:** Where does the Bounded Context change model meaning, and does an Anticorruption Layer protect that meaning at an external boundary?
-
-**Useful evidence:** Business flows, vocabulary, public contracts, aggregate mutation paths, data ownership, and context relationships.
-
-**Source lenses:** B05, B16, W10.
+Find where the meaning of a term changes; that is a context boundary, whatever the folders say. Run the concept-duplication investigation in [module-design.md](module-design.md): a concept with several differing copies and no owning module is usually a missing owner, not a naming issue. Strategic design does not require tactical ceremony; simple work may fit a Transaction Script better than a rich model. An Anticorruption Layer protects a model from another model; it is not a new name for every API adapter. DDD Entities and Clean Architecture Entities are different definitions.
+**Checkpoint:** Where does the model's meaning change, and what protects that meaning at the boundary?
 
 ## D03. Component Cohesion and Component Coupling
-
-**Investigate:** Map imports, dependency cycles, internal access, shared state, public exports, and recurring changes across components. Apply Component Cohesion through REP, CCP, and CRP and Component Coupling through ADP, SDP, and SAP. Check The Dependency Rule against source dependencies, not runtime arrows. Use Main Sequence and Distance only with meaningful counting conventions. Analyze connascence by its actual form, degree, and locality.
-
-Measure with `measure.py imports`: report cycles both at module level and including in-function imports, because deferred imports can hide a large cycle behind an acyclic top level. Read `measure.py history` co-change for the modules in question.
-
-**Decision checkpoint:** Which component principle explains the observed change cost, and what contract or architectural fitness function would protect the boundary?
-
-**Useful evidence:** Actual dependency graph, composition roots, callers, package releases, and change history when available.
-
-**Source lenses:** B06, B08, B04, W11, W17, W20.
+Check The Dependency Rule against source imports, never runtime arrows. Report cycles both at module level and including in-function imports (`measure.py imports`): deferred imports can hide a large cycle behind an acyclic top level. REP, CCP, and CRP pull against each other; do not present them as simultaneous maxima. Use Main Sequence distance only with a stated counting convention. Co-change from `measure.py history` reveals hidden coupling but does not prove causation.
+**Checkpoint:** Which component principle explains the observed change cost, and which fitness function would protect the boundary?
 
 ## D04. Code design and refactorability
-
-**Investigate:** Inspect names, intent, contracts, side effects, duplication of knowledge, cohesive functions, error behavior, and empty abstractions. Balance SOLID, DRY, KISS, and YAGNI rather than applying them as absolute rules. Compare deep modules with shallow wrappers. Prefer explicit behavior to unjustified inheritance, indirection, and metaprogramming. Identify seams and enabling points before changing difficult legacy code.
-
-Apply the module design lens (`module-design.md`): the deletion test for suspected pass-throughs, depth judged as leverage at the interface rather than line counts, locality of change, and the rule that one adapter is a hypothetical seam while two make it real. Record a `dependency_category` on every seam finding.
-
-**Decision checkpoint:** Which seam allows a behavior-preserving change, and does the proposed abstraction actually reduce caller knowledge?
-
-**Useful evidence:** Representative implementations, callers, negative cases, and tests, not lint metrics alone.
-
-**Source lenses:** B07, B08, B09, B10, W12.
+Apply the module-design lens: the deletion test for suspected pass-throughs, depth as leverage at the interface rather than line counts, locality of change, and one adapter as a hypothetical seam. A long, cohesive module with a stable contract and good tests is not a finding. Record the dependency category on every seam finding.
+**Checkpoint:** Which seam allows a behavior-preserving change, and does the proposed abstraction actually reduce what callers must know?
 
 ## D05. Deployment topology
-
-**Investigate:** Identify Monolith, Modular Monolith, coarse-grained services, microservices, functions, and hybrids. Separate logical modules from deployments. Assess actual needs for independent ownership, selective scaling, failure isolation, and release autonomy. Detect coordinated deployment and data dependencies that may create a Distributed Monolith. Consider consolidation as well as decomposition.
-
-**Decision checkpoint:** Is the Modular Monolith fit for purpose, or does demonstrated autonomy or load justify selective extraction?
-
-**Useful evidence:** Deployment manifests, runtime calls, transaction boundaries, ownership, and operational capability.
-
-**Source lenses:** B02, B03, B15, B16, W05.
+Separate logical modules from deployment units. A Modular Monolith needs enforced internal contracts; folders alone are not modularity. Extract a service only for demonstrated needs (selective scaling, failure isolation, release autonomy) that outweigh distributed transactions, compatibility, latency, testing, and on-call cost. Coordinated releases or shared tables across services mean a Distributed Monolith, and consolidation is an option. No topology is the next maturity level.
+**Checkpoint:** Is the current topology fit for purpose, or does demonstrated autonomy or load justify selective extraction?
 
 ## D06. APIs and integration
-
-**Investigate:** Assess contract semantics, schemas, input validation, authentication, object and tenant authorization, pagination, rate limits, errors, idempotency, compatibility, and versioning. Compare REST, GraphQL, RPC, webhooks, and streams by the actual use case. Inspect persistence-model leakage, excessive round trips, timeouts, and external failure. Verify current technology details rather than choosing by novelty.
-
-**Decision checkpoint:** Does the Intention-Revealing Interface distinguish accepted, committed, and externally confirmed outcomes?
-
-**Useful evidence:** Schemas, handlers, clients, contract tests, compatibility policy, error mappings, and measurements.
-
-**Source lenses:** B12, B14, B15, W10.
+Check object- and tenant-level authorization, idempotency, pagination, error semantics, timeouts, and compatibility policy. A response must distinguish accepted, committed, and externally confirmed outcomes; HTTP 200 does not prove the business operation completed. Watch for persistence models leaking through the contract.
+**Checkpoint:** Does the interface tell the caller which outcome actually happened?
 
 ## D07. Data modeling and integrity
-
-**Investigate:** Inspect keys, constraints, types, money precision, time zones, relations, cardinality, indexing, and write ownership. Balance normalization and denormalization against queries and invariants. Review tenant isolation, retention, deletion, compatible migrations, backfills, and restore procedures. Consider B-Trees, SSTables and LSM-Trees, or Column-Oriented Storage only when engine and workload evidence make them relevant.
-
-**Decision checkpoint:** Which invariant is enforced by the Aggregate or database, and how does Expand and Contract preserve it during migration?
-
-**Useful evidence:** Schema, migrations, queries, representative data distribution, engine configuration, and recovery plans.
-
-**Source lenses:** B11, B13.
+Find which invariants the database enforces (keys, constraints, types, money precision, time zones) and which depend on application code alone. Check tenant isolation, retention and deletion, and whether migrations are compatible with the running version (Expand and Contract). Storage-engine internals matter only when engine and workload evidence make them relevant.
+**Checkpoint:** Which invariant is enforced where, and how does a migration preserve it?
 
 ## D08. Persistence, ORM, and concurrency
-
-**Investigate:** Trace the Unit of Work, transaction boundaries, generated SQL, N+1 queries, lazy loading, batching, pools, pagination, and ORM leakage. Compare ORM, query builder, and explicit SQL without assuming one wins. Do not add a Repository that merely duplicates an adequate ORM. Inspect ACID guarantees, actual isolation, lost updates, write skew, locks, deadlocks, uniqueness, and optimistic or pessimistic concurrency. Distinguish MVCC, Snapshot Isolation, Serializability, and SSI using the actual database version.
-
-**Decision checkpoint:** What invariant can concurrent transactions violate, and does the configured isolation or locking protocol prevent it?
-
-**Useful evidence:** Queries, transactions, constraints, authorized plans, contention data, retry behavior, and controlled concurrency tests.
-
-**Source lenses:** B11, B12, W14, W15.
+Trace transaction boundaries, generated SQL, N+1 queries, and pooling. A Repository that merely repeats an adequate ORM is indirection; changing an ORM does not fix a bad index, a long transaction, or a wrong invariant. Confirm the actual engine and isolation level: MVCC is not automatically Serializable Snapshot Isolation, and Snapshot Isolation permits write skew on multi-row invariants. Bulk updates usually bypass ORM event listeners. Prove lost updates or write skew with deterministic interleavings, not sleeps.
+**Checkpoint:** Which invariant can concurrent transactions violate, and does the configured isolation or locking prevent it?
 
 ## D09. Events and distributed consistency
-
-**Investigate:** Distinguish Domain Events, Integration Events, notifications, event-carried state transfer, CDC, Event Sourcing, and CQRS. Check the database/message dual-write gap, Transactional Outbox, retries, duplicates, ordering, dead-letter queues, replay, compensation, schema evolution, and tracing. Evaluate Effectively-Once Processing only within an explicit effect boundary. Inspect quorums, Replication Lag Anomalies, Total Order Broadcast, and Consensus only where the actual architecture uses or requires them.
-
-**Decision checkpoint:** Does end-to-end correctness survive partial failure, replay, reordering, and concurrent duplicates?
-
-**Useful evidence:** Producers, consumers, storage transactions, sink contracts, recovery traces, and final business effects.
-
-**Source lenses:** B11, B14, B03, W13, W16, W18, W19.
+Find every dual write (database plus message, database plus external call) and trace the path after an ambiguous outcome, such as a timeout after sending. A Transactional Outbox makes state and publication intent commit together; it does not by itself produce one business effect. Effectively-once claims hold only inside a stated retry, deduplication, and side-effect boundary. CDC is not Event Sourcing; broker delivery is not end-to-end correctness. `W + R > N` gives overlap for fixed replica sets under stated assumptions; it does not give linearizability or remove concurrent-write conflicts. Tie replication lag to the read guarantee the use case needs (read-after-write, monotonic reads, consistent prefix), which is not linearizability.
+**Checkpoint:** Does end-to-end correctness survive partial failure, replay, reordering, and concurrent duplicates?
 
 ## D10. Capacity, performance, and scalability
-
-**Investigate:** Separate offered load from completed throughput. Examine percentiles, error rates, saturation, queues, contention, CPU, memory, I/O, connections, and data skew. Check algorithms, query plans, indexing, batching, caching, pools, replicas, and vertical scaling before services or sharding. Do not extrapolate linearly outside the measured operating range. For replicated reads, consider Read-After-Write, Monotonic Reads, and Consistent Prefix Reads alongside latency.
-
-**Decision checkpoint:** Which measured resource or waiting time limits the Quality Attribute Scenario, and what is the smallest reversible move to test?
-
-**Useful evidence:** Authorized representative load tests, telemetry, profiling, query behavior, and workload conditions.
-
-**Source lenses:** B01, B11, B21.
+Without measurements, capacity is unknown, not slow; propose an experiment rather than an improvement. Registered users, active sessions, in-flight requests, and requests per second are different quantities; never convert one to another without a behavior model. Little's Law (`L = λ × W`) relates averages in a stable system and does not predict maximum capacity. Check algorithms, queries, indexes, batching, and vertical scaling before services or sharding. Do not extrapolate outside the measured range or assume tenfold growth.
+**Checkpoint:** Which measured resource limits the scenario, and what is the smallest reversible move to test?
 
 ## D11. Reliability and recovery
-
-**Investigate:** Inspect timeouts, cancellation, retry budgets, circuit breakers, bulkheads, bounded queues, load shedding, readiness, graceful shutdown, and degraded operation. Assess restore evidence, RTO/RPO, migration failure, and partial recovery. Backup configuration is not proof of restoration. Avoid costly availability mechanisms without an agreed requirement.
-
-**Decision checkpoint:** Which failure leaves a recoverable state, and what end-to-end correctness check demonstrates recovery?
-
-**Useful evidence:** Failure scenarios, runbooks, incident evidence, and recovery tests in an authorized safe environment.
-
-**Source lenses:** B20, B21.
+Check timeouts, retry budgets, bounded queues, graceful shutdown, and degraded operation. Backup configuration is not proof of restoration. Turning off a feature is not data rollback. Do not demand costly availability mechanisms without an agreed requirement.
+**Checkpoint:** Which failure leaves a recoverable state, and what check demonstrates recovery?
 
 ## D12. Security and privacy
-
-**Investigate:** Map trust boundaries, external surfaces, authorization by object and tenant, untrusted input, injection, uploads, SSRF, secrets, supply-chain exposure, least privilege, and audit trails. Verify encryption, minimization, retention, and supported dependencies as applicable. Identify declared compliance requirements without claiming certification or giving a legal conclusion. Sanitize all evidence.
-
-**Decision checkpoint:** Which trust boundary and negative test demonstrate the stated protection rather than merely the presence of a library?
-
-**Useful evidence:** Implementation, sanitized configuration, applicable policies, and explicitly authorized checks.
-
-**Source lenses:** B01, B21, B22.
+Map trust boundaries and check authorization by object and tenant, untrusted input, SSRF, secrets handling, supply chain, and least privilege. The presence of a security library proves nothing; a negative test does. Name declared compliance requirements without certifying or giving legal conclusions. Sanitize all evidence.
+**Checkpoint:** Which trust boundary and negative test demonstrate the stated protection?
 
 ## D13. Testing and testability
-
-**Investigate:** Distinguish Unit, Integration, Contract, Component, End-to-End, Property-Based, concurrency, and load tests. Examine behavioral assertions, isolation, fixtures, test doubles, feedback time, and brittleness. Use Characterization Tests before uncertain legacy restructuring and the Humble Object Pattern when useful. Protect test oracles from changes made merely to make a test pass. High coverage with weak assertions is not sufficient.
-
-Look for tests that cross past the interface (hand-built internal state, patched private names): they pass while the production path is broken. Check whether safety-critical calls and guard-relaxing parameters have tests that pin their allowed callers. Count module paths named in tests (`measure.py test-pins`) before recommending file moves.
-
-**Decision checkpoint:** What deterministic oracle catches the important regression, and can the test fail for the right reason?
-
-**Useful evidence:** Read tests, actual executions, negative cases, false positives, and all flaky attempts.
-
-**Source lenses:** B10, B17, B18, B22.
+Look for tests that cross past the interface (hand-built internal state, patched private names); they pass while the production path is broken. Check whether safety-critical calls and guard-relaxing parameters have tests that pin their allowed callers. Count module paths named in tests (`measure.py test-pins`) before recommending file moves. High coverage with weak assertions is not sufficient; use characterization tests before restructuring uncertain legacy code.
+**Checkpoint:** What deterministic oracle catches the important regression, and can the test fail for the right reason?
 
 ## D14. Build, delivery, and dependencies
-
-**Investigate:** Review lockfiles, pinned runtimes, reproducible builds, environments, CI automation, traceability, migration compatibility, rollout, and rollback. Compare local and CI behavior and feedback time. Inspect unsupported dependencies, upgrade effort, and release policies. Do not execute dependency or install scripts automatically.
-
-**Decision checkpoint:** Which architectural fitness function or pipeline gate enforces the actual requirement with actionable failure output?
-
-**Useful evidence:** Manifests, pipelines, artifacts, environment recipes, and available delivery history.
-
-**Source lenses:** B19, B22, B04.
+Check lockfiles, pinned runtimes, reproducible builds, local versus CI parity, rollout and rollback, and unsupported dependencies. Never run install or dependency scripts automatically.
+**Checkpoint:** Which pipeline gate enforces the actual requirement with actionable failure output?
 
 ## D15. Observability and operations
-
-**Investigate:** Inspect structured logs, request and business correlation, product and service metrics, useful traces, actionable alerts, and runbooks. Consider cardinality and sensitive-data leakage. A tracing package does not prove useful instrumentation. Follow one diagnostic path from user symptom to responsible component and recovery action.
-
-**Decision checkpoint:** Can end-to-end correctness be diagnosed from the persisted state and correlated attempts after a partial failure?
-
-**Useful evidence:** A complete diagnostic journey and the sanitized evidence available to an operator.
-
-**Source lenses:** B20, B21.
+A tracing package does not prove useful instrumentation. Follow one diagnostic path from a user symptom to the responsible component and the recovery action. Check correlation of business operations, alert actionability, cardinality, and sensitive data in logs.
+**Checkpoint:** Can an operator diagnose a partial failure from persisted state and correlated attempts?
 
 ## D16. Economics and total cost
-
-**Investigate:** Include compute, database, storage, network, observability, licenses, maintenance, incidents, onboarding, and migration. State the horizon and meaningful cost unit, such as completed order or active customer. Use sanitized bills and verified prices when available; otherwise provide qualitative scenarios. Separate recurring cost from migration investment and disclose uncertain labor assumptions.
-
-**Decision checkpoint:** Is the proposed change fit for purpose when migration and operating costs are included?
-
-**Useful evidence:** Sanitized bills, consumption, measured effort or explicit assumptions, and sensitivity analysis.
-
-**Source lenses:** B01, B03, B21.
+Compare recurring and transition cost over a stated horizon and a meaningful unit (per order, per active customer). Include operations, onboarding, observability, and migration, not only compute. Never add hours to money without a stated rate or invent a savings percentage; use ranges where evidence is weak.
+**Checkpoint:** Is the proposed change fit for purpose once migration and operating costs are included?
 
 ## D17. User interface and experience
-
-**Investigate:** For a UI, assess local versus server state, contracts, navigation, component boundaries, errors, accessibility, loading states, and perceived performance. Inspect excessive dependencies and calls. For mobile or offline behavior, include synchronization and connectivity failure. Mark not applicable when no UI is in scope; absence of inspection is unknown, not not applicable.
-
-**Decision checkpoint:** Does the Interface Adapter present a state consistent with the completed business operation?
-
-**Useful evidence:** Journeys, UI code, contracts, and authorized browser or device evidence.
-
-**Source lenses:** B01, B22, W11.
+For a UI, check server versus local state, error and loading states, accessibility, and whether the UI shows the state of the completed operation. Mark not applicable only when no UI is in scope.
+**Checkpoint:** Does the interface present a state consistent with the completed business operation?
 
 ## D18. Team, documentation, and learning
-
-**Investigate:** Assess ownership, team cognitive load, onboarding, decision records, Ubiquitous Language, review, knowledge distribution, and operating capacity. Recommend mentoring with a concrete system example, a worked change, and independent verification, not personal judgments about developers. Identify coordination dependencies that code changes alone cannot remove.
-
-**Decision checkpoint:** Which Bounded Context or change ownership ambiguity creates unnecessary coordination, and what shared example would clarify it?
-
-**Useful evidence:** Documentation, declared ownership, change workflow, onboarding evidence, and coordination points.
-
-**Source lenses:** B23, B22, B05.
+Assess ownership, cognitive load, decision records, and coordination points that code changes alone cannot remove. Recommend concrete worked examples, never personal judgments about developers.
+**Checkpoint:** Which ownership ambiguity creates unnecessary coordination, and what shared example would clarify it?
 
 ## D19. Agent legibility
-
-**Investigate:** Assess the entry map, concise instructions, consistent local guidance, versioned documentation, canonical examples, explicit contracts, and discoverable ownership. Use Screaming Architecture and Ubiquitous Language where they aid navigation. Look for stale knowledge, hidden rules, excessive indirection, and undocumented code generation. Do not infer measured agent performance from file layout.
-
-List domain terms the review had to name that the project glossary lacks; they are cheap, high-value additions for the next agent.
-
-**Decision checkpoint:** Can an agent find the relevant Use Case and its invariant without inventing a contract?
-
-**Useful evidence:** Repository instructions, linked documents, representative navigation tasks, and observed gaps.
-
-**Source lenses:** W03, W09, B22.
+Can an agent find the responsibility, contract, and invariant for a change without inventing one? Check for a concise entry map, one authoritative source per fact, canonical commands and examples, and rules that live only in conversations or stale diagrams. List the domain terms the review had to name that the glossary lacks. File layout does not measure agent performance.
+**Checkpoint:** Can an agent find the relevant use case and its invariant without inventing a contract?
 
 ## D20. Agent execution and verification
-
-**Investigate:** Assess isolated setup, synthetic seed data, safe reset, per-session resources, controlled time and randomness, semantic UI locators, structured observations, independent oracles, and bounded tool permissions. Distinguish deterministic, statistical, integration-dependent, and exploratory checks. Run representative agent tasks only when authorized and record every attempt.
-
-**Decision checkpoint:** What deterministic oracle verifies the final state, and what uncontrolled variables still make the check probabilistic?
-
-**Useful evidence:** Actual task artifacts, commands, final state, environment, model/tool configuration, interventions, and failed attempts.
-
-**Source lenses:** W03, W04, B17, B18, B19.
+Static legibility is not task success; an `AGENTS.md` file is not an evaluation. Check noninteractive setup, synthetic seed data, safe reset, per-session resources (ports, databases, queues; a worktree does not isolate these), controlled time and randomness, and oracles outside the agent's narrative. A screenshot shows presentation, not persistence or authorization. Classify each check as deterministic, statistical, integration-dependent, or exploratory, and keep every attempt; rerunning until green hides flakiness. A check that passes only because an assertion, snapshot, or gate was relaxed has not passed. Run representative agent tasks only when authorized, with the budget and trial count set first; otherwise record the protocol as not run.
+**Checkpoint:** What deterministic oracle verifies the final state, and what uncontrolled variables still make the check probabilistic?

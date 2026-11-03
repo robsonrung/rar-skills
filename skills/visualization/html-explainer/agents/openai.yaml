@@ -1,7 +1,7 @@
 # Codex agent interface metadata; consumed by the Codex host, not read at runtime by the model.
 interface:
   display_name: "HTML Explainer"
-  short_description: "Drill-down HTML explainer for a codebase subsystem"
-  default_prompt: "Use $html-explainer to build a self-contained drill-down HTML page explaining how this subsystem works, grounded in real code."
+  short_description: "Self-contained HTML architecture orientation or code walkthrough"
+  default_prompt: "Use $html-explainer to build a self-contained HTML page explaining this codebase or subsystem from its real code — a short orientation with a clickable map and one traced flow, or a detailed walkthrough with verbatim source panels."
 policy:
   allow_implicit_invocation: false

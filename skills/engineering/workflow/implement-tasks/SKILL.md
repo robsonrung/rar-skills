@@ -1,85 +1,52 @@
 ---
 name: implement-tasks
-description: Execute an approved task queue with exact model approval, native-first role sessions, dependency scheduling, and integration review. Use when the user asks to implement approved tasks; implement-and-review handles each task.
+description: Execute an approved task queue with exact model approval, dependency scheduling, and integration review. Use when the user asks to implement approved tasks; implement-and-review handles each task.
 disable-model-invocation: true
 ---
 
 # Implement Tasks
 
-Validate scope with the current coordinator and direct tools. Prepare one concrete preview through `shared/references/model-preview.md` before worker dispatch. Reuse an exact combined task and model approval or the parent's immutable snapshot; do not present another model selection for an unchanged plan.
+Turn an approved queue into one verified change. Be a **thin conductor**: you own the model plan, scheduling, write ownership, dependency release, integration, and delivery. `implement-and-review` owns everything inside a task: its roles and contexts, review cycles, isolation, the implementer's brief, and evidence. Do not restate or override those rules here.
 
-Model IDs, effort support, and task defaults come only from
-`shared/model-routing.json`. Resolve the relevant route before preview or
-approval; preserve the exact saved route during dispatch, retry, and resume.
-For a new future plan, resolve its coordinator and each task through the batch
-preview in `shared/references/task-shaped-model-routing.md`. Record each task's
-risk evidence. Keep current and selected future coordinator values separate;
-host selection is required before future startup when they differ or are unknown.
-Existing approved plans keep their exact routes.
+The input is the approved PRD and canonical queue from `to-tasks` under `.ai-workflow/work/<feature-slug>/`. A bare plan goes to `to-prd` and `to-tasks` first. One bounded task with a complete acceptance contract and no open product, security, contract, data, or dependency decision goes straight to `implement-and-review`.
 
-Turn an approved queue into a verified change. Be a **thin conductor**: own model selection, scheduling, integration, and delivery. `implement-and-review` owns task implementation and focused evidence. The bound review policy selects task review or one final feature review.
+## Plan
 
-The feature sequence is `interview-me` → `to-prd` → `to-tasks` → `implement-tasks`. Receive the approved PRD and canonical task queue under `.ai-workflow/work/<feature-slug>/`. For one bounded, specified change with clear acceptance and no unresolved product, security, public contract, data ownership, or dependency decisions, use the existing standalone `implement-and-review` path. It keeps exact model approval and independent review without creating a feature PRD or task graph. Missing material decisions return to the appropriate earlier stage.
+1. Check the queue with `shared/scripts/task_queue.py approval-inputs` and each task's gates with `shared/scripts/gate_contract.py`, as [references/queue-controller.md](references/queue-controller.md) describes. Open requirements, missing access, or unowned write paths block the affected tasks.
+2. Pick the review mode. A new feature queue binds one `review_policy` in both `queue.json` and the routing plan, per `shared/references/feature-review.md`; check it with `shared/scripts/feature_review.py validate`. Routine tasks are then deferred to one final feature review, and critical ones keep a task reviewer. Without a policy, every task gets its own reviewer. An existing approved plan keeps its mode and routes.
+3. Resolve the routes. Give each task its route, risk, and a `risk_reason` drawn from the invariants it touches, not a sensitive feature label, and run `python3 shared/scripts/model_routing.py resolve-batch --tasks <tasks.json> [--review-mode feature]`. Add the integration or final reviewer, whose model differs from every author's. Read `.rar-skills/config.local.yaml` once, if present, as advisory input while forming the plan (`shared/references/local-config.md`); never reread it after approval.
+4. Show the plan: for each task its roles with model, effort, and host route; the integration or final reviewer; the concurrency cap; the review-cycle limit; and the total call ceiling. Ask: **"Approve this plan, or specify changes."** A request to use defaults and run approves the unchanged resolved plan. Task approval, `--auto`, a saved preference, or silence is not model approval. When the user wants one decision for queue and models, show both together and record the single response as two gates, `task_queue_approval` and `model_plan_approval`.
+5. Save the approved plan as `routing-plan.json` with the response reference and time, and check it with `shared/scripts/routing_plan.py digests` (schema: `shared/references/implementation-routing-plan.schema.json`). Approval is reused on resume while scope and routes are unchanged; a new context ID needs none.
 
-Use `shared/references/workflow-measurement.md` for the feature measurement record and capture API. Keep each stage's execution ledger and immutable plan intact. Capture `stage-start` for `implement-tasks` before preparation, any actual model approval wait, reserved repair calls, and `stage-end` after integration and required checks. Reused combined approval adds no new wait. Reuse the feature measurement path and bind remaining known identity fields once. Import completed separate stage ledgers with `stage-ledger` before terminal capture; the local implementation ledger is counted directly. Declare worker coverage only when local and required imported records cover all calls.
+A change to any model, effort, role, transport, or limit needs the affected rows approved again. An unavailable route blocks its own tasks; never swap in another model.
 
-## Select the review mode
+## Run
 
-For a new feature queue, prepare the feature policy in
-`shared/references/feature-review.md`. Settle shared design, security, interfaces,
-and acceptance once. Classify each task by its behavior and dependency risk;
-separate file paths do not prove independence. Routine tasks use focused tests
-and provisional dependency evidence. Critical dependencies keep their approved
-independent review. Consolidate broad simplification before final combined
-checks and one independent feature review.
+Keep **the ledger, not the transcript**: `routing-plan.json` and `run-state.json` under `.ai-workflow/impl-review/<session>/`, per `shared/references/run-state-contract.md`. Reserve every call with `shared/scripts/run_state.py reserve` before dispatch and record it with `complete` after; a native role's receipt comes from `shared/scripts/native_completion.py`.
 
-Feature mode is explicit: the queue and approved routing plan bind the same
-`review_policy` path. Existing approved plans retain their routes and review
-sequence. With no policy, use the existing task mode. An explicitly selected
-legacy task review also keeps that mode. A standalone small change retains its
-scoped independent review.
+Each wave:
 
-An `implemented` result in feature mode is provisional. Keep its sidebar active
-until the final gate accepts the feature. Only the final gate can mark the tasks
-accepted and the queue complete. Delivery reuses evidence that still passes the
-current source, contract, environment, and intended base checks.
+1. Run `task_queue.py schedule` and take only its `ready` tasks, up to the approved cap (default three). Without worktree isolation, run one writer at a time.
+2. Enforce write ownership. Tasks that share a file, migration, interface, or security surface run one after another unless an approved merge plan names the overlap. A task with a pending call or unfinished integration keeps its paths.
+3. Run each ready task through `implement-and-review` with the inherited approved routes and policy class. **Hand off the path, not the payload**: the task contract path, scope, base revision, routes, and report path, never pasted bodies (`shared/references/handoff-contract.md`).
+4. Integrate in dependency order. Release a dependent only on integration evidence for the current combined source, never on a worker's success label, as [references/feature-orchestration.md](references/feature-orchestration.md) describes.
 
-## Select the current phase
+Use one persistent integration context, separate from every task role. A failed task blocks its descendants, not unrelated work. Pause only the affected task when new evidence raises a material product, security, data-ownership, or irreversible-action decision; settle implementation facts from the repository.
 
-| Phase | Required work and reference |
-| --- | --- |
-| Prepare or revise a model plan | Read [references/model-plan.md](references/model-plan.md). Validate canonical inputs, dependencies, routes, native capabilities, and role sessions. A combined decision can preview drafts; dispatch still requires actual approval and ready tasks. |
-| Schedule and integrate approved tasks | Read [references/feature-orchestration.md](references/feature-orchestration.md). Dispatch ready tasks, enforce write ownership, retain same-task role sessions through permitted iterations, and verify the dependency contract before releasing dependents under the selected policy. |
-| Verify and deliver | Read [references/completion.md](references/completion.md). Reconcile cross-task risks, capture final acceptance, and deliver within the user's authorization. |
-| Resume | Compare saved scope, route approval, task inputs, and repository state before continuing the applicable phase. Reuse matching approval and evidence. |
+## Finish
 
-Resolve `shared/` as the collection's `shared` skill describes and worker skills from their loaded locations. Use `shared/references/workflow-stage-routing.md` for engineering placement, `shared/references/task-shaped-model-routing.md` and `shared/references/model-roster.md` for model selection, `shared/references/host-model-execution.md` for native-first transport and role-session reuse, and the shared routing schema and run-state contract for persisted state. Load these at the phase that uses them and reuse active context.
+With a feature policy, run the final feature review in `implement-and-review`'s `Feature policy` section; only that gate accepts the tasks. Without one, run `full-review` once on the combined change through the integration route, covering seams, shared contracts, migration order, and gaps in the task reviews. Either way, capture acceptance on the combined state, reusing a task result only while its code, dependencies, environment, and contract still match, and require `shared/scripts/review_evidence.py verify` to return `ready` (`shared/references/review-evidence.md`). Open P2 findings or skipped required checks keep the queue incomplete.
 
-## Model approval is required
+Deliver the verified local diff by default. Commit, push, or open a pull request (`open-pr`) only with explicit authorization; a configured remote grants none. Preserve unrelated changes and user-owned tasks, branches, and worktrees. Never start `models-consensus` on your own.
 
-Before any worker or model job, show exact implementation, independent review, and integration routes. For every route, show the model, effort, native or runner transport, host capability result, role-session strategy, receipt policy, task assignment, concurrency, and call limits. Include planned specialists; no hidden panel follows approval. Resolve task fit and exact models only through the shared routing references. Distinguish task-fit guidance from measured evidence.
+## Report
 
-Use `.rar-skills/config.local.yaml` only as advisory input while forming the preview; never reread it after approval. The approved plan is authoritative. A combined response must explicitly approve both the concrete queue and exact execution plan. Record two gates with one actual response reference and bind all inputs; a task-only response cannot satisfy the model gate.
+Write `report.md` in the run directory and lead with the outcome: `complete`, `partial`, `failed`, or `ceiling_hit`, with the local diff or the authorized delivery link. Then:
 
-Follow the shared preview decision. A request to “use defaults and run” approves the unchanged resolved setup within existing source sharing authority and accepted receipt limits; show the concrete plan and proceed. Otherwise obtain the model plan decision. Task approval, `--auto`, a saved preference alone, or silence is not model approval. Reuse an explicit approval for the exact scope and routes; do not ask again merely because a same-route role session is resumed or receives a newly recorded context ID. Save the actual response reference, timestamp, and scope/route digests in `routing-plan.json` as [the model-plan reference](references/model-plan.md) specifies.
+1. Each task's ID, status, dependencies, integration result, and acceptance evidence.
+2. Roles with model, effort, host route, and whether the serving model was verified.
+3. Review scope, reviewed revision, and findings applied.
+4. Residual findings not applied: ID, severity, path, evidence, impact, why not applied, and next action. A blocking finding keeps its task blocked. File tracker tickets only when authorized; a failed filing keeps the local record.
+5. Assumptions, blocked decisions, and the next action.
 
-A model, runner, role, mode, native transport, effort, provider routing, capability, tool policy, budget, or receipt policy change requires selection of the affected rows unless that exact fallback was approved. An unavailable route blocks its own work. Never silently substitute the current model or a cheaper model. Treat configured labels and observed serving-model receipts separately; unverified execution needs the user's explicit approval of that limit.
-
-## Execution rules
-
-1. Apply inherited design constraints. Use `coding-design-plan` only for an unresolved implementation shape and `design-gate` only when new evidence changes the design surface. Workers select the relevant engineering practices; they do not replay every lens.
-2. Start a fresh implementer context for each task. Start a separate independent task reviewer only when the selected policy requires it. A later task never inherits either context. Reuse the recorded implementer for that task's fixes and evidence recovery, and its reviewer for rechecks. Use a separate persistent integration context for the combined revision; it never becomes a task implementer or reviewer. **Hand off the path, not the payload**: pass artifact paths and a short brief.
-3. Follow `host-model-execution.md`. When preflight proves that the active host can run the selected model, effort, isolation, and follow-up natively, use the native subagent or authorized task thread. Use a runner only for a foreign model, an explicit user-requested transport, or a native route that cannot meet the approved requirements, and disclose why in the preview. Prefer a resumable session for an iterative runner role. A missing native continuation capability is recorded; it does not authorize a transport change.
-4. Keep progress in **the ledger, not the transcript**. Store the preview, approved routing plan, and `run-state.json` under `.ai-workflow/impl-review/<session_id>/`. Before dispatch, record each role's route ID, host, transport, task and role, pending call, and pending context entry. When a call returns, record its actual context or session reference, completed turn, input revision, receipt, and resume result. Record effects before dispatch, then confirm from actual state.
-5. Use the read-only shared queue controller as [references/queue-controller.md](references/queue-controller.md) specifies. It projects readiness from bound contracts, the call ledger, and integration evidence. Use `shared/references/workflow-controller.md` to turn that projection into bound action checkpoints, apply captured results once, and wait for changed events. Use `shared/references/usage-accounting.md` before each dispatch; new plans bind a usage policy input and initialize it with `--usage-policy`. Include observed coordinator usage and disclose unknown data. Default to at most three tasks in flight within the approved cap; use one sequential writer without isolation. Reserve calls before dispatch and keep ownership through unresolved calls and required integration. A worker tool's absence is disclosed in the preview before proposing inline execution.
-6. Keep the approved review and recovery limits per task. Defaults are three review/fix cycles and one evidence recovery. Record attempts before dispatch. Reuse the approved same-task role context during those attempts when it remains available. Exhaustion blocks that task; independent work may continue.
-7. Worker completion is not task completion. Integrate in dependency order and capture applicable acceptance on the combined state. Reuse matching evidence; rerun checks affected by code, dependency, environment, or contract changes and all checks the caller requires fresh.
-8. Pause only the affected task when new evidence requires a material product, security, data ownership, architecture, or irreversible-action decision. Resolve implementation facts from the repository and record reversible assumptions within scope.
-
-## Delivery boundary
-
-Deliver the verified local diff by default. Reuse explicit authorization for commits, integration, push, or a PR; `open-pr` handles an authorized PR. Preserve unrelated changes. Do not create, rename, pin, archive, or remove user-owned tasks as routine execution work. Task isolation follows the `Isolation` section of the loaded `implement-and-review` skill. Do not rename or remove user-owned worktrees without explicit authorization.
-
-Never invoke `models-consensus` automatically. An explicit user request for more opinions enters that workflow's own model approval; a previous council report is only an input.
-
-Return `report.md` with task outcomes, acceptance evidence, routes and receipt limits, role-session and resume records, review scope, residual findings, and unresolved decisions as [references/completion.md](references/completion.md) defines. The queue is complete only when every task is done, final acceptance passes, and no blocking finding remains.
+The queue is complete only when every task is accepted, final acceptance passes, and no blocking finding remains. Use `capture-learning` for a reusable finding or `session-handoff` when work must resume.

@@ -4,7 +4,6 @@ import argparse
 import json
 from pathlib import Path
 
-from execution_metrics import normalize_metrics
 from review_evidence import file_hash, load_record, require, write_record
 
 
@@ -34,7 +33,7 @@ def capture(raw_path, dispatch_path, context_id, host_id, turn_id, completed_tur
     execution = {key: dispatch[key] for key in keys}
     execution.update(context_id=context_id, completed_turn=completed_turn, turn_id=turn_id, host_id=host_id)
     receipt = {"success": True, "agent_message": message["text"], "native_execution": execution,
-               "metrics": normalize_metrics({"duration_ms": turn.get("durationMs")}),
+               "duration_ms": turn.get("durationMs"),
                "model_verification": "unverified", "verification_reason": "Wait response does not attest serving model.",
                "evidence": {name: {"path": str(Path(path).resolve()), "sha256": file_hash(path)}
                             for name, path in (("raw", raw_path), ("dispatch", dispatch_path))}}

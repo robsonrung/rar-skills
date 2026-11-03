@@ -5,49 +5,32 @@ description: Turn an approved PRD into canonical task drafts and an approved dep
 
 # To Tasks
 
-Draft with the current coordinator and direct repository tools. This work needs no full model preview or extra worker. Before dispatching a design or security worker, use `shared/references/model-preview.md` once for the required routes. Nested work uses the parent's immutable approved snapshot.
+Turn one approved PRD into an executable queue. Each slice fits one focused `implement-and-review` run and has a checkable acceptance contract. You draft the queue yourself with repository tools. One already accepted task with a complete contract goes straight to `implement-and-review`; do not manufacture a PRD and queue for it.
 
-Turn one approved PRD into an executable queue. Each slice is small enough for one focused implementation run and has a checkable acceptance contract.
+Read `.ai-workflow/work/<feature-slug>/prd.md`; a status other than `approved` goes back to `to-prd`. Write each task once as `tasks/T<N>-<slug>.md` with status `draft`, plus the `tasks-draft.md` index and `queue.json`, as [references/task-contract.md](references/task-contract.md) describes. Approval promotes those same files.
 
-Use `shared/references/workflow-measurement.md` for the feature measurement record and capture API. Keep each stage's execution ledger and immutable plan intact. Capture `stage-start` for `to-tasks` before drafting, the actual queue approval wait, and `stage-end` after promotion. A combined task and model response is one observed wait. Bind the required-check identity when fixed; unknown values remain absent.
+## Draft the slices
 
-## Boundary
+1. Read the relevant code and find the repository commands that can verify each slice. Never invent a command.
+2. Cut vertical slices: each is one observable path through the layers it needs, ideally a **tracer bullet** that verifies on its own. Put a **behavior-preserving** prefactor first only when it removes a shared blocker, and name the characterization test or suite that protects it. A codebase-wide mechanical change uses expand, migrate, and contract slices.
+3. Assign stable IDs `T1`, `T2`, …. IDs never change, because approval refers to them: a split gets a new ID, a deletion leaves a gap, and reordering keeps IDs. Dependencies name IDs; no self-blockers or cycles. Mark a slice `HITL` only when a human decision or authorization truly remains; otherwise `AFK`.
+4. Write each slice's contract:
+   1. The end-to-end behavior, without file paths.
+   2. Verified commands and observable acceptance behavior. For stateful work, the meaningful failure sequences, and which adapters need realistic stored-value or integration checks. A non-feature slice may state `Test expectation: none; <reason>`. Never delete, skip, weaken, or mock away a check to make the contract pass; a wrong contract goes back before approval.
+   3. Design: assess shared design, security, interface, and acceptance decisions once across the queue (`shared/references/workflow-stage-routing.md`), reuse them per task through `shared/references/planning-reuse.md`, and run `design-gate` only on an unresolved or changed boundary. Every published slice carries a gate result per `shared/references/gate-result.md` with `verdict: proceed` and `decision_required: none`.
+   4. `security-gate` with its matched trigger. A `test-lens` conclusion only when it settled a real test-design choice.
+   5. Rollback, review focus, product blockers, and write conflicts, kept separate. Name the owner of each shared contract and what releases its consumers. Serialize slices that share a migration, contract, security surface, or likely write scope unless a merge plan says otherwise. Do not invent a foundation phase just to create parallel work.
+5. For a new feature, bind one central check plan and classify each task deferred or critical as `shared/references/feature-review.md` describes. Each task names its focused regression checks and dependency contract tests.
+6. Validate each task with `shared/scripts/gate_contract.py <task.md>` and the queue with `shared/scripts/task_queue.py approval-inputs`.
 
-Receive `.ai-workflow/work/<feature-slug>/prd.md` with status `approved`. Write each canonical `tasks/T<N>-<slug>.md` once with status `draft`. Keep `tasks-draft.md` as the compact approval and dependency index. Approval promotes these same files to `ready-for-agent`; it does not create a second contract copy. Read [references/task-contract.md](references/task-contract.md) for the task fields, index, approval binding, and legacy queues.
+Do not call design lenses directly, a panel, a runner, or `models-consensus`. A `decision_required` result or an unanswered material requirement goes to the user before approval.
 
-Read `shared/references/workflow-stage-routing.md` before drafting. Assess shared design, security, interface, and acceptance decisions once. When tasks reuse these decisions, follow `shared/references/planning-reuse.md` to check source revisions and render complete gate records from shared conclusions and task differences. Each slice still classifies its own design risks and security triggers. Apply `design-gate` only to unresolved or changed boundaries; matching settled decisions need no repeated lens pass. A published slice has the canonical gate result from `shared/references/gate-result.md`, including findings and review focus, with `verdict: proceed` and `decision_required: none`. Use `test-lens` only for a real test design decision, such as an integration boundary, mock boundary, concurrency case, or brittle existing test.
+## Approve
 
-Do not call individual design lenses directly, a panel, a runner, or `models-consensus`. A `decision_required` result or an unanswered material requirement returns to the user before task approval. If the user explicitly wants extra opinions, direct them to invoke `models-consensus`; its own workflow presents the proposed seats for user approval before it runs.
+Present each ID, title, path, dependencies, type, acceptance summary, gate result, security level, and ownership. Resolve material changes first. Ask: **"Approve this task queue, or specify changes."** Silence or a generated sentence is not approval.
 
-Default to task-only approval for a planning request. When the request includes execution, offer one combined task and model approval using the concrete preview. If the user requests combined task and model approval, prepare the concrete execution preview through `implement-tasks` before asking for one response that covers both decisions. Task-only approval never becomes model approval. Delivery and council authority remain separate.
+On approval, record the actual response with `shared/references/answer-evidence.md`, change only each task's status line to `ready-for-agent`, and mark the index approved with a link to the response. Never rewrite the PRD, or a started, `done`, or `blocked` task; a change to its scope, acceptance, gates, or ownership gets a new ID and approval.
 
-## Choose the entry
+Task approval is not model approval. When the request includes execution and the user wants one decision, have `implement-tasks` prepare its model plan and present both together; one explicit response then covers both.
 
-For one already accepted task with a complete acceptance contract, use the standalone `implement-and-review` path in `shared/references/workflow-stage-routing.md`. Do not manufacture a PRD and queue for that path. Use this skill for decomposition of an approved PRD. Neither entry bypasses unresolved material product, security, public-contract, data, or dependency decisions, required checks, or independent review.
-
-## Work
-
-1. Confirm that the PRD status is `approved`. A draft or bare plan returns to `to-prd`. Read the relevant code and identify the repository commands that can verify each slice. Never invent a command.
-
-2. Draft vertical slices. Each slice provides one observable path through the needed layers. Prefer a **tracer bullet** that can be verified on its own. Keep a **behavior-preserving** prefactor first only when it removes a shared blocker, and record its characterization test or the existing suite that supplies the net. For a codebase-wide mechanical change, use expand, migrate, and contract slices instead of pretending it is vertical.
-
-3. Assign stable IDs `T1`, `T2`, and onward. IDs never change after assignment because approval refers to them. A split gets a new ID, a deletion leaves a gap, and reordering keeps existing IDs. Dependencies name existing IDs; their graph defines order. Reject self blockers and cycles through the shared queue controller. Mark a slice `HITL` only when a remaining human authorization or decision is truly required. Mark all other slices `AFK`.
-
-4. Attach the Slice Contract to each draft.
-
-   1. Describe the end to end behavior without file paths.
-   2. List verified commands and observable acceptance behavior. For stateful work, derive the meaningful failure sequences from its state machine and carry relevant defects from earlier slices. Identify which host adapters require realistic stored-value or integration checks; a synthetic happy-path fixture is insufficient. A feature slice must name behavior. A non feature slice may state `Test expectation: none; <reason>`. Never delete, skip, weaken, narrow, or mock away a test or acceptance check to make this contract pass. If the contract is wrong, return it before approval.
-   3. Match each design surface to a settled shared decision or assess its unresolved or changed boundary through `design-gate`. Render the repeated fields when using shared conclusions; keep the full canonical gate in the task. Resolve required changes before approval. Recheck only the lens with a blocking finding, keeping its ID, prior evidence, and resolution. A nonempty `decision_required` stops promotion until the user resolves it.
-   4. Apply `security-gate` and carry its security flag with the matched trigger.
-   5. Record a `test-lens` conclusion only when it resolved a real test design choice.
-   6. State rollback, review focus, product blockers, and write conflicts separately. Name the owner of each shared contract and the condition that releases its consumers. Serialize slices that share a migration, contract, security surface, or likely write scope unless the draft names a merge plan. Settle a narrow shared interface first only when it removes a real blocker; do not invent a foundation phase merely to create parallel work.
-
-5. For a new feature execution plan, use `shared/references/feature-review.md` to bind one central check plan and classify deferred routine work or critical dependencies. Name focused regression checks and dependency contract tests in each task. Broad simplification and combined review belong to the final feature gate. Existing plans and explicit legacy task mode keep their recorded review sequence. Write the canonical task files and compact index using the reference. Keep machine scheduling inputs in `queue.json`. Record dependencies and ownership there, but retain complete acceptance and gate fields in each task. Validate the versioned gate records with `shared/scripts/gate_contract.py`, then validate the graph and binding with the read-only shared queue controller before approval.
-
-6. Present each ID, title, canonical path, dependency, type, acceptance summary, gate result, security level, and ownership. Resolve material changes before asking for approval. For combined approval, include the exact resolved routes, source sharing, privacy, receipts, capabilities, tools, and budgets in this same preview. A coordinator-only draft does not need an execution preview until the user requests this option or later execution.
-
-7. Record the actual response, timestamp, approved input identities, and decisions. Promote only the status of each approved canonical task to `ready-for-agent`; all gates must already have `verdict: proceed` and `decision_required: none`. Mark the index approved and link its immutable approval record. Do not rewrite the parent PRD. Never rewrite or delete a started, `done`, or `blocked` contract. A change to its scope, acceptance, gates, or ownership gets a new task ID and approval. Record progress in existing manifests and the ledger.
-
-## Acceptance contract
-
-Every ready task has an approved parent PRD, a stable ID, verified dependencies, a checkable acceptance contract, complete gate and security fields, rollback guidance, review focus, and explicit ownership. The index links the canonical tasks and actual approval. The next step is `implement-tasks`; it reuses exact combined approval or obtains model approval before dispatch. Existing legacy queues remain readable without rewriting started contracts.
+The next step is `implement-tasks`.

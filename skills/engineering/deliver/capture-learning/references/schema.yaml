@@ -204,6 +204,26 @@ optional_fields:
     max_items: 8
     description: "Search keywords, lowercase and hyphen-separated"
 
+# --- Destination directory, by problem_type -----------------------------------
+category_directories:
+  build_error: docs/solutions/build-errors/
+  test_failure: docs/solutions/test-failures/
+  runtime_error: docs/solutions/runtime-errors/
+  performance_issue: docs/solutions/performance-issues/
+  database_issue: docs/solutions/database-issues/
+  security_issue: docs/solutions/security-issues/
+  ui_bug: docs/solutions/ui-bugs/
+  integration_issue: docs/solutions/integration-issues/
+  logic_error: docs/solutions/logic-errors/
+  developer_experience: docs/solutions/developer-experience/
+  workflow_issue: docs/solutions/workflow-issues/
+  best_practice: docs/solutions/best-practices/
+  documentation_gap: docs/solutions/documentation-gaps/
+  architecture_pattern: docs/solutions/architecture-patterns/
+  design_pattern: docs/solutions/design-patterns/
+  tooling_decision: docs/solutions/tooling-decisions/
+  convention: docs/solutions/conventions/
+
 # --- Backward compatibility --------------------------------------------------
 # Docs created before the track system was introduced may have bug-track
 # fields (symptoms, root_cause, resolution_type) on knowledge-type
@@ -224,4 +244,5 @@ validation_rules:
   - "Array fields must respect min_items/max_items when specified"
   - "date must match YYYY-MM-DD format"
   - "tags should be lowercase and hyphen-separated"
-  - "Array-of-strings frontmatter items (symptoms, applies_when, tags, related_components, or any future array field) must be wrapped in double quotes when the value starts with a YAML reserved indicator (`, [, *, &, !, |, >, %, @, ?) or contains the substring `: ` — otherwise strict YAML parsers reject the file"
+  - "Array-of-strings frontmatter items (symptoms, applies_when, tags, related_components, or any future array field) must be wrapped in double quotes when the value starts with a YAML reserved indicator (`, [, *, &, !, |, >, %, @, ?) or contains the substring `: ` — otherwise strict YAML parsers reject the file. Example: - \"`sudo dscacheutil -flushcache` does not restore mDNS\""
+  - "Scalar string fields such as title must be quoted when they contain ` #` or `: `; scripts/validate-frontmatter.py checks this"

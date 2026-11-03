@@ -1,6 +1,6 @@
 # Select tools by the missing signal
 
-Use the repository's installed and configured tools first. A warning is a hypothesis. Tool confidence scores and healthy-looking dashboards are not proof of behavior preservation. The sources and selection rationale are in [research.md](research.md).
+Use the repository's installed and configured tools first. A warning is a hypothesis. Tool confidence scores and healthy-looking dashboards are not proof of behavior preservation.
 
 ## Routing
 

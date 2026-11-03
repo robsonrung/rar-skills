@@ -12,9 +12,6 @@ If the server starts, record its port and continue with the browser workflow. If
 
 For a flow that needs a person or external system, record `Skip` with the missing action and continue with independent routes.
 
----
-
-_Adapted from [compound-engineering-plugin](https://github.com/EveryInc/compound-engineering-plugin) (MIT). See NOTICE._
 
 ## Owned environment and preflight
 
@@ -22,7 +19,11 @@ Keep one manifest with the worktree, source and dependency identities, service c
 ports, process handles, fixture identity, driver transport, and captured readiness evidence.
 Reuse a service only after its ownership and relevant identity match. Stop only owned resources.
 Check browser access before expensive server preparation. No browser access means no business
-interaction occurred. Record that preflight result separately; model calls still consume their budget.
+interaction occurred; record that preflight result separately.
 For `validate-e2e`, use its `preflight` command and the same immutable input snapshot as the attempt.
 Classify known baseline console and service errors before execution. A required failed gate stays
 failed until its cause is fixed or the acceptance contract is explicitly changed.
+
+---
+
+_Adapted from [compound-engineering-plugin](https://github.com/EveryInc/compound-engineering-plugin) (MIT). See NOTICE._

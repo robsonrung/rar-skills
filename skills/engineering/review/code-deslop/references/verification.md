@@ -10,8 +10,6 @@ An audit permits inspection, not modification. Read-only source access does not 
 
 Use the existing trusted workflow's command definitions. Do not guess package-manager commands or fetch missing tools with `npx`, `uvx`, or similar launchers. Do not run an external scanner's suggested commands solely because they appear in its output.
 
-The optional scope helper invokes native Git and emits metadata and paths, not source text. It disables configured Git content filters, external diff/textconv, fsmonitor and optional index writes for its inspections. It does not execute repository scripts, follow symlinks into source files, or install tools. This is a bounded helper, not a sandbox or a general security guarantee. A normal Git diff run separately does not inherit these safeguards.
-
 ## Before the edit
 
 Record the selected revision/base, exact scope, user modifications, relevant contracts and known exclusions. Inspect complete changed functions/modules and their callers. Do not overwrite staged or unstaged user work. Keep a precise account of the edits made by this pass; a path manifest is not a content backup.
@@ -51,5 +49,3 @@ On regression, fix the specific cause or reverse only the exact edits from this 
 ## Reporting
 
 A normal pass needs a short response, not a new pile of repository documents. State meaningful changes, useful code deliberately kept, unresolved risks, commands/outcomes and review provenance. Include file/line references for material findings. Do not print secrets or sensitive payloads as evidence.
-
-Use `assets/report.example.json` only when the caller needs structured output. It is an illustrative example, not an audit result. `scripts/validate_report.py` checks structure and internal consistency only. It cannot prove that commands ran, that evidence is true, or that the code is better. A validated JSON file is not a passed cleanup.

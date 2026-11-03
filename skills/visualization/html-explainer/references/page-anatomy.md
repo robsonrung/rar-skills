@@ -25,6 +25,19 @@ The template is ordered glance → scan → descend. Keep that order.
 
 Section ordering follows the data flow: infrastructure/edge first, then the request path inward, then data stores, then cross-cutting concerns (observability, quality) last.
 
+**Orientation depth** keeps the header, map, and optional stack grid, then four to six numbered sections with these ids (the validator requires `sec-bigpicture`, `sec-flow`, and `sec-next`):
+
+| Id | Section | Content |
+| --- | --- | --- |
+| `sec-pieces` | The pieces (structure) | One `details.drill` per major component: its one-line job, path, and the neighbors it talks to. |
+| `sec-fit` | How it fits together | Layers, dependency direction, the seams and their contracts; a small diagram when direction matters. |
+| `sec-flow` | One flow end to end (behavior) | `.flow` steps tracing one real request or event, each with a `path:line` bar and a short verbatim snippet. |
+| `sec-cross` | Cross-cutting concerns | Auth, tenancy, migrations, codegen: only what the scope needs. |
+| `sec-extend` or `sec-bounds` | Optional sixth | Implementer: extension points and conventions. Reviewer: boundaries and invariants. |
+| `sec-next` | Where to look next | The three to five files or directories to open first for the reader's goal. |
+
+Newcomer pages keep to four or five sections and about eight panels, with snippets only in the flow.
+
 **Lede discipline:** the lede must answer "what happens here and why does it matter" without opening any panel. Put the single most surprising fact of the section in the lede, not inside a panel.
 
 ## SVG diagram mechanics

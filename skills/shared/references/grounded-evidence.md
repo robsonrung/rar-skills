@@ -1,6 +1,6 @@
 # Grounded evidence contract
 
-Shared by every skill that explains real code to a reader — `explain-architecture` (orientation page) and `html-explainer` (drill-down page) load this file by path. It fixes what counts as evidence so the two outputs never disagree about the same codebase.
+Shared by every skill that explains real code to a reader — `html-explainer` loads this file by path for both its orientation and drill-down depths. It fixes what counts as evidence so the two depths never disagree about the same codebase.
 
 ## 1. Ground every claim in files you read
 

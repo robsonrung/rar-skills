@@ -5,13 +5,11 @@ description: Identify security decisions during an interview and classify slices
 
 # Security Gate
 
-Two small jobs: (1) apply the **threat-model-lite** while the user is still choosing the feature, so later phases do not guess security decisions; (2) apply the **deep-pass trigger list** to each slice, then verify deep slices against those decisions. This skill never performs the review — `full-review` does.
-
-The two leitwörter below are what you name as you work: a **threat-model-lite** question is something you ask the human now; a **deep-pass trigger** is a property of the change that forces a deeper review later.
+Two small jobs. While the user is still choosing the feature, ask the **threat-model-lite** questions, so later phases do not guess security decisions. At planning, apply the **deep-pass trigger** list to each slice, so deep slices get a security-focused review. This skill never performs the review; `full-review` does.
 
 ## Threat-model-lite — spec-time checklist (interactive)
 
-Run this inside the requirements interview. Resolve repository facts from evidence and return only unresolved security decisions to the interview's frontier. These questions share its five-question limit; do not send a second question batch. Record the answers in the decision record using `shared/references/answer-evidence.md` for portable source authority. `to-prd` carries them into the PRD's Security Decisions section.
+Run this inside the requirements interview. Resolve repository facts from evidence and return only unresolved security decisions to the interview's frontier; ask only the questions the feature exposes. They share the interview's five-question limit; do not send a second batch. Record the answers in the decision record using `shared/references/answer-evidence.md` for portable source authority. `to-prd` carries them into the PRD's Security Decisions section.
 
 Reuse recorded decisions by their stable IDs and source-index references. Each slice still evaluates its own deep-pass triggers; a shared decision is not a shared risk classification. Use a safe scoped default only for a nonmaterial detail. Ask only when the answer changes access, data handling, scope, cost, permitted effect, or an unresolved security decision. Silence is not approval.
 
@@ -40,16 +38,10 @@ At task planning time, mark a slice `security: deep` when it touches any of:
 
 Otherwise mark `security: standard`.
 
-At verification, cover every `deep` slice with `full-review` and `security_focus=true`, passing its recorded security decisions. Include this focused review in the approved reviewer plan. It can run at task completion or in the feature review when that review covers the same final code and risks; do not duplicate it without changed evidence. `standard` slices use the normal scoped review, without an extra panel. If implementation expands a slice, recheck the triggers; flags can escalate but never downgrade.
+At verification, cover every `deep` slice with `full-review` and `security_focus=true`, passing its recorded security decisions. Include this focused review in the approved reviewer plan. It can run at task completion or in the feature review when that review covers the same final code and risks; do not duplicate it without changed evidence. `standard` slices use the normal scoped review. If implementation expands a slice, recheck the triggers; flags can escalate but never downgrade.
 
 For the stage boundary, read `shared/references/workflow-stage-routing.md`: interview collects decisions, the PRD preserves them, task planning classifies slices, and implementation verifies the result.
 
 ## Output contract
 
 At spec time, write answered decision fields under stable decision IDs in the existing decision record, with source authority, locators, and content revisions. Return these references as `security_decisions` for the PRD. At planning time, return per-slice `security: deep|standard` with the matched trigger. At verify time, return the prioritization instruction handed to `full-review`.
-
-## Gotchas
-
-1. Do not ask all eight checklist questions ritually — only the ones the feature exposes.
-2. Do not downgrade a `deep` flag during autonomous phases; flags only escalate after planning.
-3. Do not duplicate review content here — findings, exploits, and fixes belong to `full-review`.

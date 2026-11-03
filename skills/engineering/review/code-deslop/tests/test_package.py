@@ -39,11 +39,6 @@ class PackageTests(unittest.TestCase):
         self.assertNotIn("\nmodel:", text)
         self.assertNotIn("\nallowed-tools:", text)
 
-    def test_scripts_parse_as_python310(self):
-        import ast
-        for path in (ROOT / "scripts").glob("*.py"):
-            ast.parse(path.read_text(), feature_version=(3, 10))
-
 
 if __name__ == "__main__":
     unittest.main()

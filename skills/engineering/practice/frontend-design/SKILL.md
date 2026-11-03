@@ -1,6 +1,6 @@
 ---
 name: frontend-design
-description: Build a custom frontend interface from a chosen visual direction. Use for a bespoke page, component, or site; use ui-ux-pro-max for reusable design systems and advanced-react for React behavior.
+description: "Build or review a frontend interface within an existing design system or a new visual direction. Use for a bespoke page, component, or site, or a new or reworked user-facing flow; use advanced-react for React behavior."
 license: Complete terms in LICENSE.txt
 ---
 
@@ -12,7 +12,7 @@ The load-bearing idea is **conceptual integrity**: the interface commits to one 
 
 ## Existing product or new direction
 
-In an existing product, its components, theme, density, and interaction conventions are the direction. Extend them, and change an established font, control, or layout only when the user asks for a redesign.
+In an existing product, its components, theme, density, and interaction conventions are the direction. Extend them, and change an established font, control, or layout only when the user asks for a redesign. When the project keeps a design system (tokens, a master rules file, component library), it governs: a page-level rules file overrides the master for that page, and the master supplies everything else.
 
 For a new direction, decide:
 
@@ -32,6 +32,10 @@ For a new direction, decide:
 Each new direction gets its own fonts, palette, and layout, unlike the templated defaults: Inter, Roboto, Arial, system stacks, Space Grotesk, purple-on-white gradients, card grids.
 
 Match code complexity to the vision. Maximalism earns elaborate animation and effects; minimalism earns precision in spacing, type, and detail.
+
+## Verify
+
+Check the changed surfaces once, in every mode they support (light, dark): readable contrast, visible keyboard focus, labels and image alternatives, cues beyond color, reduced-motion support, and a responsive layout with no stray horizontal scroll on mobile and no content hidden behind fixed elements. Recheck only what a correction touched, and report what went untested. Under `design-gate`, review against the direction and this check set without editing, and return the caller's gate result.
 
 ## Delivery
 

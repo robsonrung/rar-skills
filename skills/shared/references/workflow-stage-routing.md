@@ -1,99 +1,61 @@
 # Engineering Workflow Stage Routing
 
-Use this reference to place engineering skills in the four-stage workflow. It is a routing contract, not a checklist. A skill runs only when its trigger changes a decision, a task contract, or the implementation.
+Where each engineering skill fits in the four stages. A skill runs only when its trigger changes a decision, a task contract, or the code. Apply methods and lenses in the current role; loading a skill is not dispatching a worker. Independent final code review is always required.
 
-Apply methods and read-only lenses in the assigned coordinator or implementer by
-default. Loading a skill is not worker dispatch. Select an independent specialist
-only for a material risk or unresolved question and include its exact route in the
-approved snapshot. Independent final code review remains required.
+## 1. Interview Me: decisions that change the next question
 
-## 1. Interview Me: discover decisions that change the next question
+Use a lens only when it changes the next question or prevents a false assumption. The interview records decisions with stable IDs and one source index; it runs no `design-gate`, review panel, or implementation practice. A question the repository can answer is not an interview question.
 
-The interview produces a decision record with stable decision IDs and one compact source index containing path, locator, authority, and content revision. It may use a broad lens when that lens changes the next question or prevents a false assumption. Use another only when the first decision makes it necessary. It does not run `design-gate`, implementation practices, a review panel, or every matching lens.
-
-| Decision needed now | Procedure to apply | What the interview records |
+| Decision needed now | Skill | Recorded |
 | --- | --- | --- |
-| System style, service decomposition, data ownership, or durable architecture trade-off | `macro-architecture` | Chosen shape, trade-off, and rejected alternative |
-| Domain boundary, business vocabulary, or external-context relationship | `domain-driven-design` strategic route | Bounded context, ubiquitous language, and integration choice |
-| Container topology, event-stream adoption, or distributed ownership | `distributed-systems-patterns` | Named pattern or event-driven verdict and its operating cost |
-| Agent loop versus graph, durable state, or human gate | `agent-architecture-lens` | Signals that fire, needed mechanism, and ceiling |
-| Enduring module, API, or interface boundary | `software-design-philosophy` or `architecture-lens` | Boundary, characteristics in tension, and accepted cost |
-| User-facing flow or durable design-system direction | `ui-ux-pro-max` | User flow, accessibility constraint, and design direction |
-| Exposed auth, data, input, tenancy, secrets, or abuse surface | `security-gate` threat-model-lite | Security decisions for the PRD |
+| System style, service decomposition, data ownership, module or API boundary | `architecture-lens` or `software-design-philosophy` | Chosen shape, trade-off, rejected alternative |
+| Domain boundary or business vocabulary | `domain-driven-design` (strategic) | Bounded context, language, integration choice |
+| Container topology or event streams | `distributed-systems-patterns` | Pattern or event-driven verdict and its cost |
+| Agent loop, durable state, or human gate | `agent-architecture-lens` | Mechanism and ceiling |
+| User-facing flow or design direction | `frontend-design` | Flow, accessibility constraint, direction |
+| Auth, data, input, tenancy, secrets, or abuse surface | `security-gate` threat-model-lite | Security decisions for the PRD |
 
-Interview lenses contribute decision fields to that existing record. Their standalone brief, code, test, and comment mechanics do not apply at this stage. The user may decide no broad design work is needed. Record that fact and continue. A question whose answer can be learned from the repository is not an interview question.
+## 2. To PRD: keep settled choices
 
-## 2. To PRD: preserve settled choices
+The PRD reuses decisions by ID and rechecks only missing, changed, or disputed sources. It opens no fresh architecture choices and prescribes no test mechanics, patterns, or files. A missing decision goes to the user.
 
-The PRD turns the decision record into one specification. Reuse its source locators
-and revisions by decision ID; recheck missing, changed, or disputed sources. It does not open fresh
-architecture choices, invoke a council, or repeat an interview. When a decision
-needed for implementation is missing, settle that decision with the user.
+## 3. To Tasks: one PRD into executable slices
 
-The PRD carries outcomes, constraints, security decisions, and observable success conditions. It does not prescribe test mechanics, design patterns, or files to edit.
+| Need | Skill |
+| --- | --- |
+| Repeated settled choices across tasks | [planning-reuse.md](planning-reuse.md) |
+| Unresolved or changed boundary | `design-gate`; recheck only the blocking lens after a fix |
+| Security level per task (`deep` or `standard`) | `security-gate` |
+| Real test-design decision (integration or mock boundary, concurrency, brittle test) | `test-lens` |
 
-## 3. To Tasks: turn one PRD into executable slices
-
-Assess shared design, security, interfaces, and acceptance once for the feature.
-For repeated settled choices, use [planning-reuse.md](planning-reuse.md) to verify
-source revisions and render each full task gate from shared findings and assessed
-task differences. Stable decision IDs and the source index remain the authority.
-Each task classifies its own applicability, risks, and security triggers. Apply
-`design-gate` only to unresolved or changed boundaries; recheck only the blocking
-lens after a fix. Apply `security-gate` to record `security: deep|standard` for each
-task. Preserve every finding, disposition, and review requirement.
-
-Apply `test-lens` only for a real test-design decision, such as an integration
-boundary, mock boundary, concurrency case, or brittle test. Otherwise express
-acceptance as observable behavior. Settle material unanswered decisions before
-approval. Task-only planning presents canonical task drafts without worker route
-resolution. When execution is requested, the caller can offer combined approval
-of those drafts and the required concrete worker routes.
+Otherwise express acceptance as observable behavior.
 
 ## 4. Implement Tasks: apply the selected constraints
 
-A new feature plan can bind `review_policy` through
-[feature-review.md](feature-review.md). In that mode, routine tasks capture focused
-checks and dependency contract tests, then remain provisional. Critical
-dependencies retain early independent review. The coordinator consolidates broad
-simplification before the final snapshot, complete combined checks, interaction
-evidence, and one independent review of the complete feature. Batch fixes and
-recheck affected behavior. Final acceptance is the completion gate. Existing
-plans and explicitly selected task mode keep their approved review sequence.
+`implement-and-review` builds each task from its approved contract and the inherited `design-gate` constraints, rerouting only when implementation changes the design surface. A bound `review_policy` follows [feature-review.md](feature-review.md) and the engine's `Feature policy` section.
 
-Load the `implement-and-review` entry; its `Feature policy` section covers deferred, critical, and final feature review.
-
-The implementation engine starts from the approved Slice Contract. It uses the inherited `design-gate` constraints as its last focused design check and re-routes only when implementation changes the slice's design surface. It does not replay every lens.
-
-| Trigger during implementation or review | Procedure to apply | Moment |
+| Trigger | Skill | When |
 | --- | --- | --- |
-| Any new behavior or bug fix with a usable test seam | `tdd` | Default execution loop |
-| Untested legacy code must change | `safe-incremental-coding` then `tdd` | Build the characterization test net first |
-| Failure is surprising or cause is unknown | `diagnose` | Prove the cause from existing evidence or a bounded probe before fixing |
-| Green refactor, local smell, naming, or comment decision | `clean-code` | Refactor step only |
-| A behavior-preserving simplification would help the next reader | `coding-review-simplify` in the implementation context | Task mode: after green before task capture. Feature mode: consolidate broad candidates before final combined snapshot and checks; do immediate local cleanup when task correctness or its acceptance needs it. |
-| Test value, mock boundary, or brittle test needs a decision | `test-lens` | Before writing or keeping that test |
-| Stored state, migration, queue, cache, retry, concurrency, or external API | `data-systems-coding-lens` | Before the affected implementation step and in verification |
-| Domain logic, aggregate, value object, domain event, or context integration | `domain-driven-design` tactical or strategic route | Before the affected implementation step |
-| Module boundary, dependency direction, deep interface, or scope pressure | Inherited `architecture-lens` or `software-design-philosophy` | Only when selected by the gate or the design changes |
-| Emerged structural pressure such as a repeated variation or tangled notification | `design-patterns` | Only after the pressure is concrete |
-| React component, hook, context, fetch, overlay, or render behavior | `advanced-react` | Plan and implementation of that surface |
-| Design system, cross-screen UX, or UI quality review | `ui-ux-pro-max` | Selected UI work and delivery review |
-| Bespoke visual direction or high-craft frontend implementation | `frontend-design` | When the user asks for creative visual direction |
-| Distributed topology or event-stream contract changes | Inherited `distributed-systems-patterns` | Only when selected by the gate or topology changes |
-| Agent control flow changes | Inherited `agent-architecture-lens` | Only when selected by the gate or control flow changes |
-| Deep security slice | `security-gate` with `full-review` | Verify recorded decisions against the implementation |
+| New behavior or bug fix with a test seam | `tdd` | Default loop |
+| Untested legacy code must change | `safe-incremental-coding`, then `tdd` | Characterization test first |
+| Cause unknown | `diagnose` | Before any fix |
+| Local smell, naming, or comment | `clean-code` | Refactor step |
+| Behavior-preserving simplification | `coding-review-simplify` | After green; under a feature policy, in the combined pass |
+| Test value or mock boundary | `test-lens` | Before writing or keeping the test |
+| Stored state, migration, queue, cache, retry, concurrency, external API | `data-systems-coding-lens` | Before the step and in verification |
+| Domain logic or context integration | `domain-driven-design` | Before the step |
+| Module boundary, dependency direction, or concrete pattern pressure | `software-design-philosophy` or `architecture-lens` | When the gate selected it or the design changes |
+| React component, hook, fetch, or render behavior | `advanced-react` | That surface |
+| UI composition, design system, or visual quality | `frontend-design` | Selected UI work |
+| Topology or agent control flow changes | `distributed-systems-patterns`, `agent-architecture-lens` | When selected or changed |
+| Deep security slice | `security-gate` with `full-review` | Verify recorded decisions |
 
-`models-consensus` is never a workflow escalation. Run it only when the user explicitly asks for more opinions. Its own skill presents the proposed seats before work begins.
+`models-consensus` is never an escalation; run it only when the user asks for more opinions.
 
 ## Small accepted task
 
-Select this entry first when the user supplies one accepted task. Use standalone `implement-and-review` for one accepted task with a complete
-acceptance contract and no unresolved product, data, security, public contract,
-or dependency decision. This is an entry to the existing engine, not another
-stage. Keep scoped implementation, required checks, and independent final review.
-Bind the accepted task and its source evidence, then reuse a matching approved execution route or obtain the required route approval. For a PRD queue requested with execution, offer the existing combined task and model preview before approval. A task-only response grants no model authority. If a material decision remains open, settle it through the applicable stage first.
+One accepted task with a complete acceptance contract and no open product, data, security, public-contract, or dependency decision goes straight to `implement-and-review`. Otherwise settle the open decision in the applicable stage first.
 
-## Completion rule
+## Handoff
 
-The next stage receives a small, durable handoff: a decision record, one PRD, an approved Slice Contract, or captured acceptance evidence. Do not replace a handoff with a transcript or a broad list of skills that did not run.
+Each stage passes one durable artifact: a decision record, a PRD, an approved task contract, or captured acceptance evidence. Never a transcript.

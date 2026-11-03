@@ -48,7 +48,7 @@
       ]
     },
     {
-      "file": "skills/engineering/deliver/summarize/SKILL.md",
+      "file": "skills/engineering/deliver/session-handoff/SKILL.md",
       "concept": "cold-start test",
       "must_contain": [
         "cold-start test"
@@ -176,7 +176,7 @@
       "must_not_contain": []
     },
     {
-      "file": "skills/extras/review-gate/SKILL.md",
+      "file": "skills/engineering/review/full-review/SKILL.md",
       "concept": "scope contract with honesty accounting / precision over volume / checks are facts",
       "must_contain": [
         "scope contract",

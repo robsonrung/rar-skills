@@ -1763,7 +1763,7 @@
           }
         }
       },
-      "evidence": "validate-e2e/references/model-research.md, checked 2026-09-19; task-fit judgment, not local measured equivalence."
+      "evidence": "Task-fit judgment from the sources under validation_research, checked 2026-09-22; not local measured equivalence."
     },
     "validation-unit": {
       "purpose": "Author missing unit, component, property, or scripted journey tests from agreed cases.",
@@ -1803,7 +1803,7 @@
           }
         }
       },
-      "evidence": "validate-e2e/references/model-research.md, checked 2026-09-19; task-fit judgment, not local measured equivalence."
+      "evidence": "Task-fit judgment from the sources under validation_research, checked 2026-09-22; not local measured equivalence."
     },
     "validation-integration": {
       "purpose": "Design API, database, event, migration and performance validation.",
@@ -1843,7 +1843,7 @@
           }
         }
       },
-      "evidence": "validate-e2e/references/model-research.md, checked 2026-09-19; task-fit judgment, not local measured equivalence."
+      "evidence": "Task-fit judgment from the sources under validation_research, checked 2026-09-22; not local measured equivalence."
     },
     "validation-browser": {
       "purpose": "Execute interactive browser journeys and interpret visual or accessibility state.",
@@ -1871,7 +1871,7 @@
           }
         }
       },
-      "evidence": "validate-e2e/references/model-research.md, checked 2026-09-19; task-fit judgment, not local measured equivalence."
+      "evidence": "Task-fit judgment from the sources under validation_research, checked 2026-09-22; not local measured equivalence."
     },
     "validation-risk": {
       "purpose": "Set safety invariants and diagnose authorization, money, concurrency, or data loss risks.",
@@ -1911,7 +1911,7 @@
           }
         }
       },
-      "evidence": "validate-e2e/references/model-research.md, checked 2026-09-19; task-fit judgment, not local measured equivalence."
+      "evidence": "Task-fit judgment from the sources under validation_research, checked 2026-09-22; not local measured equivalence."
     },
     "validation-diagnosis": {
       "purpose": "Diagnose a bounded failure or correct a proven cause within approved scope.",
@@ -1951,7 +1951,7 @@
           }
         }
       },
-      "evidence": "validate-e2e/references/model-research.md, checked 2026-09-19; task-fit judgment, not local measured equivalence."
+      "evidence": "Task-fit judgment from the sources under validation_research, checked 2026-09-22; not local measured equivalence."
     },
     "validation-review": {
       "purpose": "Assess missing cases and evidence independently of the test author.",
@@ -1979,7 +1979,7 @@
           }
         }
       },
-      "evidence": "validate-e2e/references/model-research.md, checked 2026-09-19; task-fit judgment, not local measured equivalence."
+      "evidence": "Task-fit judgment from the sources under validation_research, checked 2026-09-22; not local measured equivalence."
     },
     "validation-review-risk": {
       "purpose": "Review high risk validation independently; change the proposed seat if it authored the work.",
@@ -2007,7 +2007,7 @@
           }
         }
       },
-      "evidence": "validate-e2e/references/model-research.md, checked 2026-09-19; task-fit judgment, not local measured equivalence."
+      "evidence": "Task-fit judgment from the sources under validation_research, checked 2026-09-22; not local measured equivalence."
     },
     "coordinator": {
       "purpose": "Coordinate a future approved plan, task scheduling, evidence, and integration.",

@@ -5,8 +5,6 @@ description: Capture a verified, reusable solution in docs/solutions. Use when a
 
 # Capture Learning
 
-Choose the branch before selecting a model. Routine capture work runs in the current role. Before dispatching an independent reviewer, use `shared/references/model-preview.md` and bind its one approved route snapshot.
-
 Create one source-grounded solution document that a later engineer can find and use. The next consumer is someone facing the same problem. Done means the document is written, validated, and does not state an unverified claim as fact.
 
 ## Scope
@@ -18,7 +16,7 @@ This skill writes only the solution document. When an existing `CONCEPTS.md` has
 ## Workflow
 
 1. Read the relevant conversation evidence, changed source, verification results, and nearby solution documents. Source and captured command results outrank session recollection.
-2. Read `references/schema.yaml` and `references/yaml-schema.md` to classify the learning and choose its destination. Read `references/resolution-template.md` for the required body shape.
+2. Read `references/schema.yaml` to classify the learning and choose its destination directory. Read `references/resolution-template.md` for the required body shape.
 3. Check for an existing document about the same problem. Update it when the problem, cause, and solution materially match; otherwise create one new document. Keep the path stable when updating.
 4. Ground every behavior claim in current source with a `file:line` reference. Describe merge state only when it is verified. Attribute or remove claims that cannot be verified.
 5. Read `references/concepts-vocabulary.md` only when an existing glossary may need a qualifying term. Keep the glossary change within the learning's domain.

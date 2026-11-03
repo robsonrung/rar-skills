@@ -19,19 +19,17 @@ Pick the design lenses a planned slice actually needs, apply them, and merge the
 
 | Lens | When the change touches |
 | --- | --- |
-| `macro-architecture` | Unresolved overall system style; service decomposition or service and data ownership |
+| `architecture-lens` | Unresolved system style; splitting or merging services; service and data ownership; two or more competing approaches with a real trade-off |
 | `domain-driven-design` | Business vocabulary, bounded contexts, or relationships between them; business logic inside one context (aggregates, invariants, events) |
-| `architecture-lens` | Local module placement, cohesion, or dependency direction; scope pressure; two or more competing approaches or local structures with a real trade-off |
-| `design-patterns` | Code structure choices, extensibility, sprawling conditionals |
-| `software-design-philosophy` | Module, class, or API interface design: depth, information hiding, interface complexity |
+| `software-design-philosophy` | Module, class, or API interface design: depth, information hiding, placement, cohesion, dependency direction, scope pressure; a proposed design pattern, extension point, or sprawling conditional |
 | `data-systems-coding-lens` | Stored state, databases, queues, caches, migrations, retries, concurrency, external APIs |
 | `distributed-systems-patterns` | Container or process topology: sidecars, ambassadors, adapters, load-balanced replicas, sharding, scatter/gather, FaaS fit, ownership election, work queues, batch workflows |
 | `distributed-systems-patterns` (event-driven route) with `data-systems-coding-lens` | Event streams as a source of truth: adopting event-driven microservices, Kafka, Pulsar, or Kinesis topics, event schemas, choreography versus orchestration, CDC or outbox data liberation |
 | `agent-architecture-lens` | The thing being built is an agent: an LLM tool-calling loop, a multi-agent pipeline, or a long-running autonomous run needing durable state, mid-run approval, or replay |
 | `advanced-react` | React state placement, rendering, effects, or asynchronous behavior |
-| `ui-ux-pro-max` | A new or reworked user-facing flow, information hierarchy, or design system |
+| `frontend-design` | A new or reworked user-facing flow, information hierarchy, visual direction, or design system |
 
-When the change is architecturally significant but no row fits, run `architecture-lens` alone as a trade-off pass: name the two to four characteristics in tension, the real options, and the cost of each. Record an ADR with `architecture-lens/references/adr-template.md` only when **all three or no ADR** holds.
+When a decision carries a real trade-off but no row fits, run only the `architecture-lens` trade-off pass: name the two to four characteristics in tension, the real options, and the cost of each, then pick the least harmful. Record an ADR with `architecture-lens/references/adr-template.md` only when **all three or no ADR** holds.
 
 ## Output
 

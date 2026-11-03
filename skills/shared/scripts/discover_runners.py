@@ -2,7 +2,7 @@
 """Preflight probe for runner-skill availability.
 
 Standardized seat discovery shared by skills that fan work out across multiple
-model runners (full-review, models-consensus, diverse-plan, dynamic-harness, …).
+model runners (full-review, models-consensus, diverse-plan, peer-sessions, …).
 Probes the CLIs each runner depends on and emits a stable JSON envelope that
 callers can parse to build their seat table.
 
@@ -32,17 +32,68 @@ Notes:
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
+import re
 import shutil
 import subprocess
 import sys
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
+from pathlib import Path
 
-from model_routing import CONFIG_PATH, config_digest, load_config
-from runner_preflight import COMPATIBILITY_PATH, check, claude_compatibility, file_evidence
+from model_routing import CONFIG_PATH, config_digest, load_config, unique_object
 
 ROUTING_CONFIG = load_config()
+COMPATIBILITY_PATH = Path(__file__).resolve().parents[1] / "runner-compatibility.json"
+
+
+def file_evidence(path: Path | str) -> dict:
+    path = Path(path).expanduser().absolute()
+    result = {"path": str(path), "resolved_path": str(path.resolve()), "sha256": None}
+    try:
+        result["sha256"] = hashlib.sha256(path.read_bytes()).hexdigest()
+    except OSError:
+        pass
+    return result
+
+
+def check(status: bool | None, detail: str) -> dict:
+    return {"status": "unknown" if status is None else "true" if status else "false", "detail": detail}
+
+
+def parse_version(value: str | None) -> tuple[int, int, int] | None:
+    match = re.fullmatch(r"(?:v)?(\d+)\.(\d+)\.(\d+)(?:\s+\([^\n]*\))?", (value or "").strip())
+    return tuple(map(int, match.groups())) if match else None
+
+
+def claude_compatibility(model: str, version: str | None, *, config: dict | None = None) -> dict:
+    """Compare a Claude CLI version with the minimum recorded for an exact model."""
+    policy = json.loads(COMPATIBILITY_PATH.read_text(encoding="utf-8"), object_pairs_hook=unique_object)
+    if not isinstance(policy, dict) or policy.get("schema_version") != 1 or not isinstance(policy.get("claude"), dict):
+        raise ValueError("Invalid compatibility policy")
+    config = load_config() if config is None else config
+    requirements = {}
+    for seat, requirement in policy["claude"].items():
+        entry = config["models"].get(seat)
+        if not isinstance(entry, dict) or entry.get("runner") != "claude":
+            raise ValueError(f"Compatibility seat {seat!r} is not a registered Claude seat")
+        requirements[entry["model"]] = (seat, requirement)
+    selection = requirements.get(model)
+    if selection is None:
+        return check(None, "No minimum CLI version is recorded for this exact model.")
+    seat, requirement = selection
+    if not isinstance(requirement, dict) or not isinstance(requirement.get("minimum_version"), str):
+        raise ValueError("Invalid model compatibility requirement")
+    minimum = parse_version(requirement["minimum_version"])
+    if minimum is None:
+        raise ValueError("Invalid minimum CLI version in compatibility policy")
+    observed = parse_version(version)
+    result = check(None if observed is None else observed >= minimum,
+                   f"This model requires CLI {requirement['minimum_version']} or later.")
+    result.update(requirement_seat=seat, minimum_version=requirement["minimum_version"], observed_version=version,
+                  requirement_evidence=requirement["evidence"])
+    return result
 
 SCHEMA_VERSION = 1
 

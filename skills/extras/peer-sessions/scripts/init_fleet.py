@@ -60,21 +60,15 @@ def brief(
     objective: str,
     workdir: Path,
     deadline: str | None,
-    delivery_mode: str,
 ) -> str:
     deadline_text = deadline or "No deadline declared. Stop at the first blocking authority question."
-    if delivery_mode == "mailbox":
-        delivery = f"""Read `{run_dir / 'state.json'}` for the fleet record. Write exactly one reply through:
+    delivery = f"""Read `{run_dir / 'state.json'}` for the fleet record. Write exactly one reply through:
 
 ```bash
 python3 <peer-sessions-dir>/scripts/peer_mailbox.py reply --run-dir {run_dir} --peer {peer} --status done --summary \"<result>\" --evidence \"<path or command>\" --next-step \"<next action>\"
 ```
 
 Your reply path is `{run_dir / 'replies' / f'{peer}.json'}`. Report `blocked` or `failed` rather than guessing. Do not replace an existing reply unless your coordinator explicitly asks for a correction."""
-    else:
-        delivery = f"""Read `{run_dir / 'state.json'}` for the fleet record. This fleet uses coordinator-managed artifacts. Wait for the coordinator's terminal prompt and write only the artifact it names.
-
-Do not write `{run_dir / 'replies' / f'{peer}.json'}` and do not send a result to another peer. Report a permission denial or blocking condition in the requested artifact rather than guessing."""
     return f"""# Brief for {peer}
 
 ## Objective
@@ -114,7 +108,6 @@ def initialize(args: argparse.Namespace) -> dict[str, Any]:
         "created_at": now(),
         "objective": args.objective,
         "deadline": deadline,
-        "delivery_mode": args.delivery_mode,
         "peers": [
             {"id": peer, "workdir": str(workdir), "brief": f"briefs/{peer}.md", "reply": f"replies/{peer}.json"}
             for peer, workdir in parsed
@@ -128,7 +121,7 @@ def initialize(args: argparse.Namespace) -> dict[str, Any]:
     write_json(run_dir / "state.json", state)
     for peer, workdir in parsed:
         (run_dir / "briefs" / f"{peer}.md").write_text(
-            brief(run_dir, peer, args.objective, workdir, deadline, args.delivery_mode), encoding="utf-8"
+            brief(run_dir, peer, args.objective, workdir, deadline), encoding="utf-8"
         )
     return result
 
@@ -141,12 +134,6 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     init.add_argument("--objective", required=True)
     init.add_argument("--peer", action="append", required=True, help="lower-case-name:/absolute/working/directory")
     init.add_argument("--deadline", help="ISO-8601 timestamp with timezone")
-    init.add_argument(
-        "--delivery-mode",
-        choices=("mailbox", "coordinator"),
-        default="mailbox",
-        help="mailbox: peer_mailbox.py reply; coordinator: a composing skill owns response artifacts",
-    )
     init.add_argument("--dry-run", action="store_true")
     return parser.parse_args(argv)
 

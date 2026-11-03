@@ -41,7 +41,7 @@ A probe that cannot run or does not reproduce is a result: record it and keep go
 
 ## Pipeline mode (mode:pipeline)
 
-Ask no questions. Follow the caller's escalation rules and return this shape, keeping the status vocabulary identical to `shared/references/pr-watch-contracts.md`:
+Ask no questions. Follow the caller's escalation rules and return this shape, keeping the status vocabulary identical to [references/pr-watch-contracts.md](references/pr-watch-contracts.md):
 
 ```json
 {

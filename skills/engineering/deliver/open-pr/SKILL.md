@@ -5,8 +5,6 @@ description: Commit scoped changes, push a branch, and open or update a GitHub p
 
 # Open Pull Request
 
-Choose the branch before selecting a model. This workflow runs with the current coordinator and direct tools. It does not dispatch a worker.
-
 Create a reviewable pull request whose title, body, and commits explain the change and its evidence. The next consumer is the reviewer. Done means the requested description is returned or the remote pull request URL is confirmed.
 
 ## Mandate
@@ -20,7 +18,7 @@ A description-only request is read-only. A request to open a pull request author
    1. Description only: compose and return the title and body. Do not modify the remote.
    2. Existing pull request: push the scoped commits, then update its body only when the request includes that change.
    3. New pull request: create a feature branch if the current branch is the default branch or detached, then commit, push, and create it.
-3. When a branch must be created from the default branch, read `references/branch-creation.md`. Do not stash, reset, or switch through conflicting local changes automatically.
+3. To branch from the default branch, fetch the remote base first; if the local default holds commits the remote lacks, show them and ask whether the branch includes them, since that answer sets the pull request's scope. When the base cannot be fetched, branch from the current commit and say its freshness is unverified. If local changes would be overwritten, stop and report it; never stash, reset, or discard work.
 4. Stage explicit files only. Keep unrelated working-tree changes out of the commit. Split commits only when the change has clearly independent reviewer value.
 5. Read `references/pr-description-writing.md`. Compose from the complete change range, not the latest commit. Lead with the outcome, state validation or its limitation, and retain required project template fields.
 6. Recheck the branch and existing pull request immediately before pushing or creating one. If the state is still unknown, stop and report the blocker rather than risk a duplicate pull request.
@@ -28,7 +26,7 @@ A description-only request is read-only. A request to open a pull request author
 
 ## Boundaries
 
-Use the repository's active conventions for commit messages and pull request structure. Never add generated-by text, authorship claims, or co-author trailers to a commit message, title, or body. Do not claim a check ran unless captured output proves it.
+Use the repository's active conventions for commit messages and pull request structure. Never add generated-by text, badges, authorship claims, or co-author trailers to a commit message, title, or body. Do not claim a check ran unless captured output proves it.
 
 ## Output
 

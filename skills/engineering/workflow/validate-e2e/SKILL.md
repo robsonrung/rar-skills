@@ -6,124 +6,62 @@ disable-model-invocation: true
 
 # Validate E2E
 
-First decide whether the selected branch needs a worker. A command only branch
-executes its declared checks directly and does not load a model preview. Before
-dispatching a worker, use `shared/references/model-preview.md` and bind one exact
-approved snapshot to the worker request, reservation, and report. Nested calls
-reuse that snapshot and do not add workers.
+Return evidence that the feature meets its **acceptance contract**: the finite requirements, observable behavior, failure cases, and runtime gates agreed for this run. Name the part of the contract that decided a result: "The contract requires the result to survive a reload, so a successful HTTP response is insufficient."
 
-Return evidence that the requested feature meets its **acceptance contract**: the finite requirements, observable behavior, failure cases, and required runtime gates agreed for this run. Say which contract changed a decision, for example: “The acceptance contract requires a saved result after reload, so a successful HTTP response is insufficient.”
-
-Keep progress in **the ledger, not the transcript**. Use the collection's `shared/` library: in a source checkout it is `skills/shared/`; in a flat installation it is a sibling skill. Resolve all script paths from the loaded skill directories. A missing shared library blocks dependent work.
+Keep progress in **the ledger, not the transcript**. Scripts resolve from the loaded skill directories; `shared/` is `skills/shared/` in a source checkout and a sibling skill in a flat install.
 
 ## 1. Bound the feature
 
-Reuse current requirements, project rules, implementation reports, and valid evidence. Confirm the repository, worktree, intended base, current diff including uncommitted changes, and environment. Resolve discoverable facts directly.
+Confirm the repository, worktree, intended base, current diff including uncommitted changes, and environment. Inventory only changed surfaces, their direct callers, and named external interfaces. Record each requirement, operation, relevant variants, expected result, and the check and browser observation IDs that prove it. Keep the denominator finite: say whether "100%" means requirements, a closed operation inventory, or measured line or branch coverage with named thresholds. Timebox discovery; a missing source or policy becomes a named blocker, not a wider search.
 
-Inventory only changed surfaces, their direct callers, and named external
-interfaces. Record each requirement, unique operation, relevant variants,
-expected result, required check IDs, and required browser observation IDs. Tables
-and shared effects are links to operations, not additional operation counts.
+Keep behavior, browser, security, migration, performance, and runtime gates separate. A source finding is not execution evidence, and a business pass never overrides a failed runtime gate.
 
-Prepare one initial shared review snapshot after that inventory and before
-initializing `validation-plan.json`. Keep both in a unique run directory outside
-source, build, and dependency scan roots. The plan binds the initial snapshot by
-absolute `path` and SHA-256 under `review_snapshot`. Every required unit lists only
-check or observation IDs declared by that snapshot. Required units cover the
-complete declared check and observation scope. A generic unit label cannot stand
-in for shared evidence. A repair can reserve a current compatible snapshot without
-mutating the approved plan or counters. Read [references/run-control.md](references/run-control.md)
-for the plan, evidence packet, and controller commands.
+Choose the mode. `assess` reports defects without touching product code. `repair` fixes them within named paths and needs a request to fix defects. Invocation already permits local test preparation, execution, and disposable fixtures; production writes, external messages, deployments, commits, and publication need their own authority.
 
-A source finding is not execution evidence. Keep source discovery, behavior, browser, security, migration, performance, and runtime gates separate. State whether requested “100%” means requirement coverage, a closed operation inventory, or measured line/branch coverage with explicit files and thresholds. An unknown denominator stays unknown. Timebox unresolved discovery; turn a specific missing source or policy into a blocker. Never widen the search to unspecified external systems.
+Prepare one shared review snapshot after the inventory, then write the plan and initialize the controller as [references/run-control.md](references/run-control.md) describes.
 
-Invocation permits local test preparation, execution, and disposable fixtures within the user's existing authority. Product repair requires a request to fix defects or prior repair authority. Record `assess` or `repair` and allowed paths. Production writes, external messages, deployments, commits, and publication need their own authority. Reuse authorization; do not add phase approvals for ordinary local checks.
+## 2. Route workers only where needed
 
-## 2. Select routes only for worker branches
+Build, lint, type checks, and existing suites run through repository commands with no model. A model is for a decision: missing tests, unsettled expected behavior, an ambiguous browser state, or an unexplained failure. When the work is command-only, keep `routes` empty.
 
-When the selected work is command only, keep `routes` empty and execute the
-checks and browser observations declared by the reserved current shared snapshot
-directly. Do not resolve or preview a model route. When a worker is required for a
-bounded gap, use the route process below before dispatch.
+For a worker, resolve the route that fits with `python3 shared/scripts/model_routing.py resolve <route> [--risk high]`:
 
-For a worker branch, read [references/model-selection.md](references/model-selection.md).
-Resolve only applicable `validation-*` routes from `shared/model-routing.json` with
-`--profile default` and any validated `--local-profile`, unless the user selects an
-explicit profile or legacy family. It is the only maintained source of model and
-effort defaults. Deterministic tests run through repository tools without a separate
-model worker. Distinguish test design and diagnosis from test execution.
+| Work | Route |
+| --- | --- |
+| Scope, requirement mapping, final evidence assessment | `validation-scope` |
+| Missing unit, component, or property tests from agreed cases | `validation-unit` |
+| API, database, queue, migration, integration, performance diagnosis | `validation-integration` |
+| Interactive browser journeys, visual state, accessibility | `validation-browser` |
+| Authorization, money, concurrency, data loss, complex root cause | `validation-risk` |
+| Diagnosis and correction from a proven cause | `validation-diagnosis` |
+| Independent assessment of evidence and missing cases | `validation-review` |
 
-Before proposing worker models for a new run, execute the `preview-models` command in [references/model-selection.md](references/model-selection.md) for the applicable routes. Show the resolved profile and each route's model and effort from that output. Keep the configuration path and digest in the plan so the loaded installation can be identified. Do not infer worker choices from the coordinator model, session effort, available native model list, or previous conversation. A missing external runner is an availability blocker for the recommended route, not a reason to omit that route or silently replace it. If preview resolution fails, report the failure instead of inventing defaults. A saved approved plan still controls a resume.
+A strong role settles expected behavior before a cheaper role writes the tests. A browser worker needs real browser tools in its own process. The reviewer's model differs from any model that wrote the assertions.
 
-Use the shared preview for scope, test classes, actual coordinator, exact worker models, efforts, native or runner paths, browser driver access, privacy controls, receipt limits, and ceilings. A request to “use defaults and run” permits the unchanged resolved setup within existing source sharing authority and accepted receipt limits; show it and proceed. Otherwise obtain the existing plan decision after the plan is reviewable. Nested skills reuse the selected snapshot. Keep useful read-only planning moving. Silence is not approval.
-
-Save the exact selected routes, provider controls, capabilities, tool policy, fallback triggers, limits, and user decision reference. Reuse this snapshot on resume; do not reread local preferences. An explicit override before dispatch creates a replacement snapshot for unresolved work only. An unavailable route blocks only its work; never silently substitute a model, effort, transport, or verification policy. Model changes or increases beyond the approved total budget need a new decision. Use approved recovery categories within their existing allowance without another question. No model research or availability probe loop is required during normal validation; use the dated research only when selecting or updating routes.
+Show the scope, each role with its model, effort, and host route, and the attempt, call, and time ceilings. Ask: **"Approve this plan, or specify changes."** A request to use defaults and run approves the unchanged resolved plan. Then route each role by host: T3 Code `delegate_task` (continue with `t3_thread_send`); Claude Code or Codex a native subagent; otherwise the matching `*-runner` skill. Give each role one persistent context for the run. An unavailable route blocks its own work; never swap in another model.
 
 ## 3. Run the smallest sufficient checks
 
-Read only the applicable rows in [references/test-methods.md](references/test-methods.md).
-Use the reserved current shared snapshot and its declared inputs to select affected
-checks.
-Reuse requires matching requirements, inputs, dependency versions, environment,
-and check definitions. A commit ID change alone is not invalidation. A declared
-fresh check always runs. Record reuse explicitly through the shared transfer
-protocol, never as a unit status.
+Read only the applicable rows of [references/test-methods.md](references/test-methods.md). Reuse evidence only when requirements, inputs, dependency versions, environment, and check definitions all match; a commit ID change alone does not invalidate it. A declared fresh check always runs.
 
-Use [references/run-control.md](references/run-control.md) to initialize limits and reserve each test attempt before execution. A repeated reservation is for reconciliation, not another execution. For model work, also reserve each role turn through the shared call ledger. Apply command timeouts and a host deadline. Stop new work at a ceiling; record remaining work instead of starting a new run to reset counts.
+Reserve each attempt before running it. Run cheap relevant checks first, then the real integration and user flows the contract needs. Commands run through `review_evidence.py run-check`; browser work records the shared observation shape. Each unit finishes with a scoped evidence packet. When every required unit has passed from one current snapshot, export the complete packet with `evidence-packet` for review and `pre-pr-review` reuse. A prose pass does not execute a command or pass a unit.
 
-Run cheap relevant checks first, then the real integration and user flows needed
-by the contract. Command execution uses `review_evidence.py run-check` and
-browser execution records the shared observation shape. Each unit finishes with a
-scoped evidence packet containing its planned IDs. After all required units pass
-from one current compatible snapshot, export one complete packet for review and
-pre PR reuse. The packets keep raw command output and provenance, source,
-dependency, environment, and requirement identities, runtime gates, and browser
-captures. A prose pass does not execute a command or establish a passed unit.
-
-Combine independent reads and commands. Parallelize only authorized independent
-work with isolated fixtures, accounts, ports, browser contexts, and write
-ownership. One coordinator writes shared state. A new worker needs a concrete gap
-that offsets its context and coordination cost; use at most two concurrent workers
-by default. Do not create user owned tasks without the host's required
-authorization.
-
-Give workers the requirement, relevant source locators, reserved current review
-snapshot, expected evidence packet, allowed actions, exact route, privacy controls,
-and remaining budget. Reserve the role before dispatch. Keep implementer and
-reviewer contexts separate. Reuse each role for its own followups. Review changed
-assertions and semantic deltas once; deterministic comparisons establish unchanged
-control bytes. Keep full logs in files and return counts, failures, changed facts,
-and paths. Use wait cursors and bounded waits; inspect unchanged output only when
-needed for a decision.
+Parallelize only independent work with isolated fixtures, accounts, ports, and browser contexts; one coordinator writes state. Keep full logs in files and read counts, failures, and paths.
 
 ## 4. Diagnose and repair within bounds
 
-Classify a failure as product behavior, test harness, environment, runtime gate, or unresolved policy. Capture actual versus expected values and the relevant revision. Cascading failures from one setup or observer error are one cause until evidence proves more.
+Classify each failure as product behavior, test harness, environment, runtime gate, or unresolved policy, with actual and expected values. Cascading failures from one setup error are one cause until evidence shows more. Use `diagnose` for an unknown cause, and never rerun an unchanged failure without a new hypothesis.
 
-Use `diagnose` only for an unknown cause. Use the cheapest discriminating probe; retain a sufficient reproduction. Do not rerun an unchanged failure without a new hypothesis or changed input. Before a repair, preserve the failing case. In repair mode, fix within scope, then rerun affected cases and required gates. In assess mode, report the defect without changing product code.
-
-Allow two validation attempts per unit by default. Include any test repair, evidence repair, and authorized product repair allowances in the initial plan. They share the total attempt, call, and time limits. Record a reason and changed input or new evidence for each retry. Record driver and service preflight separately before a business attempt. A separate diagnostic unit needs a bounded question and consumes the same total budget. At exhaustion report the unresolved defect or blocker. A stronger model can resolve uncertainty; it cannot select an unsettled product policy.
-
-Preserve tenant isolation, transaction rollback, event checks, native diagnostics, process exit, and cleanup gates when required. Business passes do not override a failed runtime gate. Do not weaken assertions, exclusions, timeouts, or diagnostic policy to obtain a pass. Finish source, build, and report writers before capturing a runtime seal. Keep per file hashes so drift can be located without reconstructing old outputs.
+Allow two validation attempts per unit by default. Test, evidence, and product repair allowances are set in the plan and share its total attempt, call, and time limits; each retry records its reason. At a ceiling, stop and report the remaining work. Never start a new run, rename a unit, or weaken an assertion, exclusion, timeout, or diagnostic policy to reset counts or obtain a pass. A stronger model can resolve uncertainty; it cannot choose an unsettled product policy.
 
 ## 5. Close or checkpoint
 
-Reconcile pending calls and test attempts before any retry after interruption. Resume from current unit, counters, route snapshot, and evidence references. Reload instructions only when missing from context or changed. Read the compact ledger and changed evidence, not complete transcripts or all historical preparations.
-
-Use the controller summary. `passed` requires a closed inventory, every required
-unit passed with an intact shared evidence packet from one current compatible
-snapshot, and no required failure, skip, pending call, or unresolved blocker. The
-shared packet does not replace reviewer judgment. Record and verify the independent
-review response against that snapshot before claiming readiness. Report `failed`,
-`blocked`, `partial`, or `ceiling_hit` otherwise. Never describe a scoped pass as
-universal coverage.
+On resume, reconcile pending calls and attempts before any retry. `passed` requires a closed inventory, every required unit passed with an intact packet from one current snapshot, and no required failure, skip, pending call, or blocker. Otherwise report `failed`, `blocked`, `partial`, or `ceiling_hit`. The packet proves captured facts, not their meaning: record and verify an independent review against the same snapshot before claiming readiness. Never describe a scoped pass as universal coverage.
 
 Return:
 
 1. Status, requirement and operation scope, tested revision and environment.
-2. Required units passed/total; failed, blocked, skipped, pending, and excluded units with reasons. Give code coverage only from its actual report.
-3. Checks run now, reused evidence, defects found, repairs made, and remaining policy decisions.
-4. Actual model/effort/transport and receipt limits; total parent and worker calls, input, cached input, output, elapsed time, and cost when available. Keep unknown fields unknown and goal counters separate from billed use.
-5. Report, ledger, bound review snapshot, and evidence packet paths, the next bounded action, and remaining budget if incomplete.
-
-Use [references/model-research.md](references/model-research.md) only when explaining or refreshing the selection. Offline contract checks do not prove model quality or token savings. Evaluate savings per accepted feature, including failed attempts and review, before making a performance claim.
+2. Required units passed out of total; failed, blocked, skipped, pending, and excluded units with reasons. Code coverage only from its actual report.
+3. Checks run now, reused evidence, defects found, repairs made, and open policy decisions.
+4. Each role's model, effort, and route, with call counts and usage when available; unknown stays unknown.
+5. Report, ledger, snapshot, and evidence packet paths, the next bounded action, and remaining budget if incomplete.

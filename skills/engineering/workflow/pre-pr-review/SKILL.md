@@ -6,162 +6,53 @@ disable-model-invocation: true
 
 # Pre-PR Review
 
-First decide whether the remaining gap needs a worker. Direct command and browser
-branches execute through their declared tools and do not load a model preview. A
-worker branch uses `shared/references/model-preview.md` before dispatch and binds
-one exact approved snapshot to its request, reservation, and report. Nested calls
-reuse that snapshot and do not add workers.
+Decide whether a finished implementation is ready for pull request review. Reuse valid evidence and do only the work that closes a gap. The **acceptance contract** is a scoped, verified local change with no confirmed P0, P1, or P2 finding open. A reviewer's approval alone does not meet it.
 
-Check whether a completed implementation is ready for pull request review. Reuse valid task and integration evidence. Run only the work needed to close gaps. The **acceptance contract** is a scoped, verified local change with no confirmed P0, P1, or P2 finding left open. Approval from a reviewer alone does not meet this contract.
-
-## Scope and authority
-
-An explicit request to run this workflow authorizes local simplification, scoped fixes, and verification. Preserve unrelated changes. Keep the result local: do not commit, push, publish comments, open a pull request, merge, or deploy.
-
-Read the task requirements and active project rules. Confirm the intended pull request base branch from the task or repository configuration. Ask only if the target remains ambiguous. Review committed and uncommitted task changes against that base, and pass the same base and requirements to every stage. Do not let a child skill replace the intended base with the repository default.
-
-If no task changes exist, report `no-changes` and stop before review. An unreadable diff is a blocker, not an empty result.
+Running this skill authorizes local simplification, scoped fixes, and verification. Keep the result local: no commit, push, published comment, pull request, merge, or deploy. Preserve unrelated changes.
 
 ## 1. Check existing evidence
 
-Start with artifact locators in the run state or caller input: the approved plan,
-queue, ledger, final snapshot, review record, and evidence packet. Inspect only the
-records needed to select and run the current verifier. Read detailed task reports,
-integration reports, and review narratives only to locate missing records or
-investigate a gap reported below. A report path or completion label is not proof.
+Confirm the intended base branch from the task or repository configuration, asking only if it stays ambiguous, and pass that same base and the requirements to every stage. Review committed and uncommitted changes against it. No changes means `no-changes`; an unreadable diff is a blocker.
 
-For a feature run with a bound `review_policy`, read the `Final acceptance`
-section of `shared/references/feature-review.md`. Run the read-only
-`shared/scripts/task_queue.py schedule` with the bound `--queue`,
-`--routing-plan`, `--ledger`, and project `--root`. Require
-`feature_review.status` to be `ready`; a successful command exit alone is not
-acceptance. This validates task implementation evidence as well as the final
-combined review, approved independent reviewer receipt, and absence of pending
-calls. The helper's `final_review_ready` alone is insufficient. Routine
-`implemented` task results are provisional. A current final feature gate supplies
-the combined review; separate routine task reviews and cleanup reports are not
-missing steps. Read other policy sections only for a reported policy or evidence
-gap.
+Start from the artifact locators in the run state or caller input. A report path or completion label is not proof; structured evidence is:
 
-For a validation run, locate the initial `review_snapshot` in its validation plan
-and the checked packet exported through `validation_control.py evidence-packet`.
-The packet must combine the latest required units into the complete shared scope
-from one current snapshot compatible with the initial scope. Its statuses must
-agree with captured commands and browser observations. A generic status map,
-controller summary, or prose report cannot establish readiness. A valid packet
-supplies captured facts, not independent reviewer judgment.
+- **Feature run with a `review_policy`:** run `shared/scripts/task_queue.py schedule` and require `feature_review.status` to be `ready`, per the `Final acceptance` section of `shared/references/feature-review.md`. A passing final feature gate already covers routine tasks; their missing separate reviews are not gaps.
+- **Validation run:** the packet exported by `validation_control.py evidence-packet` supplies captured facts, not reviewer judgment.
+- **Any run:** the current combined review record must pass `shared/scripts/review_evidence.py verify` against the intended base with `ready`, as `shared/references/review-evidence.md` describes. Do not run it twice when the feature check already did.
 
-Use the current combined review record and intended PR base with the shared
-verifier in `shared/references/review-evidence.md`, also for a task record. Require exit code 0 and `ready`. Reuse the
-feature queue assessment above when it already verifies the same combined record
-against that intended base; do not run the same verifier twice. Missing or stale
-structured evidence is a gap. Legacy Markdown reports can guide a focused review
-but cannot establish deterministic readiness.
+Reuse evidence only while the source (including post-review edits), base, contract, check plan, dependencies, and environment still match; a commit ID change alone does not invalidate it. Never repair stale evidence by editing hashes or copying labels.
 
-Before reuse, confirm that the verified source, intended base, acceptance
-contract, check plan, relevant dependencies, and environment match the current
-change, including uncommitted and post-review edits. Refresh runtime and external
-context. When those facts cannot be confirmed, require fresh checks. Honor any
-caller requirement for fresh runs and keep distinct environments separate. A
-commit change alone does not invalidate matching content and assumptions. Never
-repair stale evidence by editing hashes or copying approval labels.
-
-Apply the acceptance contract to the verified records: complete combined coverage,
-including shared contracts, migration order, and task interactions; passing
-required checks and affected interface flows; no open or disputed findings; no
-deferred P0, P1, or P2; and a reason for each deferred P3. If all conditions hold,
-return `ready` with evidence references. Do not load detailed reports, simplify
-code, dispatch reviewers, probe routes, or repeat checks in this branch.
-
-Otherwise, record the specific gaps: task or integration review, required checks,
-browser flows, finding resolution, or unverifiable bindings. Read only the
-reports, source context, and captures needed to resolve those gaps. Preserve
-valid coverage for the remaining scope and continue below.
+If the records show complete combined coverage, passing required checks and affected interface flows, no open or disputed finding, no deferred P0 to P2, and a reason for each deferred P3, return `ready` without further work. Otherwise name the specific gaps and continue.
 
 ## 2. Close only the gaps
 
-Resolve only the selected skills by name through the host catalog or collection layout, then read their `SKILL.md` files. Source skills are grouped under `skills/`; installed skills can be flat siblings. A missing skill blocks only the work that needs it.
-
 | Gap | Action |
 | --- | --- |
-| Changes made after review | Review the changed paths and affected callers. Preserve valid coverage for the rest of the diff. |
-| Missing integration review | Use `full-review` on the combined change. In feature mode, cover the complete feature contract and deferred task behavior; in task mode, cover interactions and gaps not covered by task reviews. |
-| Missing or invalid check results | Use `verify-changes` for the affected checks and any required fresh checks. |
-| Missing browser evidence | Use `browser-smoke` for the affected interface flows. |
-| Confirmed defects or disputed findings | Apply the correction and recheck rules below. |
-| A concrete simplification need | Use `coding-review-simplify` on that scope. Keep the change **behavior-preserving**, including required validation, authorization, and error handling. |
-| No usable review evidence | Run an independent `full-review` on the task diff with the scope described below. Reuse any valid check results. |
+| Changes after review | Review the changed paths and their callers; keep valid coverage for the rest. |
+| Missing integration review | `full-review` on the combined change: the whole feature contract in feature mode, interactions and task-review gaps in task mode. |
+| No usable review evidence | An independent `full-review` in `gate` mode on the task diff, reusing valid check results. |
+| Missing or invalid check results | `verify-changes` for the affected and required fresh checks. |
+| Missing browser evidence | `browser-smoke` for the affected flows, against the running local app's explicit URL and port. |
+| Confirmed or disputed findings | Section 3. |
+| A concrete simplification need | `coding-review-simplify` on that scope, **behavior-preserving**. |
 
-Use the existing approved reviewer context for a focused recheck, or `full-review` with a focused scope when no suitable context remains. Select specialists only for exposed risks. The absence of a separate simplification report is not a gap after a complete task review. Do not run simplification just because this skill was invoked.
-
-Run `verify-changes` and `browser-smoke` directly for command and observation
-gaps. Before dispatching a reviewer or another worker, follow the collection's
-shared model routing and host execution references. Reuse approved implementation
-and review routes for the same scope. Bind the worker to one exact approved
-snapshot with current routes, privacy controls, source and requirement identity,
-independent reviewer role, and reserved budget. Present new or changed routes for
-approval before starting workers. Keep the reviewer context separate from the
-implementer. Do not silently replace an unavailable route.
-
-Keep review reports and evidence in a temporary directory outside the project. Pass the task requirements as the specification when no pull request exists. Preserve valid coverage from prior reports; the combined evidence must cover every file with a meaningful task change.
-
-After closing gaps, prepare the current source snapshot, capture required checks,
-and record each required browser observation in the shared shape. Use the shared
-packet for direct evidence. It preserves raw command output and provenance,
-source, dependency, environment, and requirement identity, runtime gates, and
-browser artifacts. Each observation contains only `id`, `result`, and `evidence`,
-where `evidence` contains absolute `{path, sha256}` links. Do not turn a prose pass
-into command execution. Obtain the
-shared structured review response, preserve its actual text, and run the shared
-verifier before reporting readiness. Preserve older records and let the reviewer
-assess which prior findings and coverage remain valid.
-
-For browser checks, pass the running local application's URL and port explicitly. Reuse matching browser evidence when available. A missing server or skipped required flow remains a verification gap. The absence of a published preview does not complete browser verification.
-
-### Review when evidence is unavailable
-
-Use the exact intended base and current source snapshot. Reuse valid check
-results. Use `verify-changes` for missing, invalid, affected, or required fresh
-checks, and `browser-smoke` for missing or affected browser flows. Prepare the
-bound evidence packet before reviewer dispatch.
-
-Run an independent `full-review` through the approved reviewer route. Use
-`focused` scope for a bounded task, while preserving an approved `seam` or `deep`
-scope and required `security_focus` coverage. Give the reviewer the task
-requirements, exact intended base, current source snapshot, bound evidence
-packet, and the initial response sections of `shared/references/reviewer-response.md`
-(introduction, `Initial response`, `Evidence packet substitution`, and `Completion`).
-Include `Batch endorsement` only for a declared batch. Record its complete
-structured response unchanged and require the shared verifier to return exit
-code 0 and `ready` before reporting readiness. Include the packet and verifier
-result in the final report.
-
-Use `Aggregate check coverage` in `shared/references/review-evidence.md` when
-commands overlap. Reuse only validated declared coverage, while keeping fresh
-checks and distinct environments independent. After simplification or a fix,
-invalidate only the evidence affected by that change.
+A missing simplification report is not a gap after a complete task review. Recheck through the existing approved reviewer context when one remains. A new reviewer runs on a route resolved with `python3 shared/scripts/model_routing.py resolve independent-review`, shown to the user with "Approve this plan, or specify changes.", and routed by host as `implement-and-review` describes; its model differs from the implementer's. Keep reports outside the project, give the reviewer the base, snapshot, and evidence packet, and require the shared verifier to return `ready` on its structured response.
 
 ## 3. Correct and recheck
 
-Evaluate findings against the current code. Return confirmed defects to the original implementer and its approved route. Use `diagnose` before a fix when the cause is unknown. Keep disputed findings open until evidence supports fixing or rejecting them.
+Judge each finding against the current code. Send confirmed defects to the original implementer and route; use `diagnose` first when the cause is unknown. A disputed finding stays open until evidence settles it.
 
-Correct all confirmed P0, P1, and P2 findings within the task scope. Correct P3 findings when the change is small and useful; record the reason for each deferred P3. A correction outside the task scope requires a user decision.
+Fix every confirmed P0, P1, and P2 within scope. Fix a P3 when the change is small and useful, and record a reason for each deferred one. A fix outside the task scope needs the user.
 
-Batch confirmed corrections by their original implementation scope, then have the independent reviewer check the fixes, affected paths, and interactions in one scoped recheck. Run `verify-changes` for affected checks and any required fresh checks. Repeat browser checks when their flows changed. Preserve review coverage for unchanged files and expand it when a fix affects another boundary.
-
-Allow at most three correction and recheck cycles in this workflow. For work continued from an earlier run, also honor that run's remaining correction allowance. Starting this skill or resuming a context does not reset an exhausted limit. Record the counts, findings, changed paths, and evidence in the temporary report before each cycle. At the limit, stop and report the remaining work.
+Batch the fixes, then have the same reviewer recheck the fixes, affected paths, and interactions in one pass. Rerun affected checks and changed browser flows. Allow at most three correction cycles, including any count carried from an earlier run; restarting the skill does not reset it. At the limit, stop and report.
 
 ## 4. Return the result
 
 Report one status:
 
-1. `ready`: no confirmed P0, P1, or P2 remains; each deferred P3 has a reason; review coverage is complete; all required checks and affected interface flows passed; no disputed finding or verification gap remains.
-2. `needs-work`: defects remain or the correction limit was reached.
+1. `ready`: no confirmed P0 to P2 remains, each deferred P3 has a reason, coverage is complete, and required checks and affected flows passed.
+2. `needs-work`: defects remain or the cycle limit was reached.
 3. `blocked`: a required decision, route, dependency, or verification is unavailable.
-4. `no-changes`: there is no task diff to review.
+4. `no-changes`: there is no diff to review.
 
-Include the base and reviewed scope, reused evidence, gaps found, work performed, remaining findings, captured check results, browser evidence, cycle count, and report path. Distinguish checks run now from reused evidence and skipped checks. If existing evidence covers all required reviews and checks, state that readiness was confirmed from that evidence.
-
-Apply the acceptance contract separately from the review verdict. For example: "The review returned approve, but one confirmed P2 remains. Status: needs-work."
-
-A `ready` result describes the inspected local state. It does not guarantee that a later review or pipeline will find no defects.
+Include the base and scope, reused evidence, gaps found, work done, remaining findings, checks run now versus reused or skipped, browser evidence, cycle count, and report path. Apply the acceptance contract apart from the reviewer's verdict: "The review returned approve, but one confirmed P2 remains. Status: needs-work." `ready` describes the inspected local state, not a promise about later reviews.

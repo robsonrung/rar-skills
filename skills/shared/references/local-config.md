@@ -27,19 +27,6 @@ in the proposed run snapshot, never a second default roster.
 
 ## Reading it
 
-Use `model_routing.py resolve <route> --profile default`. Add
-`--local-profile <name>` for a validated local `profile`; otherwise the configured
-central default applies. An explicit user `--profile saver`, `economy`, or `balanced`
-wins over the local preference. Pass per role changes through
-`--role ROLE=SEAT[:EFFORT]`; `runtime` selects null effort where supported.
-A bare legacy resolver call does not select the new workflow profile.
-`route_overrides` entries translate to the same `--role` arguments while
-forming the preview; a direct user instruction in chat wins over both.
-
-Skills should treat parsing failures as "no config" and report the ignored file
-once. State when a preference changes the proposed seat. After approval,
-the saved routing plan controls dispatch; local preferences never authorize a
-substitution or a new call. An explicit user change creates a replacement snapshot
-for unresolved work only. Completed evidence retains its original selection.
+[model-preview.md](model-preview.md) shows how `profile` and `route_overrides` become `--local-profile` and `--role` arguments. Treat a file that fails to parse as no config and report it once. Say when a preference changed a proposed seat. After approval the saved plan controls dispatch; a preference never authorizes a substitution or a new call.
 
 _Pattern adapted from [compound-engineering-plugin](https://github.com/EveryInc/compound-engineering-plugin) (MIT). See NOTICE._

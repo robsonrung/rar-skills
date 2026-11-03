@@ -1,169 +1,18 @@
 # Read-only queue controller
 
-Use `shared/scripts/task_queue.py` to inspect canonical task inputs and project readiness. Resolve `shared/` from the loaded collection. The controller reads contracts, approved routing scope, the call ledger, and structured integration evidence. It writes no state, starts no worker, and runs no acceptance command.
-
-For action checkpoints and event recovery, use
-`shared/references/workflow-controller.md`. That controller consumes this readiness
-projection and the bound usage policy described in
-`shared/references/usage-accounting.md`. It keeps scheduling state in its existing
-checkpoint contract; the ledger retains execution authority.
+`shared/scripts/task_queue.py` reads the queue, task contracts, approved routing plan, ledger, and review evidence, and projects which tasks may start. It writes nothing, starts no worker, and runs no check. Its `--help` documents the `queue.json` shape, merge plans, `approval_record`, and `integration_evidence`; read it rather than a copy here.
 
 ```bash
-SHARED_DIR="<absolute path of the loaded shared skill>";
-python3 "$SHARED_DIR/scripts/task_queue.py" --help
-```
-
-## Approved scheduling inputs
-
-Keep stable scheduling metadata in `queue.json`, referenced from `tasks-draft.md`. Paths resolve from the project root. The task's `manifest` is its canonical Markdown contract. A legacy `launch_manifest` key is accepted and ignored.
-
-```json
-{
-  "schema_version": 1,
-  "id": "feature",
-  "parent_prd": ".ai-workflow/work/feature/prd.md",
-  "approval_record": ".ai-workflow/impl-review/run/combined-approval.json",
-  "concurrency": {"max_active": 3, "isolation": "worktree"},
-  "tasks": [
-    {
-      "id": "T1",
-      "manifest": ".ai-workflow/work/feature/tasks/T1-example.md",
-      "blocked_by": [],
-      "write_paths": ["src/example.py"],
-      "shared_surfaces": ["interface:example"]
-    }
-  ],
-  "merge_plans": []
-}
-```
-
-List owned files or directory scopes explicitly. Name shared migration, interface, and security surfaces with `migration:`, `interface:`, and `security:` keys. Shared files or surfaces serialize tasks unless their approved merge plan permits overlap. A merge plan has `id`, `tasks`, `write_paths`, and `shared_surfaces`; it names every permitted overlap. Its inclusion in the approved scope makes acceptance explicit. The member task contracts define combined acceptance, and current immutable ledger integration records prove it. Keep future snapshots and execution state out of this static plan. An unbound prose plan cannot permit concurrency.
-
-Include the queue file, parent PRD, and all canonical task contracts in the approved routing plan's `scope.inputs`. Route rows bind to their task with `input_path`. Include immutable policy inputs for call/time budgets and tools when these controls are not represented in the route schema. The queue is scheduling metadata, not task acceptance or execution state. Changing dependencies, ownership, concurrency, or merge plans requires a replacement approved input binding.
-
-`concurrency.isolation` is `working-tree` or `worktree`. Omission selects `working-tree` and one writer, even when `max_active` permits more. A worktree still needs nonconflicting ownership or an accepted merge plan.
-
-Set `approval_record` before preview for a new combined approval. It locates the immutable decision envelope shown below. Task-only approvals and existing legacy plans keep their separate approval records; absence of this field never grants model approval. Do not add the decision record itself to `scope.inputs`, because its decision-time content would make the prospective approval digest recursive. Its fixed locator is already bound through the queue configuration.
-
-The controller also reads a `json task-queue` fenced block in a legacy index and legacy heading queues. An index-only draft must first become canonical task files before combined approval or fresh execution. Existing published task contracts and started execution records stay intact. Missing machine ownership or approval must be supplied and bound before dispatch. For new queues, prefer a separate `queue.json`; live approval links and index status cannot then change its binding.
-
-## Optional feature policy
-
-For a new feature plan, set the same `review_policy` relative path in `queue.json`
-and the approved routing plan. Read only `Policy and authority`, `One check plan`,
-and `Provisional dependency release` in `shared/references/feature-review.md` for
-the policy and check plan contracts. Load its `Final acceptance` section when
-projecting the final gate. Include those files, the canonical queue, the feature contract, and
-all task contracts in the approved `scope.inputs`. Run `feature_review.py validate --policy <policy.json> --root <project-root>`
-to validate the policy. The queue projection checks approved input bindings. A missing pointer keeps the existing task mode and
-its digests. Existing plans remain unchanged.
-
-With the bound feature policy, `implemented` lists provisional task results
-whose focused evidence permits dependency release. It does not mean accepted.
-`integrated` lists final accepted tasks only after the feature gate passes.
-`feature_review` reports `blocked`, `review_required`, or `ready` with its reasons.
-The workflow controller uses `feature_review_required` to request the final gate.
-Keep provisional tasks active in the sidebar until that gate returns ready.
-The feature helper validates focused captures and required critical task reviews;
-a task success label cannot release a dependency.
-
-After integration changes, load only `Batch evidence refresh` in
-`shared/references/feature-review.md`; also load `Scoped critical review reuse`
-when the selected critical task has a bound reuse scope. Its proposed patch preserves original
-critical review dispatches and requires current focused evidence. Apply only a
-complete patch through the helper's guarded `--apply-result` command, then
-project readiness again. Refresh does not promote tasks to final acceptance.
-
-The integration evidence and carry forward protocols below describe legacy task
-mode. Feature mode uses the bound policy's provisional and final assessments.
-
-## Inspect draft identities
-
-```bash
-SHARED_DIR="<absolute path of the loaded shared skill>";
-python3 "$SHARED_DIR/scripts/task_queue.py" approval-inputs \
-  --queue <queue.json> --root <project-root> \
-  --routing-plan <draft-routing-plan.json>
-```
-
-The output includes `queue.file_sha256` and each task's `current_file_sha256`, `current_content_sha256`, and `prospective_ready_content_sha256`. The optional routing plan adds `prospective_routing` with normalized `scope_inputs`, `scope_digest`, and `routes_digest`, retaining all non-task inputs. The prospective content changes only the exact draft status to ready status, then applies the routing plan's canonical content rule. This supports combined approval while drafts remain unexecutable. The helper never records approval or promotes files.
-
-Save the preview before the decision. After an actual combined response, write one immutable shared evidence envelope at `approval_record`:
-
-```json
-{
-  "payload": {
-    "schema_version": 1,
-    "decisions": ["task_queue", "model_plan"],
-    "response_reference": "<actual user response reference>",
-    "decided_at": "<decision time>",
-    "queue_file_sha256": "<raw queue file hash>",
-    "preview": {"path": "<saved approval-inputs JSON>", "sha256": "<raw preview hash>"},
-    "scope_digest": "<prospective scope digest>",
-    "routes_digest": "<routes digest>"
-  },
-  "sha256": "<shared canonical payload hash>"
-}
-```
-
-Use the shared immutable record writer and checksum rule. The scheduler verifies both decision names, the actual response reference and time, queue and preview identities, and exact routing approval digests. It rejects a task-only record as combined approval. The host still records only real user decisions; a checksum cannot establish who gave a response.
-
-## Integration evidence in the existing ledger
-
-Link immutable integration records from the current feature `run-state.json`:
-
-```json
-{
-  "integration_evidence": {
-    "T1": {
-      "snapshot": {"path": "<combined snapshot.json>", "sha256": "<file hash>"},
-      "base": "<review base>"
-    }
-  }
-}
-```
-
-This field stores evidence locators, not a second task status. The controller checks task and route bindings, contract identity, immutable snapshot checksum, and `review_evidence.assess(snapshot, base)`. For new ledger-managed integration, the review must match a completed exact approved reviewer route with its own scope ID and the released task's contract as `input_path`. A direct review-record write alone cannot prove independent execution. The snapshot must describe the relevant combined source state, with all applicable acceptance and interaction requirements. A copied `done` label or worker success cannot release dependents. Stale source, changed contracts, failed checks, missing observations, and blocking findings require integration work.
-
-For exact independent changes approved before the original review, the entry
-can add `carry_forward: {path, sha256}` from the shared `carry-forward` command.
-Keep the original snapshot and reviewer dispatch links. The controller checks
-the immutable checkpoint, current target source, complete declared dependency
-closure, current environment evidence, and passing required captures through
-`assess_carry_forward`. Read the carry forward protocol in
-`shared/references/review-evidence.md` before choosing this path. An unlisted or
-affected change still requires integration review. Matching file paths or hashes
-does not establish independence. Pending calls retain ownership, and approved
-call budgets still apply. Carry forward releases dependencies only; final
-combined review remains required.
-
-## Project the next wave
-
-```bash
-SHARED_DIR="<absolute path of the loaded shared skill>";
-python3 "$SHARED_DIR/scripts/task_queue.py" schedule \
-  --queue <queue.json> --routing-plan <routing-plan.json> \
+python3 shared/scripts/task_queue.py approval-inputs --queue <queue.json> --root <project-root> \
+  [--routing-plan <draft-routing-plan.json>]
+python3 shared/scripts/task_queue.py schedule --queue <queue.json> --routing-plan <routing-plan.json> \
   --ledger <run-state.json> --root <project-root>
 ```
 
-The result has `ready`, `blocked`, and `required_integration` lists in stable task order. Invalid IDs, missing blockers, self blockers, cycles, malformed bindings, and unsafe ownership fail closed. Only ready contracts with exact approval and verified dependency integration can be selected. Ledger calls and recorded integration evidence retain active ownership; the approved concurrency cap also limits new selection. The projection checks existing total and route call ceilings, then accounts for the initial implementation calls of each selected task. It does not predict future review or recovery calls.
+`approval-inputs` reports current and prospective ready-state hashes for drafts, and with `--routing-plan` the prospective scope and route digests for a combined approval. `schedule` returns `ready`, `blocked`, and `required_integration` in stable order. Bad IDs, missing blockers, cycles, malformed bindings, and unsafe ownership fail closed.
 
-Read the result immediately before dispatch, then reserve the selected call and its input in the existing ledger before starting it. This projection does not reserve a task or consume a budget. Use one conductor to reserve work; rerun the projection after any ledger, manifest, integration, or source change. Required integration runs through the separately approved integration route and gets its own reserved call. The controller needs no mutation dry run because both commands are read only.
+The approved routing plan's `scope.inputs` binds the queue, the PRD, every task contract, and any review policy. Changing dependencies, ownership, concurrency, or merge plans needs a new approval. `concurrency.isolation` is `working-tree` (the default, one writer) or `worktree`.
 
-For ordinary later edits, an entry can instead add
-`batch_review: {path, sha256}` linking a current batch snapshot. Several entries
-can share this link. Keep each original task snapshot and dispatch binding;
-set the entry's base to the batch's current intended base. The shared batch
-protocol requires exact canonical task membership, complete valid task evidence,
-prior findings, current environment and interaction assessments, and one actual
-approved independent batch reviewer response. The route binds the batch contract,
-not a member task contract. Its scope ID must differ from every endorsed task.
-One call can release all endorsed tasks, with existing counters and ceilings.
-Pending calls keep every member's ownership; missing pending snapshot evidence
-blocks scheduling until reconciliation. A batch does not replace the final
-feature gate. Read `shared/references/review-evidence.md` before preparation.
+Run `schedule` immediately before each dispatch, and again after any ledger, contract, integration, or source change. It reserves nothing: reserve the call in the ledger before starting it.
 
-Each projection reuses validated immutable batch evidence within that call only.
-Before returning, it rechecks current source, base, index, and all linked file
-hashes. A change during projection blocks its result. No cache survives into the
-next projection.
+With a feature policy, `implemented` lists provisional tasks whose focused evidence permits dependency release, `integrated` lists tasks accepted by the final gate, and `feature_review` reports `blocked`, `review_required`, or `ready`.

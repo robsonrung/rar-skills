@@ -223,7 +223,7 @@
     "name": "html-safety",
     "prompt": "Report titles and evidence include HTML tags, comparison operators, and hostile text.",
     "expected": [
-      "Render supplied content as escaped text.",
+      "Escape supplied content in the HTML so it shows as text.",
       "Keep links and IDs valid.",
       "Preserve complete content in an accessible alternative."
     ],
@@ -403,9 +403,9 @@
     "name": "stale-checkout",
     "prompt": "The local branch is 11 commits behind its upstream as last fetched, and the working tree has uncommitted edits in files the review will cite. One defect visible at HEAD is already fixed upstream.",
     "expected": [
-      "Run the revision check before reading source and report ahead/behind and uncommitted files.",
+      "Check the revision before reading source and report ahead/behind and uncommitted files.",
       "Ask which revision to audit, or audit HEAD and recheck every P0 to P2 finding on the upstream ref without fetching or checking out.",
-      "Record newer_ref_status per finding and report the upstream-fixed defect as fixed, not as a P0/P1."
+      "Record each finding's status on the newer ref and report the upstream-fixed defect as fixed, not as a P0/P1."
     ],
     "forbidden": [
       "Fetch, check out, stash, or modify the working tree.",
@@ -449,7 +449,7 @@
     "name": "adr-conflict",
     "prompt": "An ADR records a deliberate choice (for example a broader expiry predicate than the queue predicate). The code looks inconsistent from outside.",
     "expected": [
-      "Read ADRs before judging and record the choice in respected_decisions.",
+      "Read ADRs before judging and list the choice under respected decisions.",
       "Raise a finding only with evidence that the documented reason no longer holds, and fill adr_conflict."
     ],
     "forbidden": [
@@ -465,7 +465,7 @@
     "expected": [
       "Treat the review as leads and re-verify every adopted claim at the audited revision.",
       "Reconcile metric differences by counting convention before calling them disagreements.",
-      "Record agreements, disagreements, adopted findings and unverified claims in external_reviews, and correct the report where the other review is right."
+      "Record agreements, disagreements, adopted findings and unverified claims in the report, and correct the report where the other review is right."
     ],
     "forbidden": [
       "Copy findings without re-verification.",

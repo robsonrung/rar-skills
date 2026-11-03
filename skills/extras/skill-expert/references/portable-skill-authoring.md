@@ -1,60 +1,44 @@
 # Portable Skill Authoring
 
-Use this reference when changing model routing, host capabilities, authority, or contracts shared by skills. Preserve the result across supported hosts without prescribing how a capable model must reason.
+Use this reference when a change touches model routing, host capabilities, authority, or a protocol several skills share.
 
 ## Model routing
 
-Keep maintained model mappings in one roster or configuration. Workflow prose names the role or semantic route; dispatch uses the exact model and effort selected for that run.
+`shared/model-routing.json` owns every model and effort mapping. Skill prose names a route or role, never a model ID; concrete IDs belong in that file, run plans, receipts, and test fixtures.
 
-In this collection, `shared/model-routing.json` owns all maintained model and effort mappings. The routing references define selection, execution, and approval procedure. Resolve `shared/` through the collection's shared-library convention.
+A skill that dispatches models uses this pattern and nothing longer:
 
-- Use the maintained task and effort defaults for each role. Preserve the user's quality or cost priority; a generic low-effort default cannot replace a supplied task route. Do not assume the current model is strongest for every task.
-- Resolve native delegation before external runners through `shared/references/host-model-execution.md`. Prefer exposed native tools for the exact selected model. Reuse a task and role's persistent context for later turns, while keeping independent roles separate.
-- Explicit model, reviewer, effort, receipt, and budget approvals take precedence over a generic cost tier.
-- Inheritance by omission is valid only when the workflow permits it and no approved exact route is being replaced.
-- If the selected route is unavailable, use only an already-approved fallback or return the affected route for a decision. Do not silently switch to the host model.
-- Concrete model IDs belong in the central configuration, approved run snapshots, receipts, and test fixtures. Adapters read them from the configuration. Avoid duplicating them in general workflow prose.
-- Distinguish configured model labels, observed serving-model receipts, provider guidance, and local benchmark evidence.
+1. Use the models the user names, or the routes in a plan the skill inherited. Otherwise run `python3 shared/scripts/model_routing.py resolve <route>` with the route that fits the work (`show` lists them).
+2. Show the plan: each role with its model, effort, and host route, plus any ceiling. Ask: **"Approve this plan, or specify changes."** An inherited approved plan is already the approval.
+3. Route each role by host. T3 Code: `delegate_task`, continued with `t3_thread_send`. Claude Code or Codex: a native subagent, continued by messaging the same subagent. A model the host lacks: the matching `*-runner` skill.
+4. One persistent context per role for the whole task. Later turns of a role go to its context; different roles never share one.
+5. **Seat fidelity**: an unavailable model blocks its role, and the skill reports it. It never swaps in another model or the host's own.
 
-Semantic tiers such as extraction, generation, and synthesis may express task needs. They are not a universal quality ranking or authority to downgrade a model.
+A skill that does not dispatch models says nothing about routing, and no skill opens with routing ceremony. `skills/engineering/engine/implement-and-review/SKILL.md` is the reference implementation.
 
 ## Protocol and judgment
 
-Keep rules whose omission could change authority, state, coverage, counts, output fields, or a downstream handoff. Preserve domain knowledge that changes the decision.
+Keep a rule whose omission could change authority, state, coverage, counts, output fields, or a downstream handoff.
 
-| Keep explicit | Leave to task judgment |
+| Keep explicit | Leave to judgment |
 | --- | --- |
-| Output paths, fields, enums, and schemas | Order of independent investigations |
-| Dependencies and required state transitions | Number of speculative alternatives |
-| Approval, mutation, and isolation boundaries | Generic self-check or reread loops |
-| Evidence and coverage required by consumers | Repeated rationale and quality reminders |
-| Bounded retries and terminal outcomes | Technique selection when several are valid |
+| Output paths, fields, enums, schemas | Order of independent investigations |
+| Dependencies and required state transitions | Number of alternatives to sketch |
+| Approval, mutation, and isolation boundaries | Generic self-checks and reread loops |
+| Evidence and coverage a consumer needs | Repeated rationale and quality reminders |
+| Bounded retries and terminal outcomes | Choice among several valid techniques |
 
-Scope a rule beside the action it governs. A real engineering method can require an order; a numbered list alone is not a defect. A runtime constraint or team standard does not become obsolete because a newer model understands it.
-
-## Context and resources
-
-Keep common rules and route selection in the entry. Load the selected method, schema, or tool reference at its point of use. Reuse active project instructions and already-read evidence. Expand inspection only when the changed boundary requires it.
-
-When moving text, retain reachable source knowledge and correct paths. Do not create a hidden chain of skills that a fresh consumer must reconstruct. Refer to capabilities before host-specific adapters unless exact API semantics are part of the contract.
+Put each rule beside the action it governs, and state it once, in its owner. Another skill points to the owner rather than restating it.
 
 ## Authority
 
-An explicit change request authorizes its necessary reversible work. An audit request does not authorize edits. Reuse prior approval for the same scope and action; silence is not new approval.
+An explicit change request authorizes its necessary reversible work; an audit request authorizes none. Reuse approval already given for the same scope; silence is not new approval. Ask only when a choice changes scope, cost, permitted effects, or an unresolved decision, and keep working on whatever that choice does not block.
 
-Choose the branch before selecting a model. Coordinator work and deterministic work use invocation authority without route resolution. Before a worker dispatch, use `shared/references/model-preview.md` to bind one approved snapshot. Nested skills and runners reuse that snapshot without re-resolution or extra workers. Preserve user-requested model previews and genuine security boundaries. Carry bounded authority through dependent work without widening it. Continue independent work when one action needs a decision.
+A multi-agent tool being present is no reason to use it. Delegation needs a reason (independent, sizeable, parallel work), and each worker needs a scope, an output contract, and an owner who integrates its result.
 
-Use a supplied or inherited mode. Otherwise use a safe scoped default that fits invocation authority. Ask only when a choice changes scope, cost, permitted effects, or a material unresolved decision. Silence is not approval. Preserve explicit council approval and modes that require additional authority.
+## Portability
 
-Keep skill invocation separate from delegation. The presence of a multi-agent tool is not itself a reason or authorization to use it. When delegation is authorized, each worker needs a scope, output contract, and owner for integration.
-
-## Portability checks
-
-Inspect the actual adapter or consumer when a change depends on its behavior. A prompt-only restriction is not an enforced sandbox. A missing command is not proof that the host lacks every equivalent capability.
-
-Use deterministic checks for metadata, paths, schemas, and script contracts. Use bounded behavioral comparisons for a material uncertainty or a requested performance claim. No measured improvement can be inferred from fewer words, fewer tools, or a single successful run.
-
-When testing across models, record the actual model, host, relevant constraints, evidence, and limits. No standard pre-edit narration or exhaustive model matrix is required.
+Inspect the real adapter or consumer when a change depends on its behavior. A prompt-only restriction is not a sandbox, and one missing binary does not prove the host lacks every equivalent capability. Use deterministic checks for metadata, paths, schemas, and scripts; claim a behavioral improvement only from a bounded comparison, never from fewer words or one good run.
 
 ---
 

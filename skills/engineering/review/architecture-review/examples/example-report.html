@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Orders Service Architecture Review</title>
+<style>
+  :root { --ink:#182c3e; --muted:#526377; --paper:#f3f6f8; --panel:#fff; --line:#d9e2e8; --accent:#087d75;
+          --ok:#28745a; --warn:#946015; --bad:#a82b35; --na:#647b8c; --code:#edf3f7; }
+  @media (prefers-color-scheme: dark) {
+    :root { --ink:#e6edf3; --muted:#9fb0bf; --paper:#0f1a23; --panel:#16232e; --line:#2a3b49; --accent:#43b8ad;
+            --ok:#6fd0a4; --warn:#e0b060; --bad:#f08a93; --na:#9fb0bf; --code:#1d2a35; }
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font: 15px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 28px 18px 80px; }
+  h1 { font-size: 26px; margin: 0 0 6px; }
+  h2 { font-size: 19px; margin: 0 0 6px; }
+  h3 { font-size: 16px; margin: 0 0 6px; }
+  .subtitle, .lede { color: var(--muted); max-width: 900px; }
+  .toc { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0 8px; }
+  .toc a { font-size: 13px; color: var(--muted); text-decoration: none; border: 1px solid var(--line); border-radius: 999px; padding: 3px 12px; }
+  .controls { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0 22px; }
+  button { font: inherit; font-size: 13px; color: var(--ink); background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 4px 12px; cursor: pointer; }
+  section.card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 22px 24px; margin-bottom: 22px; }
+  .scroll { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  th, td { text-align: left; vertical-align: top; border-bottom: 1px solid var(--line); padding: 6px 8px; }
+  code, pre { font: 13px/1.45 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; background: var(--code); border-radius: 4px; }
+  code { padding: 1px 4px; }
+  pre { padding: 10px 12px; overflow-x: auto; }
+  .badge { display: inline-block; font-size: 12px; font-weight: 600; border: 1px solid currentColor; border-radius: 5px; padding: 0 6px; }
+  .adequate { color: var(--ok); } .attention { color: var(--warn); } .critical { color: var(--bad); }
+  .unknown, .not_applicable { color: var(--na); }
+  .P0, .P1 { color: var(--bad); } .P2 { color: var(--warn); } .P3 { color: var(--na); }
+  article { border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; margin: 12px 0; }
+  details.drill { margin-top: 8px; }
+  details.drill > summary { cursor: pointer; color: var(--accent); font-size: 14px; }
+  dl { display: grid; grid-template-columns: minmax(120px, 180px) 1fr; gap: 6px 14px; margin: 10px 0 0; }
+  dt { font-weight: 600; color: var(--muted); }
+  dd { margin: 0; }
+  .diagram { border: 1px solid var(--line); border-radius: 10px; padding: 10px; overflow-x: auto; }
+  .diagram svg { display: block; min-width: 680px; width: 100%; height: auto; }
+  svg .node rect { fill: var(--panel); stroke: var(--line); }
+  svg text { fill: var(--ink); font: 13px system-ui, sans-serif; }
+  svg .edge { stroke: var(--muted); fill: none; }
+  svg .proposed { stroke-dasharray: 6 4; }
+  svg .clickable { cursor: pointer; }
+  footer { color: var(--muted); font-size: 13px; margin-top: 30px; }
+  @media print { .toc, .controls { display: none; } details.drill { display: block; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>Orders Service Architecture Review</h1>
+  <p class="subtitle">Example report for a fictional system. Revision <code>4f1c2ab</code> on <code>main</code>, 2026-11-02, full assessment, read-only. Click a section chip or a diagram box to jump; open "Details" panels for evidence.</p>
+  <nav class="toc">
+    <a href="#sec-verdict">Verdict</a>
+    <a href="#sec-context">Context</a>
+    <a href="#sec-architecture">Architecture</a>
+    <a href="#sec-dimensions">Dimensions</a>
+    <a href="#sec-findings">Findings</a>
+    <a href="#sec-strengths">Strengths</a>
+    <a href="#sec-options">Options and target</a>
+    <a href="#sec-roadmap">Roadmap</a>
+    <a href="#sec-evidence">Evidence and verification</a>
+  </nav>
+  <div class="controls">
+    <button type="button" onclick="setAll(true)">Expand all</button>
+    <button type="button" onclick="setAll(false)">Collapse all</button>
+  </div>
+</header>
+
+<section class="card" id="sec-verdict">
+  <h2>1. Verdict</h2>
+  <p class="lede">The modular monolith is fit for purpose for the declared workload of a few hundred orders per day. One risk needs action now: payment capture and order state commit in separate transactions, so a timeout after capture can leave a paid order marked unpaid. The first move is a small outbox for the capture call, not a new service.</p>
+  <p>9 adequate, 6 attention, 1 critical, 3 unknown, 1 not applicable.</p>
+  <h3>Decisions needed</h3>
+  <ul><li>Whether a paid order may stay unconfirmed for up to five minutes; this sets the outbox retry window.</li></ul>
+  <h3>Top findings</h3>
+  <ul><li><a href="#F01">F01</a> Payment capture can succeed while the order stays unpaid.</li></ul>
+</section>
+
+<section class="card" id="sec-context">
+  <h2>2. Context</h2>
+  <p class="lede">A single Python service that takes orders and captures card payments for one storefront. Two maintainers; about 300 orders per day, declared, not measured.</p>
+  <h3>Scope and coverage</h3>
+  <div class="scroll"><table>
+    <tr><th>Revision</th><td><code>4f1c2ab</code> on <code>main</code>, even with upstream as last fetched, no uncommitted files.</td></tr>
+    <tr><th>Coverage</th><td>14 of 14 modules inspected.</td></tr>
+    <tr><th>Exclusions</th><td>Vendored payment SDK; production configuration (not authorized).</td></tr>
+  </table></div>
+  <h3>Quality Attribute Scenarios</h3>
+  <div class="scroll"><table>
+    <tr><th>ID</th><th>Stimulus and environment</th><th>Expected response and measure</th><th>Origin</th><th>Observed</th></tr>
+    <tr id="Q1"><td>Q1</td><td>Provider times out after capturing a payment</td><td>Order ends paid exactly once; Not reported target</td><td>assumed</td><td>failed, <a href="#E001">E001</a></td></tr>
+  </table></div>
+  <h3>Assumptions, unknowns, and open questions</h3>
+  <ul><li>Peak load is assumed under 10 orders per minute; capacity conclusions depend on it.</li></ul>
+</section>
+
+<section class="card" id="sec-architecture">
+  <h2>3. Implemented architecture</h2>
+  <p class="lede">One deployable with an HTTP layer, an orders module that owns order state, and a payments adapter that calls the provider. Click a box to jump to its finding.</p>
+  <div class="diagram">
+    <svg viewBox="0 0 720 160" role="img" aria-label="Orders module calls the payments adapter">
+      <g class="node clickable" onclick="jump('F01')"><rect x="20" y="50" width="200" height="56" rx="8"/><text x="36" y="83">orders</text></g>
+      <path class="edge" d="M220 78 H500"/>
+      <g class="node"><rect x="500" y="50" width="200" height="56" rx="8"/><text x="516" y="83">payments adapter</text></g>
+    </svg>
+  </div>
+  <h3>Flows</h3>
+  <details class="drill"><summary>Checkout write path</summary><ol><li>Capture the payment, then commit the order in a second transaction. <a href="#E001">E001</a></li></ol></details>
+</section>
+
+<section class="card" id="sec-dimensions">
+  <h2>4. Dimensions</h2>
+  <p class="lede">Structure is sound; the gap is distributed consistency at the payment boundary.</p>
+  <div class="scroll"><table>
+    <tr><th>ID</th><th>Dimension</th><th>Status</th><th>Confidence</th><th>Assessment</th><th>Evidence</th></tr>
+    <tr class="dim" id="D01" data-status="adequate" data-confidence="high"><td>D01</td><td>Fitness for purpose and sufficiency</td><td><span class="badge adequate">adequate</span></td><td>high</td><td class="d-note">Meets the declared workload with one deployable.</td><td class="d-evidence"><a href="#E002">E002</a></td></tr>
+    <tr class="dim" id="D02" data-status="adequate" data-confidence="medium"><td>D02</td><td>Domain model and Bounded Contexts</td><td><span class="badge adequate">adequate</span></td><td>medium</td><td class="d-note">Orders owns order state; one writer module.</td><td class="d-evidence"><a href="#E002">E002</a></td></tr>
+    <tr class="dim" id="D03" data-status="adequate" data-confidence="high"><td>D03</td><td>Component Cohesion and Component Coupling</td><td><span class="badge adequate">adequate</span></td><td>high</td><td class="d-note">No import cycles at module level.</td><td class="d-evidence"><a href="#E003">E003</a></td></tr>
+    <tr class="dim" id="D04" data-status="attention" data-confidence="medium"><td>D04</td><td>Code design and refactorability</td><td><span class="badge attention">attention</span></td><td>medium</td><td class="d-note">Payments adapter leaks provider errors to callers.</td><td class="d-evidence"><a href="#E001">E001</a></td></tr>
+    <tr class="dim" id="D05" data-status="adequate" data-confidence="high"><td>D05</td><td>Deployment topology</td><td><span class="badge adequate">adequate</span></td><td>high</td><td class="d-note">Single deployable fits a two-person team.</td><td class="d-evidence"><a href="#E002">E002</a></td></tr>
+    <tr class="dim" id="D06" data-status="attention" data-confidence="medium"><td>D06</td><td>APIs and integration</td><td><span class="badge attention">attention</span></td><td>medium</td><td class="d-note">Checkout returns 200 before the order commits.</td><td class="d-evidence"><a href="#E001">E001</a></td></tr>
+    <tr class="dim" id="D07" data-status="adequate" data-confidence="medium"><td>D07</td><td>Data modeling and integrity</td><td><span class="badge adequate">adequate</span></td><td>medium</td><td class="d-note">Constraints enforce one payment per order.</td><td class="d-evidence"><a href="#E002">E002</a></td></tr>
+    <tr class="dim" id="D08" data-status="attention" data-confidence="medium"><td>D08</td><td>Persistence, ORM, and concurrency</td><td><span class="badge attention">attention</span></td><td>medium</td><td class="d-note">Two transactions around one business effect.</td><td class="d-evidence"><a href="#E001">E001</a></td></tr>
+    <tr class="dim" id="D09" data-status="critical" data-confidence="high"><td>D09</td><td>Events and distributed consistency</td><td><span class="badge critical">critical</span></td><td>high</td><td class="d-note">A timeout after capture loses the paid state.</td><td class="d-evidence"><a href="#E001">E001</a></td></tr>
+    <tr class="dim" id="D10" data-status="unknown" data-confidence="unknown"><td>D10</td><td>Capacity, performance, and scalability</td><td><span class="badge unknown">unknown</span></td><td>unknown</td><td class="d-note">No load measurements were available.</td><td class="d-evidence"></td></tr>
+    <tr class="dim" id="D11" data-status="attention" data-confidence="medium"><td>D11</td><td>Reliability and recovery</td><td><span class="badge attention">attention</span></td><td>medium</td><td class="d-note">No reconciliation job for unknown outcomes.</td><td class="d-evidence"><a href="#E001">E001</a></td></tr>
+    <tr class="dim" id="D12" data-status="adequate" data-confidence="medium"><td>D12</td><td>Security and privacy</td><td><span class="badge adequate">adequate</span></td><td>medium</td><td class="d-note">Card data never reaches the service.</td><td class="d-evidence"><a href="#E002">E002</a></td></tr>
+    <tr class="dim" id="D13" data-status="attention" data-confidence="high"><td>D13</td><td>Testing and testability</td><td><span class="badge attention">attention</span></td><td>high</td><td class="d-note">Tests patch the provider client past the adapter interface.</td><td class="d-evidence"><a href="#E004">E004</a></td></tr>
+    <tr class="dim" id="D14" data-status="adequate" data-confidence="medium"><td>D14</td><td>Build, delivery, and dependencies</td><td><span class="badge adequate">adequate</span></td><td>medium</td><td class="d-note">Lockfile and pinned runtime in CI.</td><td class="d-evidence"><a href="#E002">E002</a></td></tr>
+    <tr class="dim" id="D15" data-status="attention" data-confidence="medium"><td>D15</td><td>Observability and operations</td><td><span class="badge attention">attention</span></td><td>medium</td><td class="d-note">No alert on orders stuck after capture.</td><td class="d-evidence"><a href="#E001">E001</a></td></tr>
+    <tr class="dim" id="D16" data-status="unknown" data-confidence="unknown"><td>D16</td><td>Economics and total cost</td><td><span class="badge unknown">unknown</span></td><td>unknown</td><td class="d-note">No cost data supplied.</td><td class="d-evidence"></td></tr>
+    <tr class="dim" id="D17" data-status="not_applicable" data-confidence="high"><td>D17</td><td>User interface and experience</td><td><span class="badge not_applicable">not_applicable</span></td><td>high</td><td class="d-note">No user interface in this repository.</td><td class="d-evidence"></td></tr>
+    <tr class="dim" id="D18" data-status="adequate" data-confidence="medium"><td>D18</td><td>Team, documentation, and learning</td><td><span class="badge adequate">adequate</span></td><td>medium</td><td class="d-note">ADRs record the main choices.</td><td class="d-evidence"><a href="#E002">E002</a></td></tr>
+    <tr class="dim" id="D19" data-status="adequate" data-confidence="medium"><td>D19</td><td>Agent legibility</td><td><span class="badge adequate">adequate</span></td><td>medium</td><td class="d-note">AGENTS.md maps modules and commands.</td><td class="d-evidence"><a href="#E002">E002</a></td></tr>
+    <tr class="dim" id="D20" data-status="unknown" data-confidence="low"><td>D20</td><td>Agent execution and verification</td><td><span class="badge unknown">unknown</span></td><td>low</td><td class="d-note">Agent tasks were not run.</td><td class="d-evidence"></td></tr>
+  </table></div>
+</section>
+
+<section class="card" id="sec-findings">
+  <h2>5. Findings</h2>
+  <p class="lede">One root cause: the payment effect and the order state have no shared commit.</p>
+  <div class="controls">
+    <button type="button" onclick="filterPriority('all')">All</button>
+    <button type="button" onclick="filterPriority('P0 P1')">P0 and P1</button>
+    <button type="button" onclick="filterPriority('P2')">P2</button>
+    <button type="button" onclick="filterPriority('P3')">P3</button>
+  </div>
+  <article class="finding" id="F01" data-priority="P1" data-confidence="high" data-dimension="D09" data-leitwort="end-to-end correctness">
+    <h3><span class="badge P1">P1</span> Payment capture and order commit are not atomic</h3>
+    <p class="f-summary">A timeout after capture leaves a paid order unpaid. Record capture intent in the order transaction and deliver it from an outbox. No lost payments; retry-safe.</p>
+    <p class="f-decision">End-to-end correctness fails across the capture timeout window, because the capture call and the order commit run in separate transactions (<a href="#E001">E001</a>).</p>
+    <details class="drill"><summary>Details</summary>
+      <dl>
+        <dt>Observation</dt><dd class="f-observation"><code>checkout()</code> captures, then opens a new transaction to mark the order paid.</dd>
+        <dt>Impact</dt><dd class="f-impact">A provider timeout after capture charges the customer without a paid order (Q1).</dd>
+        <dt>Recommendation</dt><dd class="f-recommendation">Write a capture intent row with the order and deliver it with an idempotency key; this restores end-to-end correctness at the cost of one table and one worker.</dd>
+        <dt>Alternatives</dt><dd class="f-alternatives">Keep as is and reconcile by hand from provider reports; acceptable only below a few incidents per month.</dd>
+        <dt>When not to act</dt><dd class="f-when-not">The provider guarantees synchronous capture results with no timeout path.</dd>
+        <dt>Acceptance</dt><dd class="f-acceptance">A test that times out the provider after capture ends with exactly one paid order and one capture.</dd>
+        <dt>Rollback</dt><dd class="f-rollback">Disable the worker and drain the outbox by hand; captured payments need reconciliation, not rollback.</dd>
+        <dt>Evidence</dt><dd class="f-evidence"><a href="#E001">E001</a></dd>
+      </dl>
+    </details>
+  </article>
+</section>
+
+<section class="card" id="sec-strengths">
+  <h2>6. Strengths and respected decisions</h2>
+  <ul>
+    <li id="S1">One writer module for order state. <a href="#E002">E002</a></li>
+  </ul>
+  <h3>Respected decisions</h3>
+  <ul><li>ADR-003 keeps one deployable until a second team exists; the review agrees.</li></ul>
+</section>
+
+<section class="card" id="sec-options">
+  <h2>7. Options and target</h2>
+  <p class="lede">Keep the monolith and add an outbox for payment capture; Q1 decides it.</p>
+  <article class="option" id="O1" data-kind="keep" data-position="rejected">
+    <h3>Keep the current architecture unchanged</h3>
+    <p>No cost, but Q1 stays failed. Reopen if the provider removes the timeout path.</p>
+  </article>
+  <article class="option" id="O2" data-kind="incremental" data-position="recommended">
+    <h3>Add a capture outbox</h3>
+    <p>One table and one worker; reversible by disabling the worker.</p>
+  </article>
+  <h3>Target and guardrails</h3>
+  <p>No structural change recommended.</p>
+</section>
+
+<section class="card" id="sec-roadmap">
+  <h2>8. Roadmap</h2>
+  <ol>
+    <li class="step" id="R1" data-first-move>Add the capture outbox; accept when the timeout test passes; roll back by disabling the worker (<a href="#F01">F01</a>)</li>
+  </ol>
+</section>
+
+<section class="card" id="sec-evidence">
+  <h2>9. Evidence and verification</h2>
+  <p class="lede">Source and history were read and imports measured; no tests or load runs were executed.</p>
+  <h3>Evidence register</h3>
+  <div class="scroll"><table>
+    <tr><th>ID</th><th>Kind</th><th>Location or command</th><th>Observation</th></tr>
+    <tr class="evidence" id="E001" data-kind="code"><td>E001</td><td>code</td><td><code class="loc">orders/checkout.py:3-4</code></td><td>Capture runs before the order transaction opens.</td></tr>
+    <tr class="evidence" id="E002" data-kind="documentation"><td>E002</td><td>documentation</td><td>docs/adr/003-one-deployable.md</td><td>One deployable until a second team exists.</td></tr>
+    <tr class="evidence" id="E003" data-kind="measurement"><td>E003</td><td>measurement</td><td><code class="cmd">measure.py imports . --prefix orders</code></td><td>No module-level cycle among 14 modules.</td></tr>
+    <tr class="evidence" id="E004" data-kind="code"><td>E004</td><td>code</td><td><code class="loc">tests/test_checkout.py:2</code></td><td>Test patches the provider client directly.</td></tr>
+  </table></div>
+  <h3>Verification</h3>
+  <div class="scroll"><table>
+    <tr><th>ID</th><th>Procedure</th><th>Status</th><th>Result</th></tr>
+    <tr class="check" id="V1" data-check="challenge" data-status="pass"><td>V1</td><td>Challenge pass by an independent reviewer</td><td>pass</td><td>F01 confirmed; 0 priorities changed.</td></tr>
+  </table></div>
+  <h3>Glossary</h3>
+  <dl><dt>Transactional Outbox</dt><dd>A table written in the same transaction as the state change, delivered later by a worker.</dd></dl>
+</section>
+
+<footer>2026-11-02, revision 4f1c2ab. Example only; the system and evidence are fictional.</footer>
+</div>
+<script>
+  function jump(id) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    el.querySelectorAll('details').forEach(function (d) { d.open = true; });
+    el.scrollIntoView({ block: 'start' });
+  }
+  function setAll(open) {
+    document.querySelectorAll('details').forEach(function (d) { d.open = open; });
+  }
+  function filterPriority(set) {
+    document.querySelectorAll('article.finding').forEach(function (a) {
+      a.hidden = set !== 'all' && set.split(' ').indexOf(a.dataset.priority) < 0;
+    });
+  }
+</script>
+</body>
+</html>

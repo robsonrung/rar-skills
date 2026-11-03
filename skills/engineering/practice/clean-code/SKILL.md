@@ -1,6 +1,6 @@
 ---
 name: clean-code
-description: Refactor existing code with behavior-preserving Clean Code practices. Apply it to local naming, readability, duplication, or structure problems; use architecture-lens for module boundary decisions.
+description: Refactor existing code with behavior-preserving Clean Code practices. Apply it to local naming, readability, duplication, or structure problems; use software-design-philosophy for module boundary decisions.
 ---
 
 # Clean Code

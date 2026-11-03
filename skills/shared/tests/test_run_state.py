@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Offline crash, receipt, context and usage tests."""
+"""Offline crash, receipt, and context tests."""
 import copy
 import json
 import subprocess
@@ -10,7 +10,6 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 import context_packet
-import execution_metrics
 import run_state as ledger
 
 
@@ -37,7 +36,6 @@ class RunStateTests(unittest.TestCase):
         path = self.root / (call + ".json")
         path.write_text(json.dumps({"success": True, "call_id": call, "input_revision": ledger.sha(self.brief),
                                     "configured_model": "fixture-model", "configured_effort": "high", "context_id": context,
-                                    "usage": {"input_tokens": 100, "cached_input_tokens": 90, "output_tokens": 10},
                                     "agent_message": "Completed."}))
         return path
 
@@ -65,12 +63,10 @@ class RunStateTests(unittest.TestCase):
             self.assertLess(size, 2048)
             self.assertEqual(result["calls"]["pending"], count)
             self.assertEqual(result["calls"]["failed"], count)
-            self.assertNotIn("metrics_by_task", result)
             page, _ = self.cli("status", "--details", "--limit", "1", "--offset", "1")
             self.assertEqual(page["calls"][0]["call_id"], "0-failed")
-            task, _ = self.cli("status", "--task", "T0", "--metrics")
+            task, _ = self.cli("status", "--task", "T0")
             self.assertEqual(task["total"], 2)
-            self.assertEqual(task["metrics"]["input_tokens"]["unknown_calls"], 2)
             detail, _ = self.cli("status", "--call", "0-failed")
             self.assertEqual(detail["detail"], calls["0-failed"])
             self.assertEqual(before, self.path.read_bytes())
@@ -178,7 +174,7 @@ class RunStateTests(unittest.TestCase):
         state = json.loads(self.path.read_text())
         self.assertEqual(state["call_ledger"]["calls"]["call-1"]["status"], "failed")
         self.assertEqual(state["call_ledger"]["contexts"], {})
-        self.assertEqual(ledger.status(state)["metrics_by_task"]["T1"]["input_tokens"]["measured_sum"], 100)
+        self.assertEqual(ledger.status(state)["calls"]["call-1"]["status"], "failed")
         self.reserve("call-2")
 
     def test_runner_dispatch_metadata_can_be_reconciled(self):
@@ -213,8 +209,7 @@ class RunStateTests(unittest.TestCase):
         native_completion.capture(raw, dispatch, "task-1", "local", "turn-1", 1, output)
         captured = native_completion.load_record(output)
         self.assertEqual(captured["agent_message"], poll["latestAssistantMessage"]["text"])
-        self.assertEqual(captured["metrics"]["duration_ms"], 25)
-        self.assertIsNone(captured["metrics"]["input_tokens"])
+        self.assertEqual(captured["duration_ms"], 25)
         self.assertEqual(captured["model_verification"], "unverified")
         for context, host, turn in (("other", "local", "turn-1"), ("task-1", "remote", "turn-1"), ("task-1", "local", "turn-2")):
             with self.assertRaises(ValueError):
@@ -223,15 +218,6 @@ class RunStateTests(unittest.TestCase):
         raw.write_text(json.dumps({"polls": [poll]}))
         with self.assertRaisesRegex(ValueError, "final message"):
             native_completion.capture(raw, dispatch, "task-1", "local", "turn-1", 1, self.root / "wrong.json")
-
-    def test_metrics_preserve_unknown_and_do_not_double_count_reasoning(self):
-        normalized = execution_metrics.normalize_metrics({"usage": {"input_tokens": 5, "cache_read_input_tokens": 80,
-                    "cache_creation_input_tokens": 15, "output_tokens": 20, "output_tokens_details": {"thinking_tokens": 10}}})
-        self.assertEqual(normalized["input_tokens"], 100)
-        self.assertEqual(normalized["output_tokens"], 20)
-        totals = execution_metrics.aggregate_metrics([{"receipt": {"metrics": normalized}}, {"receipt": {}}])
-        self.assertEqual(totals["input_tokens"], {"measured_sum": 100, "measured_calls": 1, "unknown_calls": 1})
-        self.assertEqual(totals["reported_cost_usd"]["unknown_calls"], 2)
 
     def test_decision_packet_detects_stale_decisions_and_oversized_briefs(self):
         sources = [{"path": str(self.brief), "authority": "decision", "locator": "Acceptance"}]

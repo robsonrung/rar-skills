@@ -1,231 +1,33 @@
 # Auto interview mode
 
-Read this only when the invocation includes `--auto`. This mode dispatches two fixed roles to progress the **design tree** from supplied scope and repository facts. It is not a council.
+Read only when the invocation includes `--auto`. Two roles advance the design tree from the supplied scope and repository evidence: an interviewer asks, a respondent answers. It is not a council, and a role's answer is not an independent opinion.
 
-## Route and authority
+## Plan
 
-Classify the request before the first call:
+1. Pick the route: `interview-product` for an ambiguous user or product problem, `interview-technical` for an explicit technical problem; when unclear, use `interview-product` and record that assumption. Run `python3 shared/scripts/model_routing.py resolve <route>`.
+2. Show both roles with model, effort, and host route, and the ceilings below. Ask: **"Approve this plan, or specify changes."** `--auto` is the mandate for automatic answers inside the supplied scope; a changed model, role, or ceiling needs the user.
 
-| Request shape | Route |
-| --- | --- |
-| Ambiguous user or product problem | `interview-product` route |
-| Explicit developer technical problem | `interview-technical` route |
-| Unclear | `interview-product` route; record the classification assumption |
+## Roles
 
-Use `shared/references/model-preview.md` to build or reuse one concrete route snapshot for the actual dispatch. The snapshot records the classification, roles, exact models and effort, host execution paths, source sharing, receipt policy, and ceilings. `--auto` is **the mandate** for the selected default pair and automated answers inside the supplied scope. A change to model, effort, role, transport, source sharing, receipt policy, or ceiling needs a user decision.
+Give each role one persistent context for the whole run; every later round goes to that same context. The roles see only the decision record, the question and answer packets, and cited evidence, never each other's transcript. Leave secrets and unrelated personal data out of packets; after the first, send only changed decisions and open questions.
 
-Both roles consume the saved snapshot. A nested method, runner, or repair does not re-resolve a route, ask another model question, or add a worker. A missing capability pauses the affected route for a user decision.
+Route each role by host: T3 Code `delegate_task` (continue with `t3_thread_send`); Claude Code or Codex a native subagent with the role's model (continue by messaging it); otherwise the matching `*-runner` skill (continue by resuming its session). Both roles are read-only. An unavailable role pauses the run for the user; never swap in another model.
 
-Record the route's `model_verification` policy. `--auto` authorizes an
-`allow_unverified` route when the host cannot expose the serving identity, but
-the route preview and run state must label that limit. A `required` route stays
-blocked without a matching verified receipt.
+| Role | Job | Returns |
+| --- | --- | --- |
+| Interviewer | Recompute the frontier from the record and the last answers | Up to five independent questions, each with repository basis, materiality, and dependencies |
+| Respondent | Answer from evidence and the supplied scope | Per question: an answer with evidence, source category, and assumptions, or `awaiting-human` with the reason |
 
-Before each dispatch, bind the role packet and its source revisions to the route snapshot. Reserve the call against the total and per-role ceilings in the ledger before it starts. A route without a valid packet, approved snapshot, or remaining budget does not dispatch.
+The respondent tags each answer with one source category: `user-supplied`, `repository-evidence` (path, locator, or command result), `automated-inference` (explain why scope and evidence permit it without a preference), `nonmaterial-default`, `out-of-scope`, or `awaiting-human`. It never claims a preference, approval, or authority that was not supplied. Product preference, risk or policy acceptance, data ownership, a security commitment, or any material choice that evidence does not decide is `awaiting-human`.
 
-Use native isolated subagents or persistent task threads when the selected model
-is native to the active host. For a foreign model or an unsupported native path,
-use the checked external runner selected by the shared reference. Reuse the
-same role context throughout the run. A lost context may be recreated only as
-the same recorded role and route from its checkpoint, as the host execution
-contract permits.
+## Rounds
 
-Every external runner call names the recorded model and effort, never with a
-fallback option. Accept a result only when it ran on the recorded route and any
-model the CLI reports matches the requested model. Apply the
-recorded receipt policy before the result enters the decision record.
+One interviewer call and one respondent call make a round. Keep going without pausing for ordinary answers. When only material unknowns remain, bring them to the user as one round of at most five questions.
 
-## Role protocol
+Ceilings: 5 rounds, 5 questions per round, 20 calls in total. A malformed reply or transient failure gets one repair prompt to the same context; a second failure ends the run `failed`. Reaching a ceiling ends it `ceiling_hit`. Do not extend a ceiling or start a fresh run without the user.
 
-Create two isolated role contexts. They exchange only the persisted decision record, question packets, answer packets, and cited repository evidence. Use the entry file's stable decision IDs and compact source index in both question and answer packets. Carry source IDs, authority, locators, and content revisions; include only new or changed rows on later turns. Exclude secrets, unrelated personal data, and full transcripts from role packets. Do not merge their conversations or call a later response an independent opinion.
+Keep the run under `.ai-workflow/work/<feature-slug>/interview-auto/<run-id>/`: the round packets and a run state per `shared/references/run-state-contract.md`. Record the run ID and state path under `## Auto interview run` in the decision record, and resume from there with the same role contexts.
 
-| Role | Job | Inputs | Required output |
-| --- | --- | --- | --- |
-| Interviewer | Build and recompute the frontier | Request, decision record, prior answer packet, relevant repository facts | Up to five independent questions, each with repository basis, materiality, and dependencies |
-| Respondent | Answer the packet from evidence and supplied authority | Question packet, decision record, cited evidence, explicit user scope | Per-question answer or `awaiting-human`, evidence, source category, assumptions, and reason |
+## Ready-for-PRD gate
 
-For an external runner, keep the semantic role in state and use this supported
-analysis adapter role:
-
-| Semantic role | Runner role |
-| --- | --- |
-| Interviewer | `planner` |
-| Respondent | `researcher` |
-
-The interviewer asks exactly five questions when five independent frontier
-decisions exist. It asks fewer only when fewer independent decisions exist or
-the host cannot present five. It never asks more than five.
-
-The respondent may settle a technical fact, constraint, or reversible choice
-when the supplied scope and evidence determine it. It must use one source
-category for each result:
-
-1. `user-supplied`: an explicit statement in the request or a later user reply.
-2. `repository-evidence`: an observed project fact with a path, locator, or
-   command result.
-3. `automated-inference`: a stated inference from the supplied scope and cited
-   evidence. Explain why it does not require a preference or approval.
-4. `nonmaterial-default`: a documented default for a nonmaterial uncertainty.
-5. `out-of-scope`: an explicit boundary.
-6. `awaiting-human`: a material decision that remains unresolved.
-
-The respondent must not claim a user preference, approval, acceptance, or
-external authority that was not supplied. It must mark a question
-`awaiting-human` when it needs product preference, policy or risk acceptance,
-external authority, data ownership, a security commitment, or another material
-choice that evidence and scope do not decide. Model output is not runtime
-evidence. Use `to-prototype` only when the **smallest reversible move** can
-settle the decision under the supplied scope.
-
-Continue automatic rounds without pausing for ordinary answers. Complete every
-independent grounded or reversible question that does not depend on a material
-unknown. Then collect only the remaining material unknowns into one user request
-of at most five questions. Do not ask for approval between automatic rounds.
-
-## State, artifacts, and bounds
-
-Use `shared/references/run-state-contract.md`. Keep **the ledger, not the
-transcript** at:
-
-```text
-.ai-workflow/work/<feature-slug>/interview-auto/<run-id>/run-state.json
-```
-
-Use the same directory for `round-<n>-questions.json` and
-`round-<n>-answers.json`. The decision record remains at
-`.ai-workflow/work/<feature-slug>/decision-record.md`. Store artifacts by path;
-do not put full conversation transcripts in state.
-
-Under `## Auto interview run` in the decision record, store `Run ID`, `State`, `Status`, and the route snapshot reference. Update the pointer at each checkpoint. It is the first resume lookup; it is not a substitute for state validation.
-
-Before the first dispatch, append this required entry to the shared `gates` array. It records the explicit `--auto` authorization and the approved route snapshot. It does not ask for a second approval:
-
-```json
-{
-  "gate": "auto_route_authorization",
-  "decision": "approved",
-  "source": "--auto",
-  "scope_fingerprint": "sha256 of supplied request and constraints",
-  "original_input_revision": "initial source revision or digest",
-  "route_fingerprint": "sha256 of the selected role routes",
-  "route_snapshot_reference": "path to the approved route snapshot"
-}
-```
-
-Calculate `scope_fingerprint` from the stable supplied request and constraints
-plus the original input revision. Exclude the evolving decision record and
-round packets so ordinary answers do not invalidate the mandate. A later
-material scope change appends a new gate with its user-message reference and
-updated fingerprint before affected calls. A route change still follows the
-route-change boundary.
-
-Keep the required shared state fields and one `auto.roles.<semantic-role>` entry
-for each role:
-
-```json
-{
-  "auto": {
-    "request_shape": "ambiguous_user_or_product",
-    "scope_reference": "user request reference",
-    "scope_fingerprint": "stable supplied-scope digest",
-    "route_fingerprint": "selected-route digest",
-    "route_snapshot_reference": "path to the approved route snapshot",
-    "decision_record_path": ".ai-workflow/work/<feature-slug>/decision-record.md",
-    "roles": {
-      "<semantic-role>": {
-        "route_id": "recorded route id",
-        "semantic_role": "interviewer or respondent",
-        "runner_role": "planner or researcher or null for native",
-        "task": "feature slug",
-        "host": "active host",
-        "transport": "native_subagent_or_runner",
-        "context_id": "returned context id or session path",
-        "requested_model": "selected model",
-        "configured_model": "configured model or null",
-        "effective_model": null,
-        "effort": "selected effort or null",
-        "effort_control": "configured or runtime",
-        "tool_policy": "selected tool policy",
-        "source_sharing": "approved source classes and exclusions",
-        "provider_controls": "selected provider privacy and fallback controls",
-        "capability_source": "native or runner capability evidence",
-        "supported_efforts": ["observed supported effort values"],
-        "model_verification": "allow_unverified or required",
-        "receipt_reference": "host or provider receipt path or null",
-        "model_receipt": {"status": "unverified", "source": "configured_model", "observed_model": null},
-        "last_input_revision": "input digest or revision",
-        "pending_call_id": null,
-        "completed_round": 0,
-        "status": "ready"
-      }
-    },
-    "open_frontier": [],
-    "round_artifacts": []
-  }
-}
-```
-
-Replace placeholder receipt values only with actual host or provider evidence. A configured model label, a transcript, or a self-description is not a verified receipt. Persist a pending call, reservation, and attempt before dispatch. Reconcile the call before sending another prompt after a restart.
-
-Use these ceilings from the first checkpoint:
-
-| Ceiling | Value |
-| --- | --- |
-| Automatic rounds | 5 |
-| Questions in one round | 5 |
-| Normal role calls | 10 |
-| Repair calls | 10 |
-| Total dispatches | 20 |
-
-One normal interviewer call and one normal respondent call make an automatic
-round. Validate each packet for its required fields and question count. Reconcile
-the recorded pending call before a repair. Send one repair prompt to the same
-recorded role context only for malformed output or a transient same-route
-failure with intact model, effort, transport, and receipt policy. The
-orchestrator increments the matching `attempts` entry before each call: **the
-model never decides the retry**. A second eligible failure records `failed`; do
-not replace the role.
-
-An unavailable seat, fallback, unexpected runner or configured model, verified
-model mismatch, unsupported effort, changed transport, or missing required
-receipt pauses the affected route as `awaiting_human`. Do not send a repair
-prompt or select an alternate route.
-
-The run has **three exits**: `complete` when the ready-for-PRD gate passes,
-`failed` when an allowed repair is exhausted, and `ceiling_hit` when a listed
-ceiling is reached. `awaiting_human` is a durable pause for a material unknown.
-Do not extend a ceiling, reset attempts, or start a new run without a user
-instruction.
-
-## Resume and ready-for-PRD gate
-
-Before creating roles, read the decision-record pointer. If it names an
-unfinished state whose gate, scope fingerprint, and route fingerprint match,
-resume that run by its `run_id`. If the pointer is absent or stale, inspect
-`.ai-workflow/work/<feature-slug>/interview-auto/*/run-state.json`. Resume when
-exactly one unfinished state matches. When multiple candidates or a mismatch
-remain, record `awaiting_human` and present their paths; do not launch new roles.
-
-On resume, reuse each recorded context ID and pass only the next prompt, changed
-input, and artifact paths. Reconcile a pending call before retrying it. Keep all
-attempt counters, round artifacts, route values, and material-unknown items. A
-completed, failed, or ceiling-hit run does not restart itself.
-
-Set `decision-record.md` to `ready-for-prd` only when all of these are true:
-
-1. Every frontier branch has a `user-supplied`, `repository-evidence`,
-   `automated-inference`, `nonmaterial-default`, or `out-of-scope` result.
-2. No `awaiting-human` material decision remains.
-3. Each automatic result retains its decision ID, source category, indexed evidence with authority and content revisions, assumptions, and role execution reference.
-4. Every `automated-inference` states why the supplied scope permits it and why
-   it is not an invented user preference or approval.
-5. Role route and receipt limits are recorded accurately in the run state.
-
-Otherwise retain `draft`, record the open frontier, and present only the next
-material questions or the terminal limit. After a passed gate, follow the entry
-file's conditional `to-prd` handoff when the user's existing request includes a
-PRD. An interview-only request stops at the completed decision record.
-
-## Context budget
-
-Use `shared/references/context-packets.md` for each role's first packet. Include the current decisions, frontier, user scope, source authority, and targeted locators with revisions. Keep complete transcripts and reports in the evidence archive, not in every prompt. Packets and cited evidence remain immutable. On a contradiction, **flag, never overwrite**; append the new source and preserve the earlier revision. Later turns carry changed decisions and unresolved questions. Summarization cannot invent authority or settle an open preference. If context is exhausted, reconcile the same session and compact from the decision record before retrying. Record the failed call and remaining uncertainty.
+Set `ready-for-prd` only when every frontier branch has a non-`awaiting-human` result, each automatic answer keeps its decision ID, source category, indexed evidence, and assumptions in the record, and every `automated-inference` states why the scope permits it. Otherwise keep `draft` and present the remaining material questions.

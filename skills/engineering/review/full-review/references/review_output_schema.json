@@ -264,6 +264,151 @@
         }
       },
       "additionalProperties": false
+    },
+    "gate": {
+      "type": "object",
+      "description": "Filled only in gate mode.",
+      "required": [
+        "tiers",
+        "coverage",
+        "checks",
+        "preview"
+      ],
+      "properties": {
+        "tiers": {
+          "type": "object",
+          "description": "The scope contract, declared before any seat starts.",
+          "required": [
+            "will_review",
+            "spot_check",
+            "wont_review"
+          ],
+          "properties": {
+            "will_review": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "spot_check": {
+              "type": "object",
+              "required": [
+                "files",
+                "sampling"
+              ],
+              "properties": {
+                "files": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "sampling": {
+                  "type": "string",
+                  "minLength": 1,
+                  "description": "Sample size and how the sample was chosen."
+                }
+              },
+              "additionalProperties": false
+            },
+            "wont_review": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "path",
+                  "reason"
+                ],
+                "properties": {
+                  "path": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "reason": {
+                    "type": "string",
+                    "minLength": 1
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          },
+          "additionalProperties": false
+        },
+        "coverage": {
+          "type": "array",
+          "description": "One row per will-review and spot-check file. A declared file missing here is a broken contract.",
+          "items": {
+            "type": "object",
+            "required": [
+              "path",
+              "outcome"
+            ],
+            "properties": {
+              "path": {
+                "type": "string",
+                "minLength": 1
+              },
+              "outcome": {
+                "type": "string",
+                "enum": [
+                  "clean",
+                  "finding",
+                  "spot-checked",
+                  "skipped"
+                ]
+              },
+              "note": {
+                "type": "string",
+                "description": "Required for skipped: what forced the skip."
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "checks": {
+          "type": "array",
+          "description": "Embedded verbatim from verify-changes; item shape owned by verify-changes/references/checks-schema.json.",
+          "items": {
+            "type": "object",
+            "required": [
+              "command",
+              "result"
+            ]
+          }
+        },
+        "preview": {
+          "type": "object",
+          "required": [
+            "attempted",
+            "result"
+          ],
+          "properties": {
+            "attempted": {
+              "type": "boolean"
+            },
+            "url": {
+              "type": "string"
+            },
+            "result": {
+              "type": "string",
+              "enum": [
+                "pass",
+                "fail",
+                "skipped"
+              ]
+            },
+            "notes": {
+              "type": "string",
+              "description": "What was observed, or why the preview was skipped."
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
     }
   },
   "additionalProperties": false

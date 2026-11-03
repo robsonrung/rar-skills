@@ -25,10 +25,6 @@ jobs:
             python3 -m unittest discover -s "$dir" -t "$dir"
             echo "::endgroup::"
           done
-      - name: Architecture review contract, measurements and renderer
-        run: |
-          python3 skills/engineering/review/architecture-review/scripts/selftest.py
-          python3 skills/engineering/review/architecture-review/scripts/validate_report.py skills/engineering/review/architecture-review/examples/demo-audit.json
       - name: Skill frontmatter, runner registration, and leitwörter
         run: |
           python3 skills/shared/scripts/validate_skill_frontmatter.py

@@ -1,182 +1,49 @@
 # Host model execution
 
-Use this contract when dispatching or resuming a worker. Coordinator work,
-deterministic commands, and methods or lenses applied in the assigned role do not
-need a worker. [model-preview.md](model-preview.md) owns the branch decision and
-one concrete selection for actual dispatch. Consume the approved snapshot on
-nested calls and resumes. Use `model-roster.md` and `task-shaped-model-routing.md`
-only when preparing a new selection. Preserve **seat fidelity**:
-"This route keeps the selected model and reuses its own role context."
+How to run an approved worker route on the current host. [model-preview.md](model-preview.md) owns selection and approval; this reference starts from an approved route. Keep **seat fidelity**: the route keeps its model and reuses its own role context.
 
 ## Choose the execution path
 
-1. Inspect the current host's exposed tools, model catalog, and restrictions.
-   A profile resolves future coordinator and worker choices. It cannot change the
-   current coordinator model. For a future plan, compare the observed model and
-   effort with the central `coordinator` route through the batch preview in
-   [task-shaped-model-routing.md](task-shaped-model-routing.md#future-task-plans).
-   A mismatch or unknown identity requires selection in the host before future
-   startup. Continue plan preparation in the current session and disclose the
-   difference. Never treat a saved preview as evidence of a host model change.
-   Confirm exact model selection, supported effort, role isolation, tool policy,
-   result collection, and follow-up or resume support. Do not infer capabilities
-   from the app name or the model running the coordinator.
-2. For a selected model available through native delegation, use that native
-   subagent or task context. Do not start a runner just to call the same native
-   model. A native parent session alone is not a separate worker.
-3. Use a persistent native task thread when the host exposes it for delegation
-   and the action is authorized. If creating a user-owned task requires an
-   explicit request, prefer internal subagents. A skill cannot grant permission
-   to create, rename, pin, archive, or delete user-owned tasks.
-4. For a foreign model, or a native path that cannot meet the exact route, use
-   an available external runner. State why it is needed before dispatch. An
-   explicit user request for a particular CLI or transport takes precedence.
-5. If neither path can meet model, effort, isolation, tools, or receipt policy,
-   report the missing capability. Use only an authorized exact alternate route.
-   Do not substitute the coordinator model or pretend a session is persistent.
+1. Inspect what the host actually exposes: tools, model catalog, effort control, role isolation, result collection, and follow-up support. Don't infer capabilities from the app name or the coordinator's model.
+2. **T3 Code:** start the role with `delegate_task` using the configured provider and model, and continue it with `t3_thread_send`.
+3. **Claude Code or Codex:** use a native subagent when the host has the exact model. Don't start a runner to call a model the host already runs natively. The parent session is not a separate worker.
+4. **Model the host lacks,** or a native path that cannot meet the route: use the matching `*-runner` skill ([runner-common.md](runner-common.md)). An explicit user request for a CLI or transport wins.
+5. If no path meets the model, effort, isolation, tools, or receipt policy, report it. Run only an exact alternate the plan names; never substitute the coordinator's model.
 
-| Active host | Native preference | External route when needed |
+| Host | Native | Runner when needed |
 | --- | --- | --- |
-| Claude Code app or CLI | Exposed Claude subagents with exact Fable, Opus, Sonnet, or Haiku selection | Other model families, or a required control absent from native tools |
-| ChatGPT app or Codex app/CLI | Exposed Astra, Sol, or Terra subagents; persistent task threads where supported and authorized | Foreign families, or an exact route unsupported by the native tools |
-| Pi | Exposed delegation with the selected provider model; Pi is a multi-provider host | A configured model alone does not prove a subagent extension exists; use a checked runner if needed |
-| Grok or another host | Its actual exposed model selection, isolated worker, and follow-up tools | A checked external route for capabilities the host does not expose |
+| Claude Code | Claude subagents with exact model selection | Other families, or a control the native tool lacks |
+| Codex | Astra, Sol, or Terra subagents; task threads where authorized | Other families |
+| T3 Code | `delegate_task` with the configured provider and model | Models no configured provider serves |
+| Pi or another host | Its actual exposed delegation | A checked runner for what it lacks |
 
-These are discovery hints, not universal capability claims. An installed CLI,
-model family name, or `agents/openai.yaml` metadata does not create a native seat.
-Native tools may inherit a model only when its exact configured identity matches
-the route and the host permits inheritance. Otherwise select it explicitly.
+These are hints, not guarantees. An installed CLI or `agents/openai.yaml` metadata does not create a native seat. A native tool may inherit a model only when its exact identity matches the route. Creating, renaming, or deleting user-owned tasks needs the user's request.
 
-For an implementation plan, use `mode: native` and `effort_control: native`.
-The schema keeps `runner` as the model-family adapter key for compatibility;
-it does not require a CLI call. The `native` object records `host`,
-`transport` (`subagent` or `thread`), `capability_source`, and `supported_efforts`.
-The selected effort must appear in that observed capability list. Record the
-returned context ID later in run state. Older native rows with runner effort
-control remain legacy records; they are not proof of native capability checks.
+In an implementation plan, a native route uses `mode: native` and `effort_control: native`, and its `native` object records `host`, `transport` (`subagent` or `thread`), `capability_source`, and `supported_efforts`. The selected effort must be in that observed list. `runner` stays as the family key; it does not mean a CLI call.
 
 ## Keep role contexts through iterations
 
-Start one isolated context per task and role, with no parent conversation history. Use the host's
-supported empty-history option and supply the bounded task packet. For a host with `fork_turns`,
-select `none`; do not inherit the coordinator's conversation. Keep that context for later turns
-of the same role: interview rounds, debate rounds, gap repair, implementation
-fixes, reviewer rechecks, or integration reconciliation. Create a new context for
-a different task, independent role, blind opening, or approved model change.
+Start one isolated context per task and role, with no parent conversation history (`fork_turns: none` where the host offers it), and give it the bounded brief from [handoff-contract.md](handoff-contract.md). Reuse that context for the same role's later turns: interview rounds, fixes, rechecks, debate rounds. Start a new one for a different task, an independent role, a blind opening, or an approved model change.
 
-An implementer and reviewer never share a session. Consensus opening seats do
-not see each other's answers before the protocol allows it. Judges start without
-opening-seat or organizer history. Persistence preserves a role's evidence; it
-does not merge roles or turn repeated turns into extra independent opinions.
+An implementer and its reviewer never share a context. Consensus seats don't see each other's answers before the protocol allows it. Judges start without seat history. Repeated turns from one context are one opinion, not several.
 
-Persist each role's route ID, host, transport, returned context ID or session
-path, task and role, configured model and effort, tool policy, receipt reference,
-last input revision, completed turn, status, and pending call ID in the workflow's
-existing state file. A background job ID, UI metadata file, requested model, or
-local transcript path is not a native conversation ID.
-If native setup is pending, wait for the usable context handle before sending
-work. A temporary setup identifier is not a ready model session.
+Record each role's route ID, host, transport, actual context ID or session path, configured model and effort, last input revision, completed turn, and pending call in the run's existing state ([run-state-contract.md](run-state-contract.md)). A background job ID, a requested model, or a setup token is not a context ID; wait for the real handle before sending work. Continue with that recorded ID, never a "most recent session" selector while several roles run. Runner session handling is in each runner's Continue section.
 
-Before each call, reserve its budget and record the attempt and pending state in
-the existing ledger. Include specialists, repairs, fallbacks, and rechecks. After it returns, capture
-the result and receipt. On resume, reconcile the pending call with its actual
-status before resending. Use the recorded ID to send only the next prompt,
-changed inputs, and relevant artifact paths. Never use a global "last session"
-selector when concurrent roles can select the wrong context.
-
-Keep contexts available until their role is complete and evidence is captured.
-Do not close a reviewer after its first pass when fix cycles remain. Do not reuse
-a task worker for an unrelated task. Release only resources owned by this run
-and only within the host's authority.
-
-## External session adapters
-
-Use the selected runner's SKILL.md and `--help`. The current adapters expose:
-
-| Runner | Persistent route |
-| --- | --- |
-| Claude | Capture `session_id` from structured output; use `--resume <id>`. Omit `--no-session-persistence` for an iterative role. |
-| Codex | Capture `session_id`; use `--resume <id>`. Avoid ephemeral mode for iterative work. |
-| Grok | Capture `session_id`; use `--resume <id>`. Stored sessions persist under the CLI's own controls. |
-| Pi | Allocate a unique session file per role and pass it through `--session <path>` on the first and later turns. The stream does not supply a new session ID. Omit `--no-session-persistence` and `--ephemeral`. |
-| Gemini through agy | No exact native session ID is exposed. Its shared latest-conversation continuation is unsuitable for concurrent independent roles. Use proven isolated runtime state or a disclosed reconstruction from artifacts. |
-| Other runners | Inspect their continuation support. Do not assume another CLI's flags work. |
-
-A text handoff can restore facts after a lost or unsupported session, but it is
-not native resumption. Record the break and recreate only the same authorized
-role from its checkpoint. Preserve call counts, write ownership, input revision,
-and approval. A changed model or transport follows the workflow's route-change
-rule. If the last call's outcome is uncertain, reconcile it before retrying.
-
-Continue an external role with its runner's recorded session, as the runner's SKILL.md
-describes. A lost session starts a fresh context with the full contract; an uncertain
-outcome is reconciled before any resend. Keep external and native contexts separate.
-Give native hosts without shared-file access the response contract inline.
+Reserve each call before sending it, including repairs and rechecks. On resume, reconcile a pending call with its actual outcome before resending. A lost session is rebuilt from that role's artifacts under the same route and counters, and the report says it was a reconstruction. Keep a reviewer open while fix cycles remain. Release only what this run owns.
 
 ## Browser and provider capabilities
 
-An external runner does not inherit the host's browser tools or authenticated
-session. Preflight the selected browser mechanism inside its worker environment:
-commands, driver instructions, current state, interaction, assertions, diagnostics,
-and artifact output. For visual work, prove the model accepts images and that a
-synthetic screenshot becomes typed image content through the adapter. A file path
-in a text prompt does not meet that requirement. Record the capability evidence
-and required tool policy in the selected route; shell access is not a sandbox.
+A runner does not inherit the host's browser tools or logged-in session. Check the selected browser mechanism inside the worker's environment. For visual work, prove the model receives the screenshot as image content; a file path in a prompt is not an image.
 
-For Pi gateway routes, carry the immutable `provider_routing` policy into every
-request, including repairs and resume. Prove serialized model, reasoning, privacy
-fields, provider restrictions, tool schemas, and image payloads locally before
-sending repository material. Retain a sanitized policy receipt and its digest.
-Separate model author, gateway, and observed inference provider; never infer the
-inference host from a model prefix. A client model event does not independently
-prove an inference provider. Missing required controls block the route.
-
-## Preflight result cache
-
-Capability probes (CLI presence and version, model availability, supported
-efforts, tool or image support, ZDR endpoint checks, browser mechanism
-readiness) are expensive to repeat on every invocation. Store their results
-with `shared/scripts/preflight_cache.py`, keyed by seat and a fingerprint of
-the probe target (CLI version plus configuration digest), at
-`~/.rar-skills/preflight-cache.json`. A fresh entry (under 24 hours, matching
-fingerprint) is the source of truth and skips the probe; an expired,
-mismatched, or corrupt entry means re-probe, never guess. The cache covers
-capability probes only: serving-model receipts, per-request privacy controls,
-and quota availability are per-run facts and are never cached. A cached
-"seat available" never upgrades an unverified receipt.
+For Pi gateway routes, carry the route's `provider_routing` into every request, including repairs and resumes. The wrapper proves the serialized privacy fields locally before sending repository material and keeps a policy receipt. Keep the model author, gateway, and observed inference provider apart; a model prefix doesn't name the inference host. A missing required control blocks the route.
 
 ## Evidence and authority
 
-Configured identity, serving-model evidence, and completion are separate facts.
-Keep native model and effort selection evidence with the route. Store observed
-serving identity only from a native or provider event. Native transport does not
-automatically make a receipt verified or enforce a read-only tool profile.
+The configured model, the observed serving model, and completion are separate facts. Record a serving model only from a native or provider event. Native transport does not make a receipt verified or enforce read-only tools; when tools can't enforce the scope, use a no-tools brief or a restricted route, and don't call a prompt instruction a sandbox. The calling workflow owns approval, budgets, writes, and the terminal status.
 
-When tools cannot enforce the required scope, use an authorized no-tools brief
-or a route with the required restrictions. Do not describe a prompt-only request
-as a sandbox. The workflow owns approval, budgets, allowed writes, and terminal
-status. This contract adds no hidden calls, review panel, or publication action.
+Save raw completion output as soon as a call returns. A missing session ID or malformed result is a receipt failure to reconcile, not permission to restart.
 
-## Bounded context and receipts
-
-Start each dispatched independent role with a fresh context unless that role is
-continuing its own work. Apply inherited design-gate findings and selected
-read-only lenses in the assigned role. Follow [workflow-stage-routing.md](workflow-stage-routing.md)
-for the one gate pass and blocking lens recheck. An approved specialist receives
-the current decision packet and evidence locators. Reuse loaded instructions within
-a context. A provider context limit is not a reason to start another paid role.
-
-Save raw completion output immediately. Use structured runner output for resumable
-roles. A missing session ID or malformed terminal result is a receipt failure to
-reconcile, not authority to restart. Keep provider errors and partial output.
-
-Use `execution_metrics.py` to normalize per-call usage. Input includes cached input;
-reasoning output is a subset of output, not an extra sum. Missing usage, duration,
-or cost stays unknown. Report CLI cost as reported cost, not an invoice. Compare
-total measured work per accepted task, including failed calls and repairs.
-
-For a saved desktop task wait response, `shared/scripts/native_completion.py`
-extracts the exact final message and links it to the raw event and dispatch file:
+For a saved T3 Code task wait response, `native_completion.py` extracts the exact final message and binds it to the raw event and dispatch record:
 
 ```bash
 python3 <shared-dir>/scripts/native_completion.py --raw <wait.json> \
@@ -184,22 +51,8 @@ python3 <shared-dir>/scripts/native_completion.py --raw <wait.json> \
   --turn-id <expected-turn-id> --completed-turn <role-turn-number> --output <capture.json>
 ```
 
-The task, host, and turn must match the scoped host response. This intermediate
-capture is not an approval receipt. Keep it immutable and bind the
-required route and serving-model evidence separately. Missing serving
-identity remains unverified; never copy the configured model into an observed
-model field. Other host transports retain their raw completion format.
+The task, host, and turn must match the response. The capture marks the model unverified; never copy the configured model into an observed field.
 
-## Environment and context preparation
+## Environment
 
-Before dispatch, bind the actual worktree, required write paths, service ports, and artifact
-root to the role brief. Check the host permission surface for that worktree. Operating-system
-write access alone does not establish sandbox authority. Use the supported task workspace or
-existing approval for required paths; do not remove permission checks or grant broad access.
-Use stable commands with explicit working directories and bounded effects.
-
-Resolve the shared library and selected skills once with `skill_paths.py --start <loaded-skill>
---names <skill> ...`. Save the returned paths and hashes in the run packet. Reuse instructions
-while they remain available and unchanged. After context loss, load the compact ledger and
-only missing instructions, changed evidence, and current decisions. Do not reconstruct progress
-from complete transcripts when a receipt exists.
+Before dispatch, bind the worktree, allowed write paths, service ports, and artifact root into the brief, and check the host's permission surface for that worktree. Operating-system write access is not sandbox authority. Resolve the shared library and selected skills once with `skill_paths.py --start <loaded-skill> --names <skill> ...` and reuse the paths.

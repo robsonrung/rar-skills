@@ -129,9 +129,6 @@ def reply(args: argparse.Namespace) -> dict[str, Any]:
 
 def status(args: argparse.Namespace) -> dict[str, Any]:
     run_dir = run_directory(args.run_dir)
-    fleet = load_json(run_dir / "state.json", "fleet state")
-    if fleet.get("delivery_mode") == "coordinator":
-        raise UsageError("mailbox status is unavailable for delivery_mode coordinator; use the composing skill's artifact protocol")
     statuses = []
     for peer in sorted(peer_ids(run_dir)):
         path = run_dir / "replies" / f"{peer}.json"

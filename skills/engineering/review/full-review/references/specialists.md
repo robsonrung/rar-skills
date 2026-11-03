@@ -74,7 +74,7 @@ Apply a specialist when the diff matches its trigger. Its rules sharpen the revi
 
 **Trigger:** user-facing markup or styling, design tokens, themes, new screens or flows, forms, loading, empty, and error states.
 
-- Apply the craft bar of the `frontend-design` skill and the `ui-ux-pro-max` guidelines.
+- Apply the craft bar of the `frontend-design` skill.
 - New UI uses the repo's design system (tokens, spacing and type scales, palette, components) over one-off values.
 - Interactive elements have visible focus, accessible names, sufficient contrast, and consistent targets.
 - Async UI has deliberate loading, empty, and error states; forms validate inline and keep input on failure.

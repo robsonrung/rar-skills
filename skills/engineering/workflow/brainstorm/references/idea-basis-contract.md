@@ -1,40 +1,18 @@
-# Idea Basis Contract (generated-options mode)
+# Idea basis contract
 
-An optional mode for Phase 2. Invoke it when the user wants **generated options** — "give me ideas for X", "what could we do with this area", a field of candidates to choose from — rather than refinement of an idea they already brought. The contract excludes ideas with no basis the user can verify.
+Use when the user asks for generated options ("give me ideas for X") rather than refinement of an idea they brought.
 
-## The contract: no basis, no idea
+**No basis, no idea.** Every idea carries a basis the user can check, or it does not surface:
 
-Every generated idea carries a **verifiable basis tag**, or it does not surface — regardless of how plausible it sounds:
+- `direct:` a quoted line, `file:line`, issue, or user statement actually read this session;
+- `external:` named prior art or research, with its source;
+- `reasoned:` an explicit first-principles argument, written out.
 
-- `direct:` — a quoted line, specific `file:line`, named issue/PR, or explicit user-supplied context. A `direct:` basis must cite something actually read this session, never a guessed citation.
-- `external:` — named prior art, domain research, or an adjacent pattern, with its source.
-- `reasoned:` — an explicit first-principles argument for why this move likely applies, written out — not a gesture.
+Each idea has a title, a two-to-four sentence summary, its basis, and why it matters to this user.
 
-Each idea is returned as:
+The first ideas are the obvious ones; keep them only if they still earn a place once non-obvious ones exist. Drop or sharpen anything a generic listicle would contain. Stay inside the scope the user named: full ambition within one flow is not license to widen the surface. Vary the angle: friction, removal or automation, broken assumptions, leverage, cross-domain analogy, flipped constraints.
 
-- **title**
-- **summary** (2-4 sentences)
-- **basis** (required, tagged as above)
-- **why it matters** — connects the basis to the move's significance for this user
-
-## Generation rules
-
-- Treat the first few ideas as warm-up — they will be the obvious ones. Keep only those that still earn their place after the non-obvious ideas exist. If an idea would appear in a generic listicle about the topic, sharpen it with grounding evidence or drop it.
-- Stay within the subject's identity, and honor the asked scope: when the user named one slice (a flow, a page, a feature), ideate at full ambition _inside_ that slice — widening the surface is a scope mismatch, not big thinking.
-- Vary the angle: pain and friction; inversion/removal/automation; assumption-breaking; leverage and compounding; cross-domain analogy; constraint-flipping (what if the budget were 10x or 0?). Use these as starting biases, not fences.
-
-## Critique and rank before presenting
-
-Never hand the user the raw list. Critique every candidate against its own basis, the user's constraints, and the codebase reality, then present:
-
-1. The **ranked survivors** (typically 3-7), each with its basis tag visible so the user can check it.
-2. The **rejected ideas with explicit rejection reasons** — one line each ("rejected: basis didn't survive a read of `auth/session.ts`", "rejected: violates the stated no-new-infra constraint"). Silent drops are forbidden; the rejects teach the user the shape of the space as much as the survivors do.
-
-Survivors then feed the normal Phase 2/3 flow: alternatives on the table, trade-offs surfaced, convergence together.
-
-## Optional additional opinions
-
-Use `models-consensus` only when the user asks for more opinions. That skill presents its model and effort plan for approval before dispatch. Pass this basis contract with the neutral question. Apply the same evidence checks when using the council report; do not create a separate idea-generation fleet.
+Critique every candidate against its basis, the user's constraints, and the code before presenting. Show the ranked survivors, usually three to seven, with basis tags visible, and each rejected idea with a one-line reason. Silent drops are forbidden; the rejects show the shape of the space.
 
 ---
 

@@ -67,22 +67,23 @@ class ModelProfileTests(unittest.TestCase):
         self.assertEqual((selected[0].probe_cli, selected[0].execution_path), ("muse", "muse_runner"))
         self.assertNotIn("muse", self.config["models"])
 
-    def test_profile_precedence_and_legacy_cli_default(self):
+    def test_profile_precedence_and_cli_default(self):
         central = self.resolve("routine-function")
         local = self.resolve("routine-function", local_profile="balanced")
         explicit = self.resolve("routine-function", "economy", local_profile="balanced")
         self.assertEqual((central["profile"], central["selection_source"]), ("saver", "central"))
         self.assertEqual((local["profile"], local["selection_source"]), ("balanced", "local"))
         self.assertEqual((explicit["profile"], explicit["selection_source"]), ("economy", "explicit"))
-        legacy = self.cli("routine-function")
+        legacy = self.cli("routine-function", "--family", "gpt")
         self.assertEqual(legacy.returncode, 0, legacy.stderr)
         legacy = json.loads(legacy.stdout)
         self.assertEqual(legacy["family"], "gpt")
         self.assertNotIn("profile", legacy)
         self.assertEqual(legacy["roles"]["implementer"]["seat"], "terra")
-        default = self.cli("routine-function", "--profile", "default")
-        self.assertEqual(default.returncode, 0, default.stderr)
-        self.assertEqual(json.loads(default.stdout)["profile"], "saver")
+        for args in ((), ("--profile", "default")):
+            default = self.cli("routine-function", *args)
+            self.assertEqual(default.returncode, 0, default.stderr)
+            self.assertEqual(json.loads(default.stdout)["profile"], "saver")
 
     def test_economy_bounded_roles_and_independent_review(self):
         for route in ("routine-function", "isolated-implementation", "routine-implementation",
@@ -445,7 +446,7 @@ class ModelProfileTests(unittest.TestCase):
             ("--profile", "economy", "--role", "worker=glm", "--role", "worker=mistral-small"),
             ("--profile", "economy", "--family", "gpt"),
             ("--local-profile", "economy", "--family", "gpt"),
-            ("--role", "worker=glm"),
+            ("--family", "gpt", "--role", "worker=glm"),
         ):
             with self.subTest(args=args):
                 self.assertNotEqual(self.cli("validation-browser", *args).returncode, 0)

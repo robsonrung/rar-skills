@@ -1,144 +1,34 @@
 # Model preview
 
-For every directly invoked executable skill, first determine whether its branch
-dispatches a worker. This branch decision requires no model selection or route
-resolution. Resolve `shared/` as [its entry](../SKILL.md) describes. Preserve
-manual invocation controls and the separate explicit council gate in `models-consensus`.
+How a skill picks models for its workers and gets the plan approved. Applying a method or lens in the current context, running a deterministic command, or waiting needs no model worker and no preview.
 
-## Choose the branch first
+## Resolve
 
-Determine whether the requested branch needs a model worker. Loading or applying
-a method, lens, or reference in the current coordinator or implementer does not
-dispatch a worker. Run deterministic tests, builds, checks, hashes, status,
-evidence assembly, and waits directly.
+Run `python3 shared/scripts/model_routing.py resolve <route>` for each route the work needs (`show` lists them). Resolve only the roles the branch actually dispatches; never add a worker to fill a row.
 
-Coordinator-only and deterministic branches proceed within invocation authority.
-They need no full route resolution, model table, or model selection question.
-Name direct command work when useful; say **No additional model worker** when
-the distinction matters. A read-only lens stays in the assigned role unless a
-material risk or unresolved question requires an approved independent specialist.
+- Precedence: the user's instructions, then [local preferences](local-config.md) (`--local-profile <name>`, plus `route_overrides` as `--role ROLE=SEAT[:EFFORT]`), then the central default. An explicit `--profile` wins over the local one. `runtime` selects null effort where a model has no effort control.
+- [`model-routing.json`](../model-routing.json) is the only source of exact models and efforts. Never copy one into a skill.
+- Add `--risk high` for a task that meets `policy.high_risk_triggers`. One sensitive task does not promote the rest of a feature.
+- For a future queue, `resolve-batch` resolves every task and the future coordinator at once ([task-shaped-model-routing.md](task-shaped-model-routing.md#future-task-plans)). A preview never changes the model of the session already running.
 
-For actual dispatch, reuse an existing approved snapshot when scope and controls
-match. Otherwise resolve only the required roles and obtain one concrete selection
-under the rules below. Nested skills and runners consume that exact snapshot;
-they do not re-resolve preferences, ask another model question, or add workers.
+Check each role's path before showing it: native delegation first, then the matching runner ([host-model-execution.md](host-model-execution.md)). An installed CLI is not proof the route works.
 
-## Resolve the selection
+## Show and approve
 
-1. Identify the actual current coordinator model and exposed effort. A preview
-   cannot change it. Report unavailable identity or usage fields as unknown.
-   For a future implementation plan, resolve the central `coordinator` route
-   with the task batch described in [task-shaped-model-routing.md](task-shaped-model-routing.md#future-task-plans).
-   Show selected future and actual current coordinator values separately.
-   A mismatch or unknown identity requires host selection before future startup;
-   the current session can finish preparing the plan. A profile does not switch
-   the current model.
-2. Select only the workers needed by the chosen branch. Include independent
-   review and any material specialist the branch requires. Do not create a
-   worker merely to fill a preview row.
-3. Before selection, apply explicit user instructions, then
-   [local preview preferences](local-config.md), then central defaults.
-   [`model-routing.json`](../model-routing.json) is the only maintained source
-   of exact model and effort defaults. Updated workflow callers select the
-   `saver` profile unless the user or local preference selects another.
-   `economy` and `balanced` are selectable; existing explicit family routes
-   remain valid.
-   Resolve applicable routes with `model_routing.py resolve <route> --profile
-   default`. Add `--local-profile <name>` for a validated local preference.
-   An explicit `--profile saver`, `--profile economy`, or `--profile balanced`
-   wins over that preference. Use `--role ROLE=SEAT[:EFFORT]` for explicit
-   role changes;
-   `runtime` selects null effort when supported. Without profile options,
-   the CLI retains legacy family behavior, not the workflow default.
-   A validated local `route_overrides` entry applies its per-route seat and
-   effort changes here, at preview time only; it never changes an approved
-   route.
-4. Apply the route's risk conditions to each task and record its risk evidence.
-   A feature's sensitive task does not promote independent bounded tasks.
-   Preserve strong planning, invariant,
-   integration design, and risk review roles. A routine author implements
-   settled cases; it cannot decide unresolved product policy. Resolve exact
-   overrides before dispatch, without changing central defaults.
-5. Keep profile preferences separate from role overrides. Use `--profile
-   default` with the validated local preference when present; do not let a
-   hardcoded Economy example override a selected local profile.
-   Check [host capabilities](host-model-execution.md) and the selected runner
-   without a paid model call. Record actual tool access, image support when
-   needed, supported effort controls, role isolation, and receipt limits. For
-   external Pi browser work, save `browser: {mechanism, preflight: {path, sha256}}` with
-   captured readiness evidence.
-   A candidate or installed command is not proof of a working route.
+Show one row per worker: task and role, exact model and effort, host route (native or runner) with its tool policy, and the call limit. For an OpenRouter route, also show its `provider_routing` (`zdr: true`, `data_collection: deny`, and `require_parameters: true`) and name the gateway apart from the model author. Name anything missing.
 
-## Show one concrete preview
+Ask: **"Approve this plan, or specify changes."** Then:
+- "Use defaults and run", or an exact model request, approves that setup as shown.
+- An approval the caller already holds, such as an inherited approved plan or `interview-me --auto`, counts while its scope and controls still match.
+- Silence is not approval.
+- `models-consensus` keeps its own separate approval.
 
-Show the actual coordinator separately, then one row per required worker:
+Save per-route changes to `.rar-skills/config.local.yaml` only when the user asks to keep them for future work.
 
-| Scope and role | Exact model and effort | Execution and tools | Privacy and receipt | Fallback and limits |
-| --- | --- | --- | --- | --- |
-| Task or unit IDs and role | Resolved ID; selected level and control, or runtime controlled | Native host or runner, gateway, browser driver when needed, allowed tools and session isolation | Source sharing scope, request controls, provider restrictions, receipt policy and unverified limits | Exact approved alternate and trigger, or block; calls, attempts, time and concurrency |
+## Mode selection
 
-State the selected profile, direct command work, total run ceilings, and any
-missing capabilities. Separate model author, gateway, and observed inference
-provider. For OpenRouter routes, show the selected `provider_routing` policy:
-`gateway: openrouter`, `zdr: true`, `data_collection: deny`, and
-`require_parameters: true`, plus `only` and `allow_fallbacks` when selected.
-An inference provider preference is not an allowlist. Unknown account guardrails
-stay unknown. These controls do not establish a browser service's privacy policy.
+Use the mode the user named or the caller passed. Otherwise use the skill's safe default when it fits the invocation's authority. Ask only when the choice changes scope, cost, permitted effects, or an open decision, and ask once with the choices and their consequences. Keep doing independent authorized work while you wait.
 
-For new implementation plans, include the bound usage policy described in
-[usage-accounting.md](usage-accounting.md). Show observed coordinator and worker
-usage, remaining limits, unknown fields, and subscription observations separately
-from running worker caps. Host observations support the next dispatch decision;
-they do not prove that a running worker is capped.
+## After approval
 
-Show only the routes needed for the current request, including on the first
-invocation. If the user names exact models and efforts, resolve those choices
-and show their roles, transports, controls, and limits in this one preview.
-Do not add unrelated task categories or a second model selection step.
-
-Show the full routing table only when the user asks to inspect or change the
-profile across task kinds. Persist requested per-route changes to
-`.rar-skills/config.local.yaml` as `route_overrides` (see
-[local-config.md](local-config.md)) only when the user asks to save them for
-future work. A selection for the current task is not a request to change
-future defaults. Saved changes never alter approved routes.
-
-Offer **Keep defaults**, **Change selected roles**, or **Use another profile**
-when a selection is needed. A direct request to “use defaults and run” permits
-the unchanged resolved setup within source sharing authority and accepted receipt
-limits. Show that setup and proceed. An explicit model request uses those exact
-choices within the same authority. Reuse prior approval only when scope and all
-selected controls still match. Preserve invocation authority that a skill grants,
-such as `interview-me --auto`. Otherwise obtain one concrete selection before
-workers start, using the caller's model plan decision when it has one. Silence
-is not approval.
-
-An override received before dispatch wins. Save a replacement selection for
-unresolved work and keep completed evidence intact. Keep the required separate
-approval for a council, even when another skill used the same model.
-
-## Execute the selected snapshot
-
-Save exact routes, source sharing, provider controls, capabilities, tool policy,
-effort control, fallback triggers, limits, and the decision reference in the
-caller's existing plan. Bind them to its route digest where supported. Keep
-**seat fidelity**: “This child uses the selected route and adds no worker.”
-Dispatch, repair, fallback, and resume use that immutable snapshot. Do not reread
-local preferences or regenerate an approved route from central defaults.
-
-A missing model, unsupported effort, absent driver, receipt mismatch, or failed
-privacy check blocks its affected route. Do not relax controls to continue.
-Models without selectable effort must say runtime controlled and retain the
-observed setting; never invent a shared effort level. Verify model specific
-reasoning in the serialized request before using a new adapter path.
-
-Use one initial attempt and one repair with changed input or new evidence before
-considering a reasoning escalation. Only an exact selected fallback can run
-without another decision. Preserve the workflow's total call and time ceilings;
-recovery never resets them. Missing services, credentials, driver access, or
-requirements need preparation or a decision, not a stronger model.
-
-Show dated rates only when the selected endpoint supplies them. Distinguish
-rates, estimates, and enforced spending caps. Record coordinator, worker,
-reviewer, and failed attempt usage when available. Static checks and lower rates
-do not prove equal quality or savings per accepted result.
+The approved plan is fixed. Dispatch, repair, retry, and resume use it as saved; nested skills and runners reuse it and never re-resolve, reread local preferences, or add workers. Keep **seat fidelity**: an unavailable model, unsupported effort, receipt mismatch, or failed privacy check blocks that route. Only an exact alternate named in the plan may run without a new decision. Allow one attempt and one repair with new evidence before considering more effort; recovery never resets the call ceilings. A change the user requests before dispatch replaces the plan for unfinished work only.

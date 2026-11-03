@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://rar-skills/runner-envelope.schema.json",
   "title": "Runner Envelope",
-  "description": "Wrapper envelope emitted by every runner skill in this repo (claude, codex, gemini, grok, pi, and the pi-backed named seats). All --json responses carry the required keys below on every exit path; individual runners add the documented extension keys and may add further diagnostic keys (additionalProperties is intentionally open).",
+  "description": "Envelope the pi-runner and muse-runner wrapper scripts emit with --json. The required keys appear on every exit path; wrappers may add diagnostic keys, so additionalProperties stays open. Runners that call their CLI directly return that CLI's own output instead.",
   "type": "object",
   "required": [
     "runner",
@@ -20,11 +20,11 @@
   "properties": {
     "runner": {
       "type": "string",
-      "description": "Requested runner identity (claude, codex, gemini, grok, muse, pi, or a named seat label such as kimi, glm, qwen, gemma, minimax, ...)."
+      "description": "Requested runner identity: pi, muse, or a Pi seat label such as kimi or glm."
     },
     "effective_runner": {
       "type": "string",
-      "description": "Runner that actually produced output; equals runner unless a fallback occurred."
+      "description": "Runner that produced the output; always equals runner, because no wrapper falls back."
     },
     "effective_model": {
       "type": [
@@ -125,96 +125,54 @@
         "write"
       ]
     },
-    "tool_profile_receipt": {
-      "type": "object",
-      "required": [
-        "profile",
-        "status",
-        "observed_tools",
-        "observed_mcp_servers",
-        "errors"
-      ],
-      "properties": {
-        "profile": {
-          "enum": [
-            "no_tools",
-            "repo_read_only",
-            "write"
-          ]
-        },
-        "status": {
-          "enum": [
-            "verified",
-            "unverified",
-            "violated",
-            "not_restricted"
-          ]
-        },
-        "observed_tools": {
-          "description": "Raw startup tool evidence, null when absent."
-        },
-        "observed_mcp_servers": {
-          "description": "Raw startup MCP evidence, null when absent."
-        },
-        "errors": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        }
-      },
-      "additionalProperties": false
-    },
-    "limits": {
-      "type": "object",
-      "properties": {
-        "timeout_seconds": {
-          "type": "number",
-          "exclusiveMinimum": 0
-        },
-        "max_turns": {
-          "type": [
-            "integer",
-            "null"
-          ],
-          "minimum": 1
-        },
-        "max_budget_usd": {
-          "type": [
-            "number",
-            "null"
-          ],
-          "exclusiveMinimum": 0
-        },
-        "response_length": {
-          "const": "advisory_only"
-        }
-      }
-    },
     "effective_provider": {
       "type": "string",
-      "description": "Provider backing the effective runner (anthropic, openai, google, xai, qwen, z-ai, moonshot, minimax, ...)."
+      "description": "Provider or model author backing the run, such as moonshotai or meta."
     },
     "model_author": {
-      "type": ["string", "null"],
+      "type": [
+        "string",
+        "null"
+      ],
       "description": "Model publisher inferred from the selected model id. This is not the inference host."
     },
     "gateway": {
-      "type": ["string", "null"],
+      "type": [
+        "string",
+        "null"
+      ],
       "description": "Configured request gateway, such as openrouter."
     },
     "inference_provider": {
-      "type": ["string", "null"],
+      "type": [
+        "string",
+        "null"
+      ],
       "description": "Inference host identified by upstream evidence. Null when not observed."
     },
     "provider_policy_receipt": {
       "type": "object",
-      "required": ["status", "gateway", "policy_sha256", "request_count"],
+      "required": [
+        "status",
+        "gateway",
+        "policy_sha256",
+        "request_count"
+      ],
       "properties": {
-        "status": {"const": "enforced"},
-        "gateway": {"const": "openrouter"},
-        "policy_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
-        "request_count": {"type": "integer", "minimum": 1}
+        "status": {
+          "const": "enforced"
+        },
+        "gateway": {
+          "const": "openrouter"
+        },
+        "policy_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "request_count": {
+          "type": "integer",
+          "minimum": 1
+        }
       },
       "additionalProperties": false,
       "description": "Policy applied at the adapter request boundary. This does not identify an upstream inference host or attest account settings."
@@ -224,14 +182,14 @@
         "boolean",
         "null"
       ],
-      "description": "Auth preflight result: true on a successful run; null when auth was never exercised (missing CLI, invalid input, or a failure before auth could be established); false only when an authentication failure was actually detected. A missing CLI is untested auth, not failed auth \u2014 it maps to null, never false."
+      "description": "True on a successful run; false only when an authentication failure was detected; null when auth was never exercised, including a missing CLI."
     },
     "fallback_reason": {
       "type": [
         "string",
         "null"
       ],
-      "description": "Why a fallback was used, or null when no fallback occurred. Which runners fall back and which block-and-report is defined once in shared/references/runner-common.md (Seat fidelity); block-and-report runners always keep this null."
+      "description": "Always null: wrappers never fall back (runner-common.md, Seat fidelity). Kept for envelope compatibility."
     },
     "success": {
       "type": "boolean",
@@ -239,11 +197,11 @@
     },
     "print_invocation_started": {
       "type": "boolean",
-      "description": "Claude runner: false only before any print launch attempt. Set true immediately before the print subprocess or capture call; a launch error can retain true. This is distinct from the local preflight provider call count. Absence is unknown, including fallback runners without this field."
+      "description": "False when the wrapper failed before launching the CLI; absence means unknown."
     },
     "return_code": {
       "type": "integer",
-      "description": "0 success; -1 timeout; -2 CLI not found (seat_unavailable); -3 invalid input / native agent or API error / unexpected error. Runner-specific additions: claude-runner emits -4 for bare mode without ANTHROPIC_API_KEY/ANTHROPIC_AUTH_TOKEN; gemini-runner passes positive agy exit codes through unchanged."
+      "description": "0 success; -1 timeout; -2 CLI not found (seat_unavailable); -3 invalid input, native error, model mismatch, or blocked trust check."
     },
     "stdout": {
       "type": "string",
@@ -276,23 +234,6 @@
         "stream-json"
       ]
     },
-    "input_format": {
-      "type": "string",
-      "enum": [
-        "text",
-        "stream-json"
-      ]
-    },
-    "approval_mode": {
-      "type": "string",
-      "enum": [
-        "plan",
-        "default",
-        "auto-edit",
-        "auto",
-        "yolo"
-      ]
-    },
     "role": {
       "type": [
         "string",
@@ -313,10 +254,6 @@
     "ephemeral": {
       "type": "boolean"
     },
-    "chat_recording": {
-      "type": "boolean",
-      "description": "qwen-backed runners: always false; the wrapper forces --chat-recording=false."
-    },
     "agent_message": {
       "type": [
         "string",
@@ -331,35 +268,29 @@
       ],
       "description": "Session id reported by the native CLI, when available."
     },
-    "native_result": {
-      "description": "Raw result payload from the native result event. May be a string, object, or array; presence indicates the CLI emitted a result event. For --output-schema runs this is the structured object (agent_message is its JSON serialization)."
-    },
     "status": {
       "type": "string",
-      "description": "Failure classification when relevant: seat_unavailable (return_code -2), lane_unavailable (an isolated Cline lane is missing, invalid, or at capacity), malformed_output (the native call finished but the requested output contract failed), timeout (return_code -1), or auth_failed (detected authentication failure; forces success=false).",
+      "description": "Outcome label. Pi sets it on failure; Muse sets it on every run.",
       "enum": [
+        "completed",
+        "failed",
+        "preflight_only",
         "seat_unavailable",
-        "lane_unavailable",
-        "malformed_output",
         "timeout",
-        "auth_failed",
+        "invalid_input",
         "auth_missing",
         "empty_response",
-        "invalid_input",
+        "malformed_output",
         "provider_error",
-        "provider_policy_error"
+        "provider_policy_error",
+        "model_mismatch",
+        "model_unverified",
+        "blocked"
       ]
     },
     "fallback_from": {
       "type": "string",
-      "description": "The originally requested seat when a fallback runner produced this output (e.g. fallback_from: gemini). Present only on fallback runs; the core of seat-fidelity labeling."
-    },
-    "fallback_attempts": {
-      "type": "array",
-      "items": {
-        "type": "object"
-      },
-      "description": "Legacy field from removed fallback runners; current wrappers never fall back."
+      "description": "Always absent or null: wrappers never fall back. Kept for envelope compatibility."
     },
     "output_json_valid": {
       "type": "boolean",
@@ -399,10 +330,6 @@
       ],
       "description": "Stream-backed runners (pi): the reasoning-effort level forwarded to the CLI, when set."
     },
-    "provider_config_mutated": {
-      "type": "boolean",
-      "description": "Stream-backed runners (pi): true when a forwarded --model rewrote a persisted provider default as a side effect."
-    },
     "prompt_file": {
       "type": "string",
       "description": "Present when exactly one --prompt-file was supplied."
@@ -414,60 +341,23 @@
       },
       "description": "Present when more than one --prompt-file was supplied."
     },
-    "verification_evidence": {
+    "provider": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "description": "Pi: request gateway or provider selected for the call, such as openrouter."
+    },
+    "adapter_input_measurement": {
       "type": [
         "object",
         "null"
       ],
-      "description": "Implementation-run evidence contract, reported by roles that change behavior (implementer tracks in implement-and-review/implement-tasks). Red-before-implementation evidence exists only in this report \u2014 it cannot be reconstructed from the tree afterward, so orchestrators must persist it. Absent/null for analysis roles.",
-      "properties": {
-        "behavior_changed": {
-          "type": "boolean",
-          "description": "Whether the run changed observable behavior (vs pure refactor/analysis)."
-        },
-        "existing_tests_inspected": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "description": "Existing tests read to locate coverage for the touched behavior (paths or test names)."
-        },
-        "tests_added_or_changed": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "description": "Tests created or modified by this run (paths or test names)."
-        },
-        "red_baseline": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "description": "The observed failing output or characterization baseline captured BEFORE implementing \u2014 verbatim excerpt or file:line pointer. Null only with evidence_strategy no-test-exception."
-        },
-        "evidence_strategy": {
-          "type": "string",
-          "enum": [
-            "existing-failing-test",
-            "updated-wrong-expectation",
-            "strengthened-over-mocked",
-            "new-smallest-failing-test",
-            "no-test-exception"
-          ],
-          "description": "Which evidence route was taken (see the Evidence section of implement-and-review)."
-        },
-        "no_test_reason": {
-          "type": [
-            "string",
-            "null"
-          ],
-          "description": "Required when evidence_strategy is no-test-exception: why no automated test was meaningful, plus the replacement verification performed."
-        }
-      },
-      "required": [
-        "behavior_changed"
-      ]
+      "description": "Byte size and digest of the prompt text the wrapper rendered; token_count stays null."
+    },
+    "model_forwarded": {
+      "type": "boolean",
+      "description": "Muse: whether the requested model was passed to the CLI."
     }
   },
   "additionalProperties": true

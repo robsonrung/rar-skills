@@ -6,79 +6,30 @@ disable-model-invocation: true
 
 # Diverse Plan
 
-Choose the branch before selecting a model. Select branch premises and material review needs in the current coordinator. Before dispatching selected branches or reviewers, use `shared/references/model-preview.md` to bind one approved route snapshot.
+Use this only when alternative designs can change the implementation decision. It is a planning exercise, not a council; never invoke `models-consensus` from here. The result is one executable plan.
 
-Use this only when alternative designs can change the implementation decision. It is separate from `models-consensus`: the user chose a planning exercise, not a council. Never invoke the council from this skill.
+## Plan
 
-## Outcome
+1. Write one neutral brief: goal, scope, constraints, acceptance contract, relevant files, and what a plan must decide. Ask one question only when different answers would produce different plans.
+2. Choose the branches. Two by default; add a third only when an unresolved boundary, failure case, or delivery tradeoff needs its own approach. Each branch gets one **premise**: smallest viable change, cleanest design, or most robust failure handling. A branch that repeats another's brief at higher effort is not a branch.
+3. Resolve each branch with `python3 shared/scripts/model_routing.py resolve <route>`, using `deep-analysis`, `architecture`, or `technical-analysis` (defined in `shared/model-routing.json`; shapes in `shared/references/task-shaped-model-routing.md`), and `precision-review` only for a named semantic risk. Branches run on distinct models.
+4. Show the branches with their premise, model, effort, and host route, plus the synthesis and completeness-check roles. Ask: **"Approve this plan, or specify changes."**
 
-Return one executable plan. It names the chosen approach, rejected alternatives, files, tests, risks, and the effective seats used. A branch is useful only when it explores a materially different premise.
+Route each role by host: T3 Code `delegate_task`, continued with `t3_thread_send`; Claude Code or Codex, a native subagent; otherwise the matching `*-runner` skill. Each branch keeps one context for its later critique and reply; synthesis gets its own. **Seat fidelity**: an unavailable branch is reported, never replaced. With fewer than two distinct branches, stop and offer the single-model `to-prd` path.
 
-## Routing
+## Run
 
-For selected workers, read
-[`task-shaped-model-routing.md`](../../shared/references/task-shaped-model-routing.md),
-[`model-roster.md`](../../shared/references/model-roster.md), and
-[`host-model-execution.md`](../../shared/references/host-model-execution.md)
-to map the snapshot roles. Use the selected semantic route, not a legacy seat
-name or pinned model id.
-
-Map each selected branch to `deep-analysis`, `architecture`, or
-`technical-analysis` from `shared/model-routing.json`. Use `precision-review`
-only when a specific semantic risk needs an independent critique. Record the
-exact routes in the approved snapshot. Branches must explore different premises;
-they must not repeat the same brief at higher effort.
-
-Use two blind branch seats by default. Add a third only when an unresolved
-boundary, failure case, or delivery tradeoff needs a distinct approach. The
-configuration supplies models and effort; this skill supplies the branch protocol.
-
-Use the snapshot's exact native route through the active host first. Start each
-blind branch in its own isolated persistent subagent or supported task context.
-Use a runner only for a foreign model or a native route that cannot meet the
-approved plan, then capture its own session for later critique or synthesis
-turns. Probe only the selected capabilities. Preserve **seat fidelity**: a
-missing seat is unavailable, never silently replaced. Continue only with two
-distinct available branch seats. If that quorum is unavailable, return the
-missing prerequisites and the single-model `to-prd` path instead.
-
-## Route Approval
-
-After branch selection, present the exact route table: branch or lens, seat,
-current model, effort, role, execution path, call count, and unavailable
-action. Include the blind branches, selected critiques, synthesis, and execution
-completeness check. Use this table for the shared preview and apply its decision
-rules once. Do not launch an unselected branch or critique. Record the approved
-snapshot with the plan artifacts and use only those routes.
-
-## Workflow
-
-1. Write one neutral brief with the goal, scope, constraints, acceptance contract, relevant files, and what a plan must decide. Ask one question only when different answers would produce different plans.
-2. Launch the blind branches with the same brief. Give each one premise: smallest viable change, cleanest design, or most robust failure handling. Each returns approach, files, tradeoff, risks, tests, and rollback point. Keep that branch context for its later critique and reply; a new opening context is a different branch.
-3. Compare branches against the acceptance contract. Run only the relevant engineering lenses. Each critique must identify the strongest point, material weakness, and a concrete test or check.
-4. Synthesize the record into one plan. Every adopted element traces to a branch or resolved critique. Preserve a material unresolved disagreement as a risk or open question.
-5. Run one bounded execution-completeness check. Patch the plan once if it exposes a material omission. Do not create an open-ended planning loop.
-
-## Synthesize and enrich
-
-Use the synthesis route from the approved snapshot. It chooses the plan spine, incorporates
-verified improvements, and records why the strongest alternative lost. Keep the
-synthesis context separate from each blind opening. If the selected route is
-unavailable, stop and report the missing route or use only a user-approved
-alternate.
-
-## Execution completeness check
-
-Use the implementation-review route from the approved snapshot to test whether an implementer can follow the plan without inventing a design decision. Check scope, file placement, acceptance criteria, commands, tests, rollout risk, and rollback. One material gap gets one targeted correction round; otherwise stop.
+1. **Branches**, blind and in parallel, from the same brief. Each returns approach, files, tradeoff, risks, tests, and rollback point.
+2. **Critique** against the acceptance contract, using only the lenses that apply: the strongest point, the material weakness, and a concrete check for each branch.
+3. **Synthesis.** Choose the plan spine and fold in verified improvements. Every adopted element traces to a branch or a resolved critique; record why the strongest alternative lost, and keep a material unresolved disagreement as a risk or open question.
+4. **Completeness check**, once: could an implementer follow the plan without inventing a design decision? Check scope, file placement, acceptance criteria, commands, tests, rollout risk, and rollback. Patch one material gap, then stop.
 
 ## Output
 
-Present:
+1. The change and chosen approach.
+2. The approaches considered and the deciding tradeoff.
+3. Ordered steps, files, tests, and verification.
+4. Risks, rollback, and open questions.
+5. Each role's model and route, and any unavailable branch.
 
-1. the change and chosen approach;
-2. approaches considered and the deciding tradeoff;
-3. ordered implementation steps, files, tests, and verification;
-4. risks, rollback, and open questions;
-5. the seat and lens table, including effective receipts, unavailable seats, and fallbacks.
-
-Write an artifact only when the user asks. Hand the approved plan to `to-prd` so it becomes the workflow's approved product record; then `to-tasks` slices that PRD. Do not implement it here.
+Write an artifact only when the user asks. Hand the approved plan to `to-prd`, and `to-tasks` slices that PRD. Do not implement it here.

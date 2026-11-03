@@ -1,6 +1,6 @@
 # Architecture Decision Record (ADR) — lightweight template
 
-An ADR captures _one_ architecturally significant decision: the context, the choice, and the consequences. Write one only when the decision is significant (see test below) — not for routine choices.
+An ADR captures one decision: the context, the choice, and the consequences. Routine choices stay in the task or review note.
 
 ## When to record a decision
 

@@ -1,77 +1,60 @@
 ---
 name: distributed-systems-patterns
-description: "Choose or review distributed topology and event-stream patterns. Use for replicas, shards, container helpers, queues, or event-driven adoption and migration; use macro-architecture for overall system style."
+description: "Choose or review distributed topology and event-stream patterns. Use for replicas, shards, container helpers, election, queues, batch pipelines, or event-driven adoption and migration; use architecture-lens for overall system style."
 ---
 
 # Distributed Systems Patterns
 
-Read-only pattern skill. Use the caller's stage and output contract. Implementation requires an authorized implementation request.
+Read-only pattern lens. Two bodies of knowledge: the **topology route** follows Burns, _Designing Distributed Systems_ (name the container-shaped pattern, then reuse or compose it); the **event-driven route** follows Bellemare (a durable, replayable **data communication layer** of schematized streams, not messages that vanish after consume). Don't invent a one-off topology the catalog already names, and don't call a delete-after-consume queue an event architecture.
 
-Two bodies of knowledge, one skill. The **topology routes** are grounded in Burns, _Designing Distributed Systems_: containers plus an orchestrator give a shared language for reusable distributed pieces — name the pattern, then reuse or compose it. The **event-driven route** is grounded in Bellemare: a durable, replayable **data communication layer** of schematized event streams, not point-to-point messages that vanish after consume. Do not invent a one-off topology the catalog already names, and do not call a delete-after-consume queue an event architecture.
+The four failures this lens stops: reinventing a named primitive; a multi-node pattern where a **coscheduled pair** would do, or an election where a singleton would do; event-driven microservices where a modular monolith is cheaper; and building them without a data communication layer (implicit schemas, shared databases, CDC as the destination).
 
-## Outcome
-
-- **Result:** a brief with one named pattern (or an explicit compose of two), or — on the event-driven route — one verdict, plus the next concrete move.
-- **Next consumer:** the user for a standalone brief, or the calling workflow through its existing decision or gate contract.
-- **Done:** every required field of the selected output contract is filled; the pattern is from the selected method's catalog; every load-bearing claim cites repo evidence or is marked `assumed`; a consequential unresolved choice includes a rejected alternative; the next move is one action.
-- **Intent:** stop four failures — reinventing a named primitive; applying a multi-node pattern when a **coscheduled pair** would do (or an election when a singleton would do); adopting event-driven microservices when a modular monolith is cheaper; and building them without a **data communication layer** (implicit schemas, shared DBs, CDC as the destination).
+Elsewhere: overall style and service decomposition → `architecture-lens`; outbox writes, idempotency, retries, dead-letter handling, and transactions in code → `data-systems-coding-lens`; bounded-context alignment → `domain-driven-design`; in-process object structure → `software-design-philosophy`; agent loops → `agent-architecture-lens`.
 
 ## Select the route
 
 | Need | Read |
 | --- | --- |
-| Create, maintain, or review containers, replicas, shards, election, queues, or batch topology | [references/topology-review.md](references/topology-review.md) |
-| Adopt, review, or migrate event-driven services and public streams | [references/event-driven-review.md](references/event-driven-review.md) |
+| Containers, replicas, shards, scatter/gather, FaaS, election, work queues, batch pipelines | [references/topology.md](references/topology.md) |
+| Adopt, review, or migrate event-driven services and public streams | [references/event-driven.md](references/event-driven.md) |
 
-If the question is only monolith versus services, use macro-architecture. Choose the smallest pattern that meets the constraint. The selected method contains the decision process, focused source references, and required brief fields.
+Choose the smallest pattern that meets the constraint. If no distributed pattern fires, say so and stop.
 
-## Shared vocabulary
+## Leitwörter
 
-State these **leitwörter** by name as you decide, not only in headings.
+State these by name as you decide.
 
-Topology routes:
+Topology:
 
-- **coscheduled pair** — sidecar, ambassador, and adapter only work when the containers share a machine and the namespaces the pattern needs (network, filesystem, or PID). If they talk across the cluster network, this is a service, not a single-node pattern.
-- **container API** — env vars, ports, files, and signals are a versioned contract. Renaming a parameter or changing its units is a breaking change.
-- **readiness, not liveness** — a replica that is alive but not ready must stay out of the load balancer. Liveness restarts; readiness withholds traffic.
-- **need a master** — most tasks do not need ownership election. A singleton under an orchestrator already restarts on crash and relocates on node death. Prove the SLA before electing.
+- **coscheduled pair**: sidecar, ambassador, and adapter work only when the containers share a machine and the namespaces the pattern needs. Talking across the cluster network makes it a service.
+- **container API**: env vars, ports, files, and signals are a versioned contract. Renaming a parameter or changing its units is a breaking change.
+- **readiness, not liveness**: a replica that is alive but not ready stays out of the load balancer. Liveness restarts; readiness withholds traffic.
+- **need a master**: most tasks don't need election. A singleton under an orchestrator already restarts on crash and relocates on node death. Prove the SLA before electing.
 
-Event-driven route:
+Event-driven:
 
-- **data communication layer** — durable, replayable streams that decouple producing data from accessing it. If this is not being built, this is not event-driven microservices.
-- **single source of truth** — the stream is the fact; local stores are projections that can be rebuilt.
-- **single writer** — one service owns writes to a stream.
-- **event-first** — the public event is a first-class product. CDC/outbox bootstraps liberation; it is not the destination.
+- **data communication layer**: durable, replayable streams that decouple producing data from accessing it. Without it, this is not event-driven microservices.
+- **single source of truth**: the stream is the fact; local stores are rebuildable projections.
+- **single writer**: one service owns writes to a public stream.
+- **event-first**: the public event is a first-class product. CDC bootstraps liberation; it is not the destination.
 
-Modelled sentence: _"This is a **coscheduled pair** (ambassador), not a new service — the app keeps a localhost **container API**; the rejected alternative (client-side sharding in every language) would break **change ownership**."_
+Modelled sentence: _"This is a **coscheduled pair** (ambassador), not a new service: the app keeps a localhost **container API**; the rejected alternative, client-side sharding in every language, would scatter **change ownership**."_
 
 ## Evidence
 
-Inspect the live system (or the stated requirements if there is no repo). Do not invent a topology.
+Inspect the live system, or the stated requirements when there is no repo, and mark those `assumed`.
 
-Topology routes: search for container groups / pods, sidecar/proxy/exporter containers, Services / Ingress / load balancers, readiness vs liveness probes, shard keys, consistent-hash configs, leader-election / lease / lock clients, Job / CronJob / queue consumers, FaaS handlers. Event-driven route: search for broker clients, topic/stream names, schema files, outbox/CDC connectors, consumer groups, changelogs; sample two or three streams end to end — producer, schema, consumers — rather than listing every topic.
+- Topology: pods or container groups, sidecar and proxy containers, Services and load balancers, readiness and liveness probes, shard keys and hash configs, lease or lock clients, Jobs and queue consumers, FaaS handlers.
+- Event-driven: broker clients, topic names, schema files, outbox or CDC connectors, consumer groups, changelogs. Sample two or three streams end to end (producer, schema, consumers) instead of listing every topic.
 
-Read budget: enough to name the pattern, the roles, and the **container API** (or, on the event-driven route, the owners, contracts, and current source of truth). Stop when another file would not change the brief.
+Stop reading when another file would not change the brief.
 
-If there is no repo, use the user's constraints (SLA, data size, request shape; team size, shared data, the tax they will pay). Mark those `assumed`.
+## Output
 
-## Delivery
+Standalone, emit one brief inline. Prefix every inferred fact with `assumed:`. Write a file only when the user asks or the project already requires decision records for this class of decision; then follow that convention.
 
-For a standalone invocation, topology routes emit the pattern brief from `assets/pattern-brief.md`; the event-driven route emits the decision brief from `assets/edm-decision-brief.md`. Emit inline. Write a file only when the user asks to record it, or when the project's active instructions already require ADRs for this class of decision — then follow that convention, otherwise `docs/decisions/dds-YYYYMMDD-<slug>.md` (topology) or `docs/decisions/edm-YYYYMMDD-<slug>.md` (event-driven).
+**Topology brief:** job (create, maintain, or review, plus the decision in one sentence); scale (single-node, serving, or batch); pattern (catalog name; compose at most two and name the join); roles (container or node and its job; mark the coscheduled pair); container API (parameters, ports, files, signals, and what would break, or `n/a` with why); failure (what would make this pattern wrong); evidence; rejected (at least one alternative and its cost); next move (one action).
 
-In an interview, write the decision, operating cost, evidence, and relevant constraints into the existing decision record. Under `design-gate`, use the caller's canonical gate result instead of either standalone brief. Put relevant pattern constraints and the event-driven verdict in findings or `review_focus`; the gate's `verdict` remains `proceed|revise`. Any of these is `revise`: a single-node pattern that is not a **coscheduled pair**; replicated serving without **readiness, not liveness**; a shard with no key; an election that failed **need a master**; FaaS used for long-running or warm-memory work; scatter/gather with unbounded leaves; a missing **data communication layer**; a second writer on a public stream; CDC-as-destination on a core entity.
+**Event-driven brief:** job (new-system, existing-edm, or migrate, plus the decision); verdict (`adopt`, `hybrid`, `hold`, `review-fix`, or `migrate-slice`); data communication layer (the stream-backed source of truth, or why there isn't one); single writer (producer per public stream, or the violation); evidence; rejected; next move (liberate this entity, add this schema, stop this second writer).
 
-## Focused references
-
-Load only a file selected by the active method:
-
-- `references/single-node.md` — sidecar, ambassador, adapter
-- `references/serving.md` — replica, shard, scatter/gather, FaaS, election
-- `references/batch.md` — work queues, event-driven batch, join/reduce
-- `references/pattern-catalog.md` — when-to / when-not-to matrix
-- `references/edm-adopt-or-not.md` — adopt gate, the tax, when hold is correct
-- `references/edm-event-contracts.md` — event shapes, schema rules, breaking changes
-- `references/edm-implementation-styles.md` — FaaS / BPC / heavy / light, workflows, state
-- `references/edm-review-and-migrate.md` — smell catalog, liberation patterns, one-slice migration
-- `assets/pattern-brief.md` — the pattern brief template
-- `assets/edm-decision-brief.md` — the event-driven decision brief template
+Under `design-gate`, return the caller's canonical gate result instead; carry pattern constraints and the event-driven verdict in findings or `review_focus`. Any of these is `revise`: a single-node pattern that is not a coscheduled pair; replicated serving without readiness, not liveness; a shard with no key; an election that failed need a master; FaaS for long-running or warm-memory work; scatter/gather with unbounded leaves; a missing data communication layer; a second writer on a public stream; CDC as the destination for a core entity. In an interview, add the decision, operating cost, evidence, and constraints to the existing decision record.

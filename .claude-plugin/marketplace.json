@@ -13,7 +13,6 @@
         "./deliver/open-pr",
         "./deliver/resolve-pr-feedback",
         "./deliver/session-handoff",
-        "./deliver/summarize",
         "./engine/coding-design-plan",
         "./engine/implement-and-review",
         "./engine/worktree",
@@ -23,12 +22,9 @@
         "./lenses/agent-architecture-lens",
         "./lenses/architecture-lens",
         "./lenses/data-systems-coding-lens",
-        "./lenses/design-patterns",
         "./lenses/distributed-systems-patterns",
         "./lenses/domain-driven-design",
-        "./lenses/macro-architecture",
         "./lenses/software-design-philosophy",
-        "./lenses/ui-ux-pro-max",
         "./practice/clean-code",
         "./practice/diagnose",
         "./practice/frontend-design",
@@ -58,7 +54,6 @@
       "description": "Skills whose deliverable is a rendered HTML page.",
       "skills": [
         "./consensus-summary-html",
-        "./explain-architecture",
         "./html-explainer"
       ]
     },
@@ -76,12 +71,9 @@
       "description": "Standalone skills the workflow does not call.",
       "skills": [
         "./browser-smoke",
-        "./decide-about-disagreements",
         "./diverse-plan",
-        "./dynamic-harness",
         "./knowledge-graph",
         "./peer-sessions",
-        "./review-gate",
         "./skill-expert",
         "./verify-changes"
       ]

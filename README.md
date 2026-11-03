@@ -97,11 +97,6 @@ separate. `pre-pr-review` reuses evidence only after the shared verifier accepts
 it. Approved recovery allowances retain total limits across native and runner
 resumes. A scoped pass does not prove universal coverage.
 
-Claude preflight caches only stable capability results with a current fingerprint
-and a 24-hour limit. Each launch still checks local CLI identity, configuration,
-launch context, authentication visibility, and installation drift. Receipts,
-entitlement, quota, and request privacy remain current-run facts.
-
 ## Optional council
 
 `models-consensus` is for a user who explicitly asks for more opinions. It is
@@ -130,13 +125,13 @@ instructions in each `SKILL.md`. The shared library installs beside them.
 | Workflow | `brainstorm`, `interview-me`, `to-prd`, `to-tasks`, `implement-tasks`, `to-prototype`, `models-consensus`, `pre-pr-review`, `validate-e2e` |
 | Engine | `coding-design-plan`, `implement-and-review`, `worktree` |
 | Gates | `design-gate`, `security-gate` |
-| Lenses | `advanced-react`, `agent-architecture-lens`, `architecture-lens`, `data-systems-coding-lens`, `design-patterns`, `distributed-systems-patterns`, `domain-driven-design`, `macro-architecture`, `software-design-philosophy`, `ui-ux-pro-max` |
+| Lenses | `advanced-react`, `agent-architecture-lens`, `architecture-lens`, `data-systems-coding-lens`, `distributed-systems-patterns`, `domain-driven-design`, `software-design-philosophy` |
 | Practice | `clean-code`, `diagnose`, `frontend-design`, `safe-incremental-coding`, `tdd`, `test-lens` |
 | Review | `architecture-review`, `code-deslop`, `coding-review-simplify`, `full-review` |
-| Delivery | `capture-learning`, `open-pr`, `resolve-pr-feedback`, `session-handoff`, `summarize` |
+| Delivery | `capture-learning`, `open-pr`, `resolve-pr-feedback`, `session-handoff` |
 | Model seats | `claude-runner`, `codex-runner`, `gemini-runner`, `grok-runner`, `pi-runner`, `muse-runner` |
-| Independent utilities | `browser-smoke`, `decide-about-disagreements`, `diverse-plan`, `dynamic-harness`, `environment-check`, `knowledge-graph`, `peer-sessions`, `response-unslop`, `review-gate`, `skill-expert`, `verify-changes` |
-| Visualizations | `consensus-summary-html`, `explain-architecture`, `html-explainer` |
+| Independent utilities | `browser-smoke`, `diverse-plan`, `environment-check`, `knowledge-graph`, `peer-sessions`, `response-unslop`, `skill-expert`, `verify-changes` |
+| Visualizations | `consensus-summary-html`, `html-explainer` |
 
 ## Install
 

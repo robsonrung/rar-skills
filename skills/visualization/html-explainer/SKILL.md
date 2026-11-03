@@ -1,75 +1,67 @@
 ---
 name: html-explainer
-description: "Create a self-contained HTML walkthrough of a subsystem or flow, with diagrams and expandable source evidence. Use for detailed interactive code explanations; use explain-architecture for a short orientation."
+description: "Create a self-contained HTML page that explains a codebase, subsystem, or flow from its real code: a short architecture orientation, or a detailed walkthrough with diagrams and expandable source evidence. Use for onboarding, architecture overviews, or interactive code explanations."
 disable-model-invocation: true
 ---
 
 # HTML Explainer
 
-Choose the branch before selecting a model. Gather evidence, assemble, validate, and inspect the visual artifact in the assigned role. Before dispatching an independent dossier worker, obtain or reuse exactly one approved snapshot through `shared/references/model-preview.md`.
+Build one self-contained HTML file that teaches a reader how a real system works. The page is trusted because every snippet is real, and readers use its `path:line` bars to jump into the repo. It explains; it does not judge. A quality verdict belongs to `architecture-lens`.
 
-Produce one self-contained HTML file that teaches a reader how a real system works, grounded in the repo's actual code.
+## Choose the depth
 
-**Outcome spine**
+| Depth | Answers | Shape | Default path |
+| --- | --- | --- | --- |
+| `orientation` | What are the pieces, how do they fit, where do I start? | Map, four to six sections, one traced flow, where to look next. | `docs/<scope>-architecture.html` |
+| `walkthrough` | How does this subsystem actually work? | Map, stack, six to nine sections, many verbatim panels. | `docs/<topic>-explainer.html` |
 
-- **Result:** a single `.html` file with inline CSS, JavaScript, and SVG that explains the subject at three depths.
-- **Next consumer:** the user and their teammates, opening the file directly in a browser — no server, no build step.
-- **Done:** the file exists at the agreed path, `scripts/validate_explainer.py` exits 0, and the file was delivered/rendered to the user.
-- **Intent:** the page is trusted because every code snippet is real. Readers use the `path:line` bars to jump into the repo.
+"Explain the architecture" with no qualifier means `orientation` for a newcomer over the whole repo. "Explain how X works" means `walkthrough`. When the reader of an orientation page wants to descend into one subsystem, build its walkthrough and reuse the scope and evidence already gathered rather than exploring again.
 
-## Two rules that govern everything
+An explicit request to update an existing page authorizes that edit. Otherwise use a new path or ask which page to replace, and preserve unrelated content.
 
-- **verbatim-or-absent** — every code snippet is copied verbatim from the repo and labeled with its `path:line` range, or it does not appear on the page. Never reconstruct code from memory; when abridging, mark the source bar `(abridged)` and cut whole lines only. If a claim can't be traced to a file, state it as prose without a snippet or drop it.
-- **drill-down contract** — the page must work at three depths: **glance** (the clickable big-picture map + one-paragraph ledes), **scan** (section summaries, tables, diagrams), **descend** (expandable panels with the code). Nothing essential may live only at descend depth; nothing bulky may live above it.
+## Scope and audience
 
-## Workflow
+Settle the subject and the audience before exploring. Infer them from the request; ask at most one short question when you can't. One page holds one idea: split two unrelated subsystems into two linked pages.
 
-### 1. Scope
+| Audience | Concern | Emphasis |
+| --- | --- | --- |
+| Newcomer | What is this, and where do I start? | The one organizing idea, the five to eight top-level units, one happy-path flow, the files to open first. Expand acronyms once. |
+| Implementer | How do I add X without fighting the codebase? | Where routes, services, and entities go; naming; codegen and migrations; gotchas in `.callout warn`. Trace the kind of thing they are adding. |
+| Reviewer | Where are the boundaries, dependencies, and risks? | Dependency direction and layer boundaries on the map; tenancy and transaction boundaries; coupling hotspots stated as facts in `.callout info`, not verdicts. |
 
-Pin down: the subject (one subsystem/service/flow — split unrelated subjects into separate pages), the audience, and the questions the page must answer.
+For a walkthrough with no stated questions, answer these: the architecture and where each technology lives in code, the end-to-end data flow from input to output, authorization and tenancy, and logging and observability. Add whatever the user named.
 
-Choose one audience: a _newcomer_ needs a map and plain ledes; an _implementer_ needs extension points and conventions; a _reviewer_ needs boundaries, invariants, and dependency direction. When an orientation page already exists for this subject, reuse its scope and evidence instead of re-exploring.
+## Two rules
 
-Default question set when the user just says "explain how X works": architecture + technologies and where each lives in code, the end-to-end data flow (input → output), authorization/tenancy, and logging/observability. Honor any additions the user named.
+- **verbatim-or-absent**: every snippet is copied from the repo with its `path:line` range, or it does not appear. Never reconstruct code from memory. When abridging, cut whole lines and mark the bar `(abridged)`. A claim you cannot trace to a file is prose without a snippet, or it goes.
+- **three depths**: glance, scan, and descend, as `shared/references/html-page-conventions.md` defines. Nothing essential lives only in a panel; nothing bulky lives above one.
 
-Default output path: `docs/<topic>-explainer.html` in the project repo. An explicit request to update that artifact authorizes the scoped edit. If an existing destination was not selected for replacement, use a new path or ask which artifact to update; preserve unrelated content.
+## Gather evidence
 
-### 2. Evidence pass
+Follow `shared/references/grounded-evidence.md`. Move outside-in: manifests, workspace files, deployment templates, READMEs and `docs/` first, since they declare intent cheaply; then the directory tree mapped to responsibilities; then the seams (routes, events, shared data, workers), because the seams are the architecture; then one real flow traced end to end; then cross-cutting concerns.
 
-The evidence rules live in `shared/references/grounded-evidence.md`. Read it, then build one **evidence dossier** per subsystem as it defines: mechanism, 2–5 verbatim snippets with exact `path:line`, caveats, and war stories from code comments before writing any HTML.
+Build one **evidence dossier** per subsystem: its mechanism, two to five verbatim snippets with exact `path:line`, caveats, and war stories found in code comments. Stop reading a section once you hold its lede, its diagram facts, and its snippets. Group what you find into layers (business rules, the application that automates them, the technology underneath), derived from the code rather than forced: a repo with no worker tier gets none on the page. Use the codebase's own vocabulary, not invented terms.
 
-Typical decomposition (adapt to the subject): entry/infrastructure + deployment, the main processing pipeline, data access + safety mechanisms, observability/logging. Dispatch a dossier only when its subsystem is independent, substantial, and needs material evidence. Use the approved snapshot for every selected worker. A nested worker does not re-resolve a route or add a worker. Otherwise explore inline, capped at what the three-depth page actually needs: for each planned section, stop reading once you hold its lede, its diagram facts, and 2–5 snippets.
+For a large scope, you may hand an independent, substantial subsystem to a research worker. Route it with `python3 shared/scripts/model_routing.py resolve code-exploration` unless the user names a model, show the plan, and ask: **"Approve this plan, or specify changes."** Then by host: T3 Code `delegate_task`, Claude Code or Codex a native subagent, otherwise the matching `*-runner` skill. The worker returns a dossier, not a file dump. Trust dossiers for structure, but spot-check any snippet that reads as paraphrase against the file before you publish it.
 
-Trust dossiers for structure, but the snippets you publish are covered by verbatim-or-absent: spot-check any snippet that looks paraphrased against the file before including it.
+## Assemble
 
-### 3. Assemble
+Copy `assets/template.html` from this skill's directory to the output path and replace its slots. Read `shared/references/html-page-conventions.md` for self-containment, navigation, escaping, and verification, and `references/page-anatomy.md` for each region, the orientation section ids, the SVG mechanics, and the snippet contract.
 
-Copy `assets/template.html` from this skill's directory to the output path, then replace its placeholder slots. Read `shared/references/html-page-conventions.md` first for self-containment, three depths, escaping, and verification. Then read `references/page-anatomy.md` for each slot, the SVG diagram mechanics, and the snippet-escaping rules.
+What to get right:
+- The big-picture map comes first, and every major box calls `jump('sec-…')` with a real section id. The caption names what the page leaves out.
+- Sections follow the data flow (edge, inside, data, cross-cutting), never discovery order.
+- Every `.code` block has a `.code-src` bar. Escape `&`, `<`, `>` in snippet text: `Promise<Foo>` must become `Promise&lt;Foo&gt;` or the browser swallows it.
+- Grow depth, not section count. Past six sections an orientation page wants a walkthrough; past nine a walkthrough wants splitting.
 
-Ordering that matters:
+## Verify
 
-- The big-picture map comes first and every major box carries `onclick="jump('sec-…')"` pointing at a real section id.
-- Sections are numbered and ordered along the data flow (edge → inside → data → cross-cutting concerns), not by discovery order.
-- Every `.code` block gets a `.code-src` bar with the repo-relative `path:line`.
-- Escape `&`, `<`, `>` in snippet text. TypeScript generics are the classic casualty — `Promise<Foo>` must be `Promise&lt;Foo&gt;` or the browser silently swallows it.
-
-### 4. Verify
-
-Run the deterministic check:
-
-```
-SKILL_DIR="<absolute path of the directory containing the SKILL.md you just read>";
-python3 "$SKILL_DIR/scripts/validate_explainer.py" <output-file.html>
+```bash
+SKILL_DIR="<absolute path of this html-explainer directory>"; python3 "$SKILL_DIR/scripts/validate_explainer.py" <output-file.html> --depth <orientation|walkthrough>
 ```
 
-Fix findings until exit 0. Then, when a browser surface is available, render the file and confirm the big-picture map draws and a `jump()` click opens its section, following the verification steps in the shared conventions (DOM queries over screenshots below the first screen).
+Fix findings until it exits 0, then render and check the page as the shared conventions describe.
 
-### 5. Deliver
+## Deliver
 
-Send/render the file to the user. Lead the summary with the file path and how to navigate (click the map, expand panels); list the sections in one line each. Name any part you could not visually verify.
-
-## Gotchas
-
-- A dossier snippet with no `path:line` is a red flag for paraphrase — re-read the file or drop it (verbatim-or-absent).
-- Secrets, live hostnames, and governed/redacted content: §6 of the shared evidence contract applies unchanged — name the secret and where it is resolved, mirror the codebase's own redaction.
-- Don't let the page grow section-count instead of depth: 6–9 numbered sections is the ceiling; beyond that, merge or split the page.
+Lead with the file path and how to navigate (click a box on the map, expand the ▸ panels), then the sections in one line each. Name any part you could not visually verify. After an orientation page, offer a walkthrough of the subsystem the reader cares about most.
