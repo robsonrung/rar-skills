@@ -5,6 +5,9 @@ description: Run a prompt on a gateway model (Kimi, GLM, Qwen, Gemma, Minimax, M
 
 # Pi Runner
 
+In T3 Code, run all model calls as internal subagents under `shared/references/host-model-execution.md`. If the approved route is unavailable, report it. Do not execute this runner in T3 Code.
+
+
 Run one prompt through the local `pi` CLI, which reaches models behind a gateway such as OpenRouter. A host that offers the model natively (a T3 Code Pi provider) runs it there instead.
 
 ## Run

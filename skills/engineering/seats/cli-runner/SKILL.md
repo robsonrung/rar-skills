@@ -5,6 +5,9 @@ description: "Run a prompt on a Claude, GPT (Astra, Sol, Terra), Gemini, or Grok
 
 # CLI Runner
 
+In T3 Code, run all model calls as internal subagents under `shared/references/host-model-execution.md`. If the approved route is unavailable, report it. Do not execute this runner in T3 Code.
+
+
 Run one prompt on one model through its vendor CLI. A host that runs the model natively takes precedence (`shared/references/host-model-execution.md`). Seat fidelity, read-only roles, session discipline, and long calls follow `shared/references/runner-common.md`. Run from the repository; `<cli> --help` lists the rest.
 
 ## Claude: `claude`

@@ -5,6 +5,9 @@ description: Run a prompt on Muse Wonder Full through the local Muse CLI. Use wh
 
 # Muse Runner
 
+In T3 Code, run all model calls as internal subagents under `shared/references/host-model-execution.md`. If the approved route is unavailable, report it. Do not execute this runner in T3 Code.
+
+
 Run one bounded turn on Muse Wonder Full through the local `muse` CLI. A host that offers the model natively (a T3 Code Muse provider) runs it there instead.
 
 ## Run

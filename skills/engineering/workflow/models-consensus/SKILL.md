@@ -11,7 +11,7 @@ Turn one decision into independent model opinions, let them meet, and return a r
 ## Plan
 
 1. Choose the mode: `poll` by default, `debate` for a contested direction, `personas` for five lenses from one model.
-2. Choose the seats: the models the user names, then the `seats` preferences in `.rar-skills/config.local.yaml` when it exists, then `python3 shared/scripts/model_routing.py council <technical|analysis|routine|security>` for the question's shape. Poll and debate open with three seats on distinct models.
+2. Choose the seats: the models the user names, then the `seats` preferences in `.rar-skills/config.local.yaml` when it exists, then `python3 shared/scripts/model_routing.py council <technical|analysis|routine|security>` for the question's shape. Poll and debate default to three seats on distinct models; seat every model the user names, with no upper limit.
 3. Show the neutral question, mode, each role with its model, effort, and host route, and the expected and maximum calls. Ask: **"Approve this council plan, or specify changes."** Dispatch after a clear yes.
 
 **Seat fidelity**: a seat speaks only through its approved model. A failed seat stays an **observable failure** in the report; a model change needs a new approval. Stop when fewer than two opening seats remain.
@@ -22,9 +22,9 @@ Each seat is one context that lives for the whole run. Its later turns (gap repa
 
 Route each seat by host:
 
-- **T3 Code**: `delegate_task` with the seat's configured provider and model; continue with `t3_thread_send` to its thread.
+- **T3 Code**: run every seat and every other model role as an internal subagent under `shared/references/host-model-execution.md`. Report unavailable routes; never call an external runner or CLI.
 - **Claude Code or Codex**: a native subagent with the seat's model; continue by messaging that same subagent.
-- **A model the host lacks**: `cli-runner`, `pi-runner`, or `muse-runner`; continue by resuming its session.
+- **Outside T3 Code, a model the host lacks**: `cli-runner`, `pi-runner`, or `muse-runner`; continue by resuming its session.
 
 Every call carries the brief:
 
@@ -52,7 +52,7 @@ CONTEXT: <paths or facts>
 3. Each later round, up to the approved one to three, sends every seat the digest and a new stance. It must rebut, concede, refine, or integrate, returning its updated position, what changed, concessions, remaining objections, and best next step.
 4. Classify the end state: full agreement, converging, material disagreement, or blocked on context. Reaching the round ceiling is reported disagreement.
 
-Stances (rotate so no seat repeats one):
+Stances (rotate so no seat repeats one; past six seats, reuse a stance on a different seat):
 
 - **supportive with integrity**: the strongest honest case for
 - **critical with responsibility**: what fails, and what would fix it
