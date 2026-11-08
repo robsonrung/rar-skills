@@ -1,0 +1,7 @@
+# Codex agent interface metadata; consumed by the Codex host, not read at runtime by the model.
+interface:
+  display_name: "Pair Programming"
+  short_description: "Build a change after a two-model design debate and independent review"
+  default_prompt: "Use $pair-programming to settle this change's design through a two-model debate, build it, and have it independently reviewed."
+policy:
+  allow_implicit_invocation: false
