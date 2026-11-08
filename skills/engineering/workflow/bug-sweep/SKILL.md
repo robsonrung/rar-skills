@@ -2,7 +2,7 @@
 name: bug-sweep
 description: Reproduces a set of reported bugs in a browser, reports which are still real, and fixes each confirmed one through pair-programming with before-and-after videos. Use when the user invokes it with bugs from Linear, a thread, or a list; use diagnose for one unexplained failure.
 argument-hint: "[Linear filter, thread, or bug list]"
-disable-model-invocation: true
+disable-model-invocation: false
 ---
 
 # Bug Sweep

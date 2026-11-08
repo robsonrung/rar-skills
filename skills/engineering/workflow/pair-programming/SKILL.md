@@ -2,7 +2,7 @@
 name: pair-programming
 description: Builds a code change after a two-model design debate and an independent review. Use when the user invokes it for a fix or feature whose design is still open; use implement-and-review when the design is settled.
 argument-hint: "[task, ticket, or thread]"
-disable-model-invocation: true
+disable-model-invocation: false
 ---
 
 # Pair Programming

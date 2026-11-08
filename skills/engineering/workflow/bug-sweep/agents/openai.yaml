@@ -4,4 +4,4 @@ interface:
   short_description: "Reproduce reported bugs in a browser and fix the confirmed ones"
   default_prompt: "Use $bug-sweep to reproduce these reported bugs in a browser, report which are still real, and fix each confirmed one with before-and-after videos."
 policy:
-  allow_implicit_invocation: false
+  allow_implicit_invocation: true
