@@ -188,7 +188,7 @@
       ]
     },
     "fable": {
-      "model": "claude-fable-5-1",
+      "model": "claude-fable-5-2",
       "runner": "claude",
       "family": "claude",
       "effort_profile": "standard",

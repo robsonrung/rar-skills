@@ -29,7 +29,7 @@ class ModelRoutingContractTests(unittest.TestCase):
     def test_frontier_roster_has_astra_and_fable(self):
         config = model_routing.load_config()
         self.assertEqual(config["models"]["astra"]["model"], "gpt-6-astra")
-        self.assertEqual(config["models"]["fable"]["model"], "claude-fable-5-1")
+        self.assertEqual(config["models"]["fable"]["model"], "claude-fable-5-2")
         roster = self.read("shared/references/model-roster.md")
         self.assertIn("model-routing.json", roster)
         self.assertIn("effective_model", roster)

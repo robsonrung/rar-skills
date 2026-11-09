@@ -22,7 +22,7 @@ class ModelReceiptTests(unittest.TestCase):
         self.assertIsNone(attach_model_receipt(result, "requested")["effective_model"])
 
     def test_primary_serving_evidence_ignores_init_synthetic_and_usage_labels(self):
-        requested = "claude-fable-5-1"
+        requested = "claude-fable-5-2"
         events = [
             {"type": "system", "model": requested},
             {"type": "assistant", "message": {"model": "<synthetic>"}},
@@ -39,24 +39,24 @@ class ModelReceiptTests(unittest.TestCase):
 
     def test_mismatch_and_multiple_primary_ids_are_explicit(self):
         events = [{"type": "assistant", "message": {"model": "claude-opus-5-5"}}]
-        result = attach_claude_model_receipt({}, events, "claude-fable-5-1")
+        result = attach_claude_model_receipt({}, events, "claude-fable-5-2")
         self.assertFalse(result["model_matches_requested"])
         self.assertEqual(result["effective_model"], "claude-opus-5-5")
         self.assertIn("differs", result["model_identity_error"])
-        events.append({"type": "assistant", "message": {"model": "claude-fable-5-1"}})
-        result = attach_claude_model_receipt(result, events, "claude-fable-5-1")
+        events.append({"type": "assistant", "message": {"model": "claude-fable-5-2"}})
+        result = attach_claude_model_receipt(result, events, "claude-fable-5-2")
         self.assertIsNone(result["effective_model"])
         self.assertEqual(result["model_receipt"]["status"], "unverified")
         self.assertEqual(len(result["primary_model_ids"]), 2)
 
     def test_auxiliary_events_and_cost_breakdown_do_not_change_primary_or_total(self):
         events = [
-            {"type": "assistant", "message": {"model": "claude-fable-5-1"}},
+            {"type": "assistant", "message": {"model": "claude-fable-5-2"}},
             {"type": "assistant", "parent_tool_use_id": "task-1", "message": {"model": "claude-opus-5-5"}},
-            {"type": "result", "modelUsage": {"claude-fable-5-1": {"costUSD": 1}, "claude-opus-5-5": {"costUSD": 2}}},
+            {"type": "result", "modelUsage": {"claude-fable-5-2": {"costUSD": 1}, "claude-opus-5-5": {"costUSD": 2}}},
         ]
-        result = attach_claude_model_receipt({"metrics": {"reported_cost_usd": 3}}, events, "claude-fable-5-1")
-        self.assertEqual(result["effective_model"], "claude-fable-5-1")
+        result = attach_claude_model_receipt({"metrics": {"reported_cost_usd": 3}}, events, "claude-fable-5-2")
+        self.assertEqual(result["effective_model"], "claude-fable-5-2")
         self.assertEqual(result["auxiliary_model_ids"], ["claude-opus-5-5"])
         self.assertEqual(result["auxiliary_model_usage"], {"claude-opus-5-5": {"costUSD": 2}})
         self.assertEqual(result["metrics"]["reported_cost_usd"], 3)
