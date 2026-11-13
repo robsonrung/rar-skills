@@ -19,19 +19,19 @@ The plan is a **scope contract**: it names what will be reviewed, by which seats
 
 | Scope | Use when | Shape | Route |
 | --- | --- | --- | --- |
-| `focused` | One bounded change with local risk | One seat plus relevant checks | `broad-review`; `independent-review` when that family wrote the code |
-| `seam` | Integrated tasks, shared contracts, cross-boundary behavior | Logic-and-state coverage plus root-cause precision | `deep-review`; add `precision-review` for an exposed semantic risk |
-| `deep` | Explicit request, security boundary, migration, public contract, high residual risk | Seam shape plus the specialists the diff triggers, and a skeptic for unproven blockers | `deep-review`, plus `security-review` for a security boundary |
+| `focused` | One bounded change with local risk | One seat plus relevant checks | `review` |
+| `seam` | Integrated tasks, shared contracts, cross-boundary behavior | Logic-and-state coverage plus root-cause precision | `deep-review` |
+| `deep` | Explicit request, security boundary, migration, public contract, high residual risk | Seam shape plus the specialists the diff triggers, and a skeptic for unproven blockers | `deep-review` |
 
-A requirements document uses `design-review`. Take the scope the caller passes; otherwise choose the narrowest one the evidence supports. For code, `python3 scripts/review_scope.py --base <ref>` reports diff size and risk signals (migrations, API, frontend) to confirm or narrow it.
+A requirements document uses `review`. Take the scope the caller passes; otherwise choose the narrowest one the evidence supports. For code, `python3 scripts/review_scope.py --base <ref>` reports diff size and risk signals (migrations, API, frontend) to confirm or narrow it.
 
-Resolve each route with `python3 shared/scripts/model_routing.py resolve <route>`. Show the scope, each seat with its lens, model, and effort, and the planned checks, and ask: **"Approve this plan, or specify changes."** A plan the calling workflow already approved counts.
+Resolve each route with `python3 shared/scripts/model_routing.py resolve <route> --provider <host>`; the reviewer resolves to the other provider than the host. Show the scope, each seat with its lens, model, and effort, and the planned checks, and ask: **"Approve this plan, or specify changes."** A plan the calling workflow already approved counts.
 
 ## Seats
 
 A seat is one reviewer with one lens from [lenses.md](references/lenses.md) and its own context, kept for the whole review: rechecks and follow-ups go back to the same seat, so it remembers what it found. Reviewer contexts stay separate from the implementer's and from each other. A `focused` review may run in your own context when you did not write the change. Run independent seats in parallel.
 
-- **T3 Code**: `delegate_task` with the route's provider and model; continue with `t3_thread_send` to its thread.
+- **T3 Code**: `delegate_task` with the route's provider and model; continue with `t3_thread_send` to its thread. A Muse route uses `muse-runner`.
 - **Claude Code or Codex**: a native subagent with the route's model; continue by messaging that same subagent.
 - **A model the host lacks**: `cli-runner`, `pi-runner`, or `muse-runner`; continue by resuming its session.
 

@@ -67,21 +67,5 @@ class CouncilRoutingTests(unittest.TestCase):
         self.assertEqual(json.loads(result.stdout)["council_name"], "routine")
 
 
-class EconomyFamilyDefaultTests(unittest.TestCase):
-    def test_route_without_economy_uses_its_gpt_family(self):
-        raw = json.loads((SHARED / "model-routing.json").read_text(encoding="utf-8"))
-        loaded = routing.load_config()
-        omitted = [name for name, route in raw["routes"].items()
-                   if "gpt" in route["families"] and "economy" not in route["families"]]
-        self.assertTrue(omitted)
-        for name in omitted:
-            with self.subTest(route=name):
-                self.assertEqual(loaded["routes"][name]["families"]["economy"], raw["routes"][name]["families"]["gpt"])
-        explicit = [name for name, route in raw["routes"].items() if "economy" in route["families"]]
-        for name in explicit:
-            with self.subTest(route=name):
-                self.assertEqual(loaded["routes"][name]["families"]["economy"], raw["routes"][name]["families"]["economy"])
-
-
 if __name__ == "__main__":
     unittest.main()

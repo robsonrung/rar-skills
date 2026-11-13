@@ -73,9 +73,11 @@
       "description": "Standalone skills the workflow does not call.",
       "skills": [
         "./browser-smoke",
+        "./claude-models-router",
         "./diverse-plan",
         "./environment-check",
         "./knowledge-graph",
+        "./openai-models-router",
         "./peer-sessions",
         "./response-unslop",
         "./skill-expert",

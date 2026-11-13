@@ -50,6 +50,7 @@ class MuseTests(unittest.TestCase):
         self.assertIn('run.toolset=["read_file","search"]', command)
         self.assertIn('run.subagent_delegation_mode="off"', command)
         self.assertIn("agents.execution_capacity=1", command)
+        self.assertIn("hooks={}", command)
         for flag in ("--disable-reminders", "--no-foreign-personal-context", "--disable-web-tools"):
             self.assertIn(flag, command)
         for flag in ("--yolo", "--disable-sandbox", "--disable-approval"):
@@ -276,10 +277,21 @@ class MuseTests(unittest.TestCase):
         self.assertFalse(result["success"])
         capture.assert_not_called()
 
+    def test_global_hooks_are_overridden_not_blocked(self):
+        settings = self.workspace / "config" / "muse" / "settings.json"
+        settings.parent.mkdir(parents=True)
+        settings.write_text(json.dumps({"hooks": {"SessionStart": [{"hooks": [{"type": "command", "command": "true"}]}]}}))
+        runner.check_startup_configuration(self.workspace)
+        for allow_write, allow_shell in ((False, False), (True, False), (True, True)):
+            command = runner.command_for("muse", self.workspace, self.workspace / "p", "meta", "high", 5,
+                                         allow_write, allow_shell)
+            with self.subTest(allow_write=allow_write, allow_shell=allow_shell):
+                self.assertEqual(command[command.index("hooks={}") - 1], "-c")
+
     def test_startup_hooks_plugins_and_mcp_block(self):
         settings = self.workspace / "config" / "muse" / "settings.json"
         settings.parent.mkdir(parents=True)
-        for key in ("hooks", "plugins", "mcpServers", "mcp_servers", "managed_hooks_path"):
+        for key in ("plugins", "mcpServers", "mcp_servers", "managed_hooks_path"):
             settings.write_text(json.dumps({key: {"configured": True}}))
             with self.subTest(key=key), self.assertRaises(ValueError):
                 runner.check_startup_configuration(self.workspace)

@@ -10,7 +10,7 @@ Build one task to its **acceptance contract**. An implementer builds it, a revie
 ## Plan
 
 1. Read the task, its acceptance contract, the code it touches, and the project's conventions. Settled design, security, and interface decisions are **already decided**; reopen only a boundary that changed.
-2. Choose the roles. Use the routes in a plan you inherited from `implement-tasks`, or else the models the user names. Otherwise run `python3 shared/scripts/model_routing.py resolve <route> [--risk high]` with the route that fits the task's shape, for example `routine-implementation`, `hard-implementation`, or `migration` (`show` lists every route). The reviewer's model always differs from the implementer's.
+2. Choose the roles. Use the routes in a plan you inherited from `implement-tasks`, or else the models the user names. Otherwise run `python3 shared/scripts/model_routing.py resolve <route> --provider <host> [--risk high]` with the route that fits the task's shape: `routine-code`, `standard-code`, or `hard-code` (`routes` lists every route and when to use it). The reviewer's model always differs from the implementer's.
 3. Show the task, each role with its model, effort, and host route, and the limit of three review cycles. Ask: **"Approve this plan, or specify changes."** An inherited approved plan is already the approval.
 
 ## Roles
@@ -18,7 +18,7 @@ Build one task to its **acceptance contract**. An implementer builds it, a revie
 Give each role one persistent context for the whole task. Fixes go back to the same implementer and rechecks to the same reviewer. The reviewer never sees the implementer's transcript, only the contract, the diff, and the evidence.
 
 Route each role by host:
-- **T3 Code:** start it with `delegate_task` using the configured provider and model, and continue it with `t3_thread_send`.
+- **T3 Code:** start it with `delegate_task` using the configured provider and model, and continue it with `t3_thread_send`. A Muse route uses `muse-runner`.
 - **Claude Code or Codex:** use a native subagent when the host has the model, and continue it by messaging that same subagent.
 - **Model the host lacks:** use `cli-runner`, `pi-runner`, or `muse-runner`. An unavailable role blocks its work, and you report it; never swap in another model.
 

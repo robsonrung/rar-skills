@@ -39,50 +39,54 @@ class ModelConfigTests(unittest.TestCase):
         self.config = routing.load_config()
 
     def test_all_routes_resolve_with_supported_effort_and_distinct_reviewers(self):
-        for name, route in self.config["routes"].items():
-            for family in route["families"]:
-                with self.subTest(route=name, family=family):
-                    resolved = routing.resolve_route(name, family, config=self.config)
-                    roles = resolved["roles"]
+        for name in self.config["routes"]:
+            for provider in self.config["providers"]:
+                with self.subTest(route=name, provider=provider):
+                    roles = routing.resolve_route(name, provider, config=self.config)["roles"]
                     for role in roles.values():
                         routing.validate_selection(role["runner"], role["model"], role["effort"], self.config)
                     if "implementer" in roles and "reviewer" in roles:
                         self.assertNotEqual(roles["implementer"]["model"], roles["reviewer"]["model"])
-                        escalated = routing.resolve_route(name, family, risk="high", config=self.config)["roles"]
+                        escalated = routing.resolve_route(name, provider, risk="high", config=self.config)["roles"]
                         self.assertIn("implementer", escalated)
                         self.assertIn("reviewer", escalated)
 
-    def test_bounded_work_uses_small_workers_and_strong_review(self):
-        exploration = routing.resolve_route("code-exploration", "gpt")
-        self.assertEqual((exploration["roles"]["worker"]["seat"], exploration["roles"]["worker"]["effort"]), ("terra", "medium"))
-        implementation = routing.resolve_route("isolated-implementation", "gpt")
-        self.assertEqual((implementation["roles"]["implementer"]["seat"], implementation["roles"]["implementer"]["effort"]), ("terra", "high"))
-        self.assertEqual(implementation["roles"]["reviewer"]["seat"], "astra")
-        claude = routing.resolve_route("routine-implementation", "claude")
-        self.assertEqual(claude["roles"]["implementer"]["seat"], "sonnet")
-        self.assertEqual(claude["roles"]["reviewer"]["seat"], "fable")
+    def test_bounded_work_uses_small_workers_and_cross_provider_review(self):
+        lookup = routing.resolve_route("lookup", "openai")["roles"]["worker"]
+        self.assertEqual((lookup["seat"], lookup["effort"]), ("terra", "medium"))
+        claude = routing.resolve_route("routine-code", "claude")["roles"]
+        self.assertEqual((claude["implementer"]["seat"], claude["implementer"]["provider"]), ("sonnet", "claude"))
+        self.assertEqual((claude["reviewer"]["seat"], claude["reviewer"]["provider"]), ("sol", "openai"))
+        self.assertEqual(routing.resolve_route("routine-code")["provider"], self.config["default_provider"])
 
     def test_sensitive_work_cannot_resolve_to_small_implementation(self):
-        result = routing.resolve_route("isolated-implementation", "gpt", risk="high")
-        self.assertEqual(result["route"], "sensitive-implementation")
+        result = routing.resolve_route("routine-code", "openai", risk="high")
+        self.assertEqual(result["route"], "hard-code")
         self.assertEqual(result["roles"]["implementer"]["seat"], "astra")
-        self.assertEqual(result["requested_route"], "isolated-implementation")
+        self.assertEqual(result["requested_route"], "routine-code")
 
     def test_config_change_updates_resolution_without_editing_consumers(self):
         changed = copy.deepcopy(self.config)
         changed["models"]["terra"]["model"] = "test-model-revision"
-        changed["routes"]["code-exploration"]["families"]["gpt"]["worker"]["effort"] = "high"
+        changed["routes"]["lookup"]["roles"]["worker"]["openai"] = "terra:high"
         routing.validate_config(changed)
-        result = routing.resolve_route("code-exploration", "gpt", config=changed)
+        result = routing.resolve_route("lookup", "openai", config=changed)
         self.assertEqual(result["roles"]["worker"]["model"], "test-model-revision")
         self.assertEqual(result["roles"]["worker"]["effort"], "high")
-        self.assertNotEqual(result["config_digest"], routing.resolve_route("code-exploration", "gpt")["config_digest"])
+        self.assertNotEqual(result["config_digest"], routing.resolve_route("lookup", "openai")["config_digest"])
 
     def test_invalid_config_fails_instead_of_using_hidden_defaults(self):
         for mutate in (
-            lambda c: c["routes"]["code-exploration"]["families"]["gpt"]["worker"].update(seat="missing"),
-            lambda c: c["routes"]["code-exploration"]["families"]["gpt"]["worker"].update(effort="unknown"),
-            lambda c: c["routes"]["isolated-implementation"]["families"]["gpt"]["reviewer"].update(seat="terra"),
+            lambda c: c["routes"]["lookup"]["roles"]["worker"].update(openai="missing:low"),
+            lambda c: c["routes"]["lookup"]["roles"]["worker"].update(openai="terra:unknown"),
+            lambda c: c["routes"]["lookup"]["roles"]["worker"].update(openai="terra"),
+            lambda c: c["routes"]["lookup"]["roles"]["worker"].update(openai="sonnet:low"),
+            lambda c: c["routes"]["lookup"]["roles"]["worker"].pop("claude"),
+            lambda c: c["routes"]["lookup"].update(risk_route="missing"),
+            lambda c: c["routes"]["lookup"].pop("use_when"),
+            lambda c: c["providers"]["grok"].update(cross="grok"),
+            lambda c: c.update(default_provider="missing"),
+            lambda c: c["gateway_policy"].update(zdr=False),
             lambda c: c["runners"]["codex"].update(default_seat="missing"),
             lambda c: c["runners"]["codex"].update(fallback_runner="missing"),
             lambda c: c["runners"]["codex"].update(default_seat="sonnet"),
@@ -105,8 +109,8 @@ class ModelConfigTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "Duplicate configuration key"):
                 routing.load_config(path)
 
-    def test_unknown_route_family_and_risk_fail_closed(self):
-        for args, kwargs in ((["missing", "gpt"], {}), (["code-exploration", "missing"], {}), (["code-exploration", "gpt"], {"risk": "unknown"})):
+    def test_unknown_route_provider_and_risk_fail_closed(self):
+        for args, kwargs in ((["missing", "openai"], {}), (["lookup", "missing"], {}), (["lookup", "openai"], {"risk": "unknown"})):
             with self.assertRaises(ValueError):
                 routing.resolve_route(*args, **kwargs)
 
@@ -136,7 +140,7 @@ class ModelConfigTests(unittest.TestCase):
             root = Path(directory) / "installed"
             shutil.copytree(SKILLS / "shared", root / "shared", ignore=shutil.ignore_patterns("__pycache__"))
             shutil.copytree(skill_dir("pi-runner", root=SKILLS), root / "pi-runner", ignore=shutil.ignore_patterns("__pycache__"))
-            result = subprocess.run([sys.executable, str(root / "shared" / "scripts" / "model_routing.py"), "resolve", "isolated-implementation", "--family", "gpt"], cwd=directory, text=True, capture_output=True)
+            result = subprocess.run([sys.executable, str(root / "shared" / "scripts" / "model_routing.py"), "resolve", "routine-code", "--provider", "openai"], cwd=directory, text=True, capture_output=True)
             self.assertEqual(result.returncode, 0, result.stderr)
             self.assertEqual(json.loads(result.stdout)["roles"]["implementer"]["seat"], "terra")
             result = subprocess.run([sys.executable, str(root / "pi-runner" / "scripts" / "run_pi.py"), "--help"], cwd=directory, text=True, capture_output=True)

@@ -5,7 +5,7 @@ How to run an approved worker route on the current host. [model-preview.md](mode
 ## Choose the execution path
 
 1. Inspect what the host actually exposes: tools, model catalog, effort control, role isolation, result collection, and follow-up support. Don't infer capabilities from the app name or the coordinator's model.
-2. **T3 Code:** run every model call as an internal subagent, including organizers, moderators, judges, reviewers, and synthesizers. Use the native subagent tool only when it supports the approved provider, model, and settings; otherwise use `delegate_task`. Before the first `delegate_task`, call `orchestrator_capabilities`. Pass settings in `target.options`. Follow the tool result for continuation and waiting. Each independent review or recheck requires a new `delegate_task`. If the route is unavailable, report the blocked role. Never use external CLIs, runner scripts, or shell model calls in this host. This rule also applies to retries and explicit transport requests.
+2. **T3 Code:** run every model call as an internal subagent, including organizers, moderators, judges, reviewers, and synthesizers. Use the native subagent tool only when it supports the approved provider, model, and settings; otherwise use `delegate_task`. Before the first `delegate_task`, call `orchestrator_capabilities`. Pass settings in `target.options`. Follow the tool result for continuation and waiting. Each independent review or recheck requires a new `delegate_task`. If the route is unavailable, report the blocked role. **Exception: run every Muse route through `muse-runner`.** T3's Muse provider has no `auto` runtime mode, so its children ask for approval on every command; the runner runs Muse without approval prompts and read-only by default. Never use other external CLIs, runner scripts, or shell model calls in this host. This rule also applies to retries and explicit transport requests.
 3. **Claude Code or Codex:** use a native subagent when the host has the exact model. Don't start a runner to call a model the host already runs natively. The parent session is not a separate worker.
 4. **Outside T3 Code, model the host lacks,** or a native path that cannot meet the route: use `cli-runner`, `pi-runner`, or `muse-runner` ([runner-common.md](runner-common.md)). An explicit user request for a CLI or transport wins.
 5. If no path meets the model, effort, isolation, tools, or receipt policy, report it. Run only an exact alternate the plan names; never substitute the coordinator's model.
@@ -14,7 +14,7 @@ How to run an approved worker route on the current host. [model-preview.md](mode
 | --- | --- | --- |
 | Claude Code | Claude subagents with exact model selection | Other families, or a control the native tool lacks |
 | Codex | Astra, Sol, or Terra subagents; task threads where authorized | Other families |
-| T3 Code | Internal subagents with the approved provider, model, and settings | Never; report unavailable routes |
+| T3 Code | Internal subagents with the approved provider, model, and settings | `muse-runner` for Muse routes; otherwise never, report unavailable routes |
 | Pi or another host | Its actual exposed delegation | A checked runner for what it lacks |
 
 These are hints, not guarantees. An installed CLI or `agents/openai.yaml` metadata does not create a native seat. A native tool may inherit a model only when its exact identity matches the route. Creating, renaming, or deleting user-owned tasks needs the user's request.

@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "description": "Single maintained source for model identities, adapter effort support, task routes, and panel defaults. Approved run plans are immutable snapshots, not additional defaults. A route without an economy family uses its gpt family.",
+  "description": "Single maintained source for model identities, adapter effort support, task routes, and panel defaults. Each route names one pick per provider for each role. Approved run plans are immutable snapshots, not additional defaults.",
   "evidence": "Task-fit policy. No measured quality, token, cost, or latency equivalence is claimed.",
   "effort_levels": [
     "none",
@@ -161,7 +161,6 @@
     "astra": {
       "model": "gpt-6-astra",
       "runner": "codex",
-      "family": "gpt",
       "effort_profile": "extended",
       "aliases": [
         "codex"
@@ -172,34 +171,30 @@
     "sol": {
       "model": "gpt-6.1-sol",
       "runner": "codex",
-      "family": "gpt",
       "effort_profile": "extended",
       "aliases": [],
       "effort_scaling": "monotonic",
-      "effort_scaling_evidence": "AutomationBench effort curve for gpt-6-sol, checked 2026-09-22: smooth monotonic climb; weak below medium effort. Not yet re-measured for gpt-6.1-sol, whose catalog default effort is low; always route an explicit effort of medium or higher."
+      "effort_scaling_evidence": "AutomationBench effort curve for gpt-6-sol, checked 2026-09-22: smooth monotonic climb; weak below medium effort. Not yet re-measured for gpt-6.1-sol, whose Codex catalog default effort is low (the API default is medium; both checked 2026-11-10); always route an explicit effort of medium or higher."
     },
     "terra": {
       "model": "gpt-6.1-terra",
       "runner": "codex",
-      "family": "gpt",
       "effort_profile": "extended",
       "aliases": [
         "codex-code"
       ]
     },
     "fable": {
-      "model": "claude-fable-5-1",
+      "model": "claude-fable-5-2",
       "runner": "claude",
-      "family": "claude",
       "effort_profile": "standard",
       "aliases": [],
       "effort_scaling": "flat-above-high",
-      "effort_scaling_evidence": "Artificial Analysis Intelligence Index v4.3.2 and FrontierCode v1.1, checked 2026-09-22: flat-to-declining returns above high effort."
+      "effort_scaling_evidence": "Artificial Analysis Intelligence Index v4.3.2 and FrontierCode v1.1, checked 2026-09-22 for claude-fable-5-1: flat-to-declining returns above high effort. Not yet re-measured for claude-fable-5-2."
     },
     "opus": {
       "model": "claude-opus-5-5",
       "runner": "claude",
-      "family": "claude",
       "effort_profile": "standard",
       "aliases": [
         "opus-5-5"
@@ -210,14 +205,12 @@
     "sonnet": {
       "model": "claude-sonnet-5-5",
       "runner": "claude",
-      "family": "claude",
       "effort_profile": "standard",
       "aliases": []
     },
     "grok": {
       "model": "grok-4.7",
       "runner": "grok",
-      "family": "grok",
       "effort_profile": "grok",
       "aliases": [],
       "default_effort": "high"
@@ -225,7 +218,6 @@
     "gemini": {
       "model": "gemini-4-argon",
       "runner": "gemini",
-      "family": "gemini",
       "effort_profile": "runtime",
       "aliases": [],
       "default_effort": null
@@ -233,14 +225,12 @@
     "kimi": {
       "model": "moonshotai/kimi-k3",
       "runner": "pi",
-      "family": "kimi",
       "effort_profile": "pi",
       "aliases": []
     },
     "glm": {
       "model": "z-ai/glm-5.3-flash",
       "runner": "pi",
-      "family": "glm",
       "effort_profile": "glm",
       "aliases": [],
       "default_effort": "high",
@@ -267,21 +257,18 @@
     "qwen": {
       "model": "qwen/qwen3.8-max",
       "runner": "pi",
-      "family": "qwen",
       "effort_profile": "pi",
       "aliases": []
     },
     "gemma": {
       "model": "google/gemma-4-31b-it",
       "runner": "pi",
-      "family": "gemma",
       "effort_profile": "pi",
       "aliases": []
     },
     "minimax": {
       "model": "minimax/minimax-m2.7",
       "runner": "pi",
-      "family": "minimax",
       "effort_profile": "runtime",
       "aliases": [],
       "default_effort": null
@@ -289,7 +276,6 @@
     "gpt-legacy": {
       "model": "gpt-5.5",
       "runner": "codex",
-      "family": "gpt",
       "effort_profile": "legacy",
       "aliases": [],
       "legacy": true
@@ -297,7 +283,6 @@
     "gpt-mini-legacy": {
       "model": "gpt-5.4-mini",
       "runner": "codex",
-      "family": "gpt",
       "effort_profile": "legacy",
       "aliases": [],
       "legacy": true
@@ -305,7 +290,6 @@
     "spark": {
       "model": "gpt-5.3-codex-spark",
       "runner": "codex",
-      "family": "gpt",
       "effort_profile": "legacy",
       "aliases": [],
       "legacy": true
@@ -313,7 +297,6 @@
     "deepseek-flash": {
       "model": "deepseek/deepseek-v4.1-flash",
       "runner": "pi",
-      "family": "deepseek",
       "effort_profile": "deepseek",
       "aliases": [],
       "default_effort": "high",
@@ -340,7 +323,6 @@
     "qwen-flash": {
       "model": "qwen/qwen3.8-flash",
       "runner": "pi",
-      "family": "qwen",
       "effort_profile": "runtime",
       "aliases": [],
       "default_effort": null,
@@ -363,7 +345,6 @@
     "qwen-plus": {
       "model": "qwen/qwen3.6-plus",
       "runner": "pi",
-      "family": "qwen",
       "effort_profile": "runtime",
       "aliases": [],
       "default_effort": null,
@@ -386,7 +367,6 @@
     "kimi-code": {
       "model": "moonshotai/kimi-k2.7-code",
       "runner": "pi",
-      "family": "kimi",
       "effort_profile": "runtime",
       "aliases": [],
       "default_effort": null,
@@ -409,7 +389,6 @@
     "mistral-small": {
       "model": "mistralai/mistral-small-3.2",
       "runner": "pi",
-      "family": "mistral",
       "effort_profile": "runtime",
       "aliases": [],
       "default_effort": null,
@@ -432,7 +411,6 @@
     "muse-wonder-full": {
       "model": "muse-wonder-full-1.0",
       "runner": "muse",
-      "family": "muse",
       "effort_profile": "muse",
       "default_effort": "high",
       "aliases": [],
@@ -669,1371 +647,194 @@
       ]
     }
   },
+  "providers": {
+    "claude": {
+      "runner": "claude",
+      "cross": "openai"
+    },
+    "openai": {
+      "runner": "codex",
+      "cross": "claude"
+    },
+    "grok": {
+      "runner": "grok",
+      "cross": "openai"
+    },
+    "gemini": {
+      "runner": "gemini",
+      "cross": "claude"
+    },
+    "muse": {
+      "runner": "muse",
+      "cross": "openai"
+    }
+  },
+  "default_provider": "claude",
+  "cross_provider_roles": [
+    "reviewer",
+    "respondent"
+  ],
+  "gateway_policy": {
+    "gateway": "openrouter",
+    "zdr": true,
+    "data_collection": "deny",
+    "require_parameters": true
+  },
   "routes": {
     "lookup": {
-      "purpose": "Find exact files, symbols, values, or commands.",
-      "conditions": [
-        "Return source references; do not infer missing behavior."
-      ],
-      "risk_route": "technical-analysis",
-      "families": {
-        "gpt": {
-          "worker": {
-            "seat": "terra",
-            "effort": "low"
-          }
-        },
-        "claude": {
-          "worker": {
-            "seat": "sonnet",
-            "effort": "low"
-          }
-        },
-        "economy": {
-          "worker": {
-            "seat": "glm",
-            "effort": "low"
-          }
-        },
-        "saver": {
-          "worker": {
-            "seat": "glm",
-            "effort": "low"
-          }
+      "purpose": "Find facts, read code, run checks, or write routine documentation.",
+      "use_when": "A mistake is cheap to spot and nothing is decided or designed.",
+      "risk_route": "analysis",
+      "roles": {
+        "worker": {
+          "claude": "sonnet:medium",
+          "openai": "terra:medium",
+          "grok": "grok:medium",
+          "gemini": "gemini:runtime"
         }
       }
     },
-    "code-exploration": {
-      "purpose": "Map one bounded feature and its callers and tests.",
-      "conditions": [
-        "Verify relationships from source. Escalate conclusions that affect design or behavior."
-      ],
-      "risk_route": "technical-analysis",
-      "families": {
-        "gpt": {
-          "worker": {
-            "seat": "terra",
-            "effort": "medium"
-          }
+    "routine-code": {
+      "purpose": "Implement a bounded change with stable interfaces: a function, a mechanical edit, a known-cause fix, or tests from agreed cases.",
+      "use_when": "Tests, a build, or a diff decide correctness and the scope is one spec or a few files.",
+      "risk_route": "hard-code",
+      "roles": {
+        "implementer": {
+          "claude": "sonnet:medium",
+          "openai": "terra:medium",
+          "grok": "grok:high",
+          "gemini": "gemini:runtime",
+          "muse": "muse-wonder-full:high"
         },
-        "claude": {
-          "worker": {
-            "seat": "sonnet",
-            "effort": "medium"
-          }
-        },
-        "economy": {
-          "worker": {
-            "seat": "glm",
-            "effort": "high"
-          }
-        },
-        "saver": {
-          "worker": {
-            "seat": "glm",
-            "effort": "high"
-          }
+        "reviewer": {
+          "claude": "opus:high",
+          "openai": "sol:high",
+          "grok": "grok:high",
+          "gemini": "gemini:runtime"
         }
       }
     },
-    "mechanical-edit": {
-      "purpose": "Apply an established transformation without changing behavior.",
-      "conditions": [
-        "Use compiler, lint, and applicable regression checks."
-      ],
-      "risk_route": "sensitive-implementation",
-      "families": {
-        "gpt": {
-          "implementer": {
-            "seat": "terra",
-            "effort": "medium"
-          },
-          "reviewer": {
-            "seat": "astra",
-            "effort": "high"
-          }
+    "standard-code": {
+      "purpose": "Implement everyday engineering work that crosses modules or needs local design judgment.",
+      "use_when": "Acceptance checks exist, but the change needs judgment the checks do not cover.",
+      "risk_route": "hard-code",
+      "roles": {
+        "implementer": {
+          "claude": "opus:medium",
+          "openai": "sol:medium",
+          "grok": "grok:high",
+          "gemini": "gemini:runtime",
+          "muse": "muse-wonder-full:high"
         },
-        "claude": {
-          "implementer": {
-            "seat": "sonnet",
-            "effort": "medium"
-          },
-          "reviewer": {
-            "seat": "fable",
-            "effort": "high"
-          }
-        },
-        "economy": {
-          "implementer": {
-            "seat": "glm",
-            "effort": "high"
-          },
-          "reviewer": {
-            "seat": "deepseek-flash",
-            "effort": "high"
-          }
-        },
-        "saver": {
-          "implementer": {
-            "seat": "glm",
-            "effort": "high"
-          },
-          "reviewer": {
-            "seat": "astra",
-            "effort": "high"
-          }
+        "reviewer": {
+          "claude": "opus:high",
+          "openai": "sol:high",
+          "grok": "grok:high",
+          "gemini": "gemini:runtime"
         }
       }
     },
-    "isolated-implementation": {
-      "purpose": "Implement a small function with explicit acceptance.",
-      "conditions": [
-        "Known inputs, outputs, failure cases, and a local pattern."
-      ],
-      "risk_route": "sensitive-implementation",
-      "families": {
-        "gpt": {
-          "implementer": {
-            "seat": "terra",
-            "effort": "high"
-          },
-          "reviewer": {
-            "seat": "astra",
-            "effort": "high"
-          }
+    "hard-code": {
+      "purpose": "Implement work where an early mistake compounds: a migration, a sensitive or public contract, a major refactor, or a long unattended run.",
+      "use_when": "A policy.high_risk_triggers entry applies, or the last attempt failed on a wrong idea.",
+      "risk_route": "hard-code",
+      "roles": {
+        "implementer": {
+          "claude": "fable:high",
+          "openai": "astra:high",
+          "grok": "grok:high",
+          "gemini": "gemini:runtime",
+          "muse": "muse-wonder-full:xhigh"
         },
-        "claude": {
-          "implementer": {
-            "seat": "sonnet",
-            "effort": "high"
-          },
-          "reviewer": {
-            "seat": "fable",
-            "effort": "high"
-          }
-        },
-        "economy": {
-          "implementer": {
-            "seat": "glm",
-            "effort": "high"
-          },
-          "reviewer": {
-            "seat": "deepseek-flash",
-            "effort": "high"
-          }
-        },
-        "saver": {
-          "implementer": {
-            "seat": "glm",
-            "effort": "high"
-          },
-          "reviewer": {
-            "seat": "astra",
-            "effort": "high"
-          }
+        "reviewer": {
+          "claude": "fable:high",
+          "openai": "astra:high",
+          "grok": "grok:high",
+          "gemini": "gemini:runtime"
         }
       }
     },
-    "routine-function": {
-      "purpose": "Implement a routine, fully specified function.",
-      "conditions": [],
-      "risk_route": "sensitive-implementation",
-      "families": {
-        "gpt": {
-          "implementer": {
-            "seat": "terra",
-            "effort": "medium"
-          },
-          "reviewer": {
-            "seat": "astra",
-            "effort": "high"
-          }
-        },
-        "claude": {
-          "implementer": {
-            "seat": "sonnet",
-            "effort": "medium"
-          },
-          "reviewer": {
-            "seat": "fable",
-            "effort": "high"
-          }
-        },
-        "economy": {
-          "implementer": {
-            "seat": "glm",
-            "effort": "high"
-          },
-          "reviewer": {
-            "seat": "deepseek-flash",
-            "effort": "high"
-          }
-        },
-        "saver": {
-          "implementer": {
-            "seat": "glm",
-            "effort": "high"
-          },
-          "reviewer": {
-            "seat": "astra",
-            "effort": "high"
-          }
-        }
-      }
-    },
-    "routine-implementation": {
-      "purpose": "Implement a bounded feature across files.",
-      "conditions": [
-        "Stable interfaces and meaningful acceptance checks."
-      ],
-      "risk_route": "sensitive-implementation",
-      "families": {
-        "gpt": {
-          "implementer": {
-            "seat": "terra",
-            "effort": "high"
-          },
-          "reviewer": {
-            "seat": "astra",
-            "effort": "high"
-          }
-        },
-        "claude": {
-          "implementer": {
-            "seat": "sonnet",
-            "effort": "high"
-          },
-          "reviewer": {
-            "seat": "fable",
-            "effort": "high"
-          }
-        },
-        "economy": {
-          "implementer": {
-            "seat": "glm",
-            "effort": "high"
-          },
-          "reviewer": {
-            "seat": "deepseek-flash",
-            "effort": "high"
-          }
-        },
-        "saver": {
-          "implementer": {
-            "seat": "glm",
-            "effort": "high"
-          },
-          "reviewer": {
-            "seat": "astra",
-            "effort": "high"
-          }
-        }
-      }
-    },
-    "balanced-implementation": {
-      "purpose": "Alternate bounded feature route for comparison.",
-      "conditions": [],
-      "risk_route": "sensitive-implementation",
-      "families": {
-        "gpt": {
-          "implementer": {
-            "seat": "sol",
-            "effort": "medium"
-          },
-          "reviewer": {
-            "seat": "astra",
-            "effort": "high"
-          }
-        },
-        "claude": {
-          "implementer": {
-            "seat": "opus",
-            "effort": "medium"
-          },
-          "reviewer": {
-            "seat": "fable",
-            "effort": "high"
-          }
-        },
-        "saver": {
-          "implementer": {
-            "seat": "deepseek-flash",
-            "effort": "high"
-          },
-          "reviewer": {
-            "seat": "astra",
-            "effort": "high"
-          }
-        }
-      }
-    },
-    "direct-implementation": {
-      "purpose": "Compare a capable worker with less thinking against delegation overhead.",
-      "conditions": [
-        "Retain independent review when code changes."
-      ],
-      "risk_route": "sensitive-implementation",
-      "families": {
-        "gpt": {
-          "implementer": {
-            "seat": "astra",
-            "effort": "medium"
-          },
-          "reviewer": {
-            "seat": "sol",
-            "effort": "high"
-          }
-        },
-        "claude": {
-          "implementer": {
-            "seat": "opus",
-            "effort": "medium"
-          },
-          "reviewer": {
-            "seat": "fable",
-            "effort": "high"
-          }
-        },
-        "saver": {
-          "implementer": {
-            "seat": "deepseek-flash",
-            "effort": "high"
-          },
-          "reviewer": {
-            "seat": "astra",
-            "effort": "high"
-          }
-        }
-      }
-    },
-    "known-cause-fix": {
-      "purpose": "Fix a reproduced bug with an established causal chain.",
-      "conditions": [
-        "Capture the failing regression before the fix."
-      ],
-      "risk_route": "sensitive-implementation",
-      "families": {
-        "gpt": {
-          "implementer": {
-            "seat": "terra",
-            "effort": "high"
-          },
-          "reviewer": {
-            "seat": "astra",
-            "effort": "high"
-          }
-        },
-        "claude": {
-          "implementer": {
-            "seat": "sonnet",
-            "effort": "high"
-          },
-          "reviewer": {
-            "seat": "fable",
-            "effort": "high"
-          }
-        },
-        "economy": {
-          "implementer": {
-            "seat": "glm",
-            "effort": "high"
-          },
-          "reviewer": {
-            "seat": "deepseek-flash",
-            "effort": "high"
-          }
-        },
-        "saver": {
-          "implementer": {
-            "seat": "glm",
-            "effort": "high"
-          },
-          "reviewer": {
-            "seat": "astra",
-            "effort": "high"
-          }
-        }
-      }
-    },
-    "test-implementation": {
-      "purpose": "Implement tests from agreed cases and expected results.",
-      "conditions": [
-        "Reviewer checks missing cases and expected behavior independently."
-      ],
-      "risk_route": "sensitive-implementation",
-      "families": {
-        "gpt": {
-          "implementer": {
-            "seat": "terra",
-            "effort": "high"
-          },
-          "reviewer": {
-            "seat": "astra",
-            "effort": "high"
-          }
-        },
-        "claude": {
-          "implementer": {
-            "seat": "sonnet",
-            "effort": "high"
-          },
-          "reviewer": {
-            "seat": "fable",
-            "effort": "high"
-          }
-        },
-        "economy": {
-          "implementer": {
-            "seat": "glm",
-            "effort": "high"
-          },
-          "reviewer": {
-            "seat": "deepseek-flash",
-            "effort": "high"
-          }
-        },
-        "saver": {
-          "implementer": {
-            "seat": "glm",
-            "effort": "high"
-          },
-          "reviewer": {
-            "seat": "astra",
-            "effort": "high"
-          }
-        }
-      }
-    },
-    "test-execution": {
-      "purpose": "Run named checks and report actual results.",
-      "conditions": [
-        "Use tools directly when no model judgment is needed."
-      ],
-      "risk_route": "diagnosis",
-      "families": {
-        "gpt": {
-          "worker": {
-            "seat": "terra",
-            "effort": "low"
-          }
-        },
-        "claude": {
-          "worker": {
-            "seat": "sonnet",
-            "effort": "low"
-          }
-        },
-        "economy": {
-          "worker": {
-            "seat": "glm",
-            "effort": "low"
-          }
-        },
-        "saver": {
-          "worker": {
-            "seat": "glm",
-            "effort": "low"
-          }
-        }
-      }
-    },
-    "documentation": {
-      "purpose": "Summarize supplied facts or describe verified behavior.",
-      "conditions": [
-        "Cite source evidence. Use architecture for design conclusions."
-      ],
-      "risk_route": "technical-analysis",
-      "families": {
-        "gpt": {
-          "worker": {
-            "seat": "terra",
-            "effort": "medium"
-          }
-        },
-        "claude": {
-          "worker": {
-            "seat": "sonnet",
-            "effort": "medium"
-          }
-        },
-        "economy": {
-          "worker": {
-            "seat": "glm",
-            "effort": "high"
-          }
-        },
-        "saver": {
-          "worker": {
-            "seat": "glm",
-            "effort": "high"
-          }
-        }
-      }
-    },
-    "research": {
-      "purpose": "Collect sources and synthesize a bounded question.",
-      "conditions": [
-        "Explicitly retrieve current facts; low effort must not skip required evidence."
-      ],
-      "risk_route": "technical-analysis",
-      "families": {
-        "gpt": {
-          "worker": {
-            "seat": "astra",
-            "effort": "high"
-          }
-        },
-        "claude": {
-          "worker": {
-            "seat": "fable",
-            "effort": "high"
-          }
-        }
-      }
-    },
-    "technical-analysis": {
-      "purpose": "Resolve technical uncertainty or broad repository relationships.",
-      "conditions": [],
-      "risk_route": "technical-analysis",
-      "families": {
-        "gpt": {
-          "worker": {
-            "seat": "astra",
-            "effort": "high"
-          }
-        },
-        "claude": {
-          "worker": {
-            "seat": "fable",
-            "effort": "high"
-          }
-        },
-        "saver": {
-          "worker": {
-            "seat": "astra",
-            "effort": "high"
-          }
-        }
-      }
-    },
-    "architecture": {
-      "purpose": "Decide interfaces, invariants, and tradeoffs before implementation.",
-      "conditions": [],
-      "risk_route": "architecture",
-      "families": {
-        "gpt": {
-          "worker": {
-            "seat": "astra",
-            "effort": "high"
-          }
-        },
-        "claude": {
-          "worker": {
-            "seat": "fable",
-            "effort": "high"
-          }
-        }
-      }
-    },
-    "ambiguous-problem": {
-      "purpose": "Resolve unclear requirements and material assumptions.",
-      "conditions": [],
-      "risk_route": "ambiguous-problem",
-      "families": {
-        "gpt": {
-          "worker": {
-            "seat": "astra",
-            "effort": "high"
-          }
-        },
-        "claude": {
-          "worker": {
-            "seat": "fable",
-            "effort": "high"
-          }
-        }
-      }
-    },
-    "test-design": {
-      "purpose": "Define failure cases and independent expected behavior.",
-      "conditions": [],
-      "risk_route": "test-design",
-      "families": {
-        "gpt": {
-          "worker": {
-            "seat": "astra",
-            "effort": "high"
-          }
-        },
-        "claude": {
-          "worker": {
-            "seat": "fable",
-            "effort": "high"
-          }
-        }
-      }
-    },
-    "diagnosis": {
-      "purpose": "Find the cause of an unexplained or recurring failure.",
-      "conditions": [],
-      "risk_route": "diagnosis",
-      "families": {
-        "gpt": {
-          "worker": {
-            "seat": "astra",
-            "effort": "high"
-          }
-        },
-        "claude": {
-          "worker": {
-            "seat": "fable",
-            "effort": "high"
-          }
-        },
-        "saver": {
-          "worker": {
-            "seat": "glm",
-            "effort": "high"
-          }
+    "analysis": {
+      "purpose": "Research, diagnose, design tests, or decide an architecture or an ambiguous problem.",
+      "use_when": "The cause is unknown, the evidence conflicts, or nobody will check the judgment.",
+      "risk_route": "analysis",
+      "roles": {
+        "worker": {
+          "claude": "fable:high",
+          "openai": "astra:high",
+          "grok": "grok:high",
+          "gemini": "gemini:runtime"
         }
       }
     },
     "deep-analysis": {
-      "purpose": "Analyze competing hypotheses or a difficult reasoning chain.",
-      "conditions": [],
+      "purpose": "Analyze exhaustively when a first analysis left a recorded gap.",
+      "use_when": "An analysis route already ran and its gap is written down.",
       "risk_route": "deep-analysis",
-      "families": {
-        "gpt": {
-          "worker": {
-            "seat": "astra",
-            "effort": "xhigh"
-          }
-        },
-        "claude": {
-          "worker": {
-            "seat": "fable",
-            "effort": "high"
-          }
+      "roles": {
+        "worker": {
+          "claude": "fable:high",
+          "openai": "astra:xhigh",
+          "grok": "grok:high",
+          "gemini": "gemini:runtime"
         }
       }
     },
-    "hard-implementation": {
-      "purpose": "Implement difficult behavior after resolving the design.",
-      "conditions": [],
-      "risk_route": "sensitive-implementation",
-      "families": {
-        "gpt": {
-          "implementer": {
-            "seat": "astra",
-            "effort": "high"
-          },
-          "reviewer": {
-            "seat": "sol",
-            "effort": "high"
-          }
-        },
-        "claude": {
-          "implementer": {
-            "seat": "fable",
-            "effort": "high"
-          },
-          "reviewer": {
-            "seat": "opus",
-            "effort": "high"
-          }
-        },
-        "saver": {
-          "implementer": {
-            "seat": "astra",
-            "effort": "high"
-          },
-          "reviewer": {
-            "seat": "opus",
-            "effort": "high"
-          }
-        }
-      }
-    },
-    "sensitive-implementation": {
-      "purpose": "Lead changes to security, data, concurrency, or public contracts.",
-      "conditions": [
-        "Strong model leads before edits; tests and independent review remain required."
-      ],
-      "risk_route": "sensitive-implementation",
-      "families": {
-        "gpt": {
-          "implementer": {
-            "seat": "astra",
-            "effort": "high"
-          },
-          "reviewer": {
-            "seat": "sol",
-            "effort": "high"
-          }
-        },
-        "claude": {
-          "implementer": {
-            "seat": "fable",
-            "effort": "high"
-          },
-          "reviewer": {
-            "seat": "opus",
-            "effort": "high"
-          }
-        },
-        "saver": {
-          "implementer": {
-            "seat": "astra",
-            "effort": "high"
-          },
-          "reviewer": {
-            "seat": "opus",
-            "effort": "high"
-          }
-        }
-      }
-    },
-    "migration": {
-      "purpose": "Plan and implement a migration with rollback and data checks.",
-      "conditions": [],
-      "risk_route": "migration",
-      "families": {
-        "gpt": {
-          "implementer": {
-            "seat": "astra",
-            "effort": "high"
-          },
-          "reviewer": {
-            "seat": "sol",
-            "effort": "high"
-          }
-        },
-        "claude": {
-          "implementer": {
-            "seat": "fable",
-            "effort": "high"
-          },
-          "reviewer": {
-            "seat": "opus",
-            "effort": "high"
-          }
-        },
-        "saver": {
-          "implementer": {
-            "seat": "astra",
-            "effort": "high"
-          },
-          "reviewer": {
-            "seat": "opus",
-            "effort": "high"
-          }
-        }
-      }
-    },
-    "difficult-implementation": {
-      "purpose": "Escalate a bounded reasoning difficulty after evidence shows a need.",
-      "conditions": [],
-      "risk_route": "difficult-implementation",
-      "families": {
-        "gpt": {
-          "implementer": {
-            "seat": "astra",
-            "effort": "xhigh"
-          },
-          "reviewer": {
-            "seat": "sol",
-            "effort": "high"
-          }
-        },
-        "claude": {
-          "implementer": {
-            "seat": "fable",
-            "effort": "xhigh"
-          },
-          "reviewer": {
-            "seat": "opus",
-            "effort": "high"
-          }
-        },
-        "saver": {
-          "implementer": {
-            "seat": "astra",
-            "effort": "xhigh"
-          },
-          "reviewer": {
-            "seat": "opus",
-            "effort": "high"
-          }
-        }
-      }
-    },
-    "isolated-deep-implementation": {
-      "purpose": "Candidate for a difficult but isolated algorithm.",
-      "conditions": [
-        "Do not select for unclear requirements, system behavior, or hidden dependencies."
-      ],
-      "risk_route": "difficult-implementation",
-      "families": {
-        "gpt": {
-          "implementer": {
-            "seat": "terra",
-            "effort": "xhigh"
-          },
-          "reviewer": {
-            "seat": "astra",
-            "effort": "high"
-          }
-        },
-        "claude": {
-          "implementer": {
-            "seat": "sonnet",
-            "effort": "xhigh"
-          },
-          "reviewer": {
-            "seat": "fable",
-            "effort": "high"
-          }
-        },
-        "saver": {
-          "implementer": {
-            "seat": "deepseek-flash",
-            "effort": "high"
-          },
-          "reviewer": {
-            "seat": "astra",
-            "effort": "high"
-          }
-        }
-      }
-    },
-    "broad-review": {
-      "purpose": "Review behavior, interfaces, tests, and missing requirements.",
-      "conditions": [],
+    "review": {
+      "purpose": "Review a diff, a design, or captured evidence independently of its author.",
+      "use_when": "One bounded change or document with local risk.",
       "risk_route": "deep-review",
-      "families": {
-        "gpt": {
-          "reviewer": {
-            "seat": "astra",
-            "effort": "high"
-          }
-        },
-        "claude": {
-          "reviewer": {
-            "seat": "fable",
-            "effort": "high"
-          }
-        }
-      }
-    },
-    "independent-review": {
-      "purpose": "Review work produced by the family lead.",
-      "conditions": [],
-      "risk_route": "deep-review",
-      "families": {
-        "gpt": {
-          "reviewer": {
-            "seat": "sol",
-            "effort": "high"
-          }
-        },
-        "claude": {
-          "reviewer": {
-            "seat": "opus",
-            "effort": "high"
-          }
-        },
-        "saver": {
-          "reviewer": {
-            "seat": "opus",
-            "effort": "high"
-          }
-        }
-      }
-    },
-    "precision-review": {
-      "purpose": "Review subtle semantics and counterexamples.",
-      "conditions": [],
-      "risk_route": "deep-review",
-      "families": {
-        "gpt": {
-          "reviewer": {
-            "seat": "astra",
-            "effort": "high"
-          }
-        },
-        "claude": {
-          "reviewer": {
-            "seat": "opus",
-            "effort": "high"
-          }
-        },
-        "saver": {
-          "reviewer": {
-            "seat": "opus",
-            "effort": "high"
-          }
+      "roles": {
+        "reviewer": {
+          "claude": "opus:high",
+          "openai": "sol:high",
+          "grok": "grok:high",
+          "gemini": "gemini:runtime"
         }
       }
     },
     "deep-review": {
-      "purpose": "Review difficult semantics, concurrency, or integration.",
-      "conditions": [],
+      "purpose": "Review a security boundary, a migration, a public contract, or integrated work across seams.",
+      "use_when": "A policy.high_risk_triggers entry applies to the change under review.",
       "risk_route": "deep-review",
-      "families": {
-        "gpt": {
-          "reviewer": {
-            "seat": "astra",
-            "effort": "xhigh"
-          }
-        },
-        "claude": {
-          "reviewer": {
-            "seat": "fable",
-            "effort": "xhigh"
-          }
-        },
-        "saver": {
-          "reviewer": {
-            "seat": "astra",
-            "effort": "xhigh"
-          }
+      "roles": {
+        "reviewer": {
+          "claude": "fable:high",
+          "openai": "astra:xhigh",
+          "grok": "grok:high",
+          "gemini": "gemini:runtime"
         }
       }
     },
-    "design-review": {
-      "purpose": "Review design assumptions and tradeoffs.",
-      "conditions": [
-        "Does not replace code review when code is in scope."
-      ],
-      "risk_route": "design-review",
-      "families": {
-        "gpt": {
-          "reviewer": {
-            "seat": "astra",
-            "effort": "high"
-          }
+    "interview": {
+      "purpose": "Run an automated interview between an interviewer and a respondent.",
+      "use_when": "interview-me runs in auto mode.",
+      "risk_route": "interview",
+      "roles": {
+        "interviewer": {
+          "claude": "fable:high",
+          "openai": "astra:high",
+          "grok": "grok:high",
+          "gemini": "gemini:runtime"
         },
-        "claude": {
-          "reviewer": {
-            "seat": "fable",
-            "effort": "high"
-          }
+        "respondent": {
+          "claude": "opus:medium",
+          "openai": "sol:medium",
+          "grok": "grok:medium",
+          "gemini": "gemini:runtime"
         }
       }
     },
-    "security-review": {
-      "purpose": "Review attack surface, authorization, and exploitability.",
-      "conditions": [
-        "Use relevant scans and reproduce claimed defects."
-      ],
-      "risk_route": "security-review",
-      "families": {
-        "gpt": {
-          "reviewer": {
-            "seat": "astra",
-            "effort": "xhigh"
-          }
-        },
-        "claude": {
-          "reviewer": {
-            "seat": "fable",
-            "effort": "high"
-          }
-        }
-      }
-    },
-    "exhaustive-analysis": {
-      "purpose": "Exceptional reasoning after a measured gap at lower effort.",
-      "conditions": [
-        "Record the unresolved question and evidence justifying additional effort."
-      ],
-      "risk_route": "exhaustive-analysis",
-      "families": {
-        "gpt": {
-          "worker": {
-            "seat": "astra",
-            "effort": "max"
-          }
-        },
-        "claude": {
-          "worker": {
-            "seat": "fable",
-            "effort": "high"
-          }
-        }
-      }
-    },
-    "interview-product": {
-      "purpose": "Interview unclear user or product requirements.",
-      "conditions": [],
-      "risk_route": "interview-product",
-      "families": {
-        "mixed": {
-          "interviewer": {
-            "seat": "fable",
-            "effort": "high"
-          },
-          "respondent": {
-            "seat": "astra",
-            "effort": "medium"
-          }
-        },
-        "gpt": {
-          "interviewer": {
-            "seat": "astra",
-            "effort": "high"
-          },
-          "respondent": {
-            "seat": "sol",
-            "effort": "medium"
-          }
-        },
-        "claude": {
-          "interviewer": {
-            "seat": "fable",
-            "effort": "high"
-          },
-          "respondent": {
-            "seat": "opus",
-            "effort": "medium"
-          }
-        }
-      }
-    },
-    "interview-technical": {
-      "purpose": "Interview explicit technical requirements.",
-      "conditions": [],
-      "risk_route": "interview-technical",
-      "families": {
-        "mixed": {
-          "interviewer": {
-            "seat": "astra",
-            "effort": "high"
-          },
-          "respondent": {
-            "seat": "fable",
-            "effort": "medium"
-          }
-        },
-        "gpt": {
-          "interviewer": {
-            "seat": "astra",
-            "effort": "high"
-          },
-          "respondent": {
-            "seat": "sol",
-            "effort": "medium"
-          }
-        },
-        "claude": {
-          "interviewer": {
-            "seat": "fable",
-            "effort": "high"
-          },
-          "respondent": {
-            "seat": "opus",
-            "effort": "medium"
-          }
-        }
-      }
-    },
-    "validation-scope": {
-      "purpose": "Bound requirements, select checks, and assess the validation result.",
-      "conditions": [
-        "Use only for the scoped validation gap. Preserve approved routes and evidence."
-      ],
-      "risk_route": "validation-risk",
-      "families": {
-        "balanced": {
-          "worker": {
-            "seat": "sol",
-            "effort": "medium"
-          }
-        },
-        "economy": {
-          "worker": {
-            "seat": "sol",
-            "effort": "medium"
-          }
-        },
-        "saver": {
-          "worker": {
-            "seat": "glm",
-            "effort": "high"
-          }
-        }
-      },
-      "evidence": "Task-fit judgment from the sources under validation_research, checked 2026-09-22; not local measured equivalence."
-    },
-    "validation-unit": {
-      "purpose": "Author missing unit, component, property, or scripted journey tests from agreed cases.",
-      "conditions": [
-        "Use only for the scoped validation gap. Preserve approved routes and evidence."
-      ],
-      "risk_route": "validation-risk",
-      "families": {
-        "balanced": {
-          "implementer": {
-            "seat": "terra",
-            "effort": "high"
-          },
-          "reviewer": {
-            "seat": "sol",
-            "effort": "high"
-          }
-        },
-        "economy": {
-          "implementer": {
-            "seat": "glm",
-            "effort": "high"
-          },
-          "reviewer": {
-            "seat": "deepseek-flash",
-            "effort": "high"
-          }
-        },
-        "saver": {
-          "implementer": {
-            "seat": "glm",
-            "effort": "high"
-          },
-          "reviewer": {
-            "seat": "astra",
-            "effort": "high"
-          }
-        }
-      },
-      "evidence": "Task-fit judgment from the sources under validation_research, checked 2026-09-22; not local measured equivalence."
-    },
-    "validation-integration": {
-      "purpose": "Design API, database, event, migration and performance validation.",
-      "conditions": [
-        "Use only for the scoped validation gap. Preserve approved routes and evidence."
-      ],
-      "risk_route": "validation-risk",
-      "families": {
-        "balanced": {
-          "implementer": {
-            "seat": "sol",
-            "effort": "high"
-          },
-          "reviewer": {
-            "seat": "astra",
-            "effort": "high"
-          }
-        },
-        "economy": {
-          "implementer": {
-            "seat": "sol",
-            "effort": "high"
-          },
-          "reviewer": {
-            "seat": "astra",
-            "effort": "high"
-          }
-        },
-        "saver": {
-          "implementer": {
-            "seat": "glm",
-            "effort": "high"
-          },
-          "reviewer": {
-            "seat": "astra",
-            "effort": "high"
-          }
-        }
-      },
-      "evidence": "Task-fit judgment from the sources under validation_research, checked 2026-09-22; not local measured equivalence."
-    },
-    "validation-browser": {
-      "purpose": "Execute interactive browser journeys and interpret visual or accessibility state.",
-      "conditions": [
-        "Use only for the scoped validation gap. Preserve approved routes and evidence."
-      ],
-      "risk_route": "validation-risk",
-      "families": {
-        "balanced": {
-          "worker": {
-            "seat": "sonnet",
-            "effort": "medium"
-          }
-        },
-        "economy": {
-          "worker": {
-            "seat": "glm",
-            "effort": "high"
-          }
-        },
-        "saver": {
-          "worker": {
-            "seat": "glm",
-            "effort": "high"
-          }
-        }
-      },
-      "evidence": "Task-fit judgment from the sources under validation_research, checked 2026-09-22; not local measured equivalence."
-    },
-    "validation-risk": {
-      "purpose": "Set safety invariants and diagnose authorization, money, concurrency, or data loss risks.",
-      "conditions": [
-        "Use only for the scoped validation gap. Preserve approved routes and evidence."
-      ],
-      "risk_route": "validation-risk",
-      "families": {
-        "balanced": {
-          "implementer": {
-            "seat": "astra",
-            "effort": "high"
-          },
-          "reviewer": {
-            "seat": "sol",
-            "effort": "high"
-          }
-        },
-        "economy": {
-          "implementer": {
-            "seat": "astra",
-            "effort": "high"
-          },
-          "reviewer": {
-            "seat": "sol",
-            "effort": "high"
-          }
-        },
-        "saver": {
-          "implementer": {
-            "seat": "astra",
-            "effort": "high"
-          },
-          "reviewer": {
-            "seat": "opus",
-            "effort": "high"
-          }
-        }
-      },
-      "evidence": "Task-fit judgment from the sources under validation_research, checked 2026-09-22; not local measured equivalence."
-    },
-    "validation-diagnosis": {
-      "purpose": "Diagnose a bounded failure or correct a proven cause within approved scope.",
-      "conditions": [
-        "Use only for the scoped validation gap. Preserve approved routes and evidence."
-      ],
-      "risk_route": "validation-risk",
-      "families": {
-        "balanced": {
-          "implementer": {
-            "seat": "sol",
-            "effort": "high"
-          },
-          "reviewer": {
-            "seat": "astra",
-            "effort": "high"
-          }
-        },
-        "economy": {
-          "implementer": {
-            "seat": "glm",
-            "effort": "high"
-          },
-          "reviewer": {
-            "seat": "deepseek-flash",
-            "effort": "high"
-          }
-        },
-        "saver": {
-          "implementer": {
-            "seat": "glm",
-            "effort": "high"
-          },
-          "reviewer": {
-            "seat": "astra",
-            "effort": "high"
-          }
-        }
-      },
-      "evidence": "Task-fit judgment from the sources under validation_research, checked 2026-09-22; not local measured equivalence."
-    },
-    "validation-review": {
-      "purpose": "Assess missing cases and evidence independently of the test author.",
-      "conditions": [
-        "Use only for the scoped validation gap. Preserve approved routes and evidence."
-      ],
-      "risk_route": "validation-review-risk",
-      "families": {
-        "balanced": {
-          "reviewer": {
-            "seat": "sol",
-            "effort": "high"
-          }
-        },
-        "economy": {
-          "reviewer": {
-            "seat": "deepseek-flash",
-            "effort": "high"
-          }
-        },
-        "saver": {
-          "reviewer": {
-            "seat": "astra",
-            "effort": "high"
-          }
-        }
-      },
-      "evidence": "Task-fit judgment from the sources under validation_research, checked 2026-09-22; not local measured equivalence."
-    },
-    "validation-review-risk": {
-      "purpose": "Review high risk validation independently; change the proposed seat if it authored the work.",
-      "conditions": [
-        "Use only for the scoped validation gap. Preserve approved routes and evidence."
-      ],
-      "risk_route": "validation-review-risk",
-      "families": {
-        "balanced": {
-          "reviewer": {
-            "seat": "astra",
-            "effort": "high"
-          }
-        },
-        "economy": {
-          "reviewer": {
-            "seat": "astra",
-            "effort": "high"
-          }
-        },
-        "saver": {
-          "reviewer": {
-            "seat": "astra",
-            "effort": "high"
-          }
-        }
-      },
-      "evidence": "Task-fit judgment from the sources under validation_research, checked 2026-09-22; not local measured equivalence."
-    },
-    "coordinator": {
-      "purpose": "Coordinate a future approved plan, task scheduling, evidence, and integration.",
-      "conditions": [
-        "Coordination only. Sensitive requirements, invariants, planning, and review use their own selected strong roles.",
-        "A preview cannot change the current session model. Select the exact route in the host before future coordinator startup."
-      ],
-      "risk_route": "coordinator",
-      "families": {
-        "gpt": {
-          "coordinator": {
-            "seat": "sol",
-            "effort": "medium"
-          }
-        },
-        "claude": {
-          "coordinator": {
-            "seat": "sonnet",
-            "effort": "high"
-          }
-        },
-        "saver": {
-          "coordinator": {
-            "seat": "sol",
-            "effort": "medium"
-          }
+    "coordination": {
+      "purpose": "Coordinate workers and integrate their results without doing their work.",
+      "use_when": "A workflow needs a coordinator that is not the current session.",
+      "risk_route": "coordination",
+      "roles": {
+        "coordinator": {
+          "claude": "sonnet:high",
+          "openai": "sol:medium",
+          "grok": "grok:medium",
+          "gemini": "gemini:runtime"
         }
       }
     }
@@ -2229,215 +1030,6 @@
         "title": "FrontierCode v1.1 main set, agentic coding by effort level",
         "url": "https://artificialanalysis.ai/",
         "accessed": "2026-09-22"
-      }
-    }
-  },
-  "default_profile": "saver",
-  "profile_policy": {
-    "direct_execution_routes": [
-      "test-execution"
-    ],
-    "provider_routing": {
-      "gateway": "openrouter",
-      "zdr": true,
-      "data_collection": "deny",
-      "require_parameters": true
-    }
-  },
-  "profiles": {
-    "economy": {
-      "label": "Economy",
-      "family": "economy",
-      "role_candidates": {
-        "routine-function": {
-          "implementer": [
-            "glm",
-            "deepseek-flash"
-          ]
-        },
-        "isolated-implementation": {
-          "implementer": [
-            "glm",
-            "deepseek-flash"
-          ]
-        },
-        "routine-implementation": {
-          "implementer": [
-            "glm",
-            "deepseek-flash"
-          ]
-        },
-        "test-implementation": {
-          "implementer": [
-            "glm",
-            "deepseek-flash"
-          ]
-        },
-        "known-cause-fix": {
-          "implementer": [
-            "glm",
-            "deepseek-flash"
-          ]
-        },
-        "validation-unit": {
-          "implementer": [
-            "glm",
-            "deepseek-flash"
-          ]
-        },
-        "validation-diagnosis": {
-          "implementer": [
-            "glm",
-            "deepseek-flash"
-          ]
-        },
-        "validation-browser": {
-          "worker": [
-            "glm",
-            "deepseek-flash"
-          ]
-        }
-      },
-      "role_requirements": {
-        "validation-browser": {
-          "worker": [
-            "tools",
-            "images"
-          ]
-        }
-      },
-      "route_conditions": {
-        "validation-diagnosis": [
-          "The cause is proven and the correction is bounded by approved acceptance cases. Use diagnosis for an unexplained failure."
-        ],
-        "validation-browser": [
-          "The external worker must pass browser tool and image preflight before dispatch."
-        ]
-      }
-    },
-    "balanced": {
-      "label": "Balanced",
-      "family": "gpt",
-      "route_families": {
-        "validation-scope": "balanced",
-        "validation-unit": "balanced",
-        "validation-integration": "balanced",
-        "validation-browser": "balanced",
-        "validation-risk": "balanced",
-        "validation-diagnosis": "balanced",
-        "validation-review": "balanced",
-        "validation-review-risk": "balanced"
-      }
-    },
-    "saver": {
-      "label": "Subscription Saver",
-      "family": "saver",
-      "route_families": {
-        "research": "economy",
-        "architecture": "economy",
-        "ambiguous-problem": "economy",
-        "test-design": "economy",
-        "deep-analysis": "economy",
-        "exhaustive-analysis": "economy",
-        "broad-review": "economy",
-        "design-review": "economy",
-        "security-review": "economy",
-        "interview-product": "economy",
-        "interview-technical": "economy"
-      },
-      "role_candidates": {
-        "code-exploration": {
-          "worker": [
-            "gemini",
-            "grok"
-          ]
-        },
-        "mechanical-edit": {
-          "implementer": [
-            "deepseek-flash",
-            "grok",
-            "gemini"
-          ]
-        },
-        "isolated-implementation": {
-          "implementer": [
-            "deepseek-flash",
-            "grok",
-            "gemini"
-          ]
-        },
-        "routine-function": {
-          "implementer": [
-            "deepseek-flash",
-            "grok",
-            "gemini"
-          ]
-        },
-        "routine-implementation": {
-          "implementer": [
-            "deepseek-flash",
-            "grok",
-            "gemini"
-          ]
-        },
-        "test-implementation": {
-          "implementer": [
-            "deepseek-flash",
-            "grok",
-            "gemini"
-          ]
-        },
-        "known-cause-fix": {
-          "implementer": [
-            "deepseek-flash",
-            "grok",
-            "gemini"
-          ]
-        },
-        "diagnosis": {
-          "worker": [
-            "deepseek-flash",
-            "grok"
-          ]
-        },
-        "validation-unit": {
-          "implementer": [
-            "deepseek-flash",
-            "grok",
-            "gemini"
-          ]
-        },
-        "validation-diagnosis": {
-          "implementer": [
-            "deepseek-flash",
-            "grok",
-            "gemini"
-          ]
-        },
-        "validation-browser": {
-          "worker": [
-            "gemini"
-          ]
-        }
-      },
-      "role_requirements": {
-        "validation-browser": {
-          "worker": [
-            "tools",
-            "images"
-          ]
-        }
-      },
-      "route_conditions": {
-        "diagnosis": [
-          "Cheap first pass only. Escalate to deep-analysis or difficult-implementation when repeated repair adds no new evidence or the causal chain stays unknown."
-        ],
-        "validation-diagnosis": [
-          "The cause is proven and the correction is bounded by approved acceptance cases. Use diagnosis for an unexplained failure."
-        ],
-        "validation-browser": [
-          "The external worker must pass browser tool and image preflight before dispatch."
-        ]
       }
     }
   }

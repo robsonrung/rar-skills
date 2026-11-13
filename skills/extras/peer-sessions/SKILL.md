@@ -20,7 +20,7 @@ Pick one pattern unless a dependency needs two:
 
 Give each peer a narrow objective, an absolute working directory, a disjoint write scope, and a deadline; use a worktree when parallel edits could collide. External side effects and destructive operations stay with the coordinator.
 
-Route each peer with `python3 shared/scripts/model_routing.py resolve <route>` for its kind of work (`show` lists the routes), unless the user names models. Show the pattern, each peer with its scope, model, effort, and host route, the deadline, and the batch ceiling. Ask: **"Approve this plan, or specify changes."**
+Route each peer with `python3 shared/scripts/model_routing.py resolve <route> --provider <host>` for its kind of work (`routes` lists them), unless the user names models. Show the pattern, each peer with its scope, model, effort, and host route, the deadline, and the batch ceiling. Ask: **"Approve this plan, or specify changes."**
 
 ## Start
 
@@ -33,7 +33,7 @@ SKILL_DIR="<absolute path of this peer-sessions directory>"; python3 "$SKILL_DIR
 It writes `state.json`, `briefs/<peer>.md`, and the reply slots `replies/<peer>.json`.
 
 Route each peer by host:
-- **T3 Code:** `delegate_task` with the configured provider and model; continue with `t3_thread_send`.
+- **T3 Code:** `delegate_task` with the configured provider and model; continue with `t3_thread_send`. A Muse route uses `muse-runner`.
 - **Claude Code or Codex:** a native subagent with the model; continue by messaging that same subagent.
 - **Model the host lacks:** `cli-runner`, `pi-runner`, or `muse-runner`. An unavailable peer blocks its work; never swap in another model.
 

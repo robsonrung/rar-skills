@@ -36,7 +36,7 @@ If the records show complete combined coverage, passing required checks and affe
 | Confirmed or disputed findings | Section 3. |
 | A concrete simplification need | `coding-review-simplify` on that scope, **behavior-preserving**. |
 
-A missing simplification report is not a gap after a complete task review. Recheck through the existing approved reviewer context when one remains. A new reviewer runs on a route resolved with `python3 shared/scripts/model_routing.py resolve independent-review`, shown to the user with "Approve this plan, or specify changes.", and routed by host as `implement-and-review` describes; its model differs from the implementer's. Give the reviewer the base, the diff, and the captured evidence, and accept its verdict only with a severity, location, and evidence for each finding.
+A missing simplification report is not a gap after a complete task review. Recheck through the existing approved reviewer context when one remains. A new reviewer runs on a route resolved with `python3 shared/scripts/model_routing.py resolve review --provider <host>`, shown to the user with "Approve this plan, or specify changes.", and routed by host as `implement-and-review` describes; its model differs from the implementer's. Give the reviewer the base, the diff, and the captured evidence, and accept its verdict only with a severity, location, and evidence for each finding.
 
 ## 3. Correct and recheck
 

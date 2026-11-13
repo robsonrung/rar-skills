@@ -22,7 +22,7 @@ Each seat is one context that lives for the whole run. Its later turns (gap repa
 
 Route each seat by host:
 
-- **T3 Code**: run every seat and every other model role as an internal subagent under `shared/references/host-model-execution.md`. Report unavailable routes; never call an external runner or CLI.
+- **T3 Code**: run every seat and every other model role as an internal subagent under `shared/references/host-model-execution.md`. A Muse seat uses `muse-runner`. Report unavailable routes; never call another external runner or CLI.
 - **Claude Code or Codex**: a native subagent with the seat's model; continue by messaging that same subagent.
 - **Outside T3 Code, a model the host lacks**: `cli-runner`, `pi-runner`, or `muse-runner`; continue by resuming its session.
 

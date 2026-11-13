@@ -12,10 +12,10 @@ Use this only when alternative designs can change the implementation decision. I
 
 1. Write one neutral brief: goal, scope, constraints, acceptance contract, relevant files, and what a plan must decide. Ask one question only when different answers would produce different plans.
 2. Choose the branches. Two by default; add a third only when an unresolved boundary, failure case, or delivery tradeoff needs its own approach. Each branch gets one **premise**: smallest viable change, cleanest design, or most robust failure handling. A branch that repeats another's brief at higher effort is not a branch.
-3. Resolve each branch with `python3 shared/scripts/model_routing.py resolve <route>`, using `deep-analysis`, `architecture`, or `technical-analysis` (defined in `shared/model-routing.json`; shapes in `shared/references/task-shaped-model-routing.md`), and `precision-review` only for a named semantic risk. Branches run on distinct models.
+3. Resolve each branch with `python3 shared/scripts/model_routing.py resolve <route> --provider <host>`, using `analysis` or `deep-analysis` (defined in `shared/model-routing.json`; shapes in `shared/references/task-shaped-model-routing.md`), and `review` only for a named semantic risk. Branches run on distinct models.
 4. Show the branches with their premise, model, effort, and host route, plus the synthesis and completeness-check roles. Ask: **"Approve this plan, or specify changes."**
 
-Route each role by host: T3 Code `delegate_task`, continued with `t3_thread_send`; Claude Code or Codex, a native subagent; otherwise `cli-runner`, `pi-runner`, or `muse-runner`. Each branch keeps one context for its later critique and reply; synthesis gets its own. **Seat fidelity**: an unavailable branch is reported, never replaced. With fewer than two distinct branches, stop and offer the single-model `to-prd` path.
+Route each role by host: T3 Code `delegate_task`, continued with `t3_thread_send` (a Muse route uses `muse-runner`); Claude Code or Codex, a native subagent; otherwise `cli-runner`, `pi-runner`, or `muse-runner`. Each branch keeps one context for its later critique and reply; synthesis gets its own. **Seat fidelity**: an unavailable branch is reported, never replaced. With fewer than two distinct branches, stop and offer the single-model `to-prd` path.
 
 ## Run
 

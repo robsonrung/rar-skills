@@ -4,7 +4,7 @@ Rules shared by the runner skills. Use [host-model-execution.md](host-model-exec
 
 Two kinds of runner exist. `cli-runner` calls the Claude, Codex, Antigravity (`agy`), and Grok CLIs directly; its SKILL.md shows each command. `pi-runner` and `muse-runner` ship a wrapper script, because Pi enforces provider privacy routing and Muse checks workspace trust before any call.
 
-In T3 Code, all model calls use internal subagents under [host-model-execution.md](host-model-execution.md). External runners and CLIs are unavailable as execution paths, including retries. Report a blocked route when the host cannot serve it.
+In T3 Code, all model calls use internal subagents under [host-model-execution.md](host-model-execution.md). External runners and CLIs are unavailable as execution paths, including retries, except `muse-runner`, which runs every Muse route. Report a blocked route when the host cannot serve it.
 
 ## Seat fidelity
 

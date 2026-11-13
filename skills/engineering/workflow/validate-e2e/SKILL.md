@@ -30,21 +30,21 @@ Every requirement maps to a required unit. The ceilings bound what you start; th
 
 Build, lint, type checks, and existing suites run through repository commands with no model. A model is for a decision: missing tests, unsettled expected behavior, an ambiguous browser state, or an unexplained failure. When the work is command-only, the plan names no roles.
 
-For a worker, resolve the route that fits with `python3 shared/scripts/model_routing.py resolve <route> [--risk high]`:
+For a worker, resolve the route that fits with `python3 shared/scripts/model_routing.py resolve <route> --provider <host> [--risk high]`:
 
 | Work | Route |
 | --- | --- |
-| Scope, requirement mapping, final evidence assessment | `validation-scope` |
-| Missing unit, component, or property tests from agreed cases | `validation-unit` |
-| API, database, queue, migration, integration, performance diagnosis | `validation-integration` |
-| Interactive browser journeys, visual state, accessibility | `validation-browser` |
-| Authorization, money, concurrency, data loss, complex root cause | `validation-risk` |
-| Diagnosis and correction from a proven cause | `validation-diagnosis` |
-| Independent assessment of evidence and missing cases | `validation-review` |
+| Scope, requirement mapping, final evidence assessment | `analysis` |
+| Missing unit, component, or property tests from agreed cases | `routine-code` |
+| API, database, queue, migration, integration, performance diagnosis | `standard-code` |
+| Interactive browser journeys, visual state, accessibility | `lookup` |
+| Authorization, money, concurrency, data loss, complex root cause | `hard-code` |
+| Diagnosis and correction from a proven cause | `routine-code` |
+| Independent assessment of evidence and missing cases | `review` |
 
 A strong role settles expected behavior before a cheaper role writes the tests. A browser worker needs real browser tools in its own process. The reviewer's model differs from any model that wrote the assertions.
 
-Show the scope, each role with its model, effort, and host route, and the attempt, call, and time ceilings. Ask: **"Approve this plan, or specify changes."** A request to use defaults and run approves the unchanged resolved plan. Then route each role by host: T3 Code `delegate_task` (continue with `t3_thread_send`); Claude Code or Codex a native subagent; otherwise `cli-runner`, `pi-runner`, or `muse-runner`. Give each role one persistent context for the run. An unavailable route blocks its own work; never swap in another model.
+Show the scope, each role with its model, effort, and host route, and the attempt, call, and time ceilings. Ask: **"Approve this plan, or specify changes."** A request to use defaults and run approves the unchanged resolved plan. Then route each role by host: T3 Code `delegate_task` (continue with `t3_thread_send`; a Muse route uses `muse-runner`); Claude Code or Codex a native subagent; otherwise `cli-runner`, `pi-runner`, or `muse-runner`. Give each role one persistent context for the run. An unavailable route blocks its own work; never swap in another model.
 
 ## 3. Run the smallest sufficient checks
 

@@ -251,6 +251,26 @@
         "end-to-end correctness"
       ],
       "must_not_contain": []
+    },
+    {
+      "file": "skills/extras/claude-models-router/SKILL.md",
+      "concept": "lightest sufficient pick / escalation ladder / recommendation, not survey",
+      "must_contain": [
+        "escalation ladder",
+        "lightest sufficient pick",
+        "recommendation, not survey"
+      ],
+      "must_not_contain": []
+    },
+    {
+      "file": "skills/extras/openai-models-router/SKILL.md",
+      "concept": "lightest sufficient pick / escalation ladder / recommendation, not survey",
+      "must_contain": [
+        "escalation ladder",
+        "lightest sufficient pick",
+        "recommendation, not survey"
+      ],
+      "must_not_contain": []
     }
   ],
   "canon": [
@@ -585,6 +605,16 @@
         "write the docs at the end",
         "batch the docs"
       ]
+    },
+    {
+      "concept": "the ordered moves when a model pick falls short: verification, then effort, then the next model",
+      "leitwort": "escalation ladder",
+      "drift_terms": []
+    },
+    {
+      "concept": "the lightest model and effort that reaches a great result, where the next tier would not visibly change it",
+      "leitwort": "lightest sufficient pick",
+      "drift_terms": []
     }
   ],
   "filler_verbs": [

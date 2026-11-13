@@ -32,7 +32,7 @@ Then the queue:
 
 | ID | Depends on | Files owned | Route and models | Status | Verdict |
 | --- | --- | --- | --- | --- | --- |
-| T1 | none | `src/auth/**` | routine-implementation, critical; implementer glm, reviewer astra | accepted | ready |
+| T1 | none | `src/auth/**` | routine-code, critical; implementer sonnet, reviewer sol | accepted | ready |
 
 IDs are stable: a split gets a new ID, a deletion leaves a gap. Mark a feature-mode task `critical` in its route cell; every other task is deferred.
 

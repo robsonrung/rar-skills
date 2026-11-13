@@ -4,14 +4,14 @@ Read only when the invocation includes `--auto`. Two roles advance the design tr
 
 ## Plan
 
-1. Pick the route: `interview-product` for an ambiguous user or product problem, `interview-technical` for an explicit technical problem; when unclear, use `interview-product` and record that assumption. Run `python3 shared/scripts/model_routing.py resolve <route>`.
+1. Run `python3 shared/scripts/model_routing.py resolve interview --provider <host>`. The interviewer runs on the host's provider and the respondent on the other.
 2. Show both roles with model, effort, and host route, and the ceilings below. Ask: **"Approve this plan, or specify changes."** `--auto` is the mandate for automatic answers inside the supplied scope; a changed model, role, or ceiling needs the user.
 
 ## Roles
 
 Give each role one persistent context for the whole run; every later round goes to that same context. The roles see only the decision record, the question and answer packets, and cited evidence, never each other's transcript. Leave secrets and unrelated personal data out of packets; after the first, send only changed decisions and open questions.
 
-Route each role by host: T3 Code `delegate_task` (continue with `t3_thread_send`); Claude Code or Codex a native subagent with the role's model (continue by messaging it); otherwise `cli-runner`, `pi-runner`, or `muse-runner` (continue by resuming its session). Both roles are read-only. An unavailable role pauses the run for the user; never swap in another model.
+Route each role by host: T3 Code `delegate_task` (continue with `t3_thread_send`; a Muse route uses `muse-runner`); Claude Code or Codex a native subagent with the role's model (continue by messaging it); otherwise `cli-runner`, `pi-runner`, or `muse-runner` (continue by resuming its session). Both roles are read-only. An unavailable role pauses the run for the user; never swap in another model.
 
 | Role | Job | Returns |
 | --- | --- | --- |

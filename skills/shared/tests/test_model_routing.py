@@ -29,7 +29,7 @@ class ModelRoutingContractTests(unittest.TestCase):
     def test_frontier_roster_has_astra_and_fable(self):
         config = model_routing.load_config()
         self.assertEqual(config["models"]["astra"]["model"], "gpt-6-astra")
-        self.assertEqual(config["models"]["fable"]["model"], "claude-fable-5-1")
+        self.assertEqual(config["models"]["fable"]["model"], "claude-fable-5-2")
         roster = self.read("shared/references/model-roster.md")
         self.assertIn("model-routing.json", roster)
         self.assertIn("effective_model", roster)
@@ -39,9 +39,9 @@ class ModelRoutingContractTests(unittest.TestCase):
         routing = self.read("shared/references/task-shaped-model-routing.md")
         self.assertIn("host-model-execution.md", routing)
         self.assertIn("model-routing.json", routing)
-        roles = model_routing.resolve_route("routine-function", "gpt")["roles"]
+        roles = model_routing.resolve_route("routine-code", "openai")["roles"]
         self.assertEqual((roles["implementer"]["seat"], roles["implementer"]["effort"]), ("terra", "medium"))
-        self.assertEqual((roles["reviewer"]["seat"], roles["reviewer"]["effort"]), ("astra", "high"))
+        self.assertEqual((roles["reviewer"]["seat"], roles["reviewer"]["effort"]), ("opus", "high"))
 
     def test_frontier_seats_are_opt_in_transport_probes(self):
         specs = {spec.seat: spec for spec in discover_runners.SEAT_SPECS}
@@ -66,34 +66,13 @@ class ModelRoutingContractTests(unittest.TestCase):
         self.assertIn("deep-analysis", text)
         self.assertNotIn("Synthesize and enrich (Opus seat)", text)
 
-    def test_saver_profile_is_default_and_resolves_every_route(self):
+    def test_routes_are_few_and_profiles_stay_removed(self):
         config = model_routing.load_config()
-        self.assertEqual(config["default_profile"], "saver")
-        self.assertEqual(config["profiles"]["saver"]["label"], "Subscription Saver")
-        for route in config["routes"]:
-            for risk in config["policy"]["risk_levels"]:
-                with self.subTest(route=route, risk=risk):
-                    resolved = model_routing.resolve_profile(route, "saver", risk=risk, config=config)
-                    self.assertEqual(resolved["profile"], "saver")
-
-    def test_saver_pairs_cheap_implementers_with_frontier_reviewers(self):
-        config = model_routing.load_config()
-        cheap = {"glm", "deepseek-flash"}
-        frontier_reviewers = {"astra", "opus"}
-        reviewed = 0
+        self.assertLessEqual(len(config["routes"]), 12)
+        for key in ("profiles", "default_profile", "profile_policy"):
+            self.assertNotIn(key, config)
         for route in config["routes"].values():
-            family = route["families"].get("saver")
-            if not family or "implementer" not in family:
-                continue
-            with self.subTest(route=route):
-                self.assertIn(family["implementer"]["seat"], cheap | frontier_reviewers)
-                self.assertIn(family["reviewer"]["seat"], frontier_reviewers)
-                self.assertNotEqual(family["implementer"]["seat"], family["reviewer"]["seat"])
-                reviewed += 1
-        self.assertGreaterEqual(reviewed, 10)
-        roles = model_routing.resolve_profile("routine-implementation", "saver", config=config)["roles"]
-        self.assertEqual((roles["implementer"]["seat"], roles["implementer"]["effort"]), ("glm", "high"))
-        self.assertEqual((roles["reviewer"]["seat"], roles["reviewer"]["effort"]), ("astra", "high"))
+            self.assertNotIn("families", route)
 
     def test_opus_5_5_seat_and_effort_scaling_metadata(self):
         config = model_routing.load_config()
@@ -108,8 +87,6 @@ class ModelRoutingContractTests(unittest.TestCase):
                     self.assertTrue(entry["effort_scaling_evidence"])
         self.assertEqual(config["models"]["fable"]["effort_scaling"], "flat-above-high")
         self.assertEqual(config["models"]["astra"]["effort_scaling"], "monotonic")
-        roles = model_routing.resolve_route("sensitive-implementation", "claude")["roles"]
-        self.assertEqual((roles["reviewer"]["seat"], roles["reviewer"]["effort"]), ("opus", "high"))
         roles = model_routing.resolve_route("deep-analysis", "claude")["roles"]
         self.assertEqual((roles["worker"]["seat"], roles["worker"]["effort"]), ("fable", "high"))
 
@@ -131,7 +108,9 @@ class ModelRoutingContractTests(unittest.TestCase):
         reference = self.read("shared/references/local-config.md")
         implementation = self.read("implement-tasks/SKILL.md")
         council = self.read("models-consensus/SKILL.md")
+        self.assertIn("provider:", example)
         self.assertIn("seats:", example)
+        self.assertNotIn("profile:", example)
         self.assertNotIn("models:", example)
         self.assertIn("model-routing.json", example)
         self.assertNotIn("work_engine_preferences", example)

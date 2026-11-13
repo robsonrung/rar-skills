@@ -519,7 +519,7 @@ def _run_pi(
             # provider policy (ZDR, denied collection) without pinning an
             # inference provider; an explicit policy still wins per call.
             privacy = entry.get("privacy", {})
-            central_policy = ROUTING_CONFIG.get("profile_policy", {}).get("provider_routing")
+            central_policy = ROUTING_CONFIG.get("gateway_policy")
             if (isinstance(central_policy, dict) and privacy.get("zdr_available") is True
                     and privacy.get("gateway") == central_policy.get("gateway") == provider):
                 provider_routing = dict(central_policy)

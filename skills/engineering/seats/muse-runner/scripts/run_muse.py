@@ -30,6 +30,9 @@ READ_TOOLS = ["read_file", "search"]
 WRITE_TOOLS = [*READ_TOOLS, "write_file", "edit_file"]
 ROLES = ("planner", "codereviewer", "implementer", "synthesizer", "adversarial", "challenger", "researcher")
 OVERRIDES = {
+    # Muse 1.4.18 checks: `-c hooks={}` replaces the whole global hooks setting,
+    # so no global hook runs during the turn.
+    "hooks": {},
     "agents.execution_capacity": 1,
     "run.subagent_delegation_mode": "off",
     "local_session_messaging.enabled": False,
@@ -55,7 +58,8 @@ def normalize_envelope(result, requested_runner="muse", requested_model=MODEL):
     return result
 
 
-STARTUP_SETTING_KEYS = ("hooks", "managed_hooks_path", "managed_plugins_path", "plugins", "mcpServers", "mcp_servers")
+# Global `hooks` are switched off per run through OVERRIDES, so they do not block.
+STARTUP_SETTING_KEYS = ("managed_hooks_path", "managed_plugins_path", "plugins", "mcpServers", "mcp_servers")
 # Muse runtime state directories and files a trusted project may hold. Project
 # settings are checked separately and must carry no settings at all.
 TRUSTED_PROJECT_STATE = {"settings.json", "worktrees", "projects", "lock.json", "feedback"}

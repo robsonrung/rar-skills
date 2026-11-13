@@ -4,9 +4,11 @@ How a skill picks models for its workers and gets the plan approved. Applying a 
 
 ## Resolve
 
-Run `python3 shared/scripts/model_routing.py resolve <route>` for each route the work needs (`show` lists them). Resolve only the roles the branch actually dispatches; never add a worker to fill a row.
+Run `python3 shared/scripts/model_routing.py resolve <route> --provider <host>` for each route the work needs (`routes` lists each one with when to use it). Resolve only the roles the branch actually dispatches; never add a worker to fill a row.
 
-- Precedence: the user's instructions, then [local preferences](local-config.md) (`--local-profile <name>`, plus `route_overrides` as `--role ROLE=SEAT[:EFFORT]`), then the central default. An explicit `--profile` wins over the local one. `runtime` selects null effort where a model has no effort control.
+- `<host>` is the provider the session runs on: `claude`, `openai`, `grok`, `gemini`, or `muse`. Work roles run on it, so they need no handoff. A reviewer or respondent runs on the other provider, for an independent read. Name a different provider when the host's usage window is short. Omitted, the central default applies.
+
+- Precedence: the user's instructions, then [local preferences](local-config.md) (`provider` as `--provider`, plus `route_overrides` as `--role ROLE=SEAT[:EFFORT]`), then the central default. `runtime` selects null effort where a model has no effort control.
 - [`model-routing.json`](../model-routing.json) is the only source of exact models and efforts. Never copy one into a skill.
 - Add `--risk high` for a task that meets `policy.high_risk_triggers`. One sensitive task does not promote the rest of a feature.
 - For a queue, resolve each task's route on its own risk. A preview never changes the model of the session already running.

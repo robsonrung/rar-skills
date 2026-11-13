@@ -13,13 +13,16 @@ Resolve `SHARED_DIR` from the loaded shared skill, as
 ```bash
 SHARED_DIR="<absolute shared skill directory>"
 python3 "$SHARED_DIR/scripts/model_routing.py" show
-python3 "$SHARED_DIR/scripts/model_routing.py" resolve isolated-implementation --profile saver
+python3 "$SHARED_DIR/scripts/model_routing.py" routes
+python3 "$SHARED_DIR/scripts/model_routing.py" resolve routine-code --provider claude
 python3 "$SHARED_DIR/scripts/model_routing.py" validate
 ```
 
-Use `profiles` and `routes.<task>.families` to select roles. Updated workflow
-callers explicitly select a profile; `--family gpt` and the legacy CLI default
-remain available. Apply [model-preview.md](model-preview.md) before dispatch.
+Each entry in `routes` names its `purpose`, `use_when`, and, for every role, one
+`SEAT:EFFORT` pick per provider. There are no profiles or modes. `providers`
+maps each provider to its runner and to the `cross` provider that seats its
+reviewers. A provider with no pick for a role uses the default provider's.
+Apply [model-preview.md](model-preview.md) before dispatch.
 `models` resolves seats to exact IDs and adapters. `effort_profiles` describes adapter capabilities; `runners`
 defines direct-call defaults and accepted flags per runner id; `cli-runner`
 serves the `claude`, `codex`, `gemini`, and `grok` ids. `discovery` supplies probe
@@ -34,7 +37,8 @@ offers a verified zero-data-retention (ZDR) policy. Benchmark position never
 overrides this rule. `policy.seat_admission` in the configuration records the
 rule and the dated rejection list; a rejected model stays out of `models`
 regardless of its cost or quality position. Seats served through the Pi
-gateway carry their per-seat `privacy` evidence; natively served seats meet
+gateway carry their per-seat `privacy` evidence and appear in no route: they run
+only when the user names one, under `gateway_policy`; natively served seats meet
 the rule through their provider's own data policy.
 
 Muse Wonder Full has account scoped admission based on the user confirmation
@@ -42,7 +46,7 @@ of subscription ZDR dated 16 October 2026. Its `privacy.evidence_type` is
 `user_confirmed`, with `independently_verified: false`. This record covers the
 current user subscription only. It does not establish coverage for other accounts
 or change the ZDR requirement for any seat. It is an optional implementer with a
-required serving receipt; the selected profile supplies the independent reviewer.
+required serving receipt; the route seats the independent reviewer on another provider.
 
 ## Effort scaling
 
