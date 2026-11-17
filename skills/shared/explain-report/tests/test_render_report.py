@@ -71,6 +71,34 @@ class RenderedPageTest(unittest.TestCase):
         data["sources"][0]["url"] = "http://example.com/backoff"
         self.assertTrue(any("HTTPS" in e for e in rr.validate_report(data)))
 
+    def test_urls_that_could_break_a_markdown_autolink_are_rejected(self):
+        for url in ("https://x.example/a><img src=x onerror=alert(1)>", "https://x.example/a b",
+                    'https://x.example/"q', "https://x.example/a\\b"):
+            with self.subTest(url):
+                data = copy.deepcopy(FIXTURES["plan"])
+                data["evidence"][0]["url"] = url
+                self.assertTrue(rr.validate_report(data))
+
+    def test_markdown_escapes_labels_from_report_data(self):
+        data = copy.deepcopy(FIXTURES["work"])
+        data["architecture"]["after"]["nodes"][0]["label"] = "<img src=x onerror=alert(1)>"
+        data["coverage"]["unexplained"] = ["<script>x</script>.ts"]
+        data["coverage"]["changed_paths"].append("<script>x</script>.ts")
+        markdown = rr.render_markdown(data)
+        self.assertNotIn("<img", markdown)
+        self.assertNotIn("<script>", markdown)
+
+    def test_markdown_only_run_still_refuses_secrets(self):
+        data = copy.deepcopy(FIXTURES["plan"])
+        data["evidence"][0]["excerpt"] = "key = AKIA" + "ABCDEFGHIJKLMNOP"
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp)
+            (out / "in.json").write_text(json.dumps(data), encoding="utf-8")
+            result = subprocess.run([sys.executable, str(SCRIPT), str(out / "in.json"), "--markdown", str(out / "r.md")],
+                                    capture_output=True, text=True)
+            self.assertEqual(result.returncode, 1, result.stderr)
+            self.assertFalse((out / "r.md").exists())
+
     def test_guard_blocks_unsafe_markup(self):
         page = rr.render_html(FIXTURES["plan"]).replace("</main>", "<textarea></textarea></main>")
         self.assertTrue(rr.page_problems(page))

@@ -48,7 +48,8 @@ ID_RE = re.compile(r"^[A-Za-z][A-Za-z0-9_]{0,79}$")
 
 
 def valid_url(value):
-    if not isinstance(value, str) or any(ord(c) < 32 for c in value):
+    # Characters that could end a Markdown <autolink> or an HTML attribute must arrive percent-encoded.
+    if not isinstance(value, str) or any(ord(c) <= 32 or c in '<>"\\`' for c in value):
         return False
     try:
         parsed = urlsplit(value)
@@ -597,7 +598,7 @@ def render_markdown(data):
             line(f'<a id="{ident}"></a>')
         line("#"*level+" "+(f"{ident} · " if ident else "")+md_text(text)); line()
     def item(label,value):
-        line(f"**{label}:** {md_text(value) if value else 'Not supplied'}"); line()
+        line(f"**{md_text(label)}:** {md_text(value) if value else 'Not supplied'}"); line()
     def refs(label,values):
         if values:
             line(f"**{label}:** "+", ".join(md_link(v) for v in values)); line()
@@ -749,7 +750,13 @@ def main():
                 print("Nothing written; the HTML failed shared/scripts/html_guard.py.",file=sys.stderr)
                 return 1
             outputs.append((args.html,page))
-        if args.markdown: outputs.append((args.markdown,render_markdown(data)))
+        if args.markdown:
+            markdown=render_markdown(data)
+            if html_guard.SECRETS.search(markdown):
+                print("Unsafe Markdown: a secret-shaped string; cite the name, not the value.",file=sys.stderr)
+                print("Nothing written.",file=sys.stderr)
+                return 1
+            outputs.append((args.markdown,markdown))
         for path,body in outputs:
             path.parent.mkdir(parents=True,exist_ok=True)
             path.write_text(body,encoding="utf-8")
