@@ -39,6 +39,7 @@
         "./seats/pi-runner",
         "./workflow/brainstorm",
         "./workflow/bug-sweep",
+        "./workflow/design-ui",
         "./workflow/implement-tasks",
         "./workflow/interview-me",
         "./workflow/models-consensus",

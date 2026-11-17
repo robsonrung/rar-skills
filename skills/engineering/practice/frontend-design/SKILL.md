@@ -1,6 +1,6 @@
 ---
 name: frontend-design
-description: "Build or review a frontend interface within an existing design system or a new visual direction. Use for a bespoke page, component, or site, or a new or reworked user-facing flow; use advanced-react for React behavior."
+description: "Build or review a frontend interface within an existing design system or a new visual direction. Use for a bespoke page, component, or site, or a new or reworked user-facing flow; use design-ui to compare visual directions or concepts before building, and advanced-react for React behavior."
 license: Complete terms in LICENSE.txt
 ---
 

@@ -47,7 +47,7 @@ effort come from [`model-routing.json`](skills/shared/model-routing.json).
 
 | Domain | Skills |
 | --- | --- |
-| Workflow | `brainstorm`, `interview-me`, `to-prd`, `to-tasks`, `implement-tasks`, `to-prototype`, `models-consensus`, `pre-pr-review`, `validate-e2e` |
+| Workflow | `brainstorm`, `interview-me`, `to-prd`, `to-tasks`, `implement-tasks`, `to-prototype`, `design-ui`, `pair-programming`, `bug-sweep`, `models-consensus`, `pre-pr-review`, `validate-e2e` |
 | Engine | `coding-design-plan`, `implement-and-review`, `worktree` |
 | Gates | `design-gate`, `security-gate` |
 | Lenses | `advanced-react`, `agent-architecture-lens`, `architecture-lens`, `data-systems-coding-lens`, `distributed-systems-patterns`, `domain-driven-design`, `software-design-philosophy` |

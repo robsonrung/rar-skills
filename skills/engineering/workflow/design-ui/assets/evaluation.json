@@ -1,0 +1,56 @@
+{
+  "schema_version": 1,
+  "task": "",
+  "scope": "",
+  "checked_version": "",
+  "selected_direction": "",
+  "evidence": [],
+  "gates": {
+    "primary_task": {
+      "status": "unverified",
+      "reason": "",
+      "evidence_ids": []
+    },
+    "reference_fidelity": {
+      "status": "unverified",
+      "reason": "",
+      "evidence_ids": []
+    },
+    "responsive_behavior": {
+      "status": "unverified",
+      "reason": "",
+      "evidence_ids": []
+    },
+    "accessibility": {
+      "status": "unverified",
+      "reason": "",
+      "evidence_ids": []
+    },
+    "technical_integrity": {
+      "status": "unverified",
+      "reason": "",
+      "evidence_ids": []
+    }
+  },
+  "visual_judgment": {
+    "method": "",
+    "reference": "",
+    "findings": [],
+    "uncertainty": ""
+  },
+  "independent_review": {
+    "performed": false,
+    "context": "",
+    "model_diversity": "unknown"
+  },
+  "user_validation": {
+    "performed": false,
+    "method": "",
+    "observations": []
+  },
+  "best_checkpoint": "",
+  "iteration_count": 0,
+  "outcome": "incomplete",
+  "remaining_issues": [],
+  "notes": "Gate status: pass, fail, unverified, or not_applicable. Explain applicability. Evidence entries need ID, type, location, checked version, route, viewport or conditions, and observation. Template fields do not prove execution."
+}
