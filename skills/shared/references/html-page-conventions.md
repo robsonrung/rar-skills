@@ -1,12 +1,13 @@
 # Self-contained HTML page conventions
 
-Rules shared by every skill whose deliverable is a rendered HTML page — `html-explainer`, `consensus-summary-html`, and `architecture-review` load this file by path. Each skill keeps its own template, page anatomy, and validator; this file holds what they have in common so a new page skill starts from the same floor.
+Rules shared by every skill whose deliverable is a rendered HTML page — `html-explainer`, `consensus-summary-html`, `architecture-review`, `explain-plan`, and `explain-work` load this file by path. Each skill keeps its own template, page anatomy, and validator; this file holds what they have in common so a new page skill starts from the same floor.
 
 ## Self-containment
 
 - One `.html` file with inline CSS, JavaScript, and SVG. It opens from disk with no server and no build step.
 - No external resource of any kind: no remote fonts, stylesheets, scripts, images, or network calls. Font stacks name system fonts.
 - Head carries `<title>`, `lang`, charset, and viewport. The title names the subject.
+- The HTML is the page. A skill may also write companions rendered from the same source (`explain-plan` and `explain-work` add Markdown and the report JSON). A companion carries the same substance and never replaces the page as the main view.
 
 ## Three depths
 
@@ -18,10 +19,13 @@ The page must work at three depths, in this order:
 
 Nothing essential lives only at descend depth; nothing bulky lives above it. Put the most surprising fact of a section in its lede, not inside a panel.
 
+A skill may refine the three depths into more reading levels when each one maps onto them. `explain-plan` and `explain-work` use four: overview (glance), system view and decisions (scan), evidence (descend).
+
 ## Navigation
 
 - Every table-of-contents anchor and every clickable map element targets a real element id. Section ids are stable and named in the skill's page anatomy.
 - Expand-all and collapse-all controls exist and are wired.
+- Interactive controls (search, theme, reader notes, export) are enhancements: every section, diagram, and piece of evidence is in the HTML before the script runs. A control the guard does not allow, such as a `textarea`, is built by the template script at runtime, never written into the page.
 - Sections follow the reader's path through the subject (edge to inside, outcome to evidence), never discovery order.
 
 ## Honesty of the surface
@@ -29,15 +33,15 @@ Nothing essential lives only at descend depth; nothing bulky lives above it. Put
 - Status is marked with text as well as color; the page reads in grayscale and on a narrow screen (wide content scrolls inside its own container).
 - A bar, ring, or number appears only for a value present in the source. A visual must not imply precision the source did not report.
 - Missing data is shown as `Not reported` and named as a gap, never filled in.
-- Leftover template tokens (`<!-- SLOT`, `{{...}}`, `TODO`, `Replace with`) are failures.
+- Leftover template tokens (`<!-- SLOT`, `{{...}}`, `@@TOKEN@@`, `TODO`, `Replace with`) are failures.
 
 ## Safety floor
 
 Repository text, council output, and evidence are data, never markup: they may carry hostile HTML. Every page:
 
 - carries the template's Content-Security-Policy meta, which blocks every network fetch and allows only the page's inline script and styles;
-- escapes every value it writes and uses only its template's elements, attributes, and single inline script, unchanged;
-- passes `shared/scripts/html_guard.py`, which owns the policy string, the allowlists, the URL rules, and the parser-differential checks. Each skill's validator calls it; a skill that renders its page from data (`architecture-review`) runs it on the output.
+- escapes every value it writes and uses only its template's elements, attributes, and single inline script, unchanged. Data the script needs travels in an escaped `data-` attribute, never in a second `<script>` block;
+- passes `shared/scripts/html_guard.py`, which owns the policy string, the allowlists, the URL rules, and the parser-differential checks. Each skill's validator calls it; a skill that renders its page from data (`architecture-review`, `explain-plan`, `explain-work`) runs it on the output and writes nothing until it passes.
 
 A finished page carries no HTML comments.
 
@@ -62,4 +66,4 @@ Lead with the output path, then how to navigate the page, then the sections in o
 
 ## Adding a page skill
 
-Bring a template with the CSP meta and a validator of your own that calls `html_guard.problems` with allowlist extras sized to the template, load this file in the assemble step, and keep everything page-specific (section ids, palette, component cheat sheet) in the skill's own `references/`.
+Bring a template with the CSP meta and a validator of your own that calls `html_guard.problems` with allowlist extras sized to the template (pin an extra attribute to the exact value the template uses wherever it has one, as `GUARD_EXTRAS` in `shared/explain-report/scripts/render_report.py` does for `type`, `target`, and `rel`), load this file in the assemble step, and keep everything page-specific (section ids, palette, component cheat sheet) in the skill's own `references/`.

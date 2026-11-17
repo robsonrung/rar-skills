@@ -1,0 +1,9 @@
+# Codex agent interface metadata; consumed by the Codex host, not read at runtime by the model.
+interface:
+  display_name: "Explain Plan"
+  short_description: "Interactive HTML report of a proposed coding change, from problem to evidence"
+  default_prompt: "Use $explain-plan to turn this proposed change into an interactive HTML report with repository evidence, decisions, and acceptance checks."
+  icon_small: assets/icon.svg
+  icon_large: assets/icon.svg
+policy:
+  allow_implicit_invocation: false

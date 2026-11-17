@@ -1,0 +1,9 @@
+# Codex agent interface metadata; consumed by the Codex host, not read at runtime by the model.
+interface:
+  display_name: "Explain Work"
+  short_description: "Interactive HTML report of completed coding work, its deviations, and its evidence"
+  default_prompt: "Use $explain-work to explain this completed change as an interactive HTML report comparing it with the plan and its validation evidence."
+  icon_small: assets/icon.svg
+  icon_large: assets/icon.svg
+policy:
+  allow_implicit_invocation: false

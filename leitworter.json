@@ -108,6 +108,28 @@
       "must_not_contain": []
     },
     {
+      "file": "skills/visualization/explain-plan/SKILL.md",
+      "concept": "decision surface / lead with the outcome / acceptance contract / already decided",
+      "must_contain": [
+        "decision surface",
+        "lead with the outcome",
+        "acceptance contract",
+        "already decided"
+      ],
+      "must_not_contain": []
+    },
+    {
+      "file": "skills/visualization/explain-work/SKILL.md",
+      "concept": "decision surface / lead with the outcome / acceptance contract / already decided",
+      "must_contain": [
+        "decision surface",
+        "lead with the outcome",
+        "acceptance contract",
+        "already decided"
+      ],
+      "must_not_contain": []
+    },
+    {
       "file": "skills/extras/knowledge-graph/SKILL.md",
       "concept": "the schema is the only training data / the graph accumulates / local vs global search / flag, never overwrite",
       "must_contain": [

@@ -56,7 +56,7 @@ effort come from [`model-routing.json`](skills/shared/model-routing.json).
 | Delivery | `capture-learning`, `open-pr`, `resolve-pr-feedback`, `session-handoff` |
 | Model seats | `cli-runner`, `pi-runner`, `muse-runner` |
 | Extras | `browser-smoke`, `claude-models-router`, `diverse-plan`, `environment-check`, `knowledge-graph`, `openai-models-router`, `peer-sessions`, `response-unslop`, `skill-expert`, `verify-changes` |
-| Visualization | `consensus-summary-html`, `html-explainer` |
+| Visualization | `consensus-summary-html`, `html-explainer`, `explain-plan`, `explain-work` |
 
 Skills live under `skills/<domain>/`. Engineering skills sit one level deeper,
 in `skills/engineering/<group>/<name>/`.

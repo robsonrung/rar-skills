@@ -24,3 +24,4 @@ Before a shell command, set `SHARED_DIR` to that resolved absolute directory in 
 2. `references/`: workflow stages, model routing and approval, runner behavior, handoffs, and the feature work state. `references/model-preview.md` owns plan approval and mode selection; `references/work-state.md` owns a feature's files under `.ai-workflow/work/`.
 3. `scripts/`: checks a model cannot reliably do by hand: runner discovery, jobs, output contracts, model receipts, provider privacy routing, browser preflight, and captured command evidence bound to the working tree.
 4. `tests/`, schemas, and hooks: executable checks and shared formats.
+5. `explain-report/`: the report renderer, template, snapshot and audit scripts, references, and tests that `explain-plan` and `explain-work` share.

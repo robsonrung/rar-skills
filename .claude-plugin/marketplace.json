@@ -56,7 +56,9 @@
       "description": "Skills whose deliverable is a rendered HTML page.",
       "skills": [
         "./consensus-summary-html",
-        "./html-explainer"
+        "./html-explainer",
+        "./explain-work",
+        "./explain-plan"
       ]
     },
     {

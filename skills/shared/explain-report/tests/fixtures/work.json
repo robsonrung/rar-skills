@@ -1,0 +1,251 @@
+{
+  "schema_version": 1,
+  "kind": "implementation",
+  "report_id": "retry_queue_work",
+  "title": "Retry failed webhook deliveries <with backoff>",
+  "subtitle": "Plan for Promise<Delivery> & retries",
+  "generated_at": "2026-11-17T10:00:00Z",
+  "revision": "w1",
+  "snapshot": {
+    "repository": "Illustrative webhook service",
+    "base": "unknown",
+    "head": "abc1234",
+    "worktree": "clean",
+    "scope": "src/webhooks",
+    "limitations": [
+      "No production traffic inspected"
+    ]
+  },
+  "summary": {
+    "problem": "Deliveries fail <script>alert(1)</script> once and are lost.",
+    "impact": "Customers miss events.",
+    "solution": "Queue failed deliveries and retry with backoff.",
+    "why": "The job runner already retries other work.",
+    "scope": "Webhook delivery",
+    "out_of_scope": "Dead-letter UI"
+  },
+  "risks": [
+    "Duplicate deliveries if the receiver is slow"
+  ],
+  "questions": [
+    "Should retries stop after 24 hours?"
+  ],
+  "requirements": [
+    {
+      "id": "R001",
+      "text": "A failed delivery is retried at least three times.",
+      "status": "met",
+      "areas": [
+        "A001"
+      ],
+      "checks": [
+        "C001"
+      ],
+      "evidence": [
+        "E001"
+      ]
+    }
+  ],
+  "decisions": [
+    {
+      "id": "D001",
+      "title": "Reuse the job runner",
+      "status": "chosen",
+      "context": "Jobs already retry.",
+      "choice": "Enqueue a retry job.",
+      "rationale": "One retry mechanism.",
+      "revisit_when": "Volume exceeds 1k/s",
+      "tradeoffs": [
+        "Couples delivery to job runner"
+      ],
+      "areas": [
+        "A001"
+      ],
+      "evidence": [
+        "E001"
+      ],
+      "alternatives": [
+        {
+          "option": "Keep current behavior",
+          "benefit": "No change",
+          "cost": "Lost events",
+          "rejected_because": "Fails the requirement"
+        }
+      ],
+      "precedents": [
+        {
+          "path": "src/email/send.ts",
+          "symbol": "sendWithRetry",
+          "reason": "Same retry shape",
+          "difference": "Email is idempotent",
+          "evidence": [
+            "E001"
+          ]
+        }
+      ]
+    }
+  ],
+  "areas": [
+    {
+      "id": "A001",
+      "name": "Delivery worker",
+      "path": "src/webhooks/deliver.ts",
+      "symbol": "deliver",
+      "change_type": "modified",
+      "why": "Enqueue on failure",
+      "before": "Logs and drops",
+      "after": "Enqueues retry",
+      "risk": "Medium",
+      "decisions": [
+        "D001"
+      ],
+      "evidence": [
+        "E001"
+      ],
+      "details": [
+        "Uses Promise<void>"
+      ],
+      "diff": "- log(err)\n+ await queue.add('retry', job)",
+      "diff_status": "actual excerpt"
+    }
+  ],
+  "checks": [
+    {
+      "id": "C001",
+      "criterion": "Retries three times",
+      "method": "test",
+      "status": "passed",
+      "command": "npm test -- deliver",
+      "environment": "local",
+      "result": "3 retries observed",
+      "limitations": "",
+      "evidence": [
+        "E001"
+      ],
+      "exit_code": 0,
+      "revision": "abc1234"
+    }
+  ],
+  "evidence": [
+    {
+      "id": "E001",
+      "label": "Email retry precedent",
+      "type": "source",
+      "status": "observed",
+      "location": "src/email/send.ts:42",
+      "revision": "abc1234",
+      "excerpt": "if (a < b && c > d) retry()",
+      "limitations": "",
+      "url": "https://example.com/docs"
+    }
+  ],
+  "execution": [
+    {
+      "id": "S001",
+      "title": "Add retry job",
+      "detail": "Register the job.",
+      "depends_on": [],
+      "checks": [
+        "C001"
+      ]
+    }
+  ],
+  "architecture": {
+    "before": {
+      "title": "Today",
+      "nodes": [
+        {
+          "id": "n1",
+          "label": "Worker",
+          "detail": "deliver()",
+          "target": "A001"
+        },
+        {
+          "id": "n2",
+          "label": "Receiver",
+          "detail": "HTTP",
+          "target": "#overview"
+        }
+      ],
+      "edges": [
+        {
+          "from": "n1",
+          "to": "n2",
+          "label": "POST"
+        }
+      ]
+    },
+    "after": {
+      "title": "Proposed",
+      "nodes": [
+        {
+          "id": "n1",
+          "label": "Worker",
+          "detail": "deliver()",
+          "target": "A001"
+        },
+        {
+          "id": "n2",
+          "label": "Queue",
+          "detail": "retry job",
+          "target": "D001"
+        }
+      ],
+      "edges": [
+        {
+          "from": "n1",
+          "to": "n2",
+          "label": "enqueue on failure"
+        }
+      ]
+    }
+  },
+  "rollout": {
+    "strategy": "Feature flag",
+    "rollback": "Disable flag",
+    "observability": "Retry counter",
+    "data_compatibility": "No schema change"
+  },
+  "sources": [
+    {
+      "title": "Backoff guidance",
+      "url": "https://example.com/backoff",
+      "note": "Background only"
+    }
+  ],
+  "deviations": [
+    {
+      "id": "V001",
+      "decision": "D001",
+      "planned": "Three retries",
+      "actual": "Five retries",
+      "reason": "Receiver flakiness",
+      "consequence": "Longer tail",
+      "evidence": [
+        "E001"
+      ]
+    }
+  ],
+  "coverage": {
+    "changed_paths": [
+      "src/webhooks/deliver.ts",
+      "package-lock.json",
+      "src/other.ts"
+    ],
+    "excluded": [
+      {
+        "path": "package-lock.json",
+        "reason": "Generated"
+      }
+    ],
+    "unexplained": [
+      "src/other.ts"
+    ]
+  },
+  "plan": {
+    "report_id": "retry_queue_plan",
+    "revision": "r1",
+    "sha256": "unknown",
+    "status": "proposed"
+  }
+}
