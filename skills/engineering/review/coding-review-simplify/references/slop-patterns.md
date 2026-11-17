@@ -11,6 +11,8 @@ Investigation prompts, not rewrite rules. Each row is a candidate only until its
 | Pass-through helper or service | It translates errors, types, lifetime, or dependency direction; it is a test seam, anticorruption layer, instrumentation or transaction boundary, or a good domain name | Caller contracts, error identity, `this` binding |
 | Speculative option or variant | An active feature flag, migration, deployment, or tenant uses it | Caller and config matrix |
 | Duplicate implementation | The copies sit in different bounded contexts or encode distinct policies (pricing, tax, permissions, lifecycle) with different reasons to change | Contract matrix per caller; no new dependency cycle |
+| Parallel platform piece (a second outbox, settings store, history log, access check) | The existing one cannot meet a stated requirement: isolation, typing, constraints, ownership, or lifecycle | Name the existing piece and the requirement it fails; compare the semantics of both |
+| Migrations that replay branch history (created then dropped, data fixes for rows only the branch wrote) | Any shared environment has already run them | Squash only an unreleased schema; rebuild from empty and diff the result |
 | Wrong abstraction (flags interleaving unrelated policies) | It is a proven shared domain concept or a needed dependency boundary | Inline before re-extracting; test each caller |
 | Repeated null check | Input is external, persisted legacy data, racy, cast, partial, or from untyped callers | null, undefined, empty, zero, false, NaN matrix |
 | Catch-and-rethrow | It translates, cleans up, retries, attaches context, records telemetry, or sets an error boundary | Error type, message, cause, identity, side effects |

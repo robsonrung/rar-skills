@@ -9,6 +9,7 @@ For every candidate, trace **trigger → mechanism → impact**, then look for t
 | Concern | Question |
 | --- | --- |
 | Specification | Does the change meet its acceptance contract, and only that? |
+| Repository rules | Does the diff obey every written rule the repository scopes to the changed paths? |
 | Input boundary | Can untrusted input reach parsing, commands, paths, queries, or output unescaped? |
 | Access boundary | Are authentication, authorization, tenancy, sessions, and credentials enforced before data access? |
 | Logic and state | Do branches, invariants, transitions, concurrency, retries, and partial failures hold? |
@@ -39,6 +40,10 @@ Challenge the plausible. Trace each symptom through mechanism to cause, which ma
 ### `structural_maintainability`
 
 Apply [structural.md](structural.md). Every finding names a concrete simpler structure and the smallest safe refactor path.
+
+### `repo_rules`
+
+The repository's own written rules, applied before a human reviewer cites them. Find every instruction file, rule file, and review checklist whose scope matches the changed paths (agent instructions, contribution guides, lint-adjacent conventions), and check the diff against each rule that applies. A finding names the rule's file and the violating lines; a rule the diff does not touch is not a finding. Report which rule sources you read, so an unread one is a visible coverage limit.
 
 ### `broad_sweep`
 

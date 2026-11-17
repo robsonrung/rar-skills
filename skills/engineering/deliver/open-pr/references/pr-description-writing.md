@@ -9,7 +9,8 @@ The diff already shows implementation. The description explains the outcome, the
 3. Build a small scope map: material outcomes, meaningful design decisions, validation evidence, and residual uncertainty. Ignore fix-up commits and file names unless they help explain one of those items.
 4. Write a title that states the umbrella outcome. Match repository convention, keep it short, and avoid release-breaking syntax unless the user explicitly requests it.
 5. Write the body in the project's required structure. Without a template, use a short outcome-first summary, a decision note only when needed, related work when known, and validation evidence.
-6. Audit the result. Remove any sentence a reviewer can reconstruct from the diff. Retain every material outcome, uncertainty, and required template field.
+6. Check every claim against the code: a filter, link, guard, or isolation the body promises is one a reviewer will look for. List each behavior change a caller can observe (status code, permission, path, default), and for a replacement say when the old version goes, what happens to its data, and what a stale client or saved link sees during the rollout.
+7. Audit the result. Remove any sentence a reviewer can reconstruct from the diff. Retain every material outcome, uncertainty, and required template field.
 
 ## Size
 

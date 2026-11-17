@@ -36,6 +36,8 @@ Tighten a completed diff while its context is fresh. Every change this pass make
 
 - A new function or inline logic that an existing utility already covers. Search utility directories, shared modules, and neighbouring files.
 - A hand-rolled standard-library or runtime primitive, such as a dedup loop or deep clone. Swap it only when the built-in is behavior-equivalent for the inputs in play. Native UI controls, `Intl` formatting, sort stability, and serialization edge cases differ from hand-rolled versions.
+- A new table, worker, settings store, history log, or access check where the system already has one. Search the whole codebase, not the module; then reuse it or state why it does not fit.
+- Copies of one rule (an access check, a lock sequence, a save flow, a list the backend owns): one implementation, because drift there is a bug. Copies that already differ are a defect to report, not a style note.
 - Code that hand-maintains a guarantee the platform, framework, or downstream layer provides, such as a GraphQL layer that already projects to the selection set. Name the layer and what the code collapses to.
 
 ## Quality pass

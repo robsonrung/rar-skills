@@ -31,6 +31,7 @@ If the records show complete combined coverage, passing required checks and affe
 | Changes after review | Review the changed paths and their callers; keep valid coverage for the rest. |
 | Missing integration review | `full-review` on the combined change: the whole feature contract in feature mode, interactions and task-review gaps in task mode. |
 | No usable review evidence | An independent `full-review` in `gate` mode on the task diff, reusing valid check results. |
+| No record that the repository's written rules were checked | A `repo_rules` seat from `full-review` on the diff: rule files and checklists scoped to the changed paths. |
 | Missing or invalid check results | `verify-changes` for the affected and required fresh checks. |
 | Missing browser evidence | `browser-smoke` for the affected flows, against the running local app's explicit URL and port. |
 | Confirmed or disputed findings | Section 3. |
