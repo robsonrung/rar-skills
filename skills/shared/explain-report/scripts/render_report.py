@@ -581,6 +581,18 @@ def md_link(ident):
     return f"[{md_text(ident)}](#{ident.lower()})"
 
 
+def secret_fields(value, where="report"):
+    """Paths of input strings that look like secrets. Scanning the input, not only the rendered output,
+    matters because Markdown escaping (`_` to `\\_`) can split a token the output scan would miss."""
+    if isinstance(value, str):
+        return [where] if html_guard.SECRETS.search(value) else []
+    if isinstance(value, dict):
+        return [p for k, v in value.items() for p in secret_fields(v, f"{where}.{k}")]
+    if isinstance(value, list):
+        return [p for i, v in enumerate(value) for p in secret_fields(v, f"{where}[{i}]")]
+    return []
+
+
 def page_problems(page):
     """Shared markup-safety problems in a rendered page; an empty list means it passes html_guard."""
     script = html_guard.template_script(TEMPLATE.read_text(encoding="utf-8"))
@@ -740,6 +752,10 @@ def main():
             return 0
         if not args.html and not args.markdown:
             parser.error("Supply --html, --markdown or --validate-only.")
+        if secrets:=secret_fields(data):
+            for where in secrets: print(f"Unsafe input: {where} holds a secret-shaped string; cite the name, not the value.",file=sys.stderr)
+            print("Nothing written.",file=sys.stderr)
+            return 1
         # Produce all bytes before writing any output.
         outputs=[]
         if args.html:

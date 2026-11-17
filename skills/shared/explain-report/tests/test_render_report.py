@@ -99,6 +99,20 @@ class RenderedPageTest(unittest.TestCase):
             self.assertEqual(result.returncode, 1, result.stderr)
             self.assertFalse((out / "r.md").exists())
 
+    def test_secret_split_by_markdown_escaping_is_still_refused(self):
+        token = "sk-" + "abcdefghij_" * 4
+        data = copy.deepcopy(FIXTURES["plan"])
+        data["areas"][0]["why"] = "uses " + token
+        self.assertIsNone(rr.html_guard.SECRETS.search(rr.render_markdown(data)))
+        self.assertEqual(rr.secret_fields(data), ["report.areas[0].why"])
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp)
+            (out / "in.json").write_text(json.dumps(data), encoding="utf-8")
+            result = subprocess.run([sys.executable, str(SCRIPT), str(out / "in.json"), "--markdown", str(out / "r.md")],
+                                    capture_output=True, text=True)
+            self.assertEqual(result.returncode, 1, result.stderr)
+            self.assertFalse((out / "r.md").exists())
+
     def test_guard_blocks_unsafe_markup(self):
         page = rr.render_html(FIXTURES["plan"]).replace("</main>", "<textarea></textarea></main>")
         self.assertTrue(rr.page_problems(page))
