@@ -12,7 +12,7 @@ Use a lens only when it changes the next question or prevents a false assumption
 | Domain boundary or business vocabulary | `domain-driven-design` (strategic) | Bounded context, language, integration choice |
 | Container topology or event streams | `distributed-systems-patterns` | Pattern or event-driven verdict and its cost |
 | Agent loop, durable state, or human gate | `agent-architecture-lens` | Mechanism and ceiling |
-| User-facing flow or design direction | `frontend-design` | Flow, accessibility constraint, direction |
+| User-facing flow or design direction | `build-ui` | Flow, accessibility constraint, direction |
 | Auth, data, input, tenancy, secrets, or abuse surface | `security-gate` threat-model-lite | Security decisions for the PRD |
 
 ## 2. To PRD: keep settled choices
@@ -40,7 +40,7 @@ The trigger-to-method table in [implement-and-review](../../engineering/engine/i
 
 ## Small accepted task
 
-One accepted task with a complete acceptance contract and no open product, data, security, public-contract, or dependency decision goes straight to `implement-and-review`. Otherwise settle the open decision in the applicable stage first.
+One accepted task with a complete acceptance contract and no open product, data, security, public-contract, or dependency decision goes straight to `implement-and-review`. Otherwise settle the open decision in the applicable stage first. A single change whose design is open goes to `pair-programming`.
 
 ## Handoff
 

@@ -255,7 +255,7 @@ def check_environment(project=None, browser='auto', native_models=False, timeout
             raise ValueError('Project directory does not exist')
         layouts = [project / '.agents/skills', project / '.claude/skills']
         required = ['shared/model-routing.json', 'shared/scripts/model_routing.py',
-                    'pi-runner/SKILL.md', 'implement-and-review/SKILL.md', 'validate-e2e/SKILL.md']
+                    'pi-runner/SKILL.md', 'implement-and-review/SKILL.md', 'validate-feature/SKILL.md']
         installed = any(all((layout / name).is_file() for name in required) for layout in layouts)
         check.add('project skills', 'OK' if installed else 'WARN', True,
                   'A project layout contains the core skills and shared files.' if installed

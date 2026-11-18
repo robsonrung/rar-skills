@@ -65,7 +65,7 @@
       "must_not_contain": []
     },
     {
-      "file": "skills/engineering/review/coding-review-simplify/SKILL.md",
+      "file": "skills/engineering/practice/simplify-changes/SKILL.md",
       "concept": "connascence",
       "must_contain": [
         "Connascence Pass",

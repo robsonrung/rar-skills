@@ -31,8 +31,18 @@ checks them.
 3. [`to-prd`](skills/engineering/workflow/to-prd/SKILL.md): write the PRD for approval.
 4. [`to-tasks`](skills/engineering/workflow/to-tasks/SKILL.md): split the PRD into an approved task queue.
 5. [`implement-tasks`](skills/engineering/workflow/implement-tasks/SKILL.md): run the queue, one [`implement-and-review`](skills/engineering/engine/implement-and-review/SKILL.md) per task.
-6. [`pre-pr-review`](skills/engineering/workflow/pre-pr-review/SKILL.md) and [`validate-e2e`](skills/engineering/workflow/validate-e2e/SKILL.md): check the finished change.
+6. [`pr-readiness`](skills/engineering/workflow/pr-readiness/SKILL.md) and [`validate-feature`](skills/engineering/workflow/validate-feature/SKILL.md): check the finished change.
 7. [`open-pr`](skills/engineering/deliver/open-pr/SKILL.md): commit, push, and open the pull request when asked.
+
+Which skill builds a change:
+
+| Situation | Skill |
+| --- | --- |
+| One change, and the design is open | `pair-programming` |
+| One task, the design is settled, an acceptance contract exists | `implement-and-review` |
+| An approved queue of tasks | `implement-tasks` |
+| A queue task whose design is open and a wrong shape is costly | `implement-and-review`, which calls `pair-programming` in design-only mode |
+| A list of reported bugs | `bug-sweep`, which calls `pair-programming` |
 
 [`models-consensus`](skills/engineering/workflow/models-consensus/SKILL.md) is
 optional: a council of model opinions, only on request. A single bounded change
@@ -47,12 +57,12 @@ effort come from [`model-routing.json`](skills/shared/model-routing.json).
 
 | Domain | Skills |
 | --- | --- |
-| Workflow | `brainstorm`, `interview-me`, `to-prd`, `to-tasks`, `implement-tasks`, `to-prototype`, `design-ui`, `pair-programming`, `bug-sweep`, `models-consensus`, `pre-pr-review`, `validate-e2e` |
+| Workflow | `brainstorm`, `interview-me`, `to-prd`, `to-tasks`, `implement-tasks`, `to-prototype`, `design-ui`, `pair-programming`, `bug-sweep`, `models-consensus`, `pr-readiness`, `validate-feature` |
 | Engine | `coding-design-plan`, `implement-and-review`, `worktree` |
 | Gates | `design-gate`, `security-gate` |
 | Lenses | `advanced-react`, `agent-architecture-lens`, `architecture-lens`, `data-systems-coding-lens`, `distributed-systems-patterns`, `domain-driven-design`, `software-design-philosophy` |
-| Practice | `clean-code`, `diagnose`, `frontend-design`, `safe-incremental-coding`, `tdd`, `test-lens` |
-| Review | `architecture-review`, `coding-review-simplify`, `full-review` |
+| Practice | `build-ui`, `clean-code`, `diagnose`, `safe-incremental-coding`, `simplify-changes`, `tdd`, `test-lens` |
+| Review | `architecture-review`, `full-review` |
 | Delivery | `capture-learning`, `open-pr`, `resolve-pr-feedback`, `session-handoff` |
 | Model seats | `cli-runner`, `pi-runner`, `muse-runner` |
 | Extras | `browser-smoke`, `claude-models-router`, `diverse-plan`, `environment-check`, `knowledge-graph`, `openai-models-router`, `peer-sessions`, `response-unslop`, `skill-expert`, `verify-changes` |

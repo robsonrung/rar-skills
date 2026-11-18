@@ -1,5 +1,5 @@
 ---
-name: validate-e2e
+name: validate-feature
 description: Validate a feature or implementation against a finite acceptance contract, from focused tests to complete user flows. Use for feature validation with evidence reuse, bounded repair, and selectable model routes; use verify-changes for named repository checks alone.
 disable-model-invocation: true
 ---

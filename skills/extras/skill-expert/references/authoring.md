@@ -15,6 +15,19 @@ Edit the repository's source skill directory. Never edit a global installation f
 - Quote a YAML value that contains `: `.
 - A manual-only skill stays manual-only on every host: `disable-model-invocation: true` pairs with `allow_implicit_invocation: false` in `agents/openai.yaml`.
 
+### Naming scheme
+
+1. A workflow a person starts is verb-object: `open-pr`, `verify-changes`, `resolve-pr-feedback`, `implement-tasks`, `simplify-changes`, `validate-feature`. The `to-` family is a short form of the same idea.
+2. A role word has one meaning only:
+   - `review`: another model judges and reports. It does not edit.
+   - `gate`: a verdict at planning time.
+   - `lens`: rules the acting role applies.
+   - `runner`: a model seat behind a CLI.
+   - `rules`: a repository's own decisions, as a pack that other skills load.
+3. A known term of art stays as it is: `tdd`, `clean-code`, `pair-programming`.
+4. A name carries no stage ("pre-pr") when the skill runs at more than one stage.
+5. A name must not equal a common host or plugin skill name; pair it with a sibling instead (`design-ui` compares directions, `build-ui` builds one).
+
 When discovery fails, compare the intended requests with the nearest requests that belong elsewhere, including terse and explicit invocations, and fix the description before the workflow.
 
 ## Layout

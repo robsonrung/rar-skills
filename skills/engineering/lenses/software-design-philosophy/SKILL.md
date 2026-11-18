@@ -7,7 +7,7 @@ description: "Design and review module-level structure: deep modules, informatio
 
 Reduce the cost of understanding and changing a module, following Ousterhout's _A Philosophy of Software Design_ with Brooks' **conceptual integrity** as the second anchor. Return a named design or fix, its reason, and the next move.
 
-Use `clean-code` for local naming or structure with no boundary decision, `architecture-lens` for system style and service boundaries, `tdd` for test-first execution, and the **Connascence Pass** in `coding-review-simplify` for coupling inside a diff.
+Use `clean-code` for local naming or structure with no boundary decision, `architecture-lens` for system style and service boundaries, `tdd` for test-first execution, and the **Connascence Pass** in `simplify-changes` for coupling inside a diff.
 
 ## Leitwörter
 

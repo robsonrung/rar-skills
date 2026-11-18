@@ -50,7 +50,7 @@ Report the verdict table, then ask: **"Approve fixing the reproduced bugs, or sp
 
 ## 4. Fix
 
-For each `reproduced` bug, one at a time, run `pair-programming`. If the host does not let you invoke it, read and follow `~/.claude/skills/pair-programming/SKILL.md`. Its brief takes `repro.md` as fact, and its acceptance contract is: the reproduction steps give the expected result, and nothing outside the bug changes behavior.
+For each `reproduced` bug, one at a time, run `pair-programming`. If the host does not let you invoke it, read and follow the installed `pair-programming` skill. Its brief takes `repro.md` as fact and as the "before" evidence of its failing check, so the author does not repeat it, and its acceptance contract is: the reproduction steps give the expected result, and nothing outside the bug changes behavior.
 
 Bugs that share a cause go into one run; name the shared cause in the brief.
 

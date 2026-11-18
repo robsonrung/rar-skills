@@ -1,6 +1,6 @@
 ---
 name: implement-and-review
-description: Implement one approved coding task, have a reviewer on a different model check it, and fix what the review confirms until the acceptance contract passes. Use for a scoped task with acceptance criteria; implement-tasks coordinates a queue.
+description: Implement one approved coding task, have a reviewer on a different model check it, and fix what the review confirms until the acceptance contract passes. Use for a scoped task with acceptance criteria; implement-tasks coordinates a queue, and pair-programming fits when the design is still open.
 ---
 
 # Implement And Review
@@ -38,11 +38,12 @@ Hand over the contract path rather than its text. Then give:
 | Behavior changes | `tdd`: one failing check, the minimal change, refactor on green. |
 | Untested legacy behavior | `safe-incremental-coding`: a **characterization test** before the change. |
 | The cause is not established | `diagnose` before any fix. |
-| Unresolved module or public boundary | `coding-design-plan`, then `design-gate` if no lens has settled it. |
+| Unresolved local boundary with one clear move | `coding-design-plan`, then `design-gate` if no lens has settled it. |
+| Two or more live designs and a wrong one is costly (a high-risk route, a public contract, or a task that marks its design open) | `pair-programming` in design-only mode, with this task's implementer as author. Its `design.md` joins the contract. |
 | Stored state, queue, migration, retry, or external API | `data-systems-coding-lens`. |
 | Business rule or context boundary | `domain-driven-design`. |
 | Agent loop, durable state, tool retry, or human gate | `agent-architecture-lens`. |
-| UI composition, state, or fetch lifecycle | `advanced-react` or `frontend-design`. |
+| UI composition, state, or fetch lifecycle | `advanced-react` or `build-ui`. |
 | Concrete smell, or test choice that needs judgment | `clean-code` or `test-lens`. |
 
 Keep the change a **native diff**: touch only what the contract needs, in the house style.
@@ -60,7 +61,7 @@ A behavior change reports the tests inspected, the tests added or changed, the r
 
 Before review, rerun the required checks yourself on the final source, so the reviewer sees current evidence.
 
-After the task is green, have the implementer run a **behavior-preserving** cleanup with `coding-review-simplify`. In feature mode, save broad cleanup for the combined pass.
+After the task is green, have the implementer run a **behavior-preserving** cleanup with `simplify-changes`. In feature mode, save broad cleanup for the combined pass.
 
 ## Review and repair
 
@@ -71,7 +72,7 @@ Give the reviewer the contract, the changed paths and diff, the captured evidenc
 - the named risk;
 - whether each cleanup preserved behavior, and whether a removed safeguard was required.
 
-The reviewer returns `ready` or `changes required`. Each finding has a severity, a location, and its evidence.
+The reviewer returns `ready` or `changes required`. Each finding has a severity, a location, its evidence, and the contract clause, named risk, or design bar criterion it serves; a finding that serves none is dropped. When a design debate ran, give the reviewer `design.md` and the design bar, never the debate.
 
 Severity follows consequence. A P1 or P2 blocks acceptance. A confirmed P2 whose fix falls outside the scope stays blocking and goes to the user; never relabel it P3 to fit. For a seam, a public contract, or high residual risk, recommend `full-review`, and use it when the user selects it.
 

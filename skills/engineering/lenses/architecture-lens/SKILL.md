@@ -5,7 +5,7 @@ description: "Decide system shape and architecture trade-offs: style, service de
 
 # Architecture Lens
 
-Judge the shape of a system: which style fits, where service and data boundaries go, and what each choice costs. Module placement, cohesion, dependency direction, and scope belong to `software-design-philosophy`; container and event-stream topology to `distributed-systems-patterns`; bounded contexts to `domain-driven-design`; connascence inside a diff to the **Connascence Pass** in `coding-review-simplify`.
+Judge the shape of a system: which style fits, where service and data boundaries go, and what each choice costs. Module placement, cohesion, dependency direction, and scope belong to `software-design-philosophy`; container and event-stream topology to `distributed-systems-patterns`; bounded contexts to `domain-driven-design`; connascence inside a diff to the **Connascence Pass** in `simplify-changes`.
 
 Anchor every claim in the current code and runtime: modules, schemas, migrations, deployment descriptors, contracts, queues, jobs. Prefer that evidence over remembered architecture. A local change does not need a map of the whole repository, and a routine code change is not a system redesign.
 

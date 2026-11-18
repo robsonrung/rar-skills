@@ -25,14 +25,14 @@
         "./lenses/distributed-systems-patterns",
         "./lenses/domain-driven-design",
         "./lenses/software-design-philosophy",
+        "./practice/build-ui",
         "./practice/clean-code",
         "./practice/diagnose",
-        "./practice/frontend-design",
         "./practice/safe-incremental-coding",
+        "./practice/simplify-changes",
         "./practice/tdd",
         "./practice/test-lens",
         "./review/architecture-review",
-        "./review/coding-review-simplify",
         "./review/full-review",
         "./seats/cli-runner",
         "./seats/muse-runner",
@@ -44,11 +44,11 @@
         "./workflow/interview-me",
         "./workflow/models-consensus",
         "./workflow/pair-programming",
-        "./workflow/pre-pr-review",
+        "./workflow/pr-readiness",
         "./workflow/to-prd",
         "./workflow/to-prototype",
         "./workflow/to-tasks",
-        "./workflow/validate-e2e"
+        "./workflow/validate-feature"
       ]
     },
     {

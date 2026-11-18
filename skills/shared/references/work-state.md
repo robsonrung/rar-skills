@@ -1,6 +1,6 @@
 # Work state
 
-The one contract for a feature's files. `interview-me`, `to-prd`, `to-tasks`, `implement-tasks`, `implement-and-review`, `validate-e2e`, and `pre-pr-review` read and write them; each skill keeps only its own steps. Progress lives in **the ledger, not the transcript**: `tasks.md` plus the task reports are the ledger. What only the conversation holds is lost at a compaction or a restart.
+The one contract for a feature's files. `interview-me`, `to-prd`, `to-tasks`, `implement-tasks`, `implement-and-review`, `validate-feature`, and `pr-readiness` read and write them; each skill keeps only its own steps. Progress lives in **the ledger, not the transcript**: `tasks.md` plus the task reports are the ledger. What only the conversation holds is lost at a compaction or a restart.
 
 ## Layout
 
@@ -13,7 +13,7 @@ The one contract for a feature's files. `interview-me`, `to-prd`, `to-tasks`, `i
     brief.md             the task contract (to-tasks)
     report.md            the worker's report (implement-and-review)
     evidence/            captured command output
-  validation/            validate-e2e: plan.md, report.md, evidence/
+  validation/            validate-feature: plan.md, report.md, evidence/
 ```
 
 A standalone `implement-and-review` run uses the same layout under a slug of its own, with a one-row `tasks.md`.

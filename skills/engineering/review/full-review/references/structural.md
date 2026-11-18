@@ -2,7 +2,7 @@
 
 Structural findings are regressions that make the next change riskier, slower, or harder to reason about. Taste, naming nits, and formatting stay out.
 
-Be ambitious. There is often a **code judo** move: a reframing that uses the existing architecture better and deletes concepts, branches, wrappers, state modes, and special cases while staying **behavior-preserving**. Prefer the shape that feels inevitable once seen. For simplification cues, read the `Quality pass` section of the `coding-review-simplify` skill; name smells with the `clean-code` vocabulary (primitive obsession, data clump, feature envy, and the rest).
+Be ambitious. There is often a **code judo** move: a reframing that uses the existing architecture better and deletes concepts, branches, wrappers, state modes, and special cases while staying **behavior-preserving**. Prefer the shape that feels inevitable once seen. For simplification cues, read the `Quality pass` section of the `simplify-changes` skill; name smells with the `clean-code` vocabulary (primitive obsession, data clump, feature envy, and the rest).
 
 ## Look for
 
@@ -13,7 +13,7 @@ Be ambitious. There is often a **code judo** move: a reframing that uses the exi
 - Logic outside its canonical owner.
 - Refactors that move complexity without reducing what a reader must hold.
 - Copied logic where a canonical helper exists.
-- A second copy of something the system already has: a store, a worker, a log, or an access rule. Apply the Reuse pass of the `coding-review-simplify` skill. A re-implemented access or membership rule is HIGH: the copies drift and users get the wrong access.
+- A second copy of something the system already has: a store, a worker, a log, or an access rule. Apply the Reuse pass of the `simplify-changes` skill. A re-implemented access or membership rule is HIGH: the copies drift and users get the wrong access.
 - Queries against tables another module owns, or two packages that both know one row's format. The owner exposes the read or the write. A table the owner publishes as a shared write contract, such as a transactional outbox, is the exception.
 - Related updates split so a failure leaves partial state.
 - Independent async work serialized in a way that obscures orchestration.

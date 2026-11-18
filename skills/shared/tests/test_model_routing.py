@@ -74,6 +74,21 @@ class ModelRoutingContractTests(unittest.TestCase):
         for route in config["routes"].values():
             self.assertNotIn("families", route)
 
+    def test_design_debate_route_keeps_the_pair_programming_seats(self):
+        roles = model_routing.resolve_route("design-debate", "claude")["roles"]
+        picks = {name: (role["seat"], role["effort"]) for name, role in roles.items()}
+        self.assertEqual(picks, {
+            "author": ("opus", "high"),
+            "challenger": ("astra", "high"),
+            "arbiter": ("fable", "high"),
+            "reviewer": ("sol", "xhigh"),
+        })
+        for provider in model_routing.load_config()["providers"]:
+            with self.subTest(provider=provider):
+                roles = model_routing.resolve_route("design-debate", provider)["roles"]
+                self.assertNotEqual(roles["author"]["provider"], roles["challenger"]["provider"])
+                self.assertNotEqual(roles["author"]["provider"], roles["reviewer"]["provider"])
+
     def test_opus_5_5_seat_and_effort_scaling_metadata(self):
         config = model_routing.load_config()
         seat = config["models"]["opus"]

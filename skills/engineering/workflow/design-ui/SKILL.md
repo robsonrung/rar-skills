@@ -1,6 +1,6 @@
 ---
 name: design-ui
-description: Take a product interface from visual direction to a verified build by comparing real alternatives, translating the chosen one, and inspecting the rendered result. Use for a UI redesign, image concept exploration, implementing a screenshot or design file, or raising an interface's visual quality; use frontend-design to build a page or component directly and to-prototype for one throwaway design question.
+description: Take a product interface from visual direction to a verified build by comparing real alternatives, translating the chosen one, and inspecting the rendered result. Use for a UI redesign, image concept exploration, implementing a screenshot or design file, or raising an interface's visual quality; use build-ui to build a page or component directly when the direction is already chosen and to-prototype for one throwaway design question.
 ---
 
 # Design UI
@@ -46,7 +46,7 @@ Effort defaults are adjustable, not proven optima:
 
 ## Build a representative slice
 
-Build one representative screen and its primary interaction before spreading the direction. Follow `frontend-design` for craft and its verify check set, building to the design contract as its direction: that skill's new-direction choices, including its list of templated defaults, apply only where the contract is silent.
+Build one representative screen and its primary interaction before spreading the direction. Follow `build-ui` for craft and its verify check set, building to the design contract as its direction: that skill's new-direction choices, including its list of templated defaults, apply only where the contract is silent.
 
 - Reuse repository components and accessible primitives; add no second design system and no dependency only for decoration.
 - Keep text, controls, tables, and charts native and editable, and generate isolated raster assets only for imagery. Never ship a screenshot with invisible click regions.

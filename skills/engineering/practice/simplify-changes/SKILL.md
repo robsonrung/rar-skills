@@ -1,5 +1,5 @@
 ---
-name: coding-review-simplify
+name: simplify-changes
 description: Simplify a completed change through behavior-preserving reuse, quality, efficiency, and connascence passes, or audit a repository or named paths for dead code and slop, editing only after approval. Use after a scoped task, to simplify a concrete diff, or to deslop a codebase; use full-review for a feature or deep review.
 allowed-tools:
   - Bash

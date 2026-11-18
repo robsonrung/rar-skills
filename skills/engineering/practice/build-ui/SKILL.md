@@ -1,10 +1,10 @@
 ---
-name: frontend-design
-description: "Build or review a frontend interface within an existing design system or a new visual direction. Use for a bespoke page, component, or site, or a new or reworked user-facing flow; use design-ui to compare visual directions or concepts before building, and advanced-react for React behavior."
+name: build-ui
+description: "Build a page, component, or site directly in code, within an existing design system or one committed visual direction, or review such a build. Use when the direction is known or the product already has one; use design-ui to compare visual directions before building, and advanced-react for React behavior."
 license: Complete terms in LICENSE.txt
 ---
 
-# Frontend Design
+# Build UI
 
 Build distinctive, production-grade interfaces as real working code.
 

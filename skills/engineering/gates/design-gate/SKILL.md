@@ -27,7 +27,7 @@ Pick the design lenses a planned slice actually needs, apply them, and merge the
 | `distributed-systems-patterns` (event-driven route) with `data-systems-coding-lens` | Event streams as a source of truth: adopting event-driven microservices, Kafka, Pulsar, or Kinesis topics, event schemas, choreography versus orchestration, CDC or outbox data liberation |
 | `agent-architecture-lens` | The thing being built is an agent: an LLM tool-calling loop, a multi-agent pipeline, or a long-running autonomous run needing durable state, mid-run approval, or replay |
 | `advanced-react` | React state placement, rendering, effects, or asynchronous behavior |
-| `frontend-design` | A new or reworked user-facing flow, information hierarchy, visual direction, or design system |
+| `build-ui` | A new or reworked user-facing flow, information hierarchy, visual direction, or design system |
 
 When a decision carries a real trade-off but no row fits, run only the `architecture-lens` trade-off pass: name the two to four characteristics in tension, the real options, and the cost of each, then pick the least harmful. Record an ADR with `architecture-lens/references/adr-template.md` only when **all three or no ADR** holds.
 

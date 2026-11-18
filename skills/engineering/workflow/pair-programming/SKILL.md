@@ -1,6 +1,6 @@
 ---
 name: pair-programming
-description: Builds a code change after a two-model design debate and an independent review. Use when the user invokes it for a fix or feature whose design is still open; use implement-and-review when the design is settled.
+description: Builds a code change after a two-model design debate and an independent review. Use for a fix or feature whose design is still open; use implement-and-review when the design is settled.
 argument-hint: "[task, ticket, or thread]"
 disable-model-invocation: false
 ---
@@ -26,14 +26,14 @@ A finding or objection names the criterion it serves. Taste without a criterion 
 
 ## Seats
 
-| Seat | Model and effort | Context |
-| --- | --- | --- |
-| Author: proposes, implements, fixes | Opus, high | One context for the whole run, so it keeps the reasons behind each design choice |
-| Challenger | Astra, high | One context across all rounds |
-| Arbiter (only on deadlock) | Fable, high | Fresh |
-| Reviewer | Sol, xhigh | Fresh; never sees the debate, so its conclusions cannot anchor the review |
+| Seat | Context |
+| --- | --- |
+| Author: proposes, implements, fixes | One context for the whole run, so it keeps the reasons behind each design choice |
+| Challenger | One context across all rounds |
+| Arbiter (only on deadlock) | Fresh |
+| Reviewer | Fresh; never sees the debate, so its conclusions cannot anchor the review |
 
-Route by host. **T3 Code:** start each seat with `delegate_task` and continue it with `t3_thread_send`. **Claude Code:** native subagents for Opus and Fable, continued with `SendMessage`; `cli-runner` for Astra and Sol. An unavailable seat blocks its step. Report it; never substitute another model.
+Resolve the models with `python3 shared/scripts/model_routing.py resolve design-debate --provider <host>`; the challenger and reviewer run on the other provider than the author. Show them in the plan the user approves. Route by host. **T3 Code:** start each seat with `delegate_task` and continue it with `t3_thread_send`. **Claude Code:** native subagents for seats on the host's provider, continued with `SendMessage`; `cli-runner` for the others. An unavailable seat blocks its step. Report it; never substitute another model.
 
 Brief every seat with the same five parts:
 - **Goal:** its job in this step.
@@ -56,7 +56,7 @@ Resolve a discoverable fact yourself. A product or scope decision only the user 
 
 ## 2. Design debate
 
-1. The author reads `brief.md` and the code, then writes `design.md`. It says what changes and where, the existing patterns it reuses, the non-goals, the tests to add and the behavior each one proves, and the alternatives considered with the bar criterion each fails.
+1. The author reads `brief.md` and the code, then writes `design.md`. It says what changes and where, the existing patterns it reuses, the non-goals, the tests to add and the behavior each one proves, for each acceptance criterion the check that fails now, and the alternatives considered with the bar criterion each fails.
 2. The challenger acts as devil's advocate: it looks for a simpler or less coupled design, then checks `design.md` against the code and the bar. It returns `AGREE`, or `OBJECT` with numbered objections, each tied to a criterion and to evidence.
 3. The author accepts each objection by revising `design.md`, or rebuts it with evidence. Each rebuttal goes back to the challenger.
 
@@ -68,15 +68,19 @@ If a debate exposes a product or scope decision only the user can make, stop and
 
 Give the arbiter `brief.md`, the final `design.md`, and each open objection with both final positions. It decides each one against the bar, giving a one-line reason. Its decision is final. The author updates `design.md` to match.
 
+## Design-only mode
+
+When the caller asks for the design only (`implement-and-review` does, for a task whose design is open), run steps 1 to 3, write `design.md` to the folder the caller names, and return its path with `consensus` or `arbitrated`. Stop there: the caller's implementer builds and reviews it, and is the author seat.
+
 ## 4. Implement
 
 The author builds `design.md` in the same context. No scope creep: it edits only what `design.md` lists. A change outside the design comes back to you first, not into the diff.
 
-Done when everything in `design.md` is built and the checks the author judges relevant pass. It fixes failures caused by the change and reruns the affected checks without asking at each step. Return the changed files and each check command with its result.
+Before changing code, the author runs each criterion's failing check and records the failure, or gives the reason no failing check is meaningful (a bug-sweep `repro.md` counts as that record). Done when everything in `design.md` is built and the checks the author judges relevant pass. It fixes failures caused by the change and reruns the affected checks without asking at each step. Return the changed files and each check command with its before and after result.
 
 ## 5. Review
 
-The reviewer gets `brief.md`, `design.md`, the diff, and the check results. It leaves every file unchanged. It checks correctness, conformance to the design, and every bar criterion. Return `review.md`: each finding with an ID, severity, file and line, criterion, and evidence, plus a verdict of `ready` or `changes required`.
+The reviewer gets `brief.md`, `design.md`, the diff, and the check results. It leaves every file unchanged. It checks correctness, conformance to the design, and every bar criterion. Return `review.md`: each finding with an ID, severity (P0 to P3, as `shared/references/reviewer-response.md` defines), file and line, criterion, and evidence, plus a verdict of `ready` or `changes required`.
 
 ## 6. Fix
 
@@ -87,7 +91,7 @@ The author reads `review.md` and fixes the findings it judges valid and in scope
 Write `report.md` and reply with:
 - the agreed design in two or three lines, and whether it came from consensus or arbitration;
 - the changed files;
-- each check command and its result;
+- each acceptance criterion with its before and after result, and each other check command with its result;
 - each review finding, marked fixed or declined with the reason;
 - open questions, a blocked seat, or a check that could not run.
 

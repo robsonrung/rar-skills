@@ -672,7 +672,8 @@
   "default_provider": "claude",
   "cross_provider_roles": [
     "reviewer",
-    "respondent"
+    "respondent",
+    "challenger"
   ],
   "gateway_policy": {
     "gateway": "openrouter",
@@ -835,6 +836,33 @@
           "openai": "sol:medium",
           "grok": "grok:medium",
           "gemini": "gemini:runtime"
+        }
+      }
+    },
+    "design-debate": {
+      "purpose": "Settle one change's design by debate, then build and review it: author and arbiter on the host's provider, challenger and reviewer on the other.",
+      "use_when": "pair-programming runs, or implement-and-review asks for a design-only debate.",
+      "risk_route": "design-debate",
+      "roles": {
+        "author": {
+          "claude": "opus:high",
+          "openai": "sol:high",
+          "grok": "grok:high",
+          "gemini": "gemini:runtime"
+        },
+        "challenger": {
+          "claude": "opus:high",
+          "openai": "astra:high"
+        },
+        "arbiter": {
+          "claude": "fable:high",
+          "openai": "astra:high",
+          "grok": "grok:high",
+          "gemini": "gemini:runtime"
+        },
+        "reviewer": {
+          "claude": "opus:high",
+          "openai": "sol:xhigh"
         }
       }
     }
