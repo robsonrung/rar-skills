@@ -31,7 +31,7 @@ A finding or objection names the criterion it serves. Taste without a criterion 
 | Author: proposes, implements, fixes | One context for the whole run, so it keeps the reasons behind each design choice |
 | Challenger | One context across all rounds |
 | Arbiter (only on deadlock) | Fresh |
-| Reviewer | Fresh; never sees the debate, so its conclusions cannot anchor the review |
+| Reviewer | Fresh; never sees the debate, so its conclusions cannot anchor the review. The same context answers its one recheck in step 6 |
 
 Resolve the models with `python3 shared/scripts/model_routing.py resolve design-debate --provider <host>`; the challenger and reviewer run on the other provider than the author. Show them in the plan the user approves. Route by host. **T3 Code:** start each seat with `delegate_task` and continue it with `t3_thread_send`. **Claude Code:** native subagents for seats on the host's provider, continued with `SendMessage`; `cli-runner` for the others. An unavailable seat blocks its step. Report it; never substitute another model.
 
@@ -84,7 +84,9 @@ The reviewer gets `brief.md`, `design.md`, the diff, and the check results. It l
 
 ## 6. Fix
 
-The author reads `review.md` and fixes the findings it judges valid and in scope, then reruns the affected checks. Return each finding marked fixed, or declined with a one-line reason. There is no second review unless the user asks for one.
+The author reads `review.md` and fixes the findings it judges valid and in scope, then reruns the affected checks. Return each finding marked fixed, or declined with a one-line reason.
+
+When the author declines a blocking finding (P0 to P2), send the finding and the author's reason back to the same reviewer once. The reviewer withdraws the finding or confirms it, with evidence. A withdrawn finding closes. A confirmed finding that stays unfixed is reported as `open`, not as declined. Send all declined blocking findings in one recheck. There is no further review unless the user asks for one.
 
 ## Report
 
@@ -92,7 +94,7 @@ Write `report.md` and reply with:
 - the agreed design in two or three lines, and whether it came from consensus or arbitration;
 - the changed files;
 - each acceptance criterion with its before and after result, and each other check command with its result;
-- each review finding, marked fixed or declined with the reason;
+- each review finding, marked fixed, declined with the reason, withdrawn after recheck, or `open` when the reviewer confirmed a declined blocking finding;
 - open questions, a blocked seat, or a check that could not run.
 
 Never call a check passed unless its command ran.
