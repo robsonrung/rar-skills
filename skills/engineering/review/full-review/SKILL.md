@@ -50,7 +50,7 @@ RETURN: {"comments": [...]}; each has severity (CRITICAL|HIGH|MEDIUM|LOW), confi
 
 ## Review
 
-1. **Gather.** Collect the diff, changed files, surrounding code, the contract, and existing review comments; `scripts/collect_context.sh pr|commit|range|local` writes them to a temporary directory. Existing comments are candidates, not facts. An empty diff is an outcome.
+1. **Gather.** Collect the diff, changed files, surrounding code, the contract, the repository's rule sources scoped to the changed paths, and existing review comments; `scripts/collect_context.sh pr|commit|range|local` writes them to a temporary directory. Existing comments are candidates, not facts. An empty diff is an outcome.
 2. **Review.** Dispatch the seats. Add a rule set from [specialists.md](references/specialists.md) to the seat whose diff matches its trigger; [structural.md](references/structural.md) carries the maintainability lens.
 3. **Verify.** Reproduce runtime, security, correctness, compatibility, and performance findings when execution is possible; **only captured command results count as evidence**. Check structural findings against the changed code. A claim nobody could verify stays `unverified`, at its proven confidence, and a deep plan may send it to the skeptic in lenses.md.
 4. **Filter** with [filtering.md](references/filtering.md) and `scripts/findings_mechanics.py`.

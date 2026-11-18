@@ -45,6 +45,8 @@ Apply [structural.md](structural.md). Every finding names a concrete simpler str
 
 The repository's own written rules, applied before a human reviewer cites them. Find every instruction file, rule file, and review checklist whose scope matches the changed paths (agent instructions, contribution guides, lint-adjacent conventions), and check the diff against each rule that applies. A finding names the rule's file and the violating lines; a rule the diff does not touch is not a finding. Report which rule sources you read, so an unread one is a visible coverage limit.
 
+Include rule sources the caller names that live outside the repository, such as a private rules skill. Use this seat when the rules are too many to ride in every seat's CONTRACT, such as a coded checklist or many rule files. Otherwise the conductor passes the rules in CONTRACT, and each seat reports the sources it read.
+
 ### `broad_sweep`
 
 Sweep the whole diff for an assigned category band (for example input and authorization, edge cases and resource bounds, regression and performance, execution and integration paths). Include boundary values the change forgets: empty, nil, maximum, negative, unicode. Return only the strongest findings in the band.

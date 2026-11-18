@@ -34,21 +34,7 @@ Otherwise express acceptance as observable behavior.
 
 `implement-and-review` builds each task from its approved contract and the inherited `design-gate` constraints, rerouting only when implementation changes the design surface. Feature mode follows [work-state.md](work-state.md) and the engine's `Feature policy` section.
 
-| Trigger | Skill | When |
-| --- | --- | --- |
-| New behavior or bug fix with a test seam | `tdd` | Default loop |
-| Untested legacy code must change | `safe-incremental-coding`, then `tdd` | Characterization test first |
-| Cause unknown | `diagnose` | Before any fix |
-| Local smell, naming, or comment | `clean-code` | Refactor step |
-| Behavior-preserving simplification | `coding-review-simplify` | After green; in feature mode, in the combined pass |
-| Test value or mock boundary | `test-lens` | Before writing or keeping the test |
-| Stored state, migration, queue, cache, retry, concurrency, external API | `data-systems-coding-lens` | Before the step and in verification |
-| Domain logic or context integration | `domain-driven-design` | Before the step |
-| Module boundary, dependency direction, or concrete pattern pressure | `software-design-philosophy` or `architecture-lens` | When the gate selected it or the design changes |
-| React component, hook, fetch, or render behavior | `advanced-react` | That surface |
-| UI composition, design system, or visual quality | `frontend-design` | Selected UI work |
-| Topology or agent control flow changes | `distributed-systems-patterns`, `agent-architecture-lens` | When selected or changed |
-| Deep security slice | `security-gate` with `full-review` | Verify recorded decisions |
+The trigger-to-method table in [implement-and-review](../../engineering/engine/implement-and-review/SKILL.md) owns which skill or lens applies at build time. `design-gate` owns the same choice at planning time. This file does not restate either table.
 
 `models-consensus` is never an escalation; run it only when the user asks for more opinions.
 

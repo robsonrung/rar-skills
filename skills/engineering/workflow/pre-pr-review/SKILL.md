@@ -18,7 +18,7 @@ Start from the work folder or reports the caller names (`shared/references/work-
 
 - **Feature run:** the final `full-review` that accepted the feature must cover the current source. A passing final review already covers deferred tasks; their missing separate reviews are not gaps.
 - **Validation run:** `validate-e2e`'s captured evidence supplies facts, not reviewer judgment.
-- **Any run:** the combined review must name the intended base and the revision it reviewed, and `shared/scripts/capture_check.py stale` must report the required checks current.
+- **Any run:** the combined review must name the intended base and the revision it reviewed, and `shared/scripts/capture_check.py stale` must report the required checks current. When the repository has written rules scoped to the changed paths, a recorded review must list the rule sources it read. That list, on the current source, is the record that the rules were checked.
 
 Reuse evidence only while the source (including post-review edits), base, contract, check definitions, dependencies, and environment still match; a commit ID change alone does not invalidate it. Never repair stale evidence by editing it or copying labels.
 
@@ -31,7 +31,7 @@ If the records show complete combined coverage, passing required checks and affe
 | Changes after review | Review the changed paths and their callers; keep valid coverage for the rest. |
 | Missing integration review | `full-review` on the combined change: the whole feature contract in feature mode, interactions and task-review gaps in task mode. |
 | No usable review evidence | An independent `full-review` in `gate` mode on the task diff, reusing valid check results. |
-| No record that the repository's written rules were checked | A `repo_rules` seat from `full-review` on the diff: rule files and checklists scoped to the changed paths. |
+| The recorded reviews list no rule sources, or the rules or the changed paths changed since | A `repo_rules` seat from `full-review` on the changed paths. Run it before section 3, so its findings join the one correction batch. A repository with no written rules for the changed paths has no gap; record that none were found. |
 | Missing or invalid check results | `verify-changes` for the affected and required fresh checks. |
 | Missing browser evidence | `browser-smoke` for the affected flows, against the running local app's explicit URL and port. |
 | Confirmed or disputed findings | Section 3. |

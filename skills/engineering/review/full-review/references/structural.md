@@ -13,9 +13,8 @@ Be ambitious. There is often a **code judo** move: a reframing that uses the exi
 - Logic outside its canonical owner.
 - Refactors that move complexity without reducing what a reader must hold.
 - Copied logic where a canonical helper exists.
-- A table, background worker, settings store, history log, or access check that duplicates one the system already has. A re-implemented access or membership rule is HIGH: the copies drift and users get the wrong access.
-- Queries against tables another module owns, or two packages that both know one row's format. The owner exposes the read or the write.
-- An unchecked cast on query results standing in for a typed read.
+- A second copy of something the system already has: a store, a worker, a log, or an access rule. Apply the Reuse pass of the `coding-review-simplify` skill. A re-implemented access or membership rule is HIGH: the copies drift and users get the wrong access.
+- Queries against tables another module owns, or two packages that both know one row's format. The owner exposes the read or the write. A table the owner publishes as a shared write contract, such as a transactional outbox, is the exception.
 - Related updates split so a failure leaves partial state.
 - Independent async work serialized in a way that obscures orchestration.
 - File growth with a concrete cohesion or ownership cost. Crossing 1000 lines is a cue to inspect, never a finding; an explicit repository size gate still applies.

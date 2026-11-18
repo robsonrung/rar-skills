@@ -18,6 +18,8 @@ Read [command-discovery.md](references/command-discovery.md). Prefer the reposit
 
 Use the caller's base when supplied. Otherwise resolve `origin/HEAD`, code-host metadata, then `main`. Save the selected ref, resolved commit, and where it came from in `scope.json` inside `evidenceDir`, and name that path in the report; keep it out of the schema result. For the current worktree, include committed, staged, and unstaged changes. Use native affected-package support when available; otherwise pick safe package or file checks from the repository's own commands, and fall back to whole-repository checks when no narrower valid check exists. Record `workspacesScoped.supported: false` when native scoping is absent.
 
+A changed test file is covered by the type check and the lint of its workspace, not only by the test runner.
+
 ## Execute
 
 When the caller names its required checks, run exactly those and capture each with `shared/scripts/capture_check.py run` into the caller's `evidence/` folder (`shared/references/work-state.md`). Reuse a capture only while `capture_check.py stale` reports it current; a missing check goes back to the caller, never into an invented one.

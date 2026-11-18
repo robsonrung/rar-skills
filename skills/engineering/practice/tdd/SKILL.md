@@ -30,9 +30,7 @@ One loop per increment of behavior, each small enough to throw away without grie
 
 `test-lens` judges an existing test's value; these are the standards you write to.
 
-- Rank styles **output-based** > state-based > communication-based. Push toward output-based with a **functional core** of pure decisions inside a thin **mutable shell** of I/O.
-- Assert **observable behavior**. For interaction assertions, apply [the protocol boundary in test-lens](../test-lens/SKILL.md#lens-3-doubles).
-- **AAA**, one of each, named as a domain statement: `delivery_with_a_past_date_is_invalid`, not `testIsValid_case3`.
+- Write to the standards of `test-lens`: its lenses 1 to 3 and its Mechanics section.
 - A test that is hard to write is a design smell; fix the design.
 - Refactoring litmus: swap in a completely different implementation, and the test should still hold.
 
