@@ -84,9 +84,12 @@ The reviewer gets `brief.md`, `design.md`, the diff, and the check results. It l
 
 ## 6. Fix
 
-The author reads `review.md` and fixes the findings it judges valid and in scope, then reruns the affected checks. Return each finding marked fixed, or declined with a one-line reason.
+The author reads `review.md` and fixes the findings it judges valid and in scope, then reruns the affected checks. Return each finding marked fixed, or declined with a one-line reason and its kind: `disputed` (the finding is wrong) or `out of scope` (the finding is real but outside the brief).
 
-When the author declines a blocking finding (P0 to P2), send the finding and the author's reason back to the same reviewer once. The reviewer withdraws the finding or confirms it, with evidence. A withdrawn finding closes. A confirmed finding that stays unfixed is reported as `open`, not as declined. Send all declined blocking findings in one recheck. There is no further review unless the user asks for one.
+- A declined blocking finding (P0 to P2) that is `out of scope` is reported as `open` for the user. It gets no recheck.
+- A `disputed` blocking finding goes back to the same reviewer once, with the author's reason. Send all of them in one recheck. The reviewer answers one line per finding, `withdrawn` or `confirmed`, with one line of evidence, and writes no new review. A withdrawn finding closes. A confirmed finding that stays unfixed is reported as `open`.
+
+There is no further review unless the user asks for one.
 
 ## Report
 
@@ -94,7 +97,7 @@ Write `report.md` and reply with:
 - the agreed design in two or three lines, and whether it came from consensus or arbitration;
 - the changed files;
 - each acceptance criterion with its before and after result, and each other check command with its result;
-- each review finding, marked fixed, declined with the reason, withdrawn after recheck, or `open` when the reviewer confirmed a declined blocking finding;
+- each review finding, marked fixed, declined with the reason, withdrawn after recheck, or `open` (a blocking finding that is out of scope, or one the reviewer confirmed);
 - open questions, a blocked seat, or a check that could not run.
 
 Never call a check passed unless its command ran.
