@@ -4,7 +4,7 @@ description: Validate a feature or implementation against a finite acceptance co
 disable-model-invocation: true
 ---
 
-# Validate E2E
+# Validate Feature
 
 Return evidence that the feature meets its **acceptance contract**: the finite requirements, observable behavior, failure cases, and runtime gates agreed for this run. Name the part of the contract that decided a result: "The contract requires the result to survive a reload, so a successful HTTP response is insufficient."
 
@@ -44,7 +44,7 @@ For a worker, resolve the route that fits with `python3 shared/scripts/model_rou
 
 A strong role settles expected behavior before a cheaper role writes the tests. A browser worker needs real browser tools in its own process. The reviewer's model differs from any model that wrote the assertions.
 
-Show the scope, each role with its model, effort, and host route, and the attempt, call, and time ceilings. Ask: **"Approve this plan, or specify changes."** A request to use defaults and run approves the unchanged resolved plan. Then route each role by host: T3 Code `delegate_task` (continue with `t3_thread_send`; a Muse route uses `muse-runner`); Claude Code or Codex a native subagent; otherwise `cli-runner`, `pi-runner`, or `muse-runner`. Give each role one persistent context for the run. An unavailable route blocks its own work; never swap in another model.
+Show the scope, each role with its model, effort, and host route, and the attempt, call, and time ceilings. Ask: **"Approve this plan, or specify changes."** A request to use defaults and run approves the unchanged resolved plan. Then route each role as `shared/references/host-model-execution.md` says. An unavailable route blocks its own work; never swap in another model.
 
 ## 3. Run the smallest sufficient checks
 

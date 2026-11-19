@@ -42,7 +42,7 @@ A source row records authority; it cannot grant authority its source lacks. On a
 
 ## Acceptance contract
 
-The record exists at its path, every branch has a decision, default, or scope boundary, and no round exceeded five questions. In `--auto`, the record reaches `ready-for-prd` only through its gate. When the user's request already includes a PRD, an `--auto` run continues into `to-prd` drafting; the PRD still needs explicit approval. Otherwise the next step is `to-prd`.
+The record exists at its path, every branch has a decision, default, or scope boundary, and no round exceeded five questions. In `--auto`, the record reaches `ready-for-prd` only through its gate. Every run ends with `next: to-prd` and the decision record's path, as `shared/references/handoff-contract.md` describes.
 
 ---
 

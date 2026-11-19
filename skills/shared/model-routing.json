@@ -190,7 +190,7 @@
       "effort_profile": "standard",
       "aliases": [],
       "effort_scaling": "flat-above-high",
-      "effort_scaling_evidence": "Artificial Analysis Intelligence Index v4.3.2 and FrontierCode v1.1, checked 2026-09-22 for claude-fable-5-1: flat-to-declining returns above high effort. Not yet re-measured for claude-fable-5-2."
+      "effort_scaling_evidence": "This figure comes from claude-fable-5-1, not claude-fable-5-2: Artificial Analysis Intelligence Index v4.3.2 and FrontierCode v1.1, checked 2026-09-22, showed flat-to-declining returns above high effort. claude-fable-5-2 has not been re-measured."
     },
     "opus": {
       "model": "claude-opus-5-5",

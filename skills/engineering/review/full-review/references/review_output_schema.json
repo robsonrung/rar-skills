@@ -209,7 +209,8 @@
         "APPROVE",
         "COMMENT",
         "REQUEST_CHANGES"
-      ]
+      ],
+      "description": "REQUEST_CHANGES when a CRITICAL or HIGH finding remains, and in gate mode also when a confirmed MEDIUM remains (an unverified MEDIUM does not). Otherwise COMMENT for a meaningful MEDIUM, else APPROVE."
     },
     "summary": {
       "type": "object",

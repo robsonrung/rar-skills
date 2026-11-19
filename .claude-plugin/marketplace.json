@@ -33,7 +33,9 @@
         "./practice/tdd",
         "./practice/test-lens",
         "./review/architecture-review",
+        "./review/browser-smoke",
         "./review/full-review",
+        "./review/verify-changes",
         "./seats/cli-runner",
         "./seats/muse-runner",
         "./seats/pi-runner",
@@ -75,7 +77,6 @@
       "source": "./skills/extras",
       "description": "Standalone skills the workflow does not call.",
       "skills": [
-        "./browser-smoke",
         "./claude-models-router",
         "./diverse-plan",
         "./environment-check",
@@ -83,8 +84,7 @@
         "./openai-models-router",
         "./peer-sessions",
         "./response-unslop",
-        "./skill-expert",
-        "./verify-changes"
+        "./skill-expert"
       ]
     }
   ]

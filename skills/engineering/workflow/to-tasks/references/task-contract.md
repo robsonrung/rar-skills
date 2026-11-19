@@ -17,7 +17,7 @@
 <verified commands, observable behavior, and relevant failure sequences>
 
 ## Gates
-Design: proceed, with the lenses run and the decision IDs relied on. Open decision: none. Alternatively, `Design: open`, naming the choice to settle; `implement-and-review` then runs the design debate.
+Design: proceed, with the lenses run and the decision IDs relied on. Open decision: none. Alternatively, `Design: open`, naming one bounded implementation choice to settle, when behavior, security, interfaces, and acceptance are approved. `implement-and-review` hands it to `pair-programming` in design-only mode, which runs the debate.
 Security: deep | standard, with the matched trigger.
 Test lens: <conclusion when it resolved a real choice, otherwise none>
 

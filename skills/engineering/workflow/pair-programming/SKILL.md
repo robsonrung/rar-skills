@@ -2,7 +2,6 @@
 name: pair-programming
 description: Builds a code change after a two-model design debate and an independent review. Use for a fix or feature whose design is still open; use implement-and-review when the design is settled.
 argument-hint: "[task, ticket, or thread]"
-disable-model-invocation: false
 ---
 
 # Pair Programming
@@ -29,11 +28,11 @@ A finding or objection names the criterion it serves. Taste without a criterion 
 | Seat | Context |
 | --- | --- |
 | Author: proposes, implements, fixes | One context for the whole run, so it keeps the reasons behind each design choice |
-| Challenger | One context across all rounds |
+| Challenger | One role across all rounds; each verdict after the first follows the judging-turn rule in `shared/references/host-model-execution.md` |
 | Arbiter (only on deadlock) | Fresh |
-| Reviewer | Fresh; never sees the debate, so its conclusions cannot anchor the review. The same context answers its one recheck in step 6 |
+| Reviewer | Fresh; never sees the debate, so its conclusions cannot anchor the review. Its one recheck in step 6 follows the judging-turn rule |
 
-Resolve the models with `python3 shared/scripts/model_routing.py resolve design-debate --provider <host>`; the challenger and reviewer run on the other provider than the author. Show them in the plan the user approves. Route by host. **T3 Code:** start each seat with `delegate_task` and continue it with `t3_thread_send`. **Claude Code:** native subagents for seats on the host's provider, continued with `SendMessage`; `cli-runner` for the others. An unavailable seat blocks its step. Report it; never substitute another model.
+Resolve the models with `python3 shared/scripts/model_routing.py resolve design-debate --provider <host>`; the challenger and reviewer run on the other provider than the author. Show them in the plan the user approves. Route each seat as `shared/references/host-model-execution.md` says. An unavailable seat blocks its step. Report it; never substitute another model.
 
 Brief every seat with the same five parts:
 - **Goal:** its job in this step.
@@ -87,7 +86,7 @@ The reviewer gets `brief.md`, `design.md`, the diff, and the check results. It l
 The author reads `review.md` and fixes the findings it judges valid and in scope, then reruns the affected checks. Return each finding marked fixed, or declined with a one-line reason and its kind: `disputed` (the finding is wrong) or `out of scope` (the finding is real but outside the brief).
 
 - A declined blocking finding (P0 to P2) that is `out of scope` is reported as `open` for the user. It gets no recheck.
-- A `disputed` blocking finding goes back to the same reviewer once, with the author's reason. Send all of them in one recheck. The reviewer answers one line per finding, `withdrawn` or `confirmed`, with one line of evidence, and writes no new review. A withdrawn finding closes. A confirmed finding that stays unfixed is reported as `open`.
+- A `disputed` blocking finding goes back to the reviewer once, with the author's reason. Send all of them in one recheck (in T3 Code, a new `delegate_task` on the reviewer's route). The reviewer answers one line per finding, `withdrawn` or `confirmed`, with one line of evidence, and writes no new review. A withdrawn finding closes. A confirmed finding that stays unfixed is reported as `open`.
 
 There is no further review unless the user asks for one.
 

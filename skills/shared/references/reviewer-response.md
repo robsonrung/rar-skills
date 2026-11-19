@@ -31,9 +31,13 @@ The coordinator passes current evidence, checked with `shared/scripts/capture_ch
 
 `ready` requires no `open` or `disputed` finding and no deferred P0, P1, or P2. A deferred P3 needs a reason in its evidence. A P2 whose fix falls outside the scope stays P2 and goes to the user.
 
+## Severity and cycles
+
+This file owns the severity scale. P0 to P2 block acceptance; P3 does not. A review cycle is one fix batch and its recheck. The limit is three cycles unless the approved plan sets another; at the limit the caller stops and reports the open findings.
+
 ## Recheck
 
-A recheck goes to the same reviewer context with the finding IDs and what changed. Return the same shape. Review the changed paths and their callers; say which earlier coverage still holds and why. Keep every earlier finding's ID, path, and severity. List a finding again only when its status changes; an omitted finding keeps its earlier status, open included. A recheck may raise new findings. When two reviewers report one defect, each keeps its own ID and closes its own finding.
+A recheck gets the finding IDs and what changed. Where it runs follows the reviewer role in [host-model-execution.md](host-model-execution.md). Return the same shape. Review the changed paths and their callers; say which earlier coverage still holds and why. Keep every earlier finding's ID, path, and severity. List a finding again only when its status changes; an omitted finding keeps its earlier status, open included. A recheck may raise new findings. When two reviewers report one defect, each keeps its own ID and closes its own finding.
 
 ## Who decides
 

@@ -10,7 +10,8 @@ Pick the design lenses a planned slice actually needs, apply them, and merge the
 ## Workflow
 
 1. Identify the surfaces that the plan, slice contract, or changed scope touches. Reuse decisions already settled for the feature while their scope, assumptions, and sources still match. Re-route only when evidence changes the design surface.
-2. Select lenses from the table for each unresolved decision or changed risk. Start with up to three, one per central risk, each with a bounded scope. Add another only for another material risk. When no row matches a local change, return `proceed` with "no design gate required".
+   Then read the matching rules of the **review rules pack** (`shared/references/rules-packs.md`). A planned design that breaks one is a load-bearing finding.
+2. Select lenses from the table for each unresolved decision or changed risk. Start with up to three, one per central risk, each with a bounded scope. Add another only for another material risk. When no row matches a local change and the rules pack raised no finding, return `proceed` with "no design gate required".
 3. Apply each lens read-only in the current role. Dispatch a specialist seat only when a risk needs expertise or independence the current role lacks. Give it the design problem, the files and boundaries in scope, and the gate result shape.
 4. Merge. A concrete, load-bearing finding from any lens makes the verdict `revise`; load-bearing means it changes boundaries, data ownership, contracts, or correctness. Style and speculative findings are advisory.
 5. On `revise`, list the required plan changes. After they land, recheck only the lens that raised the blocker. When the lenses expose a real trade-off that only the user's preference can settle, set `decision_required` and stop.
@@ -37,4 +38,4 @@ Return `proceed` or `revise`, the lenses run with their evidence, each finding w
 
 ## Seats
 
-Before dispatching other models, show the plan (seats, models, briefs) and get a clear yes. Defaults come from `shared/model-routing.json`. Inside T3 Code, use `delegate_task` with the configured provider and model, and continue with `t3_thread_send`; a Muse seat uses `muse-runner`. In Claude Code or Codex, use a native subagent when the host has the model, and continue by messaging it. Otherwise use `cli-runner`, `pi-runner`, or `muse-runner`. Send follow-ups, such as a blocker recheck, to the same seat so it keeps its context. Tell lens seats to leave files unchanged.
+Before dispatching other models, show the plan (seats, models, briefs) and get a clear yes. Defaults come from `shared/model-routing.json`. Route each seat and its blocker recheck as `shared/references/host-model-execution.md` says; an unavailable route blocks its seat, and you report it; never substitute another model. Tell lens seats to leave files unchanged.

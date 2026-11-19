@@ -22,7 +22,7 @@ A changed test file is covered by the type check and the lint of its workspace, 
 
 ## Execute
 
-When the caller names its required checks, run exactly those and capture each with `shared/scripts/capture_check.py run` into the caller's `evidence/` folder (`shared/references/work-state.md`). Reuse a capture only while `capture_check.py stale` reports it current; a missing check goes back to the caller, never into an invented one.
+When the caller names its required checks, run exactly those and capture each with `shared/scripts/capture_check.py run` into the caller's `evidence/` folder (`shared/references/work-state.md`). Pass the caller's base and contract file to `run` with `--base` and `--contract`. Reuse a capture only while `capture_check.py stale --target <target checkout>` reports it current; a missing check goes back to the caller, never into an invented one.
 
 - Follow real command dependencies. Build first only when later checks need its output. Install only when dependencies need preparation or a clean-environment check was requested.
 - Use the lockfile-respecting install command. Never modify lockfiles or install global tools to invent a check.

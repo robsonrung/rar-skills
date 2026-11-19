@@ -62,10 +62,10 @@ effort come from [`model-routing.json`](skills/shared/model-routing.json).
 | Gates | `design-gate`, `security-gate` |
 | Lenses | `advanced-react`, `agent-architecture-lens`, `architecture-lens`, `data-systems-coding-lens`, `distributed-systems-patterns`, `domain-driven-design`, `software-design-philosophy` |
 | Practice | `build-ui`, `clean-code`, `diagnose`, `safe-incremental-coding`, `simplify-changes`, `tdd`, `test-lens` |
-| Review | `architecture-review`, `full-review` |
+| Review | `architecture-review`, `browser-smoke`, `full-review`, `verify-changes` |
 | Delivery | `capture-learning`, `open-pr`, `resolve-pr-feedback`, `session-handoff` |
 | Model seats | `cli-runner`, `pi-runner`, `muse-runner` |
-| Extras | `browser-smoke`, `claude-models-router`, `diverse-plan`, `environment-check`, `knowledge-graph`, `openai-models-router`, `peer-sessions`, `response-unslop`, `skill-expert`, `verify-changes` |
+| Extras | `claude-models-router`, `diverse-plan`, `environment-check`, `knowledge-graph`, `openai-models-router`, `peer-sessions`, `response-unslop`, `skill-expert` |
 | Visualization | `consensus-summary-html`, `html-explainer`, `explain-plan`, `explain-work` |
 
 Skills live under `skills/<domain>/`. Engineering skills sit one level deeper,

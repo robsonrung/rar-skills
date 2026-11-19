@@ -1,5 +1,5 @@
 {
-  "_comment": "Machine-readable registry for the leitwörter convention (see skills/extras/skill-expert/references/leitworter.md). The `guards` block is enforced by scripts/check_leitworter.py, which CI runs in .github/workflows/skill-guards.yml: must_contain entries are deletion tripwires (the leitwort must still be present), must_not_contain entries are drift tripwires (an old generic phrasing must not return). The `canon` block is the cross-skill vocabulary, used by skill-expert and for warn-only drift hints. Matching is case-insensitive substring.",
+  "_comment": "Machine-readable registry for the leitw\u00f6rter convention (see skills/extras/skill-expert/references/leitworter.md). The `guards` block is enforced by scripts/check_leitworter.py, which CI runs in .github/workflows/skill-guards.yml: must_contain entries are deletion tripwires (the leitwort must still be present), must_not_contain entries are drift tripwires (an old generic phrasing must not return). The `canon` block is the cross-skill vocabulary, used by skill-expert and for warn-only drift hints. Matching is case-insensitive substring.",
   "guards": [
     {
       "file": "skills/engineering/practice/clean-code/SKILL.md",
@@ -209,7 +209,7 @@
       "must_not_contain": []
     },
     {
-      "file": "skills/extras/verify-changes/SKILL.md",
+      "file": "skills/engineering/review/verify-changes/SKILL.md",
       "concept": "captured evidence, not narrative",
       "must_contain": [
         "only captured command results count as evidence"
@@ -293,6 +293,49 @@
         "recommendation, not survey"
       ],
       "must_not_contain": []
+    },
+    {
+      "file": "skills/shared/references/rules-packs.md",
+      "concept": "review rules pack (one definition of discovery)",
+      "must_contain": [
+        "review rules pack"
+      ],
+      "must_not_contain": [
+        "holds this repository's review rules"
+      ]
+    },
+    {
+      "file": "skills/engineering/gates/design-gate/SKILL.md",
+      "concept": "review rules pack",
+      "must_contain": [
+        "review rules pack",
+        "rules-packs.md"
+      ],
+      "must_not_contain": [
+        "holds this repository's review rules"
+      ]
+    },
+    {
+      "file": "skills/engineering/engine/implement-and-review/SKILL.md",
+      "concept": "review rules pack",
+      "must_contain": [
+        "review rules pack",
+        "rules-packs.md"
+      ],
+      "must_not_contain": [
+        "holds this repository's review rules"
+      ]
+    },
+    {
+      "file": "skills/engineering/workflow/pr-readiness/SKILL.md",
+      "concept": "review rules pack",
+      "must_contain": [
+        "review rules pack",
+        "rules-packs.md"
+      ],
+      "must_not_contain": [
+        "holds this repository's review rules"
+      ]
     }
   ],
   "canon": [
@@ -391,7 +434,7 @@
       ]
     },
     {
-      "concept": "the first fork on any request — change or assessment",
+      "concept": "the first fork on any request \u2014 change or assessment",
       "leitwort": "act or assess",
       "drift_terms": [
         "act vs report",
@@ -637,6 +680,14 @@
       "concept": "the lightest model and effort that reaches a great result, where the next tier would not visibly change it",
       "leitwort": "lightest sufficient pick",
       "drift_terms": []
+    },
+    {
+      "concept": "a skill that holds one repository's review rules, found as shared/references/rules-packs.md says",
+      "leitwort": "review rules pack",
+      "drift_terms": [
+        "holds this repository's review rules",
+        "rules skill"
+      ]
     }
   ],
   "filler_verbs": [

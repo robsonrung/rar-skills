@@ -18,7 +18,7 @@ Send what the step needs, not a summary of the parent conversation. Keep it to a
 - escalation: unresolved decisions return to the orchestrator, and only the user can start `models-consensus`;
 - the envelope shape below.
 
-Keep each complete worker input under **24,000 UTF-8 bytes**; when it is over, link evidence or split independent work, never cut acceptance rules. `shared/scripts/context_packet.py measure --input <file>` checks the size. Each independent role starts with no parent history; repairs and rechecks go to the same role context with only the changed facts and finding IDs.
+Keep each complete worker input under **24,000 UTF-8 bytes**; when it is over, link evidence or split independent work, never cut acceptance rules. `shared/scripts/context_packet.py measure --input <file>` checks the size. Each independent role starts with no parent history. Later turns carry only the changed facts and finding IDs; whether they reuse the role's context follows [host-model-execution.md](host-model-execution.md).
 
 ## Report
 
@@ -43,6 +43,10 @@ The worker's final message, under 15 lines, and the only thing that enters the o
 ```
 
 `status` uses the work-state vocabulary; `verdict` uses the step's own. Open the report only when routing, integration, or a conflict needs it. A report is evidence, not completion: check its status and captured evidence before releasing dependent work.
+
+## Next step
+
+When a skill ends and its successor is user-only (`disable-model-invocation: true`), report `next: <skill>` and the path of the artifact that skill takes as input, then stop. Never read and follow a user-only skill yourself; the user starts it. A successor the model may invoke can run when the caller's plan includes it.
 
 ## Fresh-reader test
 

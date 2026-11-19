@@ -2,7 +2,16 @@
 name: resolve-pr-feedback
 description: Evaluate pull request feedback against the code, apply valid fixes, and reply to or resolve the addressed threads. Use only when the user asks to address pull request feedback or review threads. Do not use to find new issues in a diff.
 allowed-tools:
-  - Bash
+  - Bash(${CLAUDE_SKILL_DIR}/scripts/get-pr-comments *)
+  - Bash(${CLAUDE_SKILL_DIR}/scripts/get-thread-for-comment *)
+  - Bash(gh pr view *)
+  - Bash(gh pr diff *)
+  - Bash(gh repo view *)
+  - Bash(git status *)
+  - Bash(git diff *)
+  - Bash(git log *)
+  - Bash(git show *)
+  - Bash(git rev-parse *)
   - Read
   - Grep
   - Glob
@@ -20,10 +29,10 @@ A request to resolve feedback authorizes reading the pull request, making scoped
 
 ## Fetch
 
-Resolve the target: the current pull request, a number, a pull request URL, or one `discussion_r` URL. A supplied URL fixes the host, owner, and repository; pass `GH_HOST` on every command for an enterprise host. Set `SKILL_DIR` to this skill's absolute directory.
+Resolve the target: the current pull request, a number, a pull request URL, or one `discussion_r` URL. A supplied URL fixes the host, owner, and repository; pass `GH_HOST` on every command for an enterprise host. `${CLAUDE_SKILL_DIR}` is this skill's absolute directory. On a host that leaves it unexpanded, use the directory that holds this file. Run the scripts by path, unquoted, so the allowed commands above match.
 
-- **Whole pull request:** run `"$SKILL_DIR/scripts/get-pr-comments" <number> [OWNER/REPO]`. The candidates are unresolved review threads, top-level comments, and review bodies; skip blank, approval-only, and already answered items.
-- **One discussion URL:** limit the run to that thread. Fetch the comment, map its node ID to a thread with `"$SKILL_DIR/scripts/get-thread-for-comment" <number> <comment-node-id> [OWNER/REPO]`, and still run `get-pr-comments` once before replying.
+- **Whole pull request:** run `${CLAUDE_SKILL_DIR}/scripts/get-pr-comments <number> [OWNER/REPO]`. The candidates are unresolved review threads, top-level comments, and review bodies; skip blank, approval-only, and already answered items.
+- **One discussion URL:** limit the run to that thread. Fetch the comment, map its node ID to a thread with `${CLAUDE_SKILL_DIR}/scripts/get-thread-for-comment <number> <comment-node-id> [OWNER/REPO]`, and still run `get-pr-comments` once before replying.
 
 If `get-pr-comments` reports a pending review of your own, stop before posting anything, and neither submit nor discard it: a reply posted now would vanish into that draft.
 
@@ -35,7 +44,7 @@ Judge all candidates together with [references/evaluation-rubric.md](references/
 
 1. Make only the accepted fixes, within their scope. A fix large enough to need its own implementer and reviewer goes to `implement-and-review`.
 2. Validate the combined change once. Stage only the files those fixes changed, then commit and push when validation supports it.
-3. Reply to each completed, declined, or not-addressing item with its evidence. For an inline thread, pipe the body to `"$SKILL_DIR/scripts/reply-to-pr-thread" <thread-id>`, then resolve it once the answer is complete:
+3. Reply to each completed, declined, or not-addressing item with its evidence. For an inline thread, pipe the body to `${CLAUDE_SKILL_DIR}/scripts/reply-to-pr-thread <thread-id>`, then resolve it once the answer is complete:
 
    ```bash
    gh api graphql -f threadId=<thread-id> -f query='mutation($threadId: ID!) { resolveReviewThread(input: {threadId: $threadId}) { thread { isResolved } } }'

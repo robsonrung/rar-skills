@@ -20,6 +20,11 @@ Checks, across every top-level skill dir (any dir containing SKILL.md):
      Codex hosts need agents/openai.yaml with `allow_implicit_invocation: false`.
      A skill carrying one without the other is manual-only on one harness and
      auto-invocable on the other — this guard keeps the two in lockstep.
+  6. Title: the first `# ` heading after the frontmatter names the skill. The
+     compare ignores case and treats hyphens as spaces, so `pr-readiness`
+     matches "PR Readiness". The heading may add words after the name
+     ("Worktree Isolation"), and "Pull Request" may stand for "PR". A stale
+     heading left behind by a rename fails.
 
 Run: python3 shared/scripts/validate_skill_frontmatter.py
 Exit 0 on success, 1 with a FAIL line per violation.
@@ -161,6 +166,35 @@ def check_runner_parity(failures: list[str]) -> None:
             )
 
 
+def _title_words(text: str) -> str:
+    words = re.sub(r"[^a-z0-9]+", " ", text.lower().replace("pull request", "pr"))
+    return " ".join(words.split())
+
+
+def h1_matches_name(name: str, h1: str) -> bool:
+    """True when the heading names the skill: equal words, or the name's
+    words followed by more words."""
+    want, got = _title_words(name), _title_words(h1)
+    return bool(want) and (got == want or got.startswith(want + " "))
+
+
+def check_h1(failures: list[str]) -> None:
+    for skill_md in sorted(d / "SKILL.md" for d in iter_skill_dirs(REPO_ROOT)):
+        if skill_md.parent.name in NOT_A_SKILL:
+            continue
+        text = skill_md.read_text(encoding="utf-8", errors="replace")
+        body = re.sub(r"^---\n.*?\n---\n", "", text, count=1, flags=re.DOTALL)
+        heading = re.search(r"^# (.+)$", body, re.MULTILINE)
+        rel = skill_md.relative_to(REPO_ROOT)
+        if not heading:
+            failures.append(f"{rel}: no '# ' title heading")
+        elif not h1_matches_name(skill_md.parent.name, heading.group(1)):
+            failures.append(
+                f"{rel}: title {heading.group(1).strip()!r} does not name the skill "
+                f"{skill_md.parent.name!r}"
+            )
+
+
 def check_invocation_parity(failures: list[str]) -> None:
     for skill_md in sorted(d / "SKILL.md" for d in iter_skill_dirs(REPO_ROOT)):
         if skill_md.parent.name in NOT_A_SKILL:
@@ -202,6 +236,7 @@ def main() -> int:
     count = check_frontmatter(failures, warnings)
     check_runner_parity(failures)
     check_invocation_parity(failures)
+    check_h1(failures)
     for w in warnings:
         print(f"warning: {w}")
     if failures:

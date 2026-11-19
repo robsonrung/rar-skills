@@ -21,11 +21,16 @@ These are hints, not guarantees. An installed CLI or `agents/openai.yaml` metada
 
 ## Keep role contexts through iterations
 
-Start one isolated context per task and role, with no parent conversation history (`fork_turns: none` where the host offers it), and give it the bounded brief from [handoff-contract.md](handoff-contract.md). Reuse that context for the same role's later turns: interview rounds, fixes, rechecks, debate rounds. Start a new one for a different task, an independent role, a blind opening, or an approved model change.
+Start one isolated context per task and role, with no parent conversation history (`fork_turns: none` where the host offers it), and give it the bounded brief from [handoff-contract.md](handoff-contract.md). Start a new one for a different task, an independent role, a blind opening, or an approved model change.
+
+Later turns follow the role:
+
+- **Reuse the role's context** for an author's or implementer's fix turns, interview rounds, the author's debate rounds, and runner turns. In T3 Code, continue it with `t3_thread_send`.
+- **Later judging turns** are a reviewer's recheck or follow-up and a challenger's next verdict. Outside T3 Code, the same role context answers them. In T3 Code, each one is a new `delegate_task` on the same approved route. Brief it with `review.md` (or the earlier findings), the finding IDs, the author's objections, and the current diff, and tell it not to start a new review.
 
 An implementer and its reviewer never share a context. Consensus seats don't see each other's answers before the protocol allows it. Judges start without seat history. Repeated turns from one context are one opinion, not several.
 
-Keep each role's actual context ID or session path with the run's work state ([work-state.md](work-state.md)). A background job ID, a requested model, or a setup token is not a context ID; wait for the real handle before sending work. Continue with that ID, never a "most recent session" selector while several roles run; each runner documents its own session handling. A lost session is rebuilt from that role's artifacts under the same route, and the report says it was a reconstruction. Keep a reviewer open while fix cycles remain.
+Keep each role's actual context ID or session path with the run's work state ([work-state.md](work-state.md)). A background job ID, a requested model, or a setup token is not a context ID; wait for the real handle before sending work. Continue with that ID, never a "most recent session" selector while several roles run; each runner documents its own session handling. A lost session is rebuilt from that role's artifacts under the same route, and the report says it was a reconstruction. Outside T3 Code, keep a reviewer open while fix cycles remain.
 
 ## Browser and provider capabilities
 

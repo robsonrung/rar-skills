@@ -3,7 +3,7 @@ name: to-prototype
 description: Build a throwaway experiment to answer a design question that reading cannot settle. Use for technical spikes, state-model demos, or visual alternatives; use a tracer bullet when the code must ship.
 ---
 
-# Prototype
+# To Prototype
 
 Answer one decision-changing question with throwaway code. **Prototype code never graduates**: the production task rebuilds the chosen behavior under its own acceptance contract. A prototype yields evidence and a decision, not a feature.
 

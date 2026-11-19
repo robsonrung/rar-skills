@@ -10,17 +10,13 @@ Build one task to its **acceptance contract**. An implementer builds it, a revie
 ## Plan
 
 1. Read the task, its acceptance contract, the code it touches, and the project's conventions. Settled design, security, and interface decisions are **already decided**; reopen only a boundary that changed.
+   When the task changes stored state, adds a write command or an access check, or adds a worker, also read the matching rules of the **review rules pack** (`shared/references/rules-packs.md`). They join the contract, so the reviewer checks them too.
 2. Choose the roles. Use the routes in a plan you inherited from `implement-tasks`, or else the models the user names. Otherwise run `python3 shared/scripts/model_routing.py resolve <route> --provider <host> [--risk high]` with the route that fits the task's shape: `routine-code`, `standard-code`, or `hard-code` (`routes` lists every route and when to use it). The reviewer's model always differs from the implementer's.
 3. Show the task, each role with its model, effort, and host route, and the limit of three review cycles. Ask: **"Approve this plan, or specify changes."** An inherited approved plan is already the approval.
 
 ## Roles
 
-Give each role one persistent context for the whole task. Fixes go back to the same implementer and rechecks to the same reviewer. The reviewer never sees the implementer's transcript, only the contract, the diff, and the evidence.
-
-Route each role by host:
-- **T3 Code:** start it with `delegate_task` using the configured provider and model, and continue it with `t3_thread_send`. A Muse route uses `muse-runner`.
-- **Claude Code or Codex:** use a native subagent when the host has the model, and continue it by messaging that same subagent.
-- **Model the host lacks:** use `cli-runner`, `pi-runner`, or `muse-runner`. An unavailable role blocks its work, and you report it; never swap in another model.
+Fixes go back to the same implementer context. The reviewer never sees the implementer's transcript, only the contract, the diff, and the evidence. Route and continue each role as `shared/references/host-model-execution.md` says. The reviewer runs on a different model; an unavailable route blocks its role, and you report it; never swap in another model.
 
 The implementer edits only within the task's scope. Neither role commits, pushes, merges, opens a pull request, deploys, or messages an outside service. Tell the reviewer to leave every file unchanged.
 
@@ -74,9 +70,9 @@ Give the reviewer the contract, the changed paths and diff, the captured evidenc
 
 The reviewer returns `ready` or `changes required`. Each finding has a severity, a location, its evidence, and the contract clause, named risk, or design bar criterion it serves; a finding that serves none is dropped. When a design debate ran, give the reviewer `design.md` and the design bar, never the debate.
 
-Severity follows consequence. A P1 or P2 blocks acceptance. A confirmed P2 whose fix falls outside the scope stays blocking and goes to the user; never relabel it P3 to fit. For a seam, a public contract, or high residual risk, recommend `full-review`, and use it when the user selects it.
+Severity and the review cycle limit follow `shared/references/reviewer-response.md`: a P0 to P2 blocks acceptance. A confirmed P2 whose fix falls outside the scope stays blocking and goes to the user; never relabel it P3 to fit. For a seam, a public contract, or high residual risk, recommend `full-review`, and use it when the user selects it.
 
-Send confirmed findings to the same implementer and capture fresh evidence. Then ask the same reviewer to recheck, giving it the finding IDs and what changed. Stop after three review cycles, counted in the report; the plan may set another limit. When the limit runs out, return `ceiling_hit` with the open findings.
+Send confirmed findings to the same implementer and capture fresh evidence. Then have the reviewer recheck, with the finding IDs and what changed. Count the cycles in the report. When the limit runs out, return `ceiling_hit` with the open findings.
 
 ## Feature policy
 

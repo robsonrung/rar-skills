@@ -10,7 +10,7 @@ allowed-tools:
   - Agent
 ---
 
-# Coding Review Simplify
+# Simplify Changes
 
 Tighten a completed diff while its context is fresh. Every change this pass makes is **behavior-preserving**: the **observable behavior** (outputs, errors, side effects, ordering) stays exactly as it was. Success is a simpler change, not fewer lines.
 
@@ -71,7 +71,7 @@ On request, hunt dead code and slop in a repository or named paths: maintenance 
 
 ## Seats
 
-Before dispatching other models, show the plan (seats, models, briefs) and get a clear yes. Defaults come from `shared/model-routing.json`. Inside T3 Code, use `delegate_task` with the configured provider and model, and continue with `t3_thread_send`. In Claude Code or Codex, use a native subagent when the host has the model, and continue by messaging it. Otherwise use `cli-runner`. Send follow-ups to the same seat so it keeps its context. Give each pass seat the diff, the guards, and its pass, and tell it to leave files unchanged.
+Before dispatching other models, show the plan (seats, models, briefs) and get a clear yes. Defaults come from `shared/model-routing.json`. Route each seat and its follow-ups as `shared/references/host-model-execution.md` says; an unavailable route blocks its seat, and you report it; never substitute another model. Give each pass seat the diff, the guards, and its pass, and tell it to leave files unchanged.
 
 ## Output
 
